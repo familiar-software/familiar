@@ -15,8 +15,26 @@
       </header>
 
       <section class="card">
-        <h2>Settings (Placeholder)</h2>
-        <p>Settings UI will land here next.</p>
+        <h2>Settings</h2>
+
+        <div class="field">
+          <label for="context-folder-path">Context Folder Path</label>
+          <div class="field-row">
+            <input
+              id="context-folder-path"
+              class="field-input"
+              type="text"
+              placeholder="No folder selected"
+              readonly
+            >
+            <button id="context-folder-choose" class="button" type="button">Choose...</button>
+          </div>
+          <p id="context-folder-error" class="field-error" role="alert" aria-live="polite"></p>
+          <div class="field-actions">
+            <button id="context-folder-save" class="button primary" type="button" disabled>Save</button>
+            <span id="context-folder-status" class="field-status" aria-live="polite"></span>
+          </div>
+        </div>
 
         <dl class="meta">
           <div>
@@ -43,5 +61,6 @@
 
     <!-- You can also require other files to run in this process -->
     <script src="./renderer.js"></script>
+    <script src="./settings-renderer.js"></script>
   </body>
 </html>

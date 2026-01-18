@@ -1,7 +1,8 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, Menu, Tray, dialog, nativeImage } = require('electron')
+const { app, BrowserWindow, Menu, Tray, dialog, nativeImage, ipcMain } = require('electron')
 const path = require('node:path')
 const { buildTrayMenuTemplate } = require('./menu')
+const { loadSettings, saveSettings, validateContextFolderPath } = require('./settings')
 const trayIconPath = path.join(__dirname, 'icon.png')
 
 let tray = null
@@ -10,15 +11,17 @@ let isQuitting = false
 
 function createSettingsWindow () {
   const window = new BrowserWindow({
-    width: 420,
-    height: 320,
+    width: 520,
+    height: 440,
     resizable: false,
     fullscreenable: false,
     minimizable: false,
     show: false,
     title: 'Jiminy Settings',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
 
@@ -99,6 +102,85 @@ function createTray () {
 
   console.log('Tray created')
 }
+
+ipcMain.handle('settings:get', () => {
+  try {
+    const settings = loadSettings()
+    const contextFolderPath = settings.contextFolderPath || ''
+    let validationMessage = ''
+
+    if (contextFolderPath) {
+      const validation = validateContextFolderPath(contextFolderPath)
+      if (!validation.ok) {
+        validationMessage = validation.message
+        console.warn('Stored context folder path is invalid', {
+          contextFolderPath,
+          message: validationMessage
+        })
+      }
+    }
+
+    return { contextFolderPath, validationMessage }
+  } catch (error) {
+    console.error('Failed to load settings', error)
+    return { contextFolderPath: '', validationMessage: 'Failed to load settings.' }
+  }
+})
+
+ipcMain.handle('settings:pickContextFolder', async (event) => {
+  const parentWindow = BrowserWindow.fromWebContents(event.sender)
+  const openDialogOptions = {
+    title: 'Select Context Folder',
+    properties: ['openDirectory']
+  }
+
+  console.log('Opening context folder picker')
+  if (parentWindow) {
+    parentWindow.show()
+    parentWindow.focus()
+  }
+  app.focus({ steal: true })
+
+  let result
+  try {
+    result = parentWindow
+      ? await dialog.showOpenDialog(parentWindow, openDialogOptions)
+      : await dialog.showOpenDialog(openDialogOptions)
+  } catch (error) {
+    console.error('Failed to open context folder picker', error)
+    return { canceled: true, error: 'Failed to open folder picker.' }
+  }
+
+  if (result.canceled || result.filePaths.length === 0) {
+    console.log('Context folder picker canceled')
+    return { canceled: true }
+  }
+
+  console.log('Context folder selected', { path: result.filePaths[0] })
+  return { canceled: false, path: result.filePaths[0] }
+})
+
+ipcMain.handle('settings:save', (event, payload) => {
+  const contextFolderPath = payload?.contextFolderPath || ''
+  const validation = validateContextFolderPath(contextFolderPath)
+
+  if (!validation.ok) {
+    console.warn('Context folder validation failed', {
+      contextFolderPath,
+      message: validation.message
+    })
+    return { ok: false, message: validation.message }
+  }
+
+  try {
+    saveSettings({ contextFolderPath: validation.path })
+    console.log('Settings saved', { contextFolderPath: validation.path })
+    return { ok: true }
+  } catch (error) {
+    console.error('Failed to save settings', error)
+    return { ok: false, message: 'Failed to save settings.' }
+  }
+})
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

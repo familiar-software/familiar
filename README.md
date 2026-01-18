@@ -17,7 +17,7 @@ npm test
 
 ## Notes
 
-- The app runs from the macOS menu bar with a placeholder Settings window.
+- The app runs from the macOS menu bar with a Settings window that stores the Context Folder Path in `~/.jiminy/settings.json`.
 - Auto-launch on login is enabled via Electron login item settings.
 
 ## License
