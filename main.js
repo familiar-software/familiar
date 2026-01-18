@@ -128,6 +128,21 @@ ipcMain.handle('settings:get', () => {
 })
 
 ipcMain.handle('settings:pickContextFolder', async (event) => {
+  if (process.env.JIMINY_E2E === '1' && process.env.JIMINY_E2E_CONTEXT_PATH) {
+    const testPath = process.env.JIMINY_E2E_CONTEXT_PATH
+    const validation = validateContextFolderPath(testPath)
+    if (!validation.ok) {
+      console.warn('E2E mode: invalid context folder path', {
+        path: testPath,
+        message: validation.message
+      })
+      return { canceled: true, error: validation.message }
+    }
+
+    console.log('E2E mode: returning context folder path', { path: validation.path })
+    return { canceled: false, path: validation.path }
+  }
+
   const parentWindow = BrowserWindow.fromWebContents(event.sender)
   const openDialogOptions = {
     title: 'Select Context Folder',
@@ -196,6 +211,11 @@ app.whenReady().then(() => {
   app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true })
 
   createTray()
+
+  if (process.env.JIMINY_E2E === '1') {
+    console.log('E2E mode: opening settings window')
+    showSettingsWindow()
+  }
 
   app.on('activate', () => {
     // Keep background-only behavior; open Settings only from the tray menu.

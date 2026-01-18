@@ -6,7 +6,7 @@ const SETTINGS_DIR_NAME = '.jiminy'
 const SETTINGS_FILE_NAME = 'settings.json'
 
 const resolveSettingsDir = (settingsDir) => (
-  settingsDir || path.join(os.homedir(), SETTINGS_DIR_NAME)
+  settingsDir || process.env.JIMINY_SETTINGS_DIR || path.join(os.homedir(), SETTINGS_DIR_NAME)
 )
 
 const resolveSettingsPath = (options = {}) => (
