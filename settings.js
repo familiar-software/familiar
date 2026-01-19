@@ -44,6 +44,7 @@ const saveSettings = (settings, options = {}) => {
   const existing = loadSettings(options)
   const hasContextFolderPath = Object.prototype.hasOwnProperty.call(settings, 'contextFolderPath')
   const hasLlmProviderApiKey = Object.prototype.hasOwnProperty.call(settings, 'llmProviderApiKey')
+  const hasExclusions = Object.prototype.hasOwnProperty.call(settings, 'exclusions')
   const existingProvider = existing && typeof existing.llm_provider === 'object'
     ? existing.llm_provider
     : {}
@@ -61,6 +62,13 @@ const saveSettings = (settings, options = {}) => {
   } else if (Object.keys(existingProvider).length > 0) {
     payload.llm_provider = { ...existingProvider }
   }
+
+  if (hasExclusions) {
+    payload.exclusions = Array.isArray(settings.exclusions) ? settings.exclusions : []
+  } else if (Array.isArray(existing.exclusions)) {
+    payload.exclusions = existing.exclusions
+  }
+
   fs.writeFileSync(settingsPath, JSON.stringify(payload, null, 2), 'utf-8')
 
   return settingsPath

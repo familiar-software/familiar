@@ -36,6 +36,22 @@
           </div>
         </div>
 
+        <div class="advanced-toggle">
+          <button id="advanced-toggle-btn" class="toggle-button" type="button">
+            <span class="toggle-arrow">▶</span>
+            Advanced options
+          </button>
+        </div>
+
+        <div id="advanced-options" class="advanced-options" hidden>
+          <div class="field">
+            <label>Excluded Paths</label>
+            <p class="field-help">These files and folders will be skipped during sync.</p>
+            <ul id="exclusions-list" class="exclusions-list"></ul>
+            <button id="add-exclusion" class="button" type="button">Add exclusion...</button>
+          </div>
+        </div>
+
         <div class="field">
           <label for="llm-api-key">Configure LLM Key</label>
           <div class="field-row">

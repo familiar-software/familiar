@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('jiminy', {
   nodeVersion: process.versions.node,
   getSettings: () => ipcRenderer.invoke('settings:get'),
   pickContextFolder: () => ipcRenderer.invoke('settings:pickContextFolder'),
+  pickExclusion: (contextFolderPath) => ipcRenderer.invoke('settings:pickExclusion', contextFolderPath),
   saveSettings: (payload) => {
     const data = typeof payload === 'string' ? { contextFolderPath: payload } : payload
     return ipcRenderer.invoke('settings:save', data)

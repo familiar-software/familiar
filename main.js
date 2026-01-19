@@ -109,6 +109,7 @@ ipcMain.handle('settings:get', () => {
         const settings = loadSettings();
         const contextFolderPath = settings.contextFolderPath || '';
         const llmProviderApiKey = settings?.llm_provider?.api_key || '';
+        const exclusions = Array.isArray(settings.exclusions) ? settings.exclusions : [];
         let validationMessage = '';
 
         if (contextFolderPath) {
@@ -122,10 +123,10 @@ ipcMain.handle('settings:get', () => {
             }
         }
 
-        return { contextFolderPath, validationMessage, llmProviderApiKey };
+        return { contextFolderPath, validationMessage, llmProviderApiKey, exclusions };
     } catch (error) {
         console.error('Failed to load settings', error);
-        return { contextFolderPath: '', validationMessage: 'Failed to load settings.', llmProviderApiKey: '' };
+        return { contextFolderPath: '', validationMessage: 'Failed to load settings.', llmProviderApiKey: '', exclusions: [] };
     }
 });
 
@@ -177,12 +178,66 @@ ipcMain.handle('settings:pickContextFolder', async (event) => {
     return { canceled: false, path: result.filePaths[0] };
 });
 
+ipcMain.handle('settings:pickExclusion', async (event, contextFolderPath) => {
+    const parentWindow = BrowserWindow.fromWebContents(event.sender);
+    const defaultPath = contextFolderPath || undefined;
+
+    const openDialogOptions = {
+        title: 'Select File or Folder to Exclude',
+        defaultPath,
+        properties: ['openFile', 'openDirectory'],
+    };
+
+    console.log('Opening exclusion picker', { defaultPath });
+    if (parentWindow) {
+        parentWindow.show();
+        parentWindow.focus();
+    }
+    app.focus({ steal: true });
+
+    let result;
+    try {
+        result = parentWindow
+            ? await dialog.showOpenDialog(parentWindow, openDialogOptions)
+            : await dialog.showOpenDialog(openDialogOptions);
+    } catch (error) {
+        console.error('Failed to open exclusion picker', error);
+        return { canceled: true, error: 'Failed to open picker.' };
+    }
+
+    if (result.canceled || result.filePaths.length === 0) {
+        console.log('Exclusion picker canceled');
+        return { canceled: true };
+    }
+
+    const selectedPath = result.filePaths[0];
+
+    // Validate the selected path is inside the context folder
+    if (contextFolderPath) {
+        const resolvedContext = path.resolve(contextFolderPath);
+        const resolvedSelected = path.resolve(selectedPath);
+        if (!resolvedSelected.startsWith(resolvedContext + path.sep) && resolvedSelected !== resolvedContext) {
+            console.warn('Selected exclusion is outside context folder', { selectedPath, contextFolderPath });
+            return { canceled: true, error: 'Selected path must be inside the context folder.' };
+        }
+
+        // Return relative path from context folder
+        const relativePath = path.relative(resolvedContext, resolvedSelected);
+        console.log('Exclusion selected', { absolutePath: selectedPath, relativePath });
+        return { canceled: false, path: relativePath };
+    }
+
+    console.log('Exclusion selected (no context folder)', { path: selectedPath });
+    return { canceled: false, path: selectedPath };
+});
+
 ipcMain.handle('settings:save', (event, payload) => {
     const hasContextFolderPath = Object.prototype.hasOwnProperty.call(payload || {}, 'contextFolderPath');
     const hasLlmProviderApiKey = Object.prototype.hasOwnProperty.call(payload || {}, 'llmProviderApiKey');
+    const hasExclusions = Object.prototype.hasOwnProperty.call(payload || {}, 'exclusions');
     const settingsPayload = {};
 
-    if (!hasContextFolderPath && !hasLlmProviderApiKey) {
+    if (!hasContextFolderPath && !hasLlmProviderApiKey && !hasExclusions) {
         return { ok: false, message: 'No settings provided.' };
     }
 
@@ -207,6 +262,10 @@ ipcMain.handle('settings:save', (event, payload) => {
             : '';
     }
 
+    if (hasExclusions) {
+        settingsPayload.exclusions = Array.isArray(payload.exclusions) ? payload.exclusions : [];
+    }
+
     try {
         saveSettings(settingsPayload);
         console.log('Settings saved');
@@ -221,6 +280,7 @@ ipcMain.handle('contextGraph:sync', async (event) => {
     const settings = loadSettings();
     const contextFolderPath = settings.contextFolderPath || '';
     const llmProviderApiKey = settings?.llm_provider?.api_key || '';
+    const exclusions = Array.isArray(settings.exclusions) ? settings.exclusions : [];
     const validation = validateContextFolderPath(contextFolderPath);
 
     if (!validation.ok) {
@@ -239,6 +299,7 @@ ipcMain.handle('contextGraph:sync', async (event) => {
             rootPath: validation.path,
             store,
             summarizer,
+            exclusions,
             onProgress: (progress) => {
                 event.sender.send('contextGraph:progress', progress);
             },

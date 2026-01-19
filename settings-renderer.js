@@ -14,6 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const syncProgress = document.getElementById('context-graph-progress')
   const syncWarning = document.getElementById('context-graph-warning')
   const syncError = document.getElementById('context-graph-error')
+  const advancedToggleBtn = document.getElementById('advanced-toggle-btn')
+  const advancedOptions = document.getElementById('advanced-options')
+  const exclusionsList = document.getElementById('exclusions-list')
+  const addExclusionBtn = document.getElementById('add-exclusion')
+
+  let currentExclusions = []
 
   const setMessage = (element, message) => {
     if (!element) {
@@ -37,6 +43,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const renderExclusions = () => {
+    if (!exclusionsList) return
+
+    exclusionsList.innerHTML = ''
+    for (const exclusion of currentExclusions) {
+      const li = document.createElement('li')
+      li.className = 'exclusion-item'
+
+      const pathSpan = document.createElement('span')
+      pathSpan.className = 'exclusion-path'
+      pathSpan.textContent = exclusion
+      pathSpan.title = exclusion
+
+      const removeBtn = document.createElement('button')
+      removeBtn.className = 'exclusion-remove'
+      removeBtn.textContent = '×'
+      removeBtn.title = 'Remove exclusion'
+      removeBtn.addEventListener('click', () => removeExclusion(exclusion))
+
+      li.appendChild(pathSpan)
+      li.appendChild(removeBtn)
+      exclusionsList.appendChild(li)
+    }
+  }
+
+  const saveExclusions = async () => {
+    if (!jiminy.saveSettings) return
+
+    try {
+      await jiminy.saveSettings({ exclusions: currentExclusions })
+      console.log('Exclusions saved', currentExclusions)
+    } catch (error) {
+      console.error('Failed to save exclusions', error)
+    }
+  }
+
+  const addExclusion = (path) => {
+    if (!path || currentExclusions.includes(path)) return
+    currentExclusions.push(path)
+    currentExclusions.sort()
+    renderExclusions()
+    saveExclusions()
+  }
+
+  const removeExclusion = (path) => {
+    currentExclusions = currentExclusions.filter((p) => p !== path)
+    renderExclusions()
+    saveExclusions()
+  }
+
   const loadSettings = async () => {
     if (!jiminy.getSettings || !contextFolderInput) {
       return
@@ -48,6 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (llmKeyInput) {
         llmKeyInput.value = result.llmProviderApiKey || ''
       }
+      currentExclusions = Array.isArray(result.exclusions) ? [...result.exclusions] : []
+      renderExclusions()
       setMessage(errorMessage, result.validationMessage || '')
       setMessage(statusMessage, '')
       setMessage(llmKeyError, '')
@@ -195,6 +253,43 @@ document.addEventListener('DOMContentLoaded', () => {
         setMessage(syncError, 'Failed to sync context graph.')
       } finally {
         setSyncState(false)
+      }
+    })
+  }
+
+  if (advancedToggleBtn && advancedOptions) {
+    advancedToggleBtn.addEventListener('click', () => {
+      const isHidden = advancedOptions.hidden
+      advancedOptions.hidden = !isHidden
+      const arrow = advancedToggleBtn.querySelector('.toggle-arrow')
+      if (arrow) {
+        arrow.classList.toggle('open', isHidden)
+      }
+    })
+  }
+
+  if (addExclusionBtn) {
+    addExclusionBtn.addEventListener('click', async () => {
+      if (!jiminy.pickExclusion) {
+        console.error('pickExclusion not available')
+        return
+      }
+
+      const contextPath = contextFolderInput?.value || ''
+      if (!contextPath) {
+        console.warn('No context folder selected')
+        return
+      }
+
+      try {
+        const result = await jiminy.pickExclusion(contextPath)
+        if (result && !result.canceled && result.path) {
+          addExclusion(result.path)
+        } else if (result && result.error) {
+          console.error('Failed to pick exclusion:', result.error)
+        }
+      } catch (error) {
+        console.error('Failed to pick exclusion', error)
       }
     })
   }

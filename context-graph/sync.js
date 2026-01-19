@@ -21,7 +21,7 @@ const readFileData = (filePath) => {
   }
 }
 
-const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES } = {}) => {
+const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES, exclusions = [] } = {}) => {
   const nodes = {}
   const fileContents = new Map()
   const fileIds = []
@@ -32,6 +32,21 @@ const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES } 
   const visitedDirs = new Set()
   let totalNodes = 0
   let exceededLimit = false
+
+  const exclusionSet = new Set(
+    exclusions.map((p) => p.replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''))
+  )
+
+  const isExcluded = (relativePath) => {
+    if (!relativePath) return false
+    const normalized = relativePath.replace(/\\/g, '/')
+    // Check exact match or if it's inside an excluded folder
+    if (exclusionSet.has(normalized)) return true
+    for (const excluded of exclusionSet) {
+      if (normalized.startsWith(excluded + '/')) return true
+    }
+    return false
+  }
 
   const registerNode = () => {
     totalNodes += 1
@@ -88,6 +103,11 @@ const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES } 
       const entryPath = path.join(currentPath, entry.name)
       const entryRelative = normalizedRelative ? path.join(normalizedRelative, entry.name) : entry.name
       const normalizedEntryRelative = normalizeRelativePath(entryRelative)
+
+      if (isExcluded(normalizedEntryRelative)) {
+        logger.log('Skipping excluded path', { path: normalizedEntryRelative })
+        continue
+      }
 
       if (entry.isSymbolicLink()) {
         try {
@@ -222,7 +242,8 @@ const syncContextGraph = async ({
   summarizer,
   onProgress = () => {},
   logger = console,
-  maxNodes = MAX_NODES
+  maxNodes = MAX_NODES,
+  exclusions = []
 }) => {
   const start = Date.now()
   logger.log('Context graph sync started', { rootPath })
@@ -230,7 +251,7 @@ const syncContextGraph = async ({
   const previousGraph = store.load()
   const previousNodes = previousGraph?.nodes || {}
 
-  const scanResult = scanContextFolder(rootPath, { logger, maxNodes })
+  const scanResult = scanContextFolder(rootPath, { logger, maxNodes, exclusions })
   const {
     nodes,
     rootId,
