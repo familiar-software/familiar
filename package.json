@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/**/*.test.js",
+    "test": "bash -c 'shopt -s globstar nullglob; node --test test/**/*.test.js'",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
