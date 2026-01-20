@@ -8,9 +8,13 @@ test('sync now builds context graph with mocked summaries', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context-graph')
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-e2e-'))
+  const launchArgs = ['.']
+  if (process.platform === 'linux' || process.env.CI) {
+    launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
+  }
 
   const electronApp = await electron.launch({
-    args: ['.'],
+    args: launchArgs,
     cwd: appRoot,
     env: {
       ...process.env,
