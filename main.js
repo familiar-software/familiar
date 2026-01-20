@@ -9,6 +9,16 @@ const trayIconPath = path.join(__dirname, 'icon.png');
 let tray = null;
 let settingsWindow = null;
 let isQuitting = false;
+const isE2E = process.env.JIMINY_E2E === '1';
+const isCI = process.env.CI === 'true' || process.env.CI === '1';
+
+if (process.platform === 'linux' && (isE2E || isCI)) {
+    console.log('Applying Linux CI/E2E Electron flags');
+    app.disableHardwareAcceleration();
+    app.commandLine.appendSwitch('no-sandbox');
+    app.commandLine.appendSwitch('disable-gpu');
+    app.commandLine.appendSwitch('disable-dev-shm-usage');
+}
 
 function createSettingsWindow() {
     const window = new BrowserWindow({
@@ -322,8 +332,6 @@ ipcMain.handle('contextGraph:sync', async (event) => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-    const isE2E = process.env.JIMINY_E2E === '1';
-
     if (process.platform !== 'darwin' && !isE2E) {
         console.error('Jiminy desktop app is macOS-only right now.');
         app.quit();

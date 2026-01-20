@@ -28,6 +28,7 @@ E2E helpers:
 -   `JIMINY_SETTINGS_DIR` overrides the settings storage directory.
 -   `JIMINY_LLM_MOCK=1` replaces Gemini calls with a mock summarizer.
 -   `JIMINY_LLM_MOCK_TEXT` sets the mock summary text (default: `gibberish`).
+-   On Linux CI/E2E runs (`JIMINY_E2E=1` or `CI=true`), the app disables GPU and sandbox flags to improve launch reliability.
 
 ## Run GitHub CI locally
 
