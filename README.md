@@ -29,6 +29,14 @@ E2E helpers:
 -   `JIMINY_LLM_MOCK=1` replaces Gemini calls with a mock summarizer.
 -   `JIMINY_LLM_MOCK_TEXT` sets the mock summary text (default: `gibberish`).
 
+## Run GitHub CI locally
+
+Use `act` from the repo root to run the CI job:
+
+```bash
+act -W .github/workflows/ci.yml -s LLM_API_KEY=YOUR_KEY
+```
+
 ## Notes
 
 -   The app runs from the macOS menu bar with a Settings window that stores the Context Folder Path and LLM API key in `~/.jiminy/settings.json`.
