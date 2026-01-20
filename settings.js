@@ -2,8 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const os = require('node:os')
 
-const SETTINGS_DIR_NAME = '.jiminy'
-const SETTINGS_FILE_NAME = 'settings.json'
+const { SETTINGS_DIR_NAME, SETTINGS_FILE_NAME } = require('./const')
 
 const resolveSettingsDir = (settingsDir) => (
   settingsDir || process.env.JIMINY_SETTINGS_DIR || path.join(os.homedir(), SETTINGS_DIR_NAME)

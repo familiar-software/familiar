@@ -4,6 +4,7 @@ const path = require('node:path')
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
 const { JsonContextGraphStore, syncContextGraph } = require('../context-graph')
+const { CAPTURES_DIR_NAME } = require('../const')
 
 const createTempDir = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix))
 
@@ -41,6 +42,12 @@ const writeSkipFixture = (rootPath) => {
   fs.writeFileSync(path.join(rootPath, 'docs', 'keep.md'), '# Keep', 'utf-8')
   fs.writeFileSync(path.join(rootPath, 'notes.txt'), 'Keep this too', 'utf-8')
   fs.writeFileSync(path.join(rootPath, 'image.png'), 'not really png', 'utf-8')
+}
+
+const writeCaptureFolderFixture = (rootPath) => {
+  const capturesPath = path.join(rootPath, CAPTURES_DIR_NAME)
+  fs.mkdirSync(capturesPath, { recursive: true })
+  fs.writeFileSync(path.join(capturesPath, 'capture.md'), 'Captured content', 'utf-8')
 }
 const createStore = () => {
   const settingsDir = createTempDir('jiminy-settings-')
@@ -216,4 +223,28 @@ test('sync skips non-md/txt files and logs a warning', async () => {
   const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
   const skipped = Object.values(stored.nodes).find((node) => node.relativePath === 'image.png')
   assert.equal(skipped, undefined)
+})
+
+test('sync ignores the captures folder', async () => {
+  const contextRoot = createTempDir('jiminy-context-')
+  writeFixtureFiles(contextRoot)
+  writeCaptureFolderFixture(contextRoot)
+
+  const store = createStore()
+  const summarizer = {
+    model: 'test-model',
+    summarizeFile: async ({ relativePath }) => `Summary for ${relativePath}`,
+    summarizeFolder: async ({ relativePath }) => `Folder summary for ${relativePath || '.'}`
+  }
+
+  const result = await syncContextGraph({
+    rootPath: contextRoot,
+    store,
+    summarizer
+  })
+
+  assert.equal(result.graph.counts.files, 2)
+  const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
+  const capturedNode = Object.values(stored.nodes).find((node) => node.relativePath === path.join(CAPTURES_DIR_NAME, 'capture.md'))
+  assert.equal(capturedNode, undefined)
 })

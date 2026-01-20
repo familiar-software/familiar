@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { resolveSettingsDir } = require('../settings')
 
-const GRAPH_FILE_NAME = 'context-tree.json'
+const { CONTEXT_GRAPH_FILE_NAME } = require('../const')
 
 class ContextGraphStore {
   load () {
@@ -22,7 +22,7 @@ class JsonContextGraphStore extends ContextGraphStore {
   constructor (options = {}) {
     super()
     this.settingsDir = resolveSettingsDir(options.settingsDir)
-    this.graphPath = path.join(this.settingsDir, GRAPH_FILE_NAME)
+    this.graphPath = path.join(this.settingsDir, CONTEXT_GRAPH_FILE_NAME)
   }
 
   getPath () {
@@ -57,5 +57,5 @@ class JsonContextGraphStore extends ContextGraphStore {
 module.exports = {
   ContextGraphStore,
   JsonContextGraphStore,
-  GRAPH_FILE_NAME
+  CONTEXT_GRAPH_FILE_NAME
 }

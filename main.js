@@ -4,6 +4,7 @@ const path = require('node:path');
 const { buildTrayMenuTemplate } = require('./menu');
 const { loadSettings, saveSettings, validateContextFolderPath } = require('./settings');
 const { JsonContextGraphStore, createSummarizer, DEFAULT_MODEL, syncContextGraph } = require('./context-graph');
+const { registerCaptureHandlers, startCaptureFlow, closeOverlayWindow } = require('./screenshot/capture');
 const trayIconPath = path.join(__dirname, 'icon.png');
 
 let tray = null;
@@ -19,6 +20,7 @@ if (process.platform === 'linux' && (isE2E || isCI)) {
     app.commandLine.appendSwitch('disable-gpu');
     app.commandLine.appendSwitch('disable-dev-shm-usage');
 }
+
 
 function createSettingsWindow() {
     const window = new BrowserWindow({
@@ -102,6 +104,9 @@ function createTray() {
 
     const trayMenu = Menu.buildFromTemplate(
         buildTrayMenuTemplate({
+            onCapture: () => {
+                void startCaptureFlow();
+            },
             onOpenSettings: showSettingsWindow,
             onAbout: showAboutDialog,
             onRestart: restartApp,
@@ -139,6 +144,7 @@ ipcMain.handle('settings:get', () => {
         return { contextFolderPath: '', validationMessage: 'Failed to load settings.', llmProviderApiKey: '', exclusions: [] };
     }
 });
+registerCaptureHandlers();
 
 ipcMain.handle('settings:pickContextFolder', async (event) => {
     if (process.env.JIMINY_E2E === '1' && process.env.JIMINY_E2E_CONTEXT_PATH) {
@@ -361,6 +367,31 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
     isQuitting = true;
+    closeOverlayWindow();
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception in main process', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection in main process', reason);
+});
+
+app.on('render-process-gone', (_event, details) => {
+    console.error('Renderer process gone', details);
+});
+
+app.on('window-all-closed', (event) => {
+    if (process.platform === 'darwin') {
+        event.preventDefault();
+        console.log("preventing app from exiting when all windows are closed")
+        return;
+    }
+
+    if (!isE2E) {
+        app.quit();
+    }
 });
 
 // In this file you can include the rest of your app's specific main process

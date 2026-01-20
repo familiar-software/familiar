@@ -2,6 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const { FileNode, FolderNode, createNodeId, normalizeRelativePath } = require('./nodes')
+const { CAPTURES_DIR_NAME } = require('../const')
 
 const MAX_NODES = 300
 const ALLOWED_EXTENSIONS = new Set(['.md', '.txt'])
@@ -248,10 +249,12 @@ const syncContextGraph = async ({
   const start = Date.now()
   logger.log('Context graph sync started', { rootPath })
 
+  const effectiveExclusions = Array.from(new Set([CAPTURES_DIR_NAME, ...exclusions].filter(Boolean)))
+
   const previousGraph = store.load()
   const previousNodes = previousGraph?.nodes || {}
 
-  const scanResult = scanContextFolder(rootPath, { logger, maxNodes, exclusions })
+  const scanResult = scanContextFolder(rootPath, { logger, maxNodes, exclusions: effectiveExclusions })
   const {
     nodes,
     rootId,

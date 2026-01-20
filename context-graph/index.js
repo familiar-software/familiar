@@ -1,5 +1,5 @@
 const { Node, FileNode, FolderNode, createNodeId, normalizeRelativePath } = require('./nodes')
-const { ContextGraphStore, JsonContextGraphStore, GRAPH_FILE_NAME } = require('./store')
+const { ContextGraphStore, JsonContextGraphStore, CONTEXT_GRAPH_FILE_NAME } = require('./store')
 const { createGeminiSummarizer, createSummarizer, DEFAULT_MODEL } = require('../llms')
 const { syncContextGraph } = require('./sync')
 
@@ -11,7 +11,7 @@ module.exports = {
   normalizeRelativePath,
   ContextGraphStore,
   JsonContextGraphStore,
-  GRAPH_FILE_NAME,
+  CONTEXT_GRAPH_FILE_NAME,
   createGeminiSummarizer,
   createSummarizer,
   DEFAULT_MODEL,

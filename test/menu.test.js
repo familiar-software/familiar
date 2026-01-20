@@ -5,6 +5,7 @@ const { buildTrayMenuTemplate } = require('../menu')
 
 test('buildTrayMenuTemplate returns the expected items', () => {
   const template = buildTrayMenuTemplate({
+    onCapture: () => {},
     onOpenSettings: () => {},
     onAbout: () => {},
     onRestart: () => {},
@@ -13,8 +14,8 @@ test('buildTrayMenuTemplate returns the expected items', () => {
 
   const labels = template.filter((item) => item.label).map((item) => item.label)
 
-  assert.deepEqual(labels, ['Open Settings', 'About', 'Restart', 'Quit'])
-  assert.equal(template[2].type, 'separator')
+  assert.deepEqual(labels, ['Capture Selection', 'Open Settings', 'About', 'Restart', 'Quit'])
+  assert.equal(template[3].type, 'separator')
 })
 
 test('about click does not trigger open settings', () => {
@@ -22,6 +23,7 @@ test('about click does not trigger open settings', () => {
   let aboutCalls = 0
 
   const template = buildTrayMenuTemplate({
+    onCapture: () => {},
     onOpenSettings: () => { openSettingsCalls += 1 },
     onAbout: () => { aboutCalls += 1 },
     onRestart: () => {},
@@ -42,6 +44,7 @@ test('open settings click does not trigger about', () => {
   let aboutCalls = 0
 
   const template = buildTrayMenuTemplate({
+    onCapture: () => {},
     onOpenSettings: () => { openSettingsCalls += 1 },
     onAbout: () => { aboutCalls += 1 },
     onRestart: () => {},
@@ -54,5 +57,28 @@ test('open settings click does not trigger about', () => {
   openItem.click()
 
   assert.equal(openSettingsCalls, 1)
+  assert.equal(aboutCalls, 0)
+})
+
+test('capture click does not trigger about or settings', () => {
+  let captureCalls = 0
+  let openSettingsCalls = 0
+  let aboutCalls = 0
+
+  const template = buildTrayMenuTemplate({
+    onCapture: () => { captureCalls += 1 },
+    onOpenSettings: () => { openSettingsCalls += 1 },
+    onAbout: () => { aboutCalls += 1 },
+    onRestart: () => {},
+    onQuit: () => {}
+  })
+
+  const captureItem = template.find((item) => item.label === 'Capture Selection')
+  assert.ok(captureItem)
+
+  captureItem.click()
+
+  assert.equal(captureCalls, 1)
+  assert.equal(openSettingsCalls, 0)
   assert.equal(aboutCalls, 0)
 })

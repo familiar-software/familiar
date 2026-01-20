@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+    <link href="./overlay.css" rel="stylesheet">
+    <title>Capture</title>
+  </head>
+  <body>
+    <div id="overlay" class="overlay" role="application" aria-label="Screen capture overlay">
+      <div id="selection" class="selection hidden"></div>
+      <div id="hint" class="hint">Drag to select - Release to capture - Esc to cancel</div>
+      <div id="message" class="message hidden" role="alert" aria-live="polite"></div>
+    </div>
+    <script src="./overlay-renderer.js"></script>
+  </body>
+</html>
