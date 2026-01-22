@@ -2,6 +2,7 @@ const { app, BrowserWindow, desktopCapturer, ipcMain, screen, dialog } = require
 const path = require('node:path')
 const { normalizeRect, clampRectToBounds } = require('./capture-utils')
 const { getCaptureDirectory, savePngToDirectory } = require('./capture-storage')
+const { extractionQueue } = require('../extraction')
 const { ensureScreenRecordingPermission } = require('./permissions')
 const { loadSettings, validateContextFolderPath } = require('../settings')
 
@@ -255,6 +256,13 @@ async function handleCaptureGrab (_event, payload) {
       savedPath,
       savedFilename
     }
+
+    void extractionQueue.enqueue({
+      sourceType: 'image',
+      metadata: { path: savedPath }
+    }).catch((error) => {
+      console.error('Failed to enqueue extraction event', { error, savedPath })
+    })
 
     return result
   } catch (error) {

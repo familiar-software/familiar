@@ -64,6 +64,7 @@ Environment:
 -   The Settings window includes a Context Graph sync action that writes summaries to `~/.jiminy/context-tree.json`.
 -   Auto-launch on login is enabled via Electron login item settings.
 -   The tray menu includes a **Capture Selection** overlay (drag to select, release to capture) that saves a PNG to `<contextFolderPath>/jiminy-captures`. It requires macOS Screen Recording permission in **System Settings > Privacy & Security > Screen Recording**.
+-   Captures enqueue a background extraction task (`sourceType: "image"`) which runs the Gemini Vision extractor and writes a Markdown file next to the PNG as `<capture>.png-extraction.md`. Extraction is skipped if no API key is configured and mocking is disabled.
 
 ## Context Graph (Current Implementation)
 
