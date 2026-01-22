@@ -124,6 +124,58 @@ Environment:
 
 [CC0 1.0 (Public Domain)](LICENSE.md)
 
+## Architecture Overview
+
+```
+                           ┌─────────────────────────────┐
+                           │         Menu Bar Tray        │
+                           └──────────────┬──────────────┘
+                                          │
+                      ┌───────────────────┴───────────────────┐
+                      │                                       │
+                      ▼                                       ▼
+           ┌─────────────────────┐                 ┌──────────────────────┐
+           │    Settings Window  │                 │   Capture Selection  │
+           └──────────┬──────────┘                 └──────────┬───────────┘
+                      │                                       │
+                      ▼                                       ▼
+           ┌─────────────────────┐                 ┌──────────────────────┐
+           │ ~/.jiminy/settings  │                 │   Capture Overlay     │
+           └──────────┬──────────┘                 └──────────┬───────────┘
+          ┌───────────┴───────────┐                            │
+          │                       │                            ▼
+          ▼                       ▼                 ┌──────────────────────┐
+┌──────────────────┐   ┌──────────────────┐        │ PNG saved to           │
+│ Context Folder   │   │ LLM API Key      │        │ <context>/jiminy-      │
+└──────────┬───────┘   └──────────────────┘        │ captures/*.png         │
+           │                                       └──────────┬───────────┘
+           │                                                  │
+           │                                                  ▼
+           │                                       ┌──────────────────────┐
+           │                                       │ extractionQueue       │
+           │                                       │ enqueue:              │
+           │                                       │ { sourceType: image,  │
+           │                                       │   metadata: { path } }│
+           │                                       └──────────┬───────────┘
+           │                                                  │
+           ▼                                                  ▼
+┌──────────────────────┐                          ┌──────────────────────┐
+│ Context Graph Sync   │                          │ Image Extraction      │
+│ (ignores jiminy-     │                          │ Handler               │
+│  captures folder)    │                          └──────────┬───────────┘
+└──────────┬───────────┘                                     │
+           │                                                  ▼
+           ▼                                       ┌──────────────────────┐
+┌──────────────────────┐                          │ Gemini Vision API     │
+│ Gemini Text Summarizer│                          └──────────┬───────────┘
+└──────────┬───────────┘                                     │
+           ▼                                                  ▼
+┌──────────────────────┐                          ┌──────────────────────┐
+│ ~/.jiminy/context-   │                          │ <capture>.png-        │
+│ tree.json            │                          │ extraction.md         │
+└──────────────────────┘                          └──────────────────────┘
+```
+
 
 tests:
 - if image is empty, show user that permissions are still an issue
