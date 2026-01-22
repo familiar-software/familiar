@@ -7,6 +7,7 @@ const { JsonContextGraphStore, syncContextGraph } = require('../context-graph')
 const { CAPTURES_DIR_NAME, EXTRA_CONTEXT_SUFFIX } = require('../const')
 
 const createTempDir = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix))
+const toPosix = (value) => value.split(path.sep).join('/')
 
 const writeFixtureFiles = (rootPath) => {
   fs.mkdirSync(path.join(rootPath, 'sub'), { recursive: true })
@@ -60,6 +61,42 @@ const writeHiddenFolderFixture = (rootPath) => {
   const hiddenFolder = path.join(rootPath, '.git')
   fs.mkdirSync(hiddenFolder, { recursive: true })
   fs.writeFileSync(path.join(hiddenFolder, 'config.md'), 'Hidden config', 'utf-8')
+}
+
+const writeScopedGitignoreFixture = (rootPath) => {
+  const folderA = path.join(rootPath, 'A')
+  const folderB = path.join(rootPath, 'B')
+
+  fs.mkdirSync(path.join(folderA, 'abc'), { recursive: true })
+  fs.mkdirSync(path.join(folderA, 'cache'), { recursive: true })
+  fs.mkdirSync(path.join(folderA, 'root-only'), { recursive: true })
+  fs.mkdirSync(path.join(folderA, 'sub', 'root-only'), { recursive: true })
+  fs.mkdirSync(path.join(folderB, 'abc'), { recursive: true })
+
+  fs.writeFileSync(
+    path.join(folderA, '.gitignore'),
+    [
+      '# ignore abc at folder A root',
+      '/abc',
+      'cache/',
+      '*.md',
+      '!keep.md',
+      '/root-only'
+    ].join('\n'),
+    'utf-8'
+  )
+
+  fs.writeFileSync(path.join(folderA, 'abc', 'ignored.md'), 'Ignored by /abc', 'utf-8')
+  fs.writeFileSync(path.join(folderA, 'cache', 'ignored.txt'), 'Ignored by cache/', 'utf-8')
+  fs.writeFileSync(path.join(folderA, 'root-only', 'ignored.txt'), 'Ignored by /root-only', 'utf-8')
+  fs.writeFileSync(path.join(folderA, 'sub', 'root-only', 'kept.txt'), 'Should be kept', 'utf-8')
+  fs.writeFileSync(path.join(folderA, 'keep.md'), 'Should be kept', 'utf-8')
+  fs.writeFileSync(path.join(folderA, 'ignore.md'), 'Ignored by *.md', 'utf-8')
+  fs.writeFileSync(path.join(folderA, 'sub', 'keep.md'), 'Should be kept', 'utf-8')
+  fs.writeFileSync(path.join(folderA, 'note.txt'), 'Should be kept', 'utf-8')
+
+  fs.writeFileSync(path.join(folderB, 'abc', 'keep.md'), 'Should be kept', 'utf-8')
+  fs.writeFileSync(path.join(folderB, 'ignore.md'), 'Should be kept', 'utf-8')
 }
 const createStore = () => {
   const settingsDir = createTempDir('jiminy-settings-')
@@ -310,4 +347,49 @@ test('sync ignores hidden folders like .git', async () => {
   const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
   const hiddenNode = Object.values(stored.nodes).find((node) => node.relativePath === path.join('.git', 'config.md'))
   assert.equal(hiddenNode, undefined)
+})
+
+test('sync respects scoped .gitignore patterns', async () => {
+  const contextRoot = createTempDir('jiminy-context-')
+  writeScopedGitignoreFixture(contextRoot)
+
+  const store = createStore()
+  const summarizer = {
+    model: 'test-model',
+    summarizeFile: async ({ relativePath }) => `Summary for ${relativePath}`,
+    summarizeFolder: async ({ relativePath }) => `Folder summary for ${relativePath || '.'}`
+  }
+
+  await syncContextGraph({
+    rootPath: contextRoot,
+    store,
+    summarizer
+  })
+
+  const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
+  const paths = new Set(Object.values(stored.nodes).map((node) => node.relativePath))
+
+  const expectedPresent = [
+    toPosix(path.join('A', 'keep.md')),
+    toPosix(path.join('A', 'sub', 'keep.md')),
+    toPosix(path.join('A', 'sub', 'root-only', 'kept.txt')),
+    toPosix(path.join('A', 'note.txt')),
+    toPosix(path.join('B', 'abc', 'keep.md')),
+    toPosix(path.join('B', 'ignore.md'))
+  ]
+
+  const expectedAbsent = [
+    toPosix(path.join('A', 'abc', 'ignored.md')),
+    toPosix(path.join('A', 'cache', 'ignored.txt')),
+    toPosix(path.join('A', 'root-only', 'ignored.txt')),
+    toPosix(path.join('A', 'ignore.md'))
+  ]
+
+  for (const pathValue of expectedPresent) {
+    assert.ok(paths.has(pathValue), `Expected ${pathValue} to be included`)
+  }
+
+  for (const pathValue of expectedAbsent) {
+    assert.equal(paths.has(pathValue), false, `Expected ${pathValue} to be excluded`)
+  }
 })

@@ -6,6 +6,83 @@ const { CAPTURES_DIR_NAME, EXTRA_CONTEXT_SUFFIX } = require('../const')
 
 const MAX_NODES = 300
 const ALLOWED_EXTENSIONS = new Set(['.md', '.txt'])
+const GITIGNORE_FILENAME = '.gitignore'
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const globToRegExp = (pattern) => {
+  let regex = ''
+  for (let i = 0; i < pattern.length; i += 1) {
+    const char = pattern[i]
+    if (char === '*') {
+      if (pattern[i + 1] === '*') {
+        const hasTrailingSlash = pattern[i + 2] === '/'
+        if (hasTrailingSlash) {
+          regex += '(?:.*/)?'
+          i += 2
+        } else {
+          regex += '.*'
+          i += 1
+        }
+      } else {
+        regex += '[^/]*'
+      }
+    } else if (char === '?') {
+      regex += '[^/]'
+    } else {
+      regex += escapeRegex(char)
+    }
+  }
+  return new RegExp(`^${regex}$`)
+}
+
+const parseGitignore = (contents) => {
+  const rules = []
+  const lines = contents.split(/\r?\n/)
+  for (const rawLine of lines) {
+    let line = rawLine.trim()
+    if (!line) continue
+    if (line.startsWith('\\#') || line.startsWith('\\!')) {
+      line = line.slice(1)
+    } else if (line.startsWith('#')) {
+      continue
+    }
+
+    let negate = false
+    if (line.startsWith('!')) {
+      negate = true
+      line = line.slice(1)
+    }
+
+    let directoryOnly = false
+    if (line.endsWith('/')) {
+      directoryOnly = true
+      line = line.slice(0, -1)
+    }
+
+    line = line.replace(/\\/g, '/')
+    if (!line) continue
+
+    const anchored = line.startsWith('/')
+    if (anchored) {
+      line = line.slice(1)
+    }
+
+    const hasSlash = line.includes('/') || anchored
+    const matcher = globToRegExp(line)
+
+    rules.push({
+      pattern: line,
+      anchored,
+      hasSlash,
+      negate,
+      directoryOnly,
+      matcher
+    })
+  }
+
+  return rules
+}
 
 const hashBuffer = (buffer) => (
   crypto.createHash('sha256').update(buffer).digest('hex')
@@ -19,6 +96,49 @@ const readFileData = (filePath) => {
     modifiedAt: stat.mtime.toISOString(),
     content: buffer.toString('utf-8'),
     contentHash: hashBuffer(buffer)
+  }
+}
+
+const applyGitignoreRules = (rules, relativePath, isDirectory, ignored) => {
+  if (!rules.length) return ignored
+  const normalized = relativePath.replace(/\\/g, '/')
+  const basename = path.posix.basename(normalized)
+
+  let result = ignored
+  for (const rule of rules) {
+    if (rule.directoryOnly && !isDirectory) {
+      continue
+    }
+
+    const matches = rule.hasSlash
+      ? rule.matcher.test(normalized)
+      : rule.matcher.test(basename)
+
+    if (matches) {
+      result = !rule.negate
+    }
+  }
+
+  return result
+}
+
+const loadGitignoreRules = (directoryPath, logger) => {
+  const gitignorePath = path.join(directoryPath, GITIGNORE_FILENAME)
+  let stat
+  try {
+    stat = fs.statSync(gitignorePath)
+  } catch (error) {
+    return null
+  }
+
+  if (!stat.isFile()) return null
+
+  try {
+    const contents = fs.readFileSync(gitignorePath, 'utf-8')
+    return parseGitignore(contents)
+  } catch (error) {
+    logger.warn('Failed to read .gitignore', { path: gitignorePath, error })
+    return null
   }
 }
 
@@ -58,7 +178,7 @@ const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES, e
 
   const isExtraContextDirName = (name) => name.endsWith(EXTRA_CONTEXT_SUFFIX)
 
-  const walk = (currentPath, relativePath, depth) => {
+  const walk = (currentPath, relativePath, depth, gitignoreMatchers) => {
     let realPath
     try {
       realPath = fs.realpathSync(currentPath)
@@ -89,6 +209,10 @@ const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES, e
     entries.sort((a, b) => a.name.localeCompare(b.name))
 
     const normalizedRelative = normalizeRelativePath(relativePath)
+    const localGitignoreRules = loadGitignoreRules(currentPath, logger) || []
+    const nextGitignoreMatchers = localGitignoreRules.length > 0
+      ? [...gitignoreMatchers, { baseRelative: normalizedRelative, rules: localGitignoreRules }]
+      : gitignoreMatchers
     const folderId = createNodeId({ relativePath: normalizedRelative, type: 'folder' })
     const folderNode = new FolderNode({
       id: folderId,
@@ -106,18 +230,35 @@ const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES, e
       const entryPath = path.join(currentPath, entry.name)
       const entryRelative = normalizedRelative ? path.join(normalizedRelative, entry.name) : entry.name
       const normalizedEntryRelative = normalizeRelativePath(entryRelative)
+      const isDirectory = entry.isDirectory()
+
+      let ignoredByGitignore = false
+      let ignored = false
+      for (const matcher of nextGitignoreMatchers) {
+        const relToMatcher = path.posix.relative(matcher.baseRelative || '', normalizedEntryRelative)
+        if (!relToMatcher || relToMatcher.startsWith('..')) {
+          continue
+        }
+        ignored = applyGitignoreRules(matcher.rules, relToMatcher, isDirectory, ignored)
+      }
+      ignoredByGitignore = ignored
+
+      if (ignoredByGitignore) {
+        logger.log('Skipping gitignored path', { path: normalizedEntryRelative })
+        continue
+      }
 
       if (isExcluded(normalizedEntryRelative)) {
         logger.log('Skipping excluded path', { path: normalizedEntryRelative })
         continue
       }
 
-      if (entry.isDirectory() && entry.name.startsWith('.')) {
+      if (isDirectory && entry.name.startsWith('.')) {
         logger.log('Skipping hidden folder', { path: normalizedEntryRelative })
         continue
       }
 
-      if (entry.isDirectory() && isExtraContextDirName(entry.name)) {
+      if (isDirectory && isExtraContextDirName(entry.name)) {
         logger.log('Skipping generated context folder', { path: normalizedEntryRelative })
         continue
       }
@@ -138,8 +279,8 @@ const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES, e
         continue
       }
 
-      if (entry.isDirectory()) {
-        const childId = walk(entryPath, normalizedEntryRelative, depth + 1)
+      if (isDirectory) {
+        const childId = walk(entryPath, normalizedEntryRelative, depth + 1, nextGitignoreMatchers)
         if (childId) {
           folderNode.children.push(childId)
         }
@@ -196,7 +337,7 @@ const scanContextFolder = (rootPath, { logger = console, maxNodes = MAX_NODES, e
     return folderId
   }
 
-  const rootId = walk(rootPath, '', 0)
+  const rootId = walk(rootPath, '', 0, [])
 
   if (exceededLimit) {
     throw new Error(`Context graph has ${totalNodes} nodes, exceeding MAX_NODES (${maxNodes}).`)
