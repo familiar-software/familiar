@@ -5,6 +5,7 @@ const { buildTrayMenuTemplate } = require('./menu');
 const { loadSettings, saveSettings, validateContextFolderPath } = require('./settings');
 const { JsonContextGraphStore, createSummarizer, DEFAULT_MODEL, syncContextGraph } = require('./context-graph');
 const { registerCaptureHandlers, startCaptureFlow, closeOverlayWindow } = require('./screenshot/capture');
+const { registerCaptureHotkey, unregisterGlobalHotkeys } = require('./hotkeys');
 const { registerExtractionHandlers } = require('./extraction');
 const { registerAnalysisHandlers } = require('./analysis');
 const trayIconPath = path.join(__dirname, 'icon.png');
@@ -355,6 +356,14 @@ app.whenReady().then(() => {
     app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
 
     createTray();
+    const hotkeyResult = registerCaptureHotkey({
+        onCapture: () => {
+            void startCaptureFlow();
+        },
+    });
+    if (!hotkeyResult.ok) {
+        console.warn('Capture hotkey inactive', { reason: hotkeyResult.reason, accelerator: hotkeyResult.accelerator });
+    }
     } else if (isE2E) {
         console.log('E2E mode: running on non-macOS platform');
     }
@@ -371,6 +380,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
     isQuitting = true;
+    unregisterGlobalHotkeys();
     closeOverlayWindow();
 });
 
