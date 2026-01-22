@@ -173,6 +173,25 @@ Environment:
 ┌──────────────────────┐                          ┌──────────────────────┐
 │ ~/.jiminy/context-   │                          │ <capture>.png-        │
 │ tree.json            │                          │ extraction.md         │
+└──────────┬───────────┘                          └──────────┬───────────┘
+           │                                                  │
+           │                                                  ▼
+           │                                       ┌──────────────────────┐
+           │                                       │ analysisQueue         │
+           │                                       │ enqueue:              │
+           │                                       │ { result_md_path }    │
+           │                                       └──────────┬───────────┘
+           │                                                  │
+           │                                                  ▼
+           │                                       ┌──────────────────────┐
+           │                                       │ Analysis Handler      │
+           │                                       └──────────┬───────────┘
+           │                                                  │
+           ▼                                                  ▼
+┌──────────────────────┐                          ┌──────────────────────┐
+│ Context Graph Nodes  │                          │ <analysis>.md saved   │
+│ (root or node-level  │                          │ to root or <node>-    │
+│  extra context)      │                          │ jiminy-extra-context  │
 └──────────────────────┘                          └──────────────────────┘
 ```
 

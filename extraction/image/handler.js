@@ -1,4 +1,5 @@
 const { loadSettings } = require('../../settings')
+const { enqueueAnalysis } = require('../../analysis')
 const { DEFAULT_VISION_MODEL, runImageExtraction } = require('./index')
 
 const isLlmMockEnabled = () => process.env.JIMINY_LLM_MOCK === '1'
@@ -30,6 +31,11 @@ const handleImageExtractionEvent = async (event) => {
     outputPath,
     chars: markdown.length
   })
+
+  void enqueueAnalysis({ result_md_path: outputPath })
+    .catch((error) => {
+      console.error('Failed to enqueue analysis event', { error, outputPath })
+    })
 
   return { outputPath }
 }

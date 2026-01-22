@@ -6,6 +6,7 @@ const { loadSettings, saveSettings, validateContextFolderPath } = require('./set
 const { JsonContextGraphStore, createSummarizer, DEFAULT_MODEL, syncContextGraph } = require('./context-graph');
 const { registerCaptureHandlers, startCaptureFlow, closeOverlayWindow } = require('./screenshot/capture');
 const { registerExtractionHandlers } = require('./extraction');
+const { registerAnalysisHandlers } = require('./analysis');
 const trayIconPath = path.join(__dirname, 'icon.png');
 
 let tray = null;
@@ -147,6 +148,7 @@ ipcMain.handle('settings:get', () => {
 });
 registerCaptureHandlers();
 registerExtractionHandlers();
+registerAnalysisHandlers();
 
 ipcMain.handle('settings:pickContextFolder', async (event) => {
     if (process.env.JIMINY_E2E === '1' && process.env.JIMINY_E2E_CONTEXT_PATH) {
