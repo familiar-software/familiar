@@ -59,6 +59,19 @@ const syncContextGraph = async ({
     warnings
   } = scanResult
 
+  const deletedNodes = Object.entries(previousNodes)
+    .filter(([id]) => !nodes[id])
+    .map(([id, node]) => ({
+      id,
+      relativePath: node?.relativePath || null,
+      path: node?.relativePath || null,
+      type: node?.type || null
+    }))
+
+  for (const deletedNode of deletedNodes) {
+    logger.log('Removed deleted context node', deletedNode)
+  }
+
   const total = counts.files + counts.folders
   let completed = 0
   const markProgress = (node, phase) => {

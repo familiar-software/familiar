@@ -576,6 +576,47 @@ test('sync respects scoped .gitignore patterns', async () => {
   }
 })
 
+test('sync logs and removes deleted nodes from the stored graph', async () => {
+  const contextRoot = createTempDir('jiminy-context-')
+  writeFixtureFiles(contextRoot)
+
+  const store = createStore(contextRoot)
+  const summarizer = {
+    model: 'test-model',
+    summarizeFile: async ({ relativePath }) => `Summary for ${relativePath}`,
+    summarizeFolder: async ({ relativePath }) => `Folder summary for ${relativePath || '.'}`
+  }
+
+  await syncContextGraph({
+    rootPath: contextRoot,
+    store,
+    summarizer
+  })
+
+  fs.unlinkSync(path.join(contextRoot, 'alpha.md'))
+
+  const logs = []
+  const logger = {
+    log: (message, meta) => logs.push({ message, meta }),
+    warn: () => {},
+    error: () => {}
+  }
+
+  await syncContextGraph({
+    rootPath: contextRoot,
+    store,
+    summarizer,
+    logger
+  })
+
+  assert.ok(logs.some((entry) => entry.message === 'Removed deleted context node'))
+  assert.ok(logs.some((entry) => entry.message === 'Removed deleted context node' && entry.meta?.path === 'alpha.md'))
+
+  const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
+  const removedNode = Object.values(stored.nodes).find((node) => node.relativePath === 'alpha.md')
+  assert.equal(removedNode, undefined)
+})
+
 // ============================================================================
 // JIM-31: Incremental sync and contentHash tests
 // ============================================================================
