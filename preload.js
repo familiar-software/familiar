@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('jiminy', {
   },
   getContextGraphStatus: (payload) => ipcRenderer.invoke('contextGraph:status', payload),
   syncContextGraph: () => ipcRenderer.invoke('contextGraph:sync'),
+  pruneContextGraph: () => ipcRenderer.invoke('contextGraph:prune'),
   onContextGraphProgress: (handler) => {
     const listener = (_event, payload) => handler(payload)
     ipcRenderer.on('contextGraph:progress', listener)

@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const syncProgress = document.getElementById('context-graph-progress')
   const syncWarning = document.getElementById('context-graph-warning')
   const syncError = document.getElementById('context-graph-error')
+  const pruneButton = document.getElementById('context-graph-prune')
+  const pruneStatus = document.getElementById('context-graph-prune-status')
   const advancedToggleBtn = document.getElementById('advanced-toggle-btn')
   const advancedOptions = document.getElementById('advanced-options')
   const exclusionsList = document.getElementById('exclusions-list')
@@ -22,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentExclusions = []
   let isSyncing = false
   let isMaxNodesExceeded = false
+  let isPruning = false
 
   const setMessage = (element, message) => {
     if (!element) {
@@ -37,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return
     }
     saveButton.disabled = !contextFolderInput.value
+    updatePruneButtonState()
   }
 
   const updateSyncButtonState = () => {
@@ -44,12 +48,28 @@ document.addEventListener('DOMContentLoaded', () => {
       return
     }
 
-    syncButton.disabled = isSyncing || isMaxNodesExceeded
+    syncButton.disabled = isSyncing || isPruning || isMaxNodesExceeded
+  }
+
+  const updatePruneButtonState = () => {
+    if (!pruneButton) {
+      return
+    }
+
+    const hasContextPath = Boolean(contextFolderInput?.value)
+    pruneButton.disabled = isSyncing || isPruning || !hasContextPath
   }
 
   const setSyncState = (nextIsSyncing) => {
     isSyncing = Boolean(nextIsSyncing)
     updateSyncButtonState()
+    updatePruneButtonState()
+  }
+
+  const setPruneState = (nextIsPruning) => {
+    isPruning = Boolean(nextIsPruning)
+    updateSyncButtonState()
+    updatePruneButtonState()
   }
 
   const showContextGraphLoading = () => {
@@ -331,6 +351,37 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shouldRefreshStatus) {
           await refreshContextGraphStatus()
         }
+      }
+    })
+  }
+
+  if (pruneButton) {
+    pruneButton.addEventListener('click', async () => {
+      if (!jiminy.pruneContextGraph) {
+        setMessage(syncError, 'Prune bridge unavailable. Restart the app.')
+        return
+      }
+
+      setMessage(syncError, '')
+      setMessage(pruneStatus, 'Pruning...')
+      setPruneState(true)
+
+      try {
+        const result = await jiminy.pruneContextGraph()
+        if (result && result.ok) {
+          const message = result.deleted ? 'Pruned.' : 'Nothing to prune.'
+          setMessage(pruneStatus, message)
+          await refreshContextGraphStatus()
+        } else {
+          setMessage(pruneStatus, '')
+          setMessage(syncError, result?.message || 'Failed to prune context graph.')
+        }
+      } catch (error) {
+        console.error('Failed to prune context graph', error)
+        setMessage(pruneStatus, '')
+        setMessage(syncError, 'Failed to prune context graph.')
+      } finally {
+        setPruneState(false)
       }
     })
   }

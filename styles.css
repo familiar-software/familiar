@@ -90,6 +90,12 @@ body {
   color: #ffffff;
 }
 
+.button.danger {
+  border-color: #c03a2b;
+  background: #fdecea;
+  color: #922b21;
+}
+
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.6;

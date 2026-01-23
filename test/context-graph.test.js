@@ -5,7 +5,7 @@ const assert = require('node:assert/strict')
 const { test } = require('node:test')
 const { JsonContextGraphStore, syncContextGraph } = require('../context-graph')
 const { constructContextGraphSkeleton } = require('../context-graph/graphSkeleton')
-const { CAPTURES_DIR_NAME, EXTRA_CONTEXT_SUFFIX } = require('../const')
+const { CAPTURES_DIR_NAME, EXTRA_CONTEXT_SUFFIX, GENERAL_ANALYSIS_DIR_NAME } = require('../const')
 
 const createTempDir = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix))
 const toPosix = (value) => value.split(path.sep).join('/')
@@ -58,6 +58,12 @@ const writeExtraContextFolderFixture = (rootPath) => {
   fs.writeFileSync(path.join(extraFolder, 'analysis.md'), 'Generated analysis', 'utf-8')
 }
 
+const writeGeneralAnalysisFolderFixture = (rootPath) => {
+  const generalFolder = path.join(rootPath, GENERAL_ANALYSIS_DIR_NAME)
+  fs.mkdirSync(generalFolder, { recursive: true })
+  fs.writeFileSync(path.join(generalFolder, 'analysis.md'), 'General analysis', 'utf-8')
+}
+
 const writeHiddenFolderFixture = (rootPath) => {
   const hiddenFolder = path.join(rootPath, '.git')
   fs.mkdirSync(hiddenFolder, { recursive: true })
@@ -103,6 +109,29 @@ const createStore = () => {
   const settingsDir = createTempDir('jiminy-settings-')
   return new JsonContextGraphStore({ settingsDir })
 }
+
+test('context graph store delete removes the persisted file', () => {
+  const store = createStore()
+  const graph = {
+    version: 1,
+    rootPath: '/tmp/context',
+    generatedAt: new Date().toISOString(),
+    model: 'test',
+    rootId: 'root',
+    counts: { files: 0, folders: 0 },
+    nodes: {}
+  }
+
+  store.save(graph)
+  assert.equal(fs.existsSync(store.getPath()), true)
+
+  const result = store.delete()
+  assert.equal(result.deleted, true)
+  assert.equal(fs.existsSync(store.getPath()), false)
+
+  const second = store.delete()
+  assert.equal(second.deleted, false)
+})
 
 test('context graph totals match sync counts', async () => {
   const contextRoot = createTempDir('jiminy-context-')
@@ -355,6 +384,32 @@ test('sync ignores jiminy extra context folders', async () => {
   const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
   const extraNode = Object.values(stored.nodes).find((node) => node.relativePath === path.join(`notes-${EXTRA_CONTEXT_SUFFIX}`, 'analysis.md'))
   assert.equal(extraNode, undefined)
+})
+
+test('sync ignores jiminy general analysis folders', async () => {
+  const contextRoot = createTempDir('jiminy-context-')
+  writeFixtureFiles(contextRoot)
+  writeGeneralAnalysisFolderFixture(contextRoot)
+
+  const store = createStore()
+  const summarizer = {
+    model: 'test-model',
+    summarizeFile: async ({ relativePath }) => `Summary for ${relativePath}`,
+    summarizeFolder: async ({ relativePath }) => `Folder summary for ${relativePath || '.'}`
+  }
+
+  const result = await syncContextGraph({
+    rootPath: contextRoot,
+    store,
+    summarizer
+  })
+
+  assert.equal(result.graph.counts.files, 2)
+  assert.equal(result.graph.counts.folders, 2)
+
+  const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
+  const generalNode = Object.values(stored.nodes).find((node) => node.relativePath === path.join(GENERAL_ANALYSIS_DIR_NAME, 'analysis.md'))
+  assert.equal(generalNode, undefined)
 })
 
 test('sync ignores hidden folders like .git', async () => {

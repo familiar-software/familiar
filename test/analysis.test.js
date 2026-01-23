@@ -5,6 +5,7 @@ const path = require('node:path')
 const os = require('node:os')
 
 const { createNodeId } = require('../context-graph')
+const { GENERAL_ANALYSIS_DIR_NAME } = require('../const')
 const { runAnalysis } = require('../analysis')
 
 const makeTempDir = async (prefix) => fs.mkdtemp(path.join(os.tmpdir(), prefix))
@@ -58,7 +59,7 @@ test('analysis writes summary alongside relevant node folder', async () => {
   await fs.writeFile(path.join(projectDir, 'notes.md'), '# Notes\n', 'utf-8')
 
   const extractionDir = await makeTempDir('jiminy-extraction-')
-  const extractionPath = path.join(extractionDir, 'capture.png-extraction.md')
+  const extractionPath = path.join(extractionDir, 'capture-extraction.md')
   await fs.writeFile(extractionPath, 'Extraction content', 'utf-8')
 
   const graph = buildContextGraph({ rootPath: contextRoot, fileRelativePath: path.join('project', 'notes.md') })
@@ -73,16 +74,16 @@ test('analysis writes summary alongside relevant node folder', async () => {
   })
 
   const expectedDir = path.join(contextRoot, 'project', 'notes-jiminy-extra-context')
-  const expectedFile = path.join(expectedDir, `${path.basename(extractionPath)}-analysis.md`)
+  const expectedFile = path.join(expectedDir, 'capture-analysis.md')
 
   assert.equal(result.outputPath, expectedFile)
   assert.ok(await fs.stat(result.outputPath))
 })
 
-test('analysis writes summary to root when no relevant node found', async () => {
+test('analysis writes summary to general analysis folder when no relevant node found', async () => {
   const contextRoot = await makeTempDir('jiminy-context-')
   const extractionDir = await makeTempDir('jiminy-extraction-')
-  const extractionPath = path.join(extractionDir, 'capture.png-extraction.md')
+  const extractionPath = path.join(extractionDir, 'capture-extraction.md')
   await fs.writeFile(extractionPath, 'Extraction content', 'utf-8')
 
   const graph = buildContextGraph({ rootPath: contextRoot, fileRelativePath: path.join('project', 'notes.md') })
@@ -95,7 +96,11 @@ test('analysis writes summary to root when no relevant node found', async () => 
     findRelevantNodeFn: async () => null
   })
 
-  const expectedFile = path.join(contextRoot, `${path.basename(extractionPath)}-analysis.md`)
+  const expectedFile = path.join(
+    contextRoot,
+    GENERAL_ANALYSIS_DIR_NAME,
+    'capture-analysis.md'
+  )
 
   assert.equal(result.outputPath, expectedFile)
   assert.ok(await fs.stat(result.outputPath))

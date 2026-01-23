@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const { FileNode, FolderNode, createNodeId, normalizeRelativePath } = require('./nodes')
-const { EXTRA_CONTEXT_SUFFIX } = require('../const')
+const { EXTRA_CONTEXT_SUFFIX, GENERAL_ANALYSIS_DIR_NAME } = require('../const')
 
 const MAX_NODES = 300
 const ALLOWED_EXTENSIONS = new Set(['.md', '.txt'])
@@ -177,6 +177,7 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
   }
 
   const isExtraContextDirName = (name) => name.endsWith(EXTRA_CONTEXT_SUFFIX)
+  const isGeneralAnalysisDirName = (name) => name === GENERAL_ANALYSIS_DIR_NAME
 
   const walk = (currentPath, relativePath, depth, gitignoreMatchers) => {
     let realPath
@@ -260,6 +261,11 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
 
       if (isDirectory && isExtraContextDirName(entry.name)) {
         logger.log('Skipping generated context folder', { path: normalizedEntryRelative })
+        continue
+      }
+
+      if (isDirectory && isGeneralAnalysisDirName(entry.name)) {
+        logger.log('Skipping general analysis folder', { path: normalizedEntryRelative })
         continue
       }
 

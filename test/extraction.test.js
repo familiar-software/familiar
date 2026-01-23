@@ -10,8 +10,14 @@ const {
   writeExtractionFile
 } = require('../extraction/image')
 
-test('buildExtractionPath appends extraction suffix', () => {
+test('buildExtractionPath replaces file extension with extraction suffix', () => {
   const input = '/tmp/Jiminy Capture 2026-01-21_10-00-00-000.png'
+  const expected = '/tmp/Jiminy Capture 2026-01-21_10-00-00-000-extraction.md'
+  assert.equal(buildExtractionPath(input), expected)
+})
+
+test('buildExtractionPath appends extraction suffix when no extension', () => {
+  const input = '/tmp/Jiminy Capture 2026-01-21_10-00-00-000'
   const expected = `${input}-extraction.md`
   assert.equal(buildExtractionPath(input), expected)
 })
@@ -24,7 +30,7 @@ test('writeExtractionFile writes markdown with newline', async () => {
   const outputPath = await writeExtractionFile({ imagePath, markdown })
   const saved = await fs.readFile(outputPath, 'utf-8')
 
-  assert.ok(outputPath.endsWith('-extraction.md'))
+  assert.equal(outputPath, path.join(tempDir, 'capture-extraction.md'))
   assert.ok(saved.endsWith('\n'))
   assert.ok(saved.includes('Screenshot Extraction'))
 })

@@ -74,7 +74,9 @@ const createElements = () => ({
   'context-graph-status': new TestElement(),
   'context-graph-progress': new TestElement(),
   'context-graph-warning': new TestElement(),
-  'context-graph-error': new TestElement()
+  'context-graph-error': new TestElement(),
+  'context-graph-prune': new TestElement(),
+  'context-graph-prune-status': new TestElement()
 })
 
 test('refreshes context graph status when context path changes', async () => {
@@ -116,6 +118,112 @@ test('refreshes context graph status when context path changes', async () => {
     await flushPromises()
     assert.equal(statusCalls.length, 2)
     assert.equal(statusCalls[1].contextFolderPath, '/tmp/new-context')
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('prune button clears context graph data', async () => {
+  const statusCalls = []
+  const pruneCalls = []
+  const jiminy = {
+    getSettings: async () => ({
+      contextFolderPath: '/tmp/context',
+      llmProviderApiKey: '',
+      exclusions: []
+    }),
+    pickContextFolder: async () => ({ canceled: true }),
+    saveSettings: async () => ({ ok: true }),
+    getContextGraphStatus: async (payload) => {
+      statusCalls.push(payload)
+      return { syncedNodes: 1, totalNodes: 1, maxNodesExceeded: false }
+    },
+    syncContextGraph: async () => ({ ok: true, warnings: [], errors: [] }),
+    pruneContextGraph: async () => {
+      pruneCalls.push(true)
+      return { ok: true, deleted: true }
+    }
+  }
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    const rendererPath = path.join(__dirname, '..', 'settings-renderer.js')
+    const resolvedRendererPath = require.resolve(rendererPath)
+    delete require.cache[resolvedRendererPath]
+    require(resolvedRendererPath)
+
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    assert.equal(elements['context-graph-prune'].disabled, false)
+    assert.equal(statusCalls.length, 1)
+
+    await elements['context-graph-prune'].click()
+    await flushPromises()
+
+    assert.equal(pruneCalls.length, 1)
+    assert.equal(elements['context-graph-prune-status'].textContent, 'Pruned.')
+    assert.equal(statusCalls.length, 2)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('prune button reports nothing to prune when graph is missing', async () => {
+  const statusCalls = []
+  const pruneCalls = []
+  const jiminy = {
+    getSettings: async () => ({
+      contextFolderPath: '/tmp/context',
+      llmProviderApiKey: '',
+      exclusions: []
+    }),
+    pickContextFolder: async () => ({ canceled: true }),
+    saveSettings: async () => ({ ok: true }),
+    getContextGraphStatus: async (payload) => {
+      statusCalls.push(payload)
+      return { syncedNodes: 0, totalNodes: 0, maxNodesExceeded: false }
+    },
+    syncContextGraph: async () => ({ ok: true, warnings: [], errors: [] }),
+    pruneContextGraph: async () => {
+      pruneCalls.push(true)
+      return { ok: true, deleted: false }
+    }
+  }
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    const rendererPath = path.join(__dirname, '..', 'settings-renderer.js')
+    const resolvedRendererPath = require.resolve(rendererPath)
+    delete require.cache[resolvedRendererPath]
+    require(resolvedRendererPath)
+
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    assert.equal(elements['context-graph-prune'].disabled, false)
+    assert.equal(statusCalls.length, 1)
+
+    await elements['context-graph-prune'].click()
+    await flushPromises()
+
+    assert.equal(pruneCalls.length, 1)
+    assert.equal(elements['context-graph-prune-status'].textContent, 'Nothing to prune.')
+    assert.equal(statusCalls.length, 2)
   } finally {
     global.document = priorDocument
     global.window = priorWindow

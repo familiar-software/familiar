@@ -1,5 +1,6 @@
 const fs = require('node:fs/promises')
 const path = require('node:path')
+const { GENERAL_ANALYSIS_DIR_NAME } = require('../const')
 
 const DEFAULT_ANALYSIS_MODEL = 'gemini-2.0-flash-lite'
 
@@ -136,7 +137,22 @@ const findRelevantNodeBasedOnContextGraph = async ({ resultMarkdown, contextGrap
   return contextGraph.nodes[nodeId]
 }
 
-const buildAnalysisFileName = (resultMdPath) => `${path.basename(resultMdPath)}-analysis.md`
+const buildAnalysisFileName = (resultMdPath) => {
+  if (!resultMdPath) {
+    return 'analysis.md'
+  }
+
+  const baseName = path.basename(resultMdPath)
+  const parsed = path.parse(baseName)
+  const nameWithoutExt = parsed.ext ? parsed.name : parsed.base
+  const extractionSuffix = '-extraction'
+  const cleanedName = nameWithoutExt.endsWith(extractionSuffix)
+    ? nameWithoutExt.slice(0, -extractionSuffix.length)
+    : nameWithoutExt
+  const safeName = cleanedName || 'analysis'
+
+  return `${safeName}-analysis.md`
+}
 
 const resolveAnalysisOutputDir = ({ contextGraph, contextFolderPath, relevantNode }) => {
   const rootPath = contextGraph?.rootPath || contextFolderPath
@@ -145,7 +161,7 @@ const resolveAnalysisOutputDir = ({ contextGraph, contextFolderPath, relevantNod
   }
 
   if (!relevantNode) {
-    return { rootPath, outputDir: rootPath }
+    return { rootPath, outputDir: path.join(rootPath, GENERAL_ANALYSIS_DIR_NAME) }
   }
 
   const relativePath = relevantNode.relativePath || ''

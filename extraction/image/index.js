@@ -71,7 +71,18 @@ const createVisionExtractor = (options = {}) => {
   return createGeminiVisionExtractor(options)
 }
 
-const buildExtractionPath = (imagePath) => `${imagePath}-extraction.md`
+const buildExtractionPath = (imagePath) => {
+  if (!imagePath) {
+    return imagePath
+  }
+
+  const parsed = path.parse(imagePath)
+  if (!parsed.ext) {
+    return `${imagePath}-extraction.md`
+  }
+
+  return path.join(parsed.dir, `${parsed.name}-extraction.md`)
+}
 
 const extractImageMarkdown = async ({
   apiKey,

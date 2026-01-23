@@ -13,6 +13,10 @@ class ContextGraphStore {
     throw new Error('ContextGraphStore.save not implemented')
   }
 
+  delete () {
+    throw new Error('ContextGraphStore.delete not implemented')
+  }
+
   getPath () {
     throw new Error('ContextGraphStore.getPath not implemented')
   }
@@ -51,6 +55,15 @@ class JsonContextGraphStore extends ContextGraphStore {
     fs.mkdirSync(this.settingsDir, { recursive: true })
     fs.writeFileSync(this.graphPath, JSON.stringify(graph, null, 2), 'utf-8')
     return this.graphPath
+  }
+
+  delete () {
+    if (!fs.existsSync(this.graphPath)) {
+      return { deleted: false }
+    }
+
+    fs.unlinkSync(this.graphPath)
+    return { deleted: true }
   }
 }
 

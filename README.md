@@ -61,7 +61,7 @@ Environment:
 ## Notes
 
 -   The app runs from the macOS menu bar with a Settings window that stores the Context Folder Path and LLM API key in `~/.jiminy/settings.json`.
--   The Settings window includes a Context Graph sync action that writes summaries to `~/.jiminy/context-tree.json`.
+-   The Settings window includes a Context Graph sync action that writes summaries to `~/.jiminy/context-tree.json` and a prune action that deletes it.
 -   Auto-launch on login is enabled via Electron login item settings.
 -   The tray menu includes a **Capture Selection** overlay (drag to select, release to capture) that saves a PNG to `<contextFolderPath>/jiminy-captures`. It requires macOS Screen Recording permission in **System Settings > Privacy & Security > Screen Recording**.
 -   A global hotkey triggers the same capture flow: `Command+Shift+J` on macOS (Electron accelerator `CommandOrControl+Shift+J`).
@@ -84,7 +84,7 @@ Environment:
 ## Context Graph Dev Notes
 
 -   **LLM config:** Uses the API key saved in `~/.jiminy/settings.json` under `llm_provider.api_key` (configure it in the Settings window). For tests or local runs, set `JIMINY_LLM_MOCK=1` (optionally `JIMINY_LLM_MOCK_TEXT`) to bypass live calls.
--   **IPC surface:** Main process exposes `contextGraph:sync` and streams progress via `contextGraph:progress`. Renderer subscribes through `window.jiminy.onContextGraphProgress`.
+-   **IPC surface:** Main process exposes `contextGraph:sync`, `contextGraph:prune`, and streams progress via `contextGraph:progress`. Renderer subscribes through `window.jiminy.onContextGraphProgress`.
 -   **Schema reference:** See `code/desktopapp/context-graph/nodes.js` for node fields and `code/desktopapp/context-graph/sync.js` for the graph root shape.
 -   **Errors vs warnings:** Sync returns `errors` (fatal issues like unreadable files or empty LLM responses) and `warnings` (cycle detections). Renderer shows warnings but allows completion.
 -   **Tests:** `code/desktopapp/test/llms.test.js` makes a live Gemini call and will fail without a network connection and a valid `LLM_API_KEY` in the environment.
@@ -194,8 +194,9 @@ Environment:
            ▼                                                  ▼
 ┌──────────────────────┐                          ┌──────────────────────┐
 │ Context Graph Nodes  │                          │ <analysis>.md saved   │
-│ (root or node-level  │                          │ to root or <node>-    │
-│  extra context)      │                          │ jiminy-extra-context  │
+│ (general or node-    │                          │ to jiminy-general-    │
+│  level extra context)│                          │ analysis or <node>-   │
+│                      │                          │ jiminy-extra-context  │
 └──────────────────────┘                          └──────────────────────┘
 ```
 
@@ -204,3 +205,4 @@ tests:
 - if image is empty, show user that permissions are still an issue
 - context graph should ignore captures folder
 - context graph should ignore `*-jiminy-extra-context` folders
+- context graph should ignore `jiminy-general-analysis` folder

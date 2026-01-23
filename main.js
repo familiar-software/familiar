@@ -348,6 +348,26 @@ ipcMain.handle('contextGraph:sync', async (event) => {
     }
 });
 
+ipcMain.handle('contextGraph:prune', () => {
+    const store = new JsonContextGraphStore();
+    const graphPath = store.getPath();
+
+    console.log('Pruning context graph', { path: graphPath });
+
+    try {
+        const result = store.delete();
+        if (result.deleted) {
+            console.log('Context graph pruned', { path: graphPath });
+        } else {
+            console.log('Context graph file not found', { path: graphPath });
+        }
+        return { ok: true, deleted: result.deleted, graphPath };
+    } catch (error) {
+        console.error('Failed to prune context graph', error);
+        return { ok: false, message: error.message || 'Failed to prune context graph.' };
+    }
+});
+
 const getSyncedNodeCount = (graph) => {
     if (!graph) {
         return 0;
