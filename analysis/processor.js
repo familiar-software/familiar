@@ -24,8 +24,8 @@ const buildNodeSelectionPrompt = ({ resultMarkdown, nodes }) =>
     'Context graph nodes (id, type, name, relativePath, summary):\n' +
     JSON.stringify(nodes, null, 2);
 
-const createProviderGenerator = ({ provider, apiKey, model, fetchImpl } = {}) => {
-    const clients = createModelProviderClients({ provider, apiKey, textModel: model, fetchImpl });
+const createProviderGenerator = ({ provider, apiKey, model } = {}) => {
+    const clients = createModelProviderClients({ provider, apiKey, textModel: model });
     return {
         provider: clients.name,
         model: clients.text.model,
@@ -33,8 +33,8 @@ const createProviderGenerator = ({ provider, apiKey, model, fetchImpl } = {}) =>
     };
 };
 
-const createGeminiGenerator = ({ apiKey, model, fetchImpl } = {}) =>
-    createProviderGenerator({ provider: 'gemini', apiKey, model, fetchImpl });
+const createGeminiGenerator = ({ apiKey, model } = {}) =>
+    createProviderGenerator({ provider: 'gemini', apiKey, model });
 
 const createMockGenerator = ({ text = 'gibberish', model = 'mock' } = {}) => ({
     model,
@@ -165,7 +165,6 @@ const runAnalysis = async ({
     provider,
     apiKey,
     model,
-    fetchImpl,
     generator,
     summarizeFn,
     findRelevantNodeFn,
@@ -175,7 +174,7 @@ const runAnalysis = async ({
     }
 
     const resultMarkdown = await fs.readFile(resultMdPath, 'utf-8');
-    const resolvedGenerator = generator || createAnalysisGenerator({ provider, apiKey, model, fetchImpl });
+    const resolvedGenerator = generator || createAnalysisGenerator({ provider, apiKey, model });
     const summarize = summarizeFn || summarizeResult;
     const findRelevant = findRelevantNodeFn || findRelevantNodeBasedOnContextGraph;
 

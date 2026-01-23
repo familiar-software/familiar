@@ -1,6 +1,21 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { createGeminiSummarizer, DEFAULT_MODEL, ExhaustedLlmProviderError } = require('../llms');
+const { createGeminiSummarizer, DEFAULT_MODEL, ExhaustedLlmProviderError } = require('../../llms');
+const { createModelProviderClients } = require('../../modelProviders');
+
+const liveApiKey = process.env.LLM_API_KEY;
+
+if (!liveApiKey) {
+    test('gemini provider returns text from live API', { skip: 'LLM_API_KEY not set' }, () => {});
+} else {
+    test('gemini provider returns text from live API', async () => {
+        const provider = createModelProviderClients({ provider: 'gemini', apiKey: liveApiKey });
+        const result = await provider.text.generate('Reply with exactly the word: OK');
+
+        assert.ok(result);
+        assert.match(result, /\bok\b/i);
+    });
+}
 
 test('gemini summarizer returns text from provider', async (t) => {
     const originalFetch = global.fetch;

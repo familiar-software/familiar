@@ -13,7 +13,11 @@ npm start
 
 ```bash
 npm test
+npm run test:modelProviderTests
 ```
+
+- `npm test` runs unit tests (excludes `test/modelProviderTests`).
+- `npm run test:modelProviderTests` runs live provider tests (requires `LLM_API_KEY`).
 
 ## E2E Tests (Playwright)
 
@@ -46,13 +50,14 @@ CI runs on `ubuntu-latest` with Node.js 20 and uses the `code/desktopapp` workin
 npm ci
 npx playwright install --with-deps
 npm test
+npm run test:modelProviderTests
 xvfb-run --auto-servernum -- npm run test:e2e
 ```
 
 Environment:
 
 - `CI=true`
-- `LLM_API_KEY` from GitHub secrets (used by unit tests)
+- `LLM_API_KEY` from GitHub secrets (used by model provider tests)
 - E2E tests also launch Electron with `--no-sandbox --disable-gpu --disable-dev-shm-usage` on Linux/CI.
   - `--no-sandbox`: required in many CI/container setups where the Chromium sandbox cannot initialize (no user namespaces).
   - `--disable-gpu`: avoids GPU initialization failures under Xvfb/headless Linux.
@@ -87,7 +92,7 @@ Environment:
 -   **IPC surface:** Main process exposes `contextGraph:sync`, `contextGraph:prune`, and streams progress via `contextGraph:progress`. Renderer subscribes through `window.jiminy.onContextGraphProgress`.
 -   **Schema reference:** See `code/desktopapp/context-graph/nodes.js` for node fields and `code/desktopapp/context-graph/sync.js` for the graph root shape.
 -   **Errors vs warnings:** Sync returns `errors` (fatal issues like unreadable files or empty LLM responses) and `warnings` (cycle detections). Renderer shows warnings but allows completion.
--   **Tests:** Unit tests stub `fetch` for LLM requests and do not require network access by default.
+-   **Tests:** Unit tests stub `fetch` for LLM requests and do not require network access by default. Live provider tests in `test/modelProviderTests` call real APIs when `LLM_API_KEY` is set.
 
 ## Example Context Graph
 

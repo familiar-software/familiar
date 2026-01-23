@@ -5,6 +5,7 @@ const CAPTURES_DIR_NAME = 'jiminy-captures'
 const EXTRA_CONTEXT_SUFFIX = 'jiminy-extra-context'
 const GENERAL_ANALYSIS_DIR_NAME = 'jiminy-general-analysis'
 const CAPTURE_FILENAME_PREFIX = 'Jiminy Capture'
+const MAX_CONTEXT_FILE_SIZE_BYTES = 100 * 1024
 
 module.exports = {
   SETTINGS_DIR_NAME,
@@ -13,5 +14,6 @@ module.exports = {
   CAPTURES_DIR_NAME,
   EXTRA_CONTEXT_SUFFIX,
   GENERAL_ANALYSIS_DIR_NAME,
-  CAPTURE_FILENAME_PREFIX
+  CAPTURE_FILENAME_PREFIX,
+  MAX_CONTEXT_FILE_SIZE_BYTES
 }

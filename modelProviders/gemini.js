@@ -29,15 +29,14 @@ const requestGemini = async ({
     apiKey,
     model,
     payload,
-    context,
-    fetchImpl = fetch
+    context
 } = {}) => {
     if (!apiKey) {
         throw new Error('LLM API key is required for Gemini requests.')
     }
 
     const url = buildGeminiUrl({ model, apiKey })
-    const retryingFetch = withHttpRetry(fetchImpl)
+    const retryingFetch = withHttpRetry(fetch)
 
     try {
         const response = await retryingFetch(url, {
@@ -69,12 +68,11 @@ const requestGemini = async ({
     }
 }
 
-const generateContent = async ({ apiKey, model, prompt, fetchImpl = fetch } = {}) => {
+const generateContent = async ({ apiKey, model, prompt } = {}) => {
     const response = await requestGemini({
         apiKey,
         model,
         context: 'text',
-        fetchImpl,
         payload: {
             contents: [{ parts: [{ text: prompt }] }]
         }
@@ -89,8 +87,7 @@ const generateVisionContent = async ({
     model,
     prompt,
     imageBase64,
-    mimeType = 'image/png',
-    fetchImpl = fetch
+    mimeType = 'image/png'
 } = {}) => {
     if (!apiKey) {
         throw new Error('LLM API key is required for Gemini vision extraction.')
@@ -104,7 +101,6 @@ const generateVisionContent = async ({
         apiKey,
         model,
         context: 'vision',
-        fetchImpl,
         payload: {
             contents: [
                 {
@@ -130,8 +126,7 @@ const generateVisionContent = async ({
 const createGeminiProvider = ({
     apiKey,
     textModel = DEFAULT_GEMINI_TEXT_MODEL,
-    visionModel = DEFAULT_GEMINI_VISION_MODEL,
-    fetchImpl
+    visionModel = DEFAULT_GEMINI_VISION_MODEL
 } = {}) => ({
     name: 'gemini',
     text: {
@@ -139,8 +134,7 @@ const createGeminiProvider = ({
         generate: async (prompt) => generateContent({
             apiKey,
             model: textModel,
-            prompt,
-            fetchImpl
+            prompt
         })
     },
     vision: {
@@ -150,8 +144,7 @@ const createGeminiProvider = ({
             model: visionModel,
             prompt,
             imageBase64,
-            mimeType,
-            fetchImpl
+            mimeType
         })
     }
 })

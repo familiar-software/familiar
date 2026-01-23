@@ -31,9 +31,9 @@ const extractTextFromResponse = (payload) => {
   return content.map((part) => part?.text || '').join('')
 }
 
-const requestAnthropic = async ({ apiKey, payload, context, fetchImpl = fetch } = {}) => {
+const requestAnthropic = async ({ apiKey, payload, context } = {}) => {
   const url = `${ANTHROPIC_BASE_URL}/messages`
-  const retryingFetch = withHttpRetry(fetchImpl)
+  const retryingFetch = withHttpRetry(fetch)
 
   try {
     const response = await retryingFetch(url, {
@@ -65,11 +65,10 @@ const requestAnthropic = async ({ apiKey, payload, context, fetchImpl = fetch } 
   }
 }
 
-const generateText = async ({ apiKey, model, prompt, fetchImpl = fetch } = {}) => {
+const generateText = async ({ apiKey, model, prompt } = {}) => {
   const response = await requestAnthropic({
     apiKey,
     context: 'text',
-    fetchImpl,
     payload: {
       model,
       max_tokens: DEFAULT_ANTHROPIC_MAX_TOKENS,
@@ -86,8 +85,7 @@ const generateVisionText = async ({
   model,
   prompt,
   imageBase64,
-  mimeType = 'image/png',
-  fetchImpl = fetch
+  mimeType = 'image/png'
 } = {}) => {
   if (!imageBase64) {
     throw new Error('Image data is required for Anthropic vision extraction.')
@@ -96,7 +94,6 @@ const generateVisionText = async ({
   const response = await requestAnthropic({
     apiKey,
     context: 'vision',
-    fetchImpl,
     payload: {
       model,
       max_tokens: DEFAULT_ANTHROPIC_MAX_TOKENS,
@@ -126,13 +123,12 @@ const generateVisionText = async ({
 const createAnthropicProvider = ({
   apiKey,
   textModel = DEFAULT_ANTHROPIC_TEXT_MODEL,
-  visionModel = DEFAULT_ANTHROPIC_VISION_MODEL,
-  fetchImpl
+  visionModel = DEFAULT_ANTHROPIC_VISION_MODEL
 } = {}) => ({
   name: 'anthropic',
   text: {
     model: textModel,
-    generate: async (prompt) => generateText({ apiKey, model: textModel, prompt, fetchImpl })
+    generate: async (prompt) => generateText({ apiKey, model: textModel, prompt })
   },
   vision: {
     model: visionModel,
@@ -141,8 +137,7 @@ const createAnthropicProvider = ({
       model: visionModel,
       prompt,
       imageBase64,
-      mimeType,
-      fetchImpl
+      mimeType
     })
   }
 })

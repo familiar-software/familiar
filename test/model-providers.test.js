@@ -12,39 +12,49 @@ const createOkResponse = (payload) => ({
 
 test('openai provider generates text from chat completions', async () => {
     let capturedPayload = null;
-    const fetchImpl = async (_url, options) => {
+    const originalFetch = global.fetch;
+    global.fetch = async (_url, options) => {
         capturedPayload = JSON.parse(options.body);
         return createOkResponse({
             choices: [{ message: { content: 'openai summary' } }],
         });
     };
 
-    const provider = createModelProviderClients({ provider: 'openai', apiKey: 'test-key', fetchImpl });
-    const result = await provider.text.generate('Summarize this file.');
+    try {
+        const provider = createModelProviderClients({ provider: 'openai', apiKey: 'test-key' });
+        const result = await provider.text.generate('Summarize this file.');
 
-    assert.equal(result, 'openai summary');
-    assert.equal(capturedPayload.model, 'gpt-4o-mini');
-    assert.equal(capturedPayload.messages[0].role, 'user');
+        assert.equal(result, 'openai summary');
+        assert.equal(capturedPayload.model, 'gpt-4o-mini');
+        assert.equal(capturedPayload.messages[0].role, 'user');
+    } finally {
+        global.fetch = originalFetch;
+    }
 });
 
 test('anthropic provider generates vision text', async () => {
     let capturedPayload = null;
-    const fetchImpl = async (_url, options) => {
+    const originalFetch = global.fetch;
+    global.fetch = async (_url, options) => {
         capturedPayload = JSON.parse(options.body);
         return createOkResponse({
             content: [{ type: 'text', text: 'anthropic extraction' }],
         });
     };
 
-    const provider = createModelProviderClients({ provider: 'anthropic', apiKey: 'test-key', fetchImpl });
-    const result = await provider.vision.extract({
-        prompt: 'Extract text.',
-        imageBase64: 'ZmFrZQ==',
-        mimeType: 'image/png',
-    });
+    try {
+        const provider = createModelProviderClients({ provider: 'anthropic', apiKey: 'test-key' });
+        const result = await provider.vision.extract({
+            prompt: 'Extract text.',
+            imageBase64: 'ZmFrZQ==',
+            mimeType: 'image/png',
+        });
 
-    assert.equal(result, 'anthropic extraction');
-    assert.equal(capturedPayload.model, 'claude-3-5-sonnet-20240620');
-    assert.equal(capturedPayload.messages[0].content[0].type, 'text');
-    assert.equal(capturedPayload.messages[0].content[1].type, 'image');
+        assert.equal(result, 'anthropic extraction');
+        assert.equal(capturedPayload.model, 'claude-3-5-sonnet-20240620');
+        assert.equal(capturedPayload.messages[0].content[0].type, 'text');
+        assert.equal(capturedPayload.messages[0].content[1].type, 'image');
+    } finally {
+        global.fetch = originalFetch;
+    }
 });

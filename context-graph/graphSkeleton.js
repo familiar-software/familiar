@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const { FileNode, FolderNode, createNodeId, normalizeRelativePath } = require('./nodes')
-const { EXTRA_CONTEXT_SUFFIX, GENERAL_ANALYSIS_DIR_NAME } = require('../const')
+const { EXTRA_CONTEXT_SUFFIX, GENERAL_ANALYSIS_DIR_NAME, MAX_CONTEXT_FILE_SIZE_BYTES } = require('../const')
 
 const MAX_NODES = 300
 const ALLOWED_EXTENSIONS = new Set(['.md', '.txt'])
@@ -89,14 +89,26 @@ const hashBuffer = (buffer) => (
 )
 
 const readFileData = (filePath) => {
-  const stat = fs.statSync(filePath)
+  const fileStat = fs.statSync(filePath)
   const buffer = fs.readFileSync(filePath)
   return {
-    sizeBytes: stat.size,
-    modifiedAt: stat.mtime.toISOString(),
+    sizeBytes: fileStat.size,
+    modifiedAt: fileStat.mtime.toISOString(),
     content: buffer.toString('utf-8'),
     contentHash: hashBuffer(buffer)
   }
+}
+
+const isFileTooLarge = (stat, relativePath, logger, maxSizeBytes = MAX_CONTEXT_FILE_SIZE_BYTES) => {
+  if (stat.size > maxSizeBytes) {
+    logger.log('Skipping large file', {
+      path: relativePath,
+      sizeBytes: stat.size,
+      maxSizeBytes
+    })
+    return true
+  }
+  return false
 }
 
 const applyGitignoreRules = (rules, relativePath, isDirectory, ignored) => {
@@ -300,6 +312,11 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
       const extension = path.extname(entry.name).toLowerCase()
       if (!ALLOWED_EXTENSIONS.has(extension)) {
         logger.log('Skipping unsupported file', { path: entryPath, extension })
+        continue
+      }
+
+      const fileStat = fs.statSync(entryPath)
+      if (isFileTooLarge(fileStat, normalizedEntryRelative, logger)) {
         continue
       }
 

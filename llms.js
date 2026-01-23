@@ -16,8 +16,8 @@ const buildFolderPrompt = ({ relativePath, summaries }) =>
     `Avoid repeating every file name.\n\n` +
     `File summaries:\n${summaries}`;
 
-const createProviderSummarizer = ({ provider, apiKey, textModel, fetchImpl } = {}) => {
-    const clients = createModelProviderClients({ provider, apiKey, textModel, fetchImpl });
+const createProviderSummarizer = ({ provider, apiKey, textModel } = {}) => {
+    const clients = createModelProviderClients({ provider, apiKey, textModel });
     return {
         provider: clients.name,
         model: clients.text.model,
@@ -28,8 +28,8 @@ const createProviderSummarizer = ({ provider, apiKey, textModel, fetchImpl } = {
     };
 };
 
-const createGeminiSummarizer = ({ apiKey, model = DEFAULT_MODEL, fetchImpl } = {}) =>
-    createProviderSummarizer({ provider: 'gemini', apiKey, textModel: model, fetchImpl });
+const createGeminiSummarizer = ({ apiKey, model = DEFAULT_MODEL } = {}) =>
+    createProviderSummarizer({ provider: 'gemini', apiKey, textModel: model });
 
 const createMockSummarizer = ({ text = 'gibberish', model = 'mock' } = {}) => ({
     model,

@@ -45,8 +45,8 @@ const readImageAsBase64 = async (imagePath) => {
     return buffer.toString('base64');
 };
 
-const createProviderVisionExtractor = ({ provider, apiKey, model, fetchImpl } = {}) => {
-    const clients = createModelProviderClients({ provider, apiKey, visionModel: model, fetchImpl });
+const createProviderVisionExtractor = ({ provider, apiKey, model } = {}) => {
+    const clients = createModelProviderClients({ provider, apiKey, visionModel: model });
     return {
         provider: clients.name,
         model: clients.vision.model,
@@ -59,8 +59,8 @@ const createProviderVisionExtractor = ({ provider, apiKey, model, fetchImpl } = 
     };
 };
 
-const createGeminiVisionExtractor = ({ apiKey, model = DEFAULT_VISION_MODEL, fetchImpl } = {}) =>
-    createProviderVisionExtractor({ provider: 'gemini', apiKey, model, fetchImpl });
+const createGeminiVisionExtractor = ({ apiKey, model = DEFAULT_VISION_MODEL } = {}) =>
+    createProviderVisionExtractor({ provider: 'gemini', apiKey, model });
 
 const createMockVisionExtractor = ({ text = 'gibberish', model = 'mock' } = {}) => ({
     model,
@@ -94,11 +94,10 @@ const extractImageMarkdown = async ({
     model,
     imageBase64,
     mimeType,
-    fetchImpl,
     prompt,
     imagePath,
 } = {}) => {
-    const extractor = createVisionExtractor({ provider, apiKey, model, fetchImpl });
+    const extractor = createVisionExtractor({ provider, apiKey, model });
     const finalPrompt = prompt || buildImageExtractionPrompt();
     const resolvedMime = mimeType || inferMimeType(imagePath, DEFAULT_VISION_MIME);
     const resolvedBase64 = imageBase64 || (await readImageAsBase64(imagePath));
@@ -130,7 +129,6 @@ const runImageExtraction = async ({
     imagePath,
     imageBase64,
     mimeType,
-    fetchImpl,
     prompt,
 } = {}) => {
     const markdown = await extractImageMarkdown({
@@ -139,7 +137,6 @@ const runImageExtraction = async ({
         model,
         imageBase64,
         mimeType,
-        fetchImpl,
         prompt,
         imagePath,
     });

@@ -35,9 +35,9 @@ const extractTextFromResponse = (payload) => {
   return ''
 }
 
-const requestOpenAi = async ({ apiKey, payload, context, fetchImpl = fetch } = {}) => {
+const requestOpenAi = async ({ apiKey, payload, context } = {}) => {
   const url = `${OPENAI_BASE_URL}/chat/completions`
-  const retryingFetch = withHttpRetry(fetchImpl)
+  const retryingFetch = withHttpRetry(fetch)
 
   try {
     const response = await retryingFetch(url, {
@@ -69,11 +69,10 @@ const requestOpenAi = async ({ apiKey, payload, context, fetchImpl = fetch } = {
   }
 }
 
-const generateText = async ({ apiKey, model, prompt, fetchImpl = fetch } = {}) => {
+const generateText = async ({ apiKey, model, prompt } = {}) => {
   const response = await requestOpenAi({
     apiKey,
     context: 'text',
-    fetchImpl,
     payload: {
       model,
       messages: [{ role: 'user', content: prompt }]
@@ -89,8 +88,7 @@ const generateVisionText = async ({
   model,
   prompt,
   imageBase64,
-  mimeType = 'image/png',
-  fetchImpl = fetch
+  mimeType = 'image/png'
 } = {}) => {
   if (!imageBase64) {
     throw new Error('Image data is required for OpenAI vision extraction.')
@@ -100,7 +98,6 @@ const generateVisionText = async ({
   const response = await requestOpenAi({
     apiKey,
     context: 'vision',
-    fetchImpl,
     payload: {
       model,
       messages: [
@@ -122,13 +119,12 @@ const generateVisionText = async ({
 const createOpenAIProvider = ({
   apiKey,
   textModel = DEFAULT_OPENAI_TEXT_MODEL,
-  visionModel = DEFAULT_OPENAI_VISION_MODEL,
-  fetchImpl
+  visionModel = DEFAULT_OPENAI_VISION_MODEL
 } = {}) => ({
   name: 'openai',
   text: {
     model: textModel,
-    generate: async (prompt) => generateText({ apiKey, model: textModel, prompt, fetchImpl })
+    generate: async (prompt) => generateText({ apiKey, model: textModel, prompt })
   },
   vision: {
     model: visionModel,
@@ -137,8 +133,7 @@ const createOpenAIProvider = ({
       model: visionModel,
       prompt,
       imageBase64,
-      mimeType,
-      fetchImpl
+      mimeType
     })
   }
 })

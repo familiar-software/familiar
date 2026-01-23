@@ -97,7 +97,7 @@ test('computeBackoffDelay applies jitter strategies', () => {
 
 test('withHttpRetry retries on retryable status', async () => {
   let calls = 0
-  const fetchImpl = async () => {
+  const fetchStub = async () => {
     calls += 1
     if (calls < 2) {
       return {
@@ -114,7 +114,7 @@ test('withHttpRetry retries on retryable status', async () => {
     }
   }
 
-  const retryingFetch = withHttpRetry(fetchImpl)
+  const retryingFetch = withHttpRetry(fetchStub)
   const response = await retryingFetch('https://example.com')
 
   assert.equal(response.ok, true)
@@ -123,7 +123,7 @@ test('withHttpRetry retries on retryable status', async () => {
 
 test('withHttpRetry does not retry non-retryable status', async () => {
   let calls = 0
-  const fetchImpl = async () => {
+  const fetchStub = async () => {
     calls += 1
     return {
       ok: false,
@@ -132,7 +132,7 @@ test('withHttpRetry does not retry non-retryable status', async () => {
     }
   }
 
-  const retryingFetch = withHttpRetry(fetchImpl)
+  const retryingFetch = withHttpRetry(fetchStub)
   const response = await retryingFetch('https://example.com')
 
   assert.equal(response.status, 400)

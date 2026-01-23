@@ -27,7 +27,7 @@ const DEFAULT_VISION_MODELS = {
 
 const normalizeProviderName = (provider) => (typeof provider === 'string' ? provider.trim().toLowerCase() : '');
 
-const createModelProviderClients = ({ provider, apiKey, textModel, visionModel, fetchImpl } = {}) => {
+const createModelProviderClients = ({ provider, apiKey, textModel, visionModel } = {}) => {
     const normalized = normalizeProviderName(provider);
     if (!normalized) {
         throw new Error('LLM provider is required.');
@@ -38,7 +38,7 @@ const createModelProviderClients = ({ provider, apiKey, textModel, visionModel, 
         throw new Error(`Unsupported LLM provider: ${provider}`);
     }
 
-    return creator({ apiKey, textModel, visionModel, fetchImpl });
+    return creator({ apiKey, textModel, visionModel });
 };
 
 const getProviderNames = () => Object.keys(PROVIDER_CREATORS);

@@ -5,7 +5,7 @@ const assert = require('node:assert/strict')
 const { test } = require('node:test')
 const { JsonContextGraphStore, syncContextGraph } = require('../context-graph')
 const { constructContextGraphSkeleton } = require('../context-graph/graphSkeleton')
-const { CAPTURES_DIR_NAME, EXTRA_CONTEXT_SUFFIX, GENERAL_ANALYSIS_DIR_NAME } = require('../const')
+const { CAPTURES_DIR_NAME, EXTRA_CONTEXT_SUFFIX, GENERAL_ANALYSIS_DIR_NAME, MAX_CONTEXT_FILE_SIZE_BYTES } = require('../const')
 
 const createTempDir = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix))
 const toPosix = (value) => value.split(path.sep).join('/')
@@ -44,6 +44,12 @@ const writeSkipFixture = (rootPath) => {
   fs.writeFileSync(path.join(rootPath, 'docs', 'keep.md'), '# Keep', 'utf-8')
   fs.writeFileSync(path.join(rootPath, 'notes.txt'), 'Keep this too', 'utf-8')
   fs.writeFileSync(path.join(rootPath, 'image.png'), 'not really png', 'utf-8')
+}
+
+const writeLargeFileFixture = (rootPath) => {
+  fs.writeFileSync(path.join(rootPath, 'small.md'), 'Small file', 'utf-8')
+  const largeBuffer = Buffer.alloc(MAX_CONTEXT_FILE_SIZE_BYTES + 1, 'a')
+  fs.writeFileSync(path.join(rootPath, 'large.md'), largeBuffer)
 }
 
 const writeCaptureFolderFixture = (rootPath) => {
@@ -334,6 +340,39 @@ test('sync skips non-md/txt files and logs a warning', async () => {
   const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
   const skipped = Object.values(stored.nodes).find((node) => node.relativePath === 'image.png')
   assert.equal(skipped, undefined)
+})
+
+test('sync skips files larger than MAX_CONTEXT_FILE_SIZE_BYTES', async () => {
+  const contextRoot = createTempDir('jiminy-context-')
+  writeLargeFileFixture(contextRoot)
+
+  const store = createStore()
+  const summarizer = {
+    model: 'test-model',
+    summarizeFile: async ({ relativePath }) => `Summary for ${relativePath}`,
+    summarizeFolder: async ({ relativePath }) => `Folder summary for ${relativePath || '.'}`
+  }
+
+  const logs = []
+  const logger = {
+    log: (message, meta) => logs.push({ message, meta }),
+    warn: () => {},
+    error: () => {}
+  }
+
+  const result = await syncContextGraph({
+    rootPath: contextRoot,
+    store,
+    summarizer,
+    logger
+  })
+
+  assert.equal(result.graph.counts.files, 1)
+  assert.ok(logs.some((entry) => entry.message === 'Skipping large file'))
+
+  const stored = JSON.parse(fs.readFileSync(store.getPath(), 'utf-8'))
+  const largeNode = Object.values(stored.nodes).find((node) => node.relativePath === 'large.md')
+  assert.equal(largeNode, undefined)
 })
 
 test('sync ignores the captures folder', async () => {

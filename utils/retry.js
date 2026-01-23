@@ -146,8 +146,8 @@ const withRetry = (operation, options = {}) => {
   return async (...args) => retry(() => operation(...args), options)
 }
 
-const withHttpRetry = (fetchImpl) => {
-  if (typeof fetchImpl !== 'function') {
+const withHttpRetry = (fetchFn) => {
+  if (typeof fetchFn !== 'function') {
     throw new TypeError('withHttpRetry expects a fetch function')
   }
 
@@ -158,7 +158,7 @@ const withHttpRetry = (fetchImpl) => {
 
   return async (...args) => retry(async () => {
     try {
-      const response = await fetchImpl(...args)
+      const response = await fetchFn(...args)
 
       if (response.ok) {
         return response
