@@ -28,21 +28,34 @@ const stubElectron = (handlers) => {
   class FakeWindow {
     constructor () {
       this._listeners = new Map()
+      this._destroyed = false
     }
 
     setVisibleOnAllWorkspaces () {}
     setAlwaysOnTop () {}
     loadFile () {}
     show () {}
+    showInactive () {}
+    hide () {}
     focus () {}
-    close () {}
+    close () { this._destroyed = true }
+    destroy () { this._destroyed = true }
+    isDestroyed () { return this._destroyed }
 
     once (event, listener) {
       this._listeners.set(event, listener)
+      // Fire ready-to-show immediately for toast
+      if (event === 'ready-to-show') {
+        setTimeout(() => listener(), 0)
+      }
     }
 
     on (event, listener) {
       this._listeners.set(event, listener)
+    }
+
+    get webContents () {
+      return { send: () => {} }
     }
   }
 
@@ -74,6 +87,9 @@ const stubElectron = (handlers) => {
         id: 1,
         bounds: { x: 0, y: 0, width: 100, height: 100 },
         scaleFactor: 1
+      }),
+      getPrimaryDisplay: () => ({
+        workAreaSize: { width: 1920, height: 1080 }
       })
     },
     dialog: {

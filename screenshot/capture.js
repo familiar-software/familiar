@@ -4,6 +4,7 @@ const { normalizeRect, clampRectToBounds } = require('./capture-utils')
 const { getCaptureDirectory, savePngToDirectory } = require('./capture-storage')
 const { extractionQueue } = require('../extraction')
 const { loadSettings, validateContextFolderPath } = require('../settings')
+const { showToast } = require('../toast')
 
 let overlayWindow = null
 let overlaySession = null
@@ -225,6 +226,11 @@ async function handleCaptureGrab (_event, payload) {
     const image = source.thumbnail
     if (image.isEmpty()) {
       console.warn('Capture source returned empty image. Check permissions.')
+      showToast({
+        title: 'Permission Required',
+        body: 'Screen Recording permission is required to capture screenshots.',
+        type: 'warning'
+      })
       result = { ok: false, error: 'Capture failed. Check Screen Recording permission.' }
       return result
     }
@@ -295,6 +301,11 @@ async function handleCaptureGrab (_event, payload) {
       console.log('Capture saved', { path: savedPath })
     } catch (error) {
       console.error('Failed to save capture', error)
+      showToast({
+        title: 'Capture Failed',
+        body: 'Failed to save screenshot. Check write permissions.',
+        type: 'error'
+      })
       result = { ok: false, error: 'Capture save failed. Check write permissions for capture directory.' }
       return result
     }
@@ -314,6 +325,12 @@ async function handleCaptureGrab (_event, payload) {
       savedFilename
     }
 
+    showToast({
+      title: 'Screenshot Captured',
+      body: 'Screenshot saved and queued for analysis.',
+      type: 'success'
+    })
+
     void extractionQueue.enqueue({
       sourceType: 'image',
       metadata: { path: savedPath }
@@ -324,6 +341,11 @@ async function handleCaptureGrab (_event, payload) {
     return result
   } catch (error) {
     console.error('Capture failed', error)
+    showToast({
+      title: 'Capture Failed',
+      body: 'Screenshot capture failed unexpectedly.',
+      type: 'error'
+    })
     result = { ok: false, error: 'Capture failed.' }
     return result
   } finally {

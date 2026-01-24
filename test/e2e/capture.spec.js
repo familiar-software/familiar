@@ -85,7 +85,16 @@ test('capture flow saves a screenshot under the context folder', async () => {
     await overlay.mouse.move(endX, endY)
     await overlay.mouse.up()
 
+    // Wait for toast window to appear after capture
+    const toastPromise = electronApp.waitForEvent('window')
     await overlay.waitForEvent('close')
+
+    const toastWindow = await toastPromise
+    await toastWindow.waitForLoadState('domcontentloaded')
+
+    // Verify toast shows success message
+    await expect(toastWindow.locator('#title')).toHaveText('Screenshot Captured')
+    await expect(toastWindow.locator('#body')).toHaveText('Screenshot saved and queued for analysis.')
 
     const capturesDir = path.join(contextPath, JIMINY_BEHIND_THE_SCENES_DIR_NAME, CAPTURES_DIR_NAME)
     await expect.poll(() => {
