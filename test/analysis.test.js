@@ -60,7 +60,8 @@ test('analysis writes summary alongside relevant node folder', async () => {
 
   const extractionDir = await makeTempDir('jiminy-extraction-')
   const extractionPath = path.join(extractionDir, 'capture-extraction.md')
-  await fs.writeFile(extractionPath, 'Extraction content', 'utf-8')
+  const rawExtractionContent = 'Extraction content'
+  await fs.writeFile(extractionPath, rawExtractionContent, 'utf-8')
 
   const graph = buildContextGraph({ rootPath: contextRoot, fileRelativePath: path.join('project', 'notes.md') })
   const fileNode = Object.values(graph.nodes).find((node) => node.type === 'file')
@@ -80,13 +81,20 @@ test('analysis writes summary alongside relevant node folder', async () => {
   assert.equal(result.outputPath, expectedFile)
   assert.equal(result.relevantNodeName, fileNode.name)
   assert.ok(await fs.stat(result.outputPath))
+
+  const writtenContent = await fs.readFile(result.outputPath, 'utf-8')
+  assert.ok(writtenContent.includes('# Summary'), 'should contain summary heading')
+  assert.ok(writtenContent.includes('Summary of extraction.'), 'should contain summary text')
+  assert.ok(writtenContent.includes('# Raw Extraction'), 'should contain raw extraction heading')
+  assert.ok(writtenContent.includes(rawExtractionContent), 'should contain raw extraction content')
 })
 
 test('analysis writes summary to general analysis folder when no relevant node found', async () => {
   const contextRoot = await makeTempDir('jiminy-context-')
   const extractionDir = await makeTempDir('jiminy-extraction-')
   const extractionPath = path.join(extractionDir, 'capture-extraction.md')
-  await fs.writeFile(extractionPath, 'Extraction content', 'utf-8')
+  const rawExtractionContent = 'Extraction content'
+  await fs.writeFile(extractionPath, rawExtractionContent, 'utf-8')
 
   const graph = buildContextGraph({ rootPath: contextRoot, fileRelativePath: path.join('project', 'notes.md') })
 
@@ -108,4 +116,10 @@ test('analysis writes summary to general analysis folder when no relevant node f
   assert.equal(result.outputPath, expectedFile)
   assert.equal(result.relevantNodeName, null)
   assert.ok(await fs.stat(result.outputPath))
+
+  const writtenContent = await fs.readFile(result.outputPath, 'utf-8')
+  assert.ok(writtenContent.includes('# Summary'), 'should contain summary heading')
+  assert.ok(writtenContent.includes('Summary of extraction.'), 'should contain summary text')
+  assert.ok(writtenContent.includes('# Raw Extraction'), 'should contain raw extraction heading')
+  assert.ok(writtenContent.includes(rawExtractionContent), 'should contain raw extraction content')
 })

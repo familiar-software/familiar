@@ -146,9 +146,14 @@ const resolveAnalysisOutputDir = ({ contextGraph, contextFolderPath, relevantNod
     };
 };
 
-const buildAnalysisMarkdown = ({ resultMdPath, summary }) => {
+const buildAnalysisMarkdown = ({ resultMdPath, summary, resultMarkdown }) => {
     const trimmedSummary = summary.trim();
-    return `Raw result: ${resultMdPath}\n\n# Summary\n${trimmedSummary}\n`;
+    const trimmedContent = (resultMarkdown || '').trim();
+    return (
+        `Raw result: ${resultMdPath}\n\n` +
+        `# Summary\n${trimmedSummary}\n\n` +
+        `# Raw Extraction\n${trimmedContent}\n`
+    );
 };
 
 const writeAnalysisFile = async ({ outputPath, markdown }) => {
@@ -197,7 +202,7 @@ const runAnalysis = async ({
 
     const analysisFileName = buildAnalysisFileName(resultMdPath);
     const outputPath = path.join(outputDir, analysisFileName);
-    const markdown = buildAnalysisMarkdown({ resultMdPath, summary });
+    const markdown = buildAnalysisMarkdown({ resultMdPath, summary, resultMarkdown });
 
     await writeAnalysisFile({ outputPath, markdown });
 
