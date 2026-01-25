@@ -3,6 +3,7 @@ const { loadSettings } = require('../settings');
 const { JsonContextGraphStore } = require('../context-graph');
 const { runAnalysis } = require('./processor');
 const { showToast } = require('../toast');
+const { InvalidLlmProviderApiKeyError } = require('../modelProviders');
 
 const shortenPath = (fullPath, maxComponents = 2) => {
     const parts = fullPath.split(path.sep).filter(Boolean);
@@ -10,6 +11,17 @@ const shortenPath = (fullPath, maxComponents = 2) => {
         return fullPath;
     }
     return '.../' + parts.slice(-maxComponents).join('/');
+};
+
+const formatProviderName = (provider) => {
+    const normalized = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
+    if (!normalized) {
+        return 'LLM';
+    }
+    if (normalized === 'openai') return 'OpenAI';
+    if (normalized === 'gemini') return 'Gemini';
+    if (normalized === 'anthropic') return 'Anthropic';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
 const isLlmMockEnabled = () => process.env.JIMINY_LLM_MOCK === '1';
@@ -69,14 +81,33 @@ const createAnalysisHandler =
 
         console.log('Starting analysis for result markdown', { resultMdPath, provider, model });
 
-        const result = await runAnalysisImpl({
-            resultMdPath,
-            contextGraph,
-            contextFolderPath,
-            provider,
-            apiKey,
-            model,
-        });
+        let result;
+        try {
+            result = await runAnalysisImpl({
+                resultMdPath,
+                contextGraph,
+                contextFolderPath,
+                provider,
+                apiKey,
+                model,
+            });
+        } catch (error) {
+            if (error instanceof InvalidLlmProviderApiKeyError) {
+                const providerName = formatProviderName(error.provider || provider);
+                console.warn('Analysis failed due to invalid LLM API key', {
+                    provider: providerName,
+                    message: error.message,
+                });
+                showToast({
+                    title: `Invalid ${providerName} API key`,
+                    body: 'Update it in Settings and try again.',
+                    type: 'error',
+                });
+                return { skipped: true, reason: 'invalid_api_key' };
+            }
+
+            throw error;
+        }
 
         console.log('Analysis saved', {
             resultMdPath,

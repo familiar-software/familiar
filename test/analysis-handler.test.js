@@ -119,3 +119,61 @@ test('analysis handler notifies when LLM API key is missing', async () => {
         }
     }
 });
+
+test('analysis handler notifies when LLM API key is invalid', async () => {
+    const settingsDir = await makeTempSettingsDir();
+    await writeSettings(settingsDir, {
+        llm_provider: { provider: 'gemini', api_key: 'bad-key' },
+        contextFolderPath: '/tmp',
+    });
+
+    const previousSettingsDir = process.env.JIMINY_SETTINGS_DIR;
+    const previousMock = process.env.JIMINY_LLM_MOCK;
+    process.env.JIMINY_SETTINGS_DIR = settingsDir;
+    delete process.env.JIMINY_LLM_MOCK;
+
+    const toastPath = require.resolve('../src/toast');
+    const handlerPath = require.resolve('../src/analysis/handler');
+    const originalToastModule = require.cache[toastPath];
+
+    const toastCalls = [];
+    mockModule(toastPath, {
+        showToast: (payload) => toastCalls.push(payload),
+    });
+
+    resetModule(handlerPath);
+
+    try {
+        const { createAnalysisHandler } = require('../src/analysis/handler');
+        const { InvalidLlmProviderApiKeyError } = require('../src/modelProviders');
+        const handler = createAnalysisHandler({
+            runAnalysisImpl: async () => {
+                throw new InvalidLlmProviderApiKeyError({ provider: 'gemini' });
+            },
+        });
+        const result = await handler({ result_md_path: '/tmp/result.md' });
+
+        assert.deepEqual(result, { skipped: true, reason: 'invalid_api_key' });
+        assert.equal(toastCalls.length, 1);
+        assert.equal(toastCalls[0].title, 'Invalid Gemini API key');
+    } finally {
+        if (originalToastModule) {
+            require.cache[toastPath] = originalToastModule;
+        } else {
+            delete require.cache[toastPath];
+        }
+        resetModule(handlerPath);
+
+        if (typeof previousSettingsDir === 'undefined') {
+            delete process.env.JIMINY_SETTINGS_DIR;
+        } else {
+            process.env.JIMINY_SETTINGS_DIR = previousSettingsDir;
+        }
+
+        if (typeof previousMock === 'undefined') {
+            delete process.env.JIMINY_LLM_MOCK;
+        } else {
+            process.env.JIMINY_LLM_MOCK = previousMock;
+        }
+    }
+});

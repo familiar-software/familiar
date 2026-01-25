@@ -1,5 +1,5 @@
 const { withHttpRetry, HttpRetryableError } = require('../utils/retry')
-const { ExhaustedLlmProviderError } = require('./errors')
+const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./errors')
 
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 const DEFAULT_GEMINI_TEXT_MODEL = 'gemini-2.0-flash-lite'
@@ -23,6 +23,20 @@ const buildGeminiUrl = ({ model, apiKey }) => `${GEMINI_BASE_URL}/${model}:gener
 
 const logGeminiFailure = ({ context, status, message }) => {
     console.warn(`Gemini ${context} request failed`, { status, message })
+}
+
+const parseGeminiError = ({ status, message }) => {
+    if (status === 400 || status === 401) {
+        const normalized = (message || '').toLowerCase()
+        if (normalized.includes('api key not valid') || normalized.includes('api_key_invalid')) {
+            return new InvalidLlmProviderApiKeyError({
+                provider: 'gemini',
+                status,
+                message: 'Gemini API key is invalid.'
+            })
+        }
+    }
+    return null
 }
 
 const requestGemini = async ({
@@ -51,6 +65,10 @@ const requestGemini = async ({
             if (response.status === 429) {
                 throw new ExhaustedLlmProviderError()
             }
+            const parsedError = parseGeminiError({ status: response.status, message })
+            if (parsedError) {
+                throw parsedError
+            }
             throw new Error(`Gemini ${context} request failed: ${response.status} ${message}`)
         }
 
@@ -60,6 +78,10 @@ const requestGemini = async ({
             logGeminiFailure({ context, status: error.status, message: error.message })
             if (error.status === 429) {
                 throw new ExhaustedLlmProviderError()
+            }
+            const parsedError = parseGeminiError({ status: error.status, message: error.message })
+            if (parsedError) {
+                throw parsedError
             }
             throw new Error(`Gemini ${context} request failed: ${error.status} ${error.message}`)
         }

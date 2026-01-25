@@ -1,5 +1,5 @@
 const { withHttpRetry, HttpRetryableError } = require('../utils/retry')
-const { ExhaustedLlmProviderError } = require('./errors')
+const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./errors')
 
 const OPENAI_BASE_URL = 'https://api.openai.com/v1'
 const DEFAULT_OPENAI_TEXT_MODEL = 'gpt-4o-mini'
@@ -7,6 +7,20 @@ const DEFAULT_OPENAI_VISION_MODEL = 'gpt-4o-mini'
 
 const logOpenAiFailure = ({ context, status, message }) => {
   console.warn(`OpenAI ${context} request failed`, { status, message })
+}
+
+const parseOpenAiError = ({ status, message }) => {
+  if (status === 401 || status === 403) {
+    const normalized = (message || '').toLowerCase()
+    if (normalized.includes('incorrect api key') || normalized.includes('invalid api key')) {
+      return new InvalidLlmProviderApiKeyError({
+        provider: 'openai',
+        status,
+        message: 'OpenAI API key is invalid.'
+      })
+    }
+  }
+  return null
 }
 
 const buildOpenAiHeaders = (apiKey) => {
@@ -52,6 +66,10 @@ const requestOpenAi = async ({ apiKey, payload, context } = {}) => {
       if (response.status === 429) {
         throw new ExhaustedLlmProviderError()
       }
+      const parsedError = parseOpenAiError({ status: response.status, message })
+      if (parsedError) {
+        throw parsedError
+      }
       throw new Error(`OpenAI ${context} request failed: ${response.status} ${message}`)
     }
 
@@ -61,6 +79,10 @@ const requestOpenAi = async ({ apiKey, payload, context } = {}) => {
       logOpenAiFailure({ context, status: error.status, message: error.message })
       if (error.status === 429) {
         throw new ExhaustedLlmProviderError()
+      }
+      const parsedError = parseOpenAiError({ status: error.status, message: error.message })
+      if (parsedError) {
+        throw parsedError
       }
       throw new Error(`OpenAI ${context} request failed: ${error.status} ${error.message}`)
     }

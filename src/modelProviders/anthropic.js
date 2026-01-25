@@ -1,5 +1,5 @@
 const { withHttpRetry, HttpRetryableError } = require('../utils/retry')
-const { ExhaustedLlmProviderError } = require('./errors')
+const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./errors')
 
 const ANTHROPIC_BASE_URL = 'https://api.anthropic.com/v1'
 const DEFAULT_ANTHROPIC_TEXT_MODEL = 'claude-3-5-sonnet-20240620'
@@ -8,6 +8,20 @@ const DEFAULT_ANTHROPIC_MAX_TOKENS = 2048
 
 const logAnthropicFailure = ({ context, status, message }) => {
   console.warn(`Anthropic ${context} request failed`, { status, message })
+}
+
+const parseAnthropicError = ({ status, message }) => {
+  if (status === 401 || status === 403) {
+    const normalized = (message || '').toLowerCase()
+    if (normalized.includes('invalid api key') || normalized.includes('authentication_error')) {
+      return new InvalidLlmProviderApiKeyError({
+        provider: 'anthropic',
+        status,
+        message: 'Anthropic API key is invalid.'
+      })
+    }
+  }
+  return null
 }
 
 const buildAnthropicHeaders = (apiKey) => {
@@ -48,6 +62,10 @@ const requestAnthropic = async ({ apiKey, payload, context } = {}) => {
       if (response.status === 429) {
         throw new ExhaustedLlmProviderError()
       }
+      const parsedError = parseAnthropicError({ status: response.status, message })
+      if (parsedError) {
+        throw parsedError
+      }
       throw new Error(`Anthropic ${context} request failed: ${response.status} ${message}`)
     }
 
@@ -57,6 +75,10 @@ const requestAnthropic = async ({ apiKey, payload, context } = {}) => {
       logAnthropicFailure({ context, status: error.status, message: error.message })
       if (error.status === 429) {
         throw new ExhaustedLlmProviderError()
+      }
+      const parsedError = parseAnthropicError({ status: error.status, message: error.message })
+      if (parsedError) {
+        throw parsedError
       }
       throw new Error(`Anthropic ${context} request failed: ${error.status} ${error.message}`)
     }

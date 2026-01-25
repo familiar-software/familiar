@@ -6,6 +6,17 @@ class ExhaustedLlmProviderError extends Error {
   }
 }
 
+class InvalidLlmProviderApiKeyError extends Error {
+  constructor({ provider, status, message } = {}) {
+    super(message || 'LLM API key is invalid.')
+    this.name = 'InvalidLlmProviderApiKeyError'
+    this.code = 'invalidApiKey'
+    this.provider = provider
+    this.status = status
+  }
+}
+
 module.exports = {
-  ExhaustedLlmProviderError
+  ExhaustedLlmProviderError,
+  InvalidLlmProviderApiKeyError
 }
