@@ -51,13 +51,13 @@ function createSettingsWindow() {
         show: false,
         title: 'Jiminy Settings',
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, 'dashboard', 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
         },
     });
 
-    window.loadFile('src/index.html');
+    window.loadFile(path.join(__dirname, 'dashboard', 'index.html'));
 
     window.on('close', (event) => {
         if (!isQuitting) {

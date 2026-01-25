@@ -6,10 +6,10 @@
   "scripts": {
     "clean": "rimraf dist",
     "dist:mac": "npm run clean && electron-builder --mac --arm64",
-    "css": "tailwindcss -i ./src/input.css -o ./src/styles.css --watch",
-    "css:build": "tailwindcss -i ./src/input.css -o ./src/styles.css --minify",
+    "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
+    "css:build": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --minify",
     "start": "npm run css:build && electron .",
-    "dev": "tailwindcss -i ./src/input.css -o ./src/styles.css --watch & electron .",
+    "dev": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
     "test": "find test -name \"*.test.js\" -not -path \"*/e2e/*\" -not -path \"*/modelProviderTests/*\" -print0 | xargs -0 node --test",
     "test:unit:timed": "node scripts/run-unit-tests-with-timeout.js",
     "test:modelProviderTests": "find test/modelProviderTests -name \"*.test.js\" -print0 | xargs -0 node --test",
