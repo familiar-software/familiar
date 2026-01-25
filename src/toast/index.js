@@ -55,7 +55,7 @@ function showToast ({ title, body, type = 'info', size = 'compact', duration = T
   const sendDataAndAutosize = async () => {
     if (!toastWindow || toastWindow.isDestroyed()) return
 
-    toastWindow.webContents.send('toast-data', { title, body, type, size, actions })
+    toastWindow.webContents.send('toast-data', { title, body, type, size, actions, duration })
 
     // Wait for the renderer to apply DOM changes, then measure actual height in the page
     try {

@@ -36,7 +36,7 @@ test.describe('clipboard capture flow', () => {
             await window.waitForLoadState('domcontentloaded');
 
             // Set context folder first
-            await window.getByRole('button', { name: 'Choose...' }).click();
+            await window.locator('#context-folder-choose').click();
             await expect(window.locator('#context-folder-status')).toHaveText('Saved.');
 
             // Trigger clipboard capture
@@ -90,7 +90,7 @@ test.describe('clipboard capture flow', () => {
             await window.waitForLoadState('domcontentloaded');
 
             // Set context folder only (no LLM provider, so analysis will be skipped)
-            await window.getByRole('button', { name: 'Choose...' }).click();
+            await window.locator('#context-folder-choose').click();
             await expect(window.locator('#context-folder-status')).toHaveText('Saved.');
 
             // Set up promise to catch the toast window BEFORE triggering capture
@@ -166,7 +166,7 @@ test.describe('clipboard capture flow', () => {
             await window.waitForLoadState('domcontentloaded');
 
             // Set context folder and LLM provider
-            await window.getByRole('button', { name: 'Choose...' }).click();
+            await window.locator('#context-folder-choose').click();
             await expect(window.locator('#context-folder-status')).toHaveText('Saved.');
             await window.locator('#llm-provider').selectOption('gemini');
             await window.locator('#llm-api-key-save').click();

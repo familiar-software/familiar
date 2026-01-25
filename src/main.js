@@ -43,8 +43,8 @@ if (process.platform === 'linux' && (isE2E || isCI)) {
 
 function createSettingsWindow() {
     const window = new BrowserWindow({
-        width: 520,
-        height: 440,
+        width: 624,
+        height: 528,
         resizable: false,
         fullscreenable: false,
         minimizable: false,

@@ -53,7 +53,7 @@ test('capture flow saves a screenshot under the context folder', async () => {
         const window = await electronApp.firstWindow();
         await window.waitForLoadState('domcontentloaded');
 
-        await window.getByRole('button', { name: 'Choose...' }).click();
+        await window.locator('#context-folder-choose').click();
         await expect(window.locator('#context-folder-status')).toHaveText('Saved.');
 
         const overlayPromise = electronApp.waitForEvent('window');

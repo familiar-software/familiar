@@ -14,22 +14,25 @@
       }
     </style>
   </head>
-  <body class="bg-transparent">
-    <div id="toast" class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-700 min-w-[280px] max-w-[320px]">
-      <div id="icon" class="flex-shrink-0 w-5 h-5">
-        <!-- Icon inserted by JS -->
+  <body class="bg-transparent font-sans text-zinc-900 dark:text-white">
+    <div id="toast" class="relative overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-lg min-w-[280px] max-w-[320px] px-3 py-3">
+      <div class="absolute top-0 left-0 right-0 h-0.5 bg-zinc-100 dark:bg-zinc-800">
+        <div id="toast-progress-bar" class="h-full bg-indigo-500 w-0"></div>
       </div>
-      <div class="flex-1 min-w-0">
-        <div id="title" class="font-semibold text-sm text-zinc-900 dark:text-white truncate"></div>
-        <div id="body" class="text-xs text-zinc-500 dark:text-zinc-400 truncate"></div>
+      <div class="flex gap-3 pt-1 items-start">
+        <div id="icon" class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center border"></div>
+        <div class="flex-1 min-w-0">
+          <div id="title" class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 truncate"></div>
+          <div id="body" class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate"></div>
+        </div>
+        <button id="close-btn" class="hidden flex-shrink-0 w-5 h-5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors" title="Close">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
-      <button id="close-btn" class="hidden flex-shrink-0 w-5 h-5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors" title="Close">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
     </div>
-    <div id="actions" class="hidden flex gap-2 mt-2 px-4">
+    <div id="actions" class="hidden flex gap-2 mt-2 px-3">
       <!-- Action buttons inserted by JS -->
     </div>
     <script src="./toast-renderer.js"></script>

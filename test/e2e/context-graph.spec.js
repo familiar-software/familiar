@@ -41,7 +41,7 @@ test('sync now builds context graph with mocked summaries', async () => {
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await window.getByRole('button', { name: 'Choose...' }).click()
+    await window.locator('#context-folder-choose').click()
     await window.locator('#llm-provider').selectOption('gemini')
     await window.locator('#llm-api-key-save').click()
     const statsLocator = window.locator('#context-graph-stats')

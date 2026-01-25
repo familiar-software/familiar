@@ -7,140 +7,216 @@
     <link href="./styles.css" rel="stylesheet">
     <title>Jiminy Settings</title>
   </head>
-  <body class="bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 font-sans">
-    <main class="p-6 space-y-5">
-      <!-- Header -->
-      <header>
-        <h1 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">Jiminy</h1>
-        <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Menu bar app shell</p>
-      </header>
-
-      <!-- Settings Card -->
-      <section class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-700 p-5 space-y-5">
-        <h2 class="text-base font-semibold text-zinc-900 dark:text-white">Settings</h2>
-
-        <!-- Context Folder Path -->
-        <div class="space-y-2">
-          <label for="context-folder-path" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Context Folder Path</label>
-          <div class="flex gap-2 items-center">
-            <input
-              id="context-folder-path"
-              type="text"
-              placeholder="No folder selected"
-              readonly
-              class="flex-1 px-3 py-2 text-sm bg-zinc-100 dark:bg-zinc-700/50 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent read-only:text-zinc-500 dark:read-only:text-zinc-400"
-            >
-            <button id="context-folder-choose" type="button" class="px-3 py-2 text-sm font-medium bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Choose...</button>
-          </div>
-          <p id="context-folder-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-          <span id="context-folder-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-        </div>
-
-        <!-- Advanced Options Toggle -->
-        <div class="pt-1">
-          <button id="advanced-toggle-btn" type="button" class="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer">
-            <span id="toggle-arrow" class="text-[10px] transition-transform duration-150">▶</span>
-            Advanced options
-          </button>
-        </div>
-
-        <!-- Advanced Options -->
-        <div id="advanced-options" class="pl-4 border-l-2 border-zinc-200 dark:border-zinc-600 ml-1 space-y-4 hidden">
-          <!-- Hotkeys -->
-          <div class="space-y-3">
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Keyboard Shortcuts</label>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400">Click a field and press your desired key combination.</p>
-
-            <div class="space-y-2">
-              <div class="flex gap-2 items-center">
-                <label for="capture-hotkey" class="text-xs text-zinc-600 dark:text-zinc-400 w-28">Screen Capture:</label>
-                <button
-                  id="capture-hotkey"
-                  type="button"
-                  class="hotkey-recorder flex-1 px-2 py-1.5 text-xs bg-zinc-100 dark:bg-zinc-700/50 border border-zinc-300 dark:border-zinc-600 rounded-md text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent font-mono text-left cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
-                  data-hotkey=""
-                >Click to set...</button>
-              </div>
-              <div class="flex gap-2 items-center">
-                <label for="clipboard-hotkey" class="text-xs text-zinc-600 dark:text-zinc-400 w-28">Clipboard Copy:</label>
-                <button
-                  id="clipboard-hotkey"
-                  type="button"
-                  class="hotkey-recorder flex-1 px-2 py-1.5 text-xs bg-zinc-100 dark:bg-zinc-700/50 border border-zinc-300 dark:border-zinc-600 rounded-md text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent font-mono text-left cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
-                  data-hotkey=""
-                >Click to set...</button>
-              </div>
+  <body class="bg-white dark:bg-[#111] text-zinc-800 dark:text-zinc-200 font-sans h-screen overflow-hidden">
+    <div class="relative h-full w-full flex">
+      <!-- Sidebar -->
+      <aside class="w-[140px] flex-none bg-zinc-50/90 dark:bg-zinc-900/60 border-r border-zinc-200 dark:border-zinc-800 flex flex-col pt-3 pb-3">
+          <div class="px-4 mb-4 flex items-center gap-2">
+            <div class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+              <svg viewBox="0 0 24 24" class="w-3 h-3" fill="currentColor" aria-hidden="true">
+                <path d="M12 2l2.6 5.4L20 8l-4 3.9.9 5.6L12 15.3 7.1 17.5 8 11.9 4 8l5.4-.6L12 2z" />
+              </svg>
             </div>
-            <div class="flex gap-2 items-center">
-              <button id="hotkeys-save" type="button" class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 border border-blue-600 hover:border-blue-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Save Hotkeys</button>
-              <button id="hotkeys-reset" type="button" class="px-3 py-1.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-md text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors cursor-pointer">Reset to Defaults</button>
-              <span id="hotkeys-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-            </div>
-            <p id="hotkeys-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+            <span class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Jiminy</span>
           </div>
 
-          <!-- Exclusions -->
-          <div class="space-y-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Excluded Paths</label>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400">These files and folders will be skipped during sync.</p>
-            <ul id="exclusions-list" class="space-y-1 empty:hidden"></ul>
-            <button id="add-exclusion" type="button" class="px-3 py-2 text-sm font-medium bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Add exclusion...</button>
-            <p id="exclusions-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-          </div>
-        </div>
-
-        <!-- LLM Provider -->
-        <div class="space-y-2">
-          <label for="llm-provider" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">LLM Provider</label>
-          <select id="llm-provider" class="w-full px-3 py-2 text-sm bg-zinc-100 dark:bg-zinc-700/50 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent cursor-pointer">
-            <option value="">Select provider...</option>
-            <option value="gemini">Gemini</option>
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-          </select>
-          <p id="llm-provider-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-        </div>
-
-        <!-- LLM API Key -->
-        <div class="space-y-2">
-          <label for="llm-api-key" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Configure LLM Key</label>
-          <div class="flex gap-2 items-center">
-            <input
-              id="llm-api-key"
-              type="password"
-              placeholder="Not set"
-              autocomplete="off"
-              class="flex-1 px-3 py-2 text-sm bg-zinc-100 dark:bg-zinc-700/50 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+          <nav class="flex-1 px-2 space-y-1" role="tablist" aria-label="Settings Sections">
+            <button
+              class="sidebar-item"
+              data-section-target="general"
+              data-active="true"
+              role="tab"
+              aria-controls="section-general"
+              aria-selected="true"
+              type="button"
             >
-            <button id="llm-api-key-save" type="button" class="px-3 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 border border-blue-600 hover:border-blue-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
-          </div>
-          <p id="llm-api-key-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-          <span id="llm-api-key-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-        </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.2a1 1 0 0 0-.9.6Z" />
+              </svg>
+              General
+            </button>
+            <button
+              class="sidebar-item"
+              data-section-target="exclusions"
+              data-active="false"
+              role="tab"
+              aria-controls="section-exclusions"
+              aria-selected="false"
+              type="button"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4Z" />
+                <path d="M9.5 12.5 12 15l4-4" />
+              </svg>
+              Exclusions
+            </button>
+            <button
+              class="sidebar-item"
+              data-section-target="hotkeys"
+              data-active="false"
+              role="tab"
+              aria-controls="section-hotkeys"
+              aria-selected="false"
+              type="button"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <rect x="3" y="7" width="18" height="10" rx="2" />
+                <path d="M7 11h2m2 0h2m2 0h2M7 14h10" />
+              </svg>
+              Hotkeys
+            </button>
+          </nav>
 
-        <!-- Context Graph -->
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Context Graph</label>
-          <p id="context-graph-stats" class="text-xs text-zinc-500 dark:text-zinc-400" aria-live="polite"></p>
-          <div class="flex gap-2 items-center">
-            <button id="context-graph-sync" type="button" class="px-3 py-2 text-sm font-medium bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Sync now</button>
-            <span id="context-graph-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+          <div class="px-3 mt-auto">
+            <p class="text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed">Open this window anytime from the menu bar icon.</p>
           </div>
-          <div class="flex gap-2 items-center">
-            <button id="context-graph-prune" type="button" class="px-3 py-2 text-sm font-medium bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Prune Context (Current Path)</button>
-            <span id="context-graph-prune-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+        </aside>
+
+      <!-- Content Area -->
+      <main class="flex-1 flex flex-col h-full bg-white dark:bg-[#111]">
+          <div class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
+            <div>
+              <h2 id="section-title" class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">General Settings</h2>
+              <p id="section-subtitle" class="text-[10px] text-zinc-500 dark:text-zinc-400">Core app configuration and sync controls.</p>
+            </div>
           </div>
-          <p id="context-graph-warning" class="text-xs text-amber-600 dark:text-amber-400 hidden" aria-live="polite"></p>
-          <p id="context-graph-progress" class="text-xs text-zinc-500 dark:text-zinc-400" aria-live="polite"></p>
-          <p id="context-graph-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-        </div>
-      </section>
 
-      <!-- Footer Hint -->
-      <p class="text-xs text-zinc-500 dark:text-zinc-400">Open this window anytime from the menu bar icon.</p>
-    </main>
+          <div class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-slim">
+            <!-- General -->
+            <section id="section-general" data-section-pane="general" role="tabpanel" aria-label="General settings" class="space-y-6">
+              <section class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label for="context-folder-path" class="section-label">Primary Context</label>
+                  <span id="context-folder-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                </div>
+                <div class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                  <div class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
+                    <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="context-folder-path"
+                    type="text"
+                    placeholder="No folder selected"
+                    readonly
+                    class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
+                  >
+                  <button id="context-folder-choose" type="button" class="px-2.5 py-1.5 text-[10px] font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Change</button>
+                </div>
+                <p id="context-folder-error" class="text-[10px] text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+              </section>
 
-    <!-- You can also require other files to run in this process -->
+              <hr class="border-zinc-100 dark:border-zinc-800">
+
+              <section class="space-y-2">
+                <label class="section-label">Intelligence</label>
+                <div class="space-y-2">
+                  <select id="llm-provider" class="input-ring w-full appearance-none bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2 px-3 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer">
+                    <option value="">Select provider...</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                  </select>
+                  <p id="llm-provider-error" class="text-[10px] text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                </div>
+
+                <div class="space-y-2">
+                  <div class="flex gap-2">
+                    <div class="input-ring relative flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                      <svg viewBox="0 0 24 24" class="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="M14.5 10.5a3.5 3.5 0 1 0-7 0 3.5 3.5 0 0 0 7 0Z" />
+                        <path d="M12 14v3m0 0h6m-6 0l2 2m-2-2l2-2" />
+                      </svg>
+                      <input
+                        id="llm-api-key"
+                        type="password"
+                        placeholder="Not set"
+                        autocomplete="off"
+                        class="w-full bg-transparent text-xs text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none py-2 pl-8 pr-3"
+                      >
+                    </div>
+                    <button id="llm-api-key-save" type="button" class="px-3 py-2 text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
+                  </div>
+                  <p id="llm-api-key-error" class="text-[10px] text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                  <span id="llm-api-key-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                </div>
+              </section>
+
+              <hr class="border-zinc-100 dark:border-zinc-800">
+
+              <section class="space-y-3">
+                <label class="section-label">Context Graph</label>
+                <p id="context-graph-stats" class="text-[10px] text-zinc-500 dark:text-zinc-400" aria-live="polite"></p>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <button id="context-graph-sync" type="button" class="px-3 py-2 text-[10px] font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Sync now</button>
+                  <span id="context-graph-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button id="context-graph-prune" type="button" class="px-3 py-2 text-[10px] font-semibold bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Prune current path</button>
+                  <span id="context-graph-prune-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                </div>
+
+                <p id="context-graph-warning" class="text-[10px] text-amber-600 dark:text-amber-400 hidden" aria-live="polite"></p>
+                <p id="context-graph-progress" class="text-[10px] text-zinc-500 dark:text-zinc-400" aria-live="polite"></p>
+                <p id="context-graph-error" class="text-[10px] text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+              </section>
+            </section>
+
+            <!-- Exclusions -->
+            <section id="section-exclusions" data-section-pane="exclusions" role="tabpanel" aria-label="Excluded paths" class="space-y-4 hidden">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Excluded Paths</h3>
+                  <p class="text-[10px] text-zinc-500 dark:text-zinc-400">Skipped during sync and capture.</p>
+                </div>
+                <button id="add-exclusion" type="button" class="px-3 py-2 text-[10px] font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Add exclusion</button>
+              </div>
+              <ul id="exclusions-list" class="space-y-2 empty:hidden"></ul>
+              <p id="exclusions-error" class="text-[10px] text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+            </section>
+
+            <!-- Hotkeys -->
+            <section id="section-hotkeys" data-section-pane="hotkeys" role="tabpanel" aria-label="Hotkeys" class="space-y-4 hidden">
+              <div>
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Keyboard Shortcuts</h3>
+                <p class="text-[10px] text-zinc-500 dark:text-zinc-400">Click a field and press your desired key combination.</p>
+              </div>
+
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <label for="capture-hotkey" class="text-[10px] uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Screen Capture</label>
+                  <button
+                    id="capture-hotkey"
+                    type="button"
+                    class="hotkey-recorder flex-1 px-3 py-2 text-[11px] bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none font-mono text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    data-hotkey=""
+                  >Click to set...</button>
+                </div>
+                <div class="flex items-center gap-3">
+                  <label for="clipboard-hotkey" class="text-[10px] uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Clipboard Copy</label>
+                  <button
+                    id="clipboard-hotkey"
+                    type="button"
+                    class="hotkey-recorder flex-1 px-3 py-2 text-[11px] bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none font-mono text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    data-hotkey=""
+                  >Click to set...</button>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="hotkeys-save" type="button" class="px-3 py-2 text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Save Hotkeys</button>
+                <button id="hotkeys-reset" type="button" class="px-3 py-2 text-[10px] font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer">Reset Defaults</button>
+                <span id="hotkeys-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+              </div>
+              <p id="hotkeys-error" class="text-[10px] text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+            </section>
+          </div>
+      </main>
+    </div>
+
     <script src="./settings-renderer.js"></script>
   </body>
 </html>

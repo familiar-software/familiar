@@ -4,6 +4,74 @@
   --font-sans: "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
 }
 
+@layer base {
+  ::selection {
+    background-color: rgba(99, 102, 241, 0.2);
+  }
+
+  .scrollbar-slim::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-slim::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.4);
+    border-radius: 999px;
+  }
+}
+
+@layer components {
+  .sidebar-item {
+    @apply w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-500 dark:text-zinc-400 transition-colors;
+  }
+
+  .sidebar-item svg {
+    @apply w-4 h-4;
+  }
+
+  .sidebar-item:hover {
+    @apply bg-zinc-100 dark:bg-zinc-800/60 text-zinc-900 dark:text-zinc-200;
+  }
+
+  .sidebar-item[data-active="true"] {
+    @apply bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200/60 dark:border-zinc-700/60 shadow-sm;
+  }
+
+  .section-label {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400;
+  }
+
+  .input-ring {
+    @apply transition-shadow;
+  }
+
+  .input-ring:focus-within {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+}
+
+@layer utilities {
+  @keyframes paneIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .pane-enter {
+    animation: paneIn 0.25s ease-out;
+  }
+
+}
+
 /* Select dropdown arrow for light/dark modes */
 select {
   appearance: none;

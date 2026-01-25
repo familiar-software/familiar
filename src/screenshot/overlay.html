@@ -9,15 +9,23 @@
       body {
         cursor: crosshair;
       }
-      #selection {
-        background-color: rgba(177, 177, 177, 0.258);
-      }
     </style>
   </head>
   <body class="m-0 overflow-hidden select-none font-sans text-zinc-100">
     <div id="overlay" class="fixed inset-0 w-screen h-screen" role="application" aria-label="Screen capture overlay">
-      <div id="selection" class="absolute border-2 border-white rounded-md bg-transparent hidden"></div>
-      <div id="hint" class="fixed left-5 bottom-5 px-3 py-2 rounded-full bg-black/45 text-xs tracking-wide">Drag to select - Release to capture - Esc to cancel</div>
+      <div
+        id="selection"
+        class="absolute hidden rounded-sm ring-2 ring-indigo-500 bg-transparent pointer-events-none shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] dark:shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"
+      >
+        <div class="absolute -top-1.5 -left-1.5 w-3 h-3 rounded-full bg-white border border-indigo-500"></div>
+        <div class="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-white border border-indigo-500"></div>
+        <div class="absolute -bottom-1.5 -left-1.5 w-3 h-3 rounded-full bg-white border border-indigo-500"></div>
+        <div class="absolute -bottom-1.5 -right-1.5 w-3 h-3 rounded-full bg-white border border-indigo-500"></div>
+      </div>
+      <div
+        id="hint"
+        class="fixed bottom-5 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/90 dark:bg-zinc-900/85 text-xs text-zinc-700 dark:text-zinc-200 border border-zinc-200/70 dark:border-zinc-700/70 shadow-lg backdrop-blur"
+      >Drag to select · Release to capture · Esc to cancel</div>
       <div id="message" class="fixed left-5 top-5 px-3 py-2 rounded-lg bg-zinc-900/80 text-xs max-w-xs hidden" role="alert" aria-live="polite"></div>
     </div>
     <script src="./overlay-renderer.js"></script>

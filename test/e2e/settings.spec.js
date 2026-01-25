@@ -29,8 +29,8 @@ test('choose button sets the context folder path', async () => {
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await window.getByRole('button', { name: 'Choose...' }).click()
-    await expect(window.getByLabel('Context Folder Path')).toHaveValue(expectedContextPath)
+    await window.locator('#context-folder-choose').click()
+    await expect(window.getByLabel('Primary Context')).toHaveValue(expectedContextPath)
     await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
     const settingsPath = path.join(settingsDir, 'settings.json')

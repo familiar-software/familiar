@@ -1,16 +1,16 @@
 const { ipcRenderer } = require('electron')
 
 const icons = {
-  success: `<svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  success: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
   </svg>`,
-  error: `<svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  error: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
   </svg>`,
-  warning: `<svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  warning: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
   </svg>`,
-  info: `<svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  info: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>`
 }
@@ -21,27 +21,52 @@ const bodyEl = document.getElementById('body')
 const iconEl = document.getElementById('icon')
 const closeBtn = document.getElementById('close-btn')
 const actionsEl = document.getElementById('actions')
+const progressBarEl = document.getElementById('toast-progress-bar')
 
-ipcRenderer.on('toast-data', (_event, { title, body, type = 'info', size = 'compact', actions = [] }) => {
+ipcRenderer.on('toast-data', (_event, { title, body, type = 'info', size = 'compact', actions = [], duration = 0 }) => {
   titleEl.textContent = title || ''
   bodyEl.textContent = body || ''
   iconEl.innerHTML = icons[type] || icons.info
+  iconEl.className = 'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center border'
+
+  const iconStyles = {
+    success: 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40',
+    error: 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40',
+    warning: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40',
+    info: 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-900/40'
+  }
+  iconEl.className = `${iconEl.className} ${iconStyles[type] || iconStyles.info}`
 
   // Apply size-specific styles
   if (size === 'large') {
-    toastEl.classList.remove('items-center', 'max-w-[320px]')
-    toastEl.classList.add('items-start', 'max-w-[420px]')
+    toastEl.classList.remove('max-w-[320px]')
+    toastEl.classList.add('max-w-[420px]')
     bodyEl.classList.remove('truncate')
-    bodyEl.classList.add('whitespace-pre-line', 'break-all', 'leading-relaxed')
-    iconEl.classList.add('mt-0.5')
+    bodyEl.classList.add('whitespace-pre-line', 'break-words', 'leading-relaxed')
     closeBtn.classList.remove('hidden')
   } else {
-    toastEl.classList.remove('items-start', 'max-w-[420px]')
-    toastEl.classList.add('items-center', 'max-w-[320px]')
+    toastEl.classList.remove('max-w-[420px]')
+    toastEl.classList.add('max-w-[320px]')
     bodyEl.classList.remove('whitespace-pre-line', 'break-all', 'leading-relaxed')
     bodyEl.classList.add('truncate')
-    iconEl.classList.remove('mt-0.5')
     closeBtn.classList.add('hidden')
+  }
+
+  // dynamically set the progress bar for the toast
+  if (progressBarEl) {
+    const durationMs = Number(duration)
+    if (Number.isFinite(durationMs) && durationMs > 0) {
+      progressBarEl.style.transition = 'none'
+      progressBarEl.style.width = '0%'
+      void progressBarEl.offsetWidth
+      progressBarEl.style.transition = `width ${durationMs}ms linear`
+      requestAnimationFrame(() => {
+        progressBarEl.style.width = '100%'
+      })
+    } else {
+      progressBarEl.style.transition = 'none'
+      progressBarEl.style.width = '0%'
+    }
   }
 
   // Render action buttons

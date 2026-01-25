@@ -29,12 +29,69 @@ document.addEventListener('DOMContentLoaded', () => {
   const hotkeysResetButton = document.getElementById('hotkeys-reset')
   const hotkeysStatus = document.getElementById('hotkeys-status')
   const hotkeysError = document.getElementById('hotkeys-error')
+  const sectionTitle = document.getElementById('section-title')
+  const sectionSubtitle = document.getElementById('section-subtitle')
+  const sectionNavButtons = typeof document.querySelectorAll === 'function'
+    ? Array.from(document.querySelectorAll('[data-section-target]'))
+    : []
+  const sectionPanes = typeof document.querySelectorAll === 'function'
+    ? Array.from(document.querySelectorAll('[data-section-pane]'))
+    : []
 
   const DEFAULT_CAPTURE_HOTKEY = 'CommandOrControl+Shift+J'
   const DEFAULT_CLIPBOARD_HOTKEY = 'CommandOrControl+J'
 
   let currentExclusions = []
   let recordingElement = null
+
+  const SECTION_META = {
+    general: {
+      title: 'General Settings',
+      subtitle: 'Core app configuration and sync controls.'
+    },
+    exclusions: {
+      title: 'Exclusions',
+      subtitle: 'Paths skipped during sync and capture.'
+    },
+    hotkeys: {
+      title: 'Hotkeys',
+      subtitle: 'Configure global keyboard shortcuts.'
+    }
+  }
+
+  const setActiveSection = (nextSection) => {
+    if (!SECTION_META[nextSection]) {
+      console.warn('Unknown settings section', nextSection)
+      return
+    }
+
+    sectionPanes.forEach((pane) => {
+      const isActive = pane.dataset.sectionPane === nextSection
+      pane.classList.toggle('hidden', !isActive)
+      pane.setAttribute('aria-hidden', String(!isActive))
+      if (isActive) {
+        pane.classList.remove('pane-enter')
+        void pane.offsetHeight
+        pane.classList.add('pane-enter')
+      }
+    })
+
+    sectionNavButtons.forEach((button) => {
+      const isActive = button.dataset.sectionTarget === nextSection
+      button.dataset.active = isActive ? 'true' : 'false'
+      button.setAttribute('aria-selected', String(isActive))
+      button.tabIndex = isActive ? 0 : -1
+    })
+
+    if (sectionTitle) {
+      sectionTitle.textContent = SECTION_META[nextSection].title
+    }
+    if (sectionSubtitle) {
+      sectionSubtitle.textContent = SECTION_META[nextSection].subtitle
+    }
+
+    console.log('Settings section changed', { section: nextSection })
+  }
 
   /**
    * Convert a KeyboardEvent to an Electron accelerator string
@@ -148,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     recordingElement = button
     button.textContent = 'Press keys...'
-    button.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-900/30')
+    button.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/30')
   }
 
   /**
@@ -156,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   const stopRecording = async (button) => {
     if (!button) return true
-    button.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-900/30')
+    button.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/30')
     updateHotkeyDisplay(button, button.dataset.hotkey)
 
     const wasRecording = recordingElement === button
@@ -224,6 +281,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupHotkeyRecorder(captureHotkeyBtn)
   setupHotkeyRecorder(clipboardHotkeyBtn)
+
+  if (sectionNavButtons.length > 0) {
+    sectionNavButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = button.dataset.sectionTarget
+        if (target) {
+          setActiveSection(target)
+        }
+      })
+    })
+    setActiveSection('general')
+  }
+
   let isSyncing = false
   let isMaxNodesExceeded = false
   let isPruning = false
@@ -336,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
     exclusionsList.innerHTML = ''
     for (const exclusion of currentExclusions) {
       const li = document.createElement('li')
-      li.className = 'flex items-center justify-between px-2 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-700/50 text-xs text-zinc-700 dark:text-zinc-300 group'
+      li.className = 'flex items-center justify-between px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-700 dark:text-zinc-300 group'
 
       const pathSpan = document.createElement('span')
       pathSpan.className = 'truncate'
@@ -344,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pathSpan.title = exclusion
 
       const removeBtn = document.createElement('button')
-      removeBtn.className = 'ml-2 px-1.5 py-0.5 rounded text-sm text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-200 dark:hover:bg-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer'
+      removeBtn.className = 'ml-2 px-1.5 py-0.5 rounded text-[11px] text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer'
       removeBtn.textContent = '×'
       removeBtn.title = 'Remove exclusion'
       removeBtn.addEventListener('click', () => removeExclusion(exclusion))
