@@ -52,22 +52,24 @@ ipcRenderer.on('toast-data', (_event, { title, body, type = 'info', size = 'comp
     closeBtn.classList.add('hidden')
   }
 
-  // dynamically set the progress bar for the toast
-  if (progressBarEl) {
-    const durationMs = Number(duration)
-    if (Number.isFinite(durationMs) && durationMs > 0) {
-      progressBarEl.style.transition = 'none'
-      progressBarEl.style.width = '0%'
-      void progressBarEl.offsetWidth
-      progressBarEl.style.transition = `width ${durationMs}ms linear`
-      requestAnimationFrame(() => {
-        progressBarEl.style.width = '100%'
-      })
-    } else {
-      progressBarEl.style.transition = 'none'
-      progressBarEl.style.width = '0%'
-    }
-  }
+  // for now disabled the progress bar
+
+  // // dynamically set the progress bar for the toast
+  // if (progressBarEl) {
+  //   const durationMs = Number(duration)
+  //   if (Number.isFinite(durationMs) && durationMs > 0) {
+  //     progressBarEl.style.transition = 'none'
+  //     progressBarEl.style.width = '0%'
+  //     void progressBarEl.offsetWidth
+  //     progressBarEl.style.transition = `width ${durationMs}ms linear`
+  //     requestAnimationFrame(() => {
+  //       progressBarEl.style.width = '100%'
+  //     })
+  //   } else {
+  //     progressBarEl.style.transition = 'none'
+  //     progressBarEl.style.width = '0%'
+  //   }
+  // }
 
   // Render action buttons
   actionsEl.innerHTML = ''
