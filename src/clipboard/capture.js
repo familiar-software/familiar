@@ -1,8 +1,10 @@
 const { clipboard } = require('electron')
+const { randomUUID } = require('node:crypto')
 const { getClipboardDirectory, saveClipboardToDirectory } = require('./storage')
 const { enqueueAnalysis } = require('../analysis')
 const { loadSettings, validateContextFolderPath } = require('../settings')
 const { showToast } = require('../toast')
+const { recordEvent } = require('../history')
 
 async function captureClipboard () {
   const text = clipboard.readText()
@@ -39,12 +41,41 @@ async function captureClipboard () {
       body: 'Could not determine clipboard directory.',
       type: 'error'
     })
+    recordEvent({
+      contextFolderPath: validation.path,
+      flowId: randomUUID(),
+      trigger: 'capture_clipboard',
+      step: 'clipboard',
+      status: 'failed',
+      summary: 'Clipboard capture failed',
+      detail: 'Clipboard directory could not be resolved.'
+    })
     return { ok: false, reason: 'no-clipboard-directory' }
   }
+
+  const flowId = randomUUID()
+  recordEvent({
+    contextFolderPath: validation.path,
+    flowId,
+    trigger: 'capture_clipboard',
+    step: 'clipboard',
+    status: 'started',
+    summary: 'Clipboard capture started'
+  })
 
   try {
     const { path: savedPath } = await saveClipboardToDirectory(text, clipboardDirectory)
     console.log('Clipboard captured', { path: savedPath })
+
+    recordEvent({
+      contextFolderPath: validation.path,
+      flowId,
+      trigger: 'capture_clipboard',
+      step: 'clipboard',
+      status: 'success',
+      summary: 'Clipboard captured',
+      outputPath: savedPath
+    })
 
     showToast({
       title: 'Clipboard Captured',
@@ -52,7 +83,7 @@ async function captureClipboard () {
       type: 'success'
     })
 
-    void enqueueAnalysis({ result_md_path: savedPath }).catch((error) => {
+    void enqueueAnalysis({ result_md_path: savedPath, flow_id: flowId, trigger: 'capture_clipboard' }).catch((error) => {
       console.error('Failed to enqueue clipboard analysis', { error, savedPath })
       showToast({
         title: 'Clipboard Captured (Not Queued)',
@@ -68,6 +99,16 @@ async function captureClipboard () {
       title: 'Capture Failed',
       body: 'Failed to save clipboard content. Check write permissions.',
       type: 'error'
+    })
+    recordEvent({
+      contextFolderPath: validation.path,
+      flowId,
+      trigger: 'capture_clipboard',
+      step: 'clipboard',
+      status: 'failed',
+      summary: 'Clipboard capture failed',
+      detail: 'Failed to save clipboard content.',
+      errorMessage: error?.message
     })
     return { ok: false, reason: 'save-failed', error }
   }

@@ -22,6 +22,7 @@ const mockModule = (modulePath, exports) => {
 };
 
 test('image extraction notifies and skips on exhausted provider', async (t) => {
+    const flowId = 'flow-provider-exhausted';
     const settingsDir = await makeTempSettingsDir();
     const settingsPath = path.join(settingsDir, 'settings.json');
     await fs.writeFile(
@@ -66,7 +67,7 @@ test('image extraction notifies and skips on exhausted provider', async (t) => {
     try {
         const { handleImageExtractionEvent } = require('../src/extraction/image/handler');
 
-        const result = await handleImageExtractionEvent({ metadata: { path: '/tmp/fake.png' } });
+        const result = await handleImageExtractionEvent({ metadata: { path: '/tmp/fake.png' }, flow_id: flowId });
 
         assert.deepEqual(result, { skipped: true, reason: 'provider_exhausted' });
         assert.equal(toastCalled, true);

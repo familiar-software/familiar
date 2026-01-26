@@ -121,6 +121,9 @@ const stubElectron = ({ handlers, toastCalls } = {}) => {
                 },
             };
         }
+        if (request === '../history' || request === '../../history') {
+            return { recordEvent: () => {} };
+        }
 
         return originalLoad.call(this, request, parent, isMain);
     };
@@ -148,10 +151,24 @@ test('capture enqueues image extraction event after save', async () => {
     const settingsPath = path.join(tempSettingsDir, 'settings.json');
 
     const previousSettingsDir = process.env.JIMINY_SETTINGS_DIR;
+    const previousMock = process.env.JIMINY_LLM_MOCK;
+    const previousMockText = process.env.JIMINY_LLM_MOCK_TEXT;
     process.env.JIMINY_SETTINGS_DIR = tempSettingsDir;
 
+    let analysisQueue = null;
     try {
-        await fs.writeFile(settingsPath, JSON.stringify({ contextFolderPath: tempContextDir }, null, 2), 'utf-8');
+        await fs.writeFile(
+            settingsPath,
+            JSON.stringify(
+                {
+                    contextFolderPath: tempContextDir,
+                    llm_provider: { provider: 'gemini', api_key: '' },
+                },
+                null,
+                2
+            ),
+            'utf-8'
+        );
 
         const capture = require('../src/screenshot/capture');
         capture.registerCaptureHandlers();
@@ -169,11 +186,35 @@ test('capture enqueues image extraction event after save', async () => {
 
         assert.equal(result.ok, true);
         assert.ok(result.savedPath);
-        assert.deepEqual(enqueuedEvent, {
-            sourceType: 'image',
-            metadata: { path: result.savedPath },
+        assert.equal(enqueuedEvent.sourceType, 'image');
+        assert.deepEqual(enqueuedEvent.metadata, { path: result.savedPath });
+        assert.equal(typeof enqueuedEvent.flow_id, 'string');
+        assert.ok(enqueuedEvent.flow_id.length > 0);
+
+        process.env.JIMINY_LLM_MOCK = '1';
+        process.env.JIMINY_LLM_MOCK_TEXT = 'mock extraction';
+
+        ({ analysisQueue } = require('../src/analysis'));
+        const { handleImageExtractionEvent } = require('../src/extraction/image/handler');
+
+        let analysisEvent = null;
+        const analysisPromise = new Promise((resolve) => {
+            analysisQueue.on((event) => {
+                analysisEvent = event;
+                resolve();
+                return { ok: true };
+            });
         });
+
+        await handleImageExtractionEvent(enqueuedEvent);
+        await analysisPromise;
+
+        assert.equal(analysisEvent.flow_id, enqueuedEvent.flow_id);
+
     } finally {
+        if (analysisQueue) {
+            analysisQueue.clearHandlers();
+        }
         extraction.extractionQueue.enqueue = originalEnqueue;
         restoreElectron();
         resetRequireCache();
@@ -181,6 +222,16 @@ test('capture enqueues image extraction event after save', async () => {
             delete process.env.JIMINY_SETTINGS_DIR;
         } else {
             process.env.JIMINY_SETTINGS_DIR = previousSettingsDir;
+        }
+        if (typeof previousMock === 'undefined') {
+            delete process.env.JIMINY_LLM_MOCK;
+        } else {
+            process.env.JIMINY_LLM_MOCK = previousMock;
+        }
+        if (typeof previousMockText === 'undefined') {
+            delete process.env.JIMINY_LLM_MOCK_TEXT;
+        } else {
+            process.env.JIMINY_LLM_MOCK_TEXT = previousMockText;
         }
     }
 });

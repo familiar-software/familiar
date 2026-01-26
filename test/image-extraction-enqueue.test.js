@@ -10,6 +10,7 @@ const resetRequireCache = () => {
 }
 
 test('image extraction surfaces analysis enqueue failures', async () => {
+  const flowId = 'flow-analysis-enqueue-fail'
   const toastCalls = []
   const originalLoad = Module._load
 
@@ -54,7 +55,7 @@ test('image extraction surfaces analysis enqueue failures', async () => {
 
   try {
     const { handleImageExtractionEvent } = require('../src/extraction/image/handler')
-    const result = await handleImageExtractionEvent({ metadata: { path: '/tmp/image.png' } })
+    const result = await handleImageExtractionEvent({ metadata: { path: '/tmp/image.png' }, flow_id: flowId })
     await flushPromises()
 
     assert.equal(result.outputPath, '/tmp/output.md')

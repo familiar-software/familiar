@@ -23,6 +23,7 @@ const writeSettings = async (settingsDir, payload) =>
     fs.writeFile(path.join(settingsDir, 'settings.json'), JSON.stringify(payload, null, 2), 'utf-8');
 
 test('image extraction notifies when LLM provider is missing', async () => {
+    const flowId = 'flow-missing-provider';
     const settingsDir = await makeTempSettingsDir();
     await writeSettings(settingsDir, { llm_provider: { provider: '', api_key: 'test-key' } });
 
@@ -44,7 +45,7 @@ test('image extraction notifies when LLM provider is missing', async () => {
 
     try {
         const { handleImageExtractionEvent } = require('../src/extraction/image/handler');
-        const result = await handleImageExtractionEvent({ metadata: { path: '/tmp/fake.png' } });
+        const result = await handleImageExtractionEvent({ metadata: { path: '/tmp/fake.png' }, flow_id: flowId });
 
         assert.deepEqual(result, { skipped: true, reason: 'missing_provider' });
         assert.equal(toastCalls.length, 1);
@@ -72,6 +73,7 @@ test('image extraction notifies when LLM provider is missing', async () => {
 });
 
 test('image extraction notifies when LLM API key is missing', async () => {
+    const flowId = 'flow-missing-api-key';
     const settingsDir = await makeTempSettingsDir();
     await writeSettings(settingsDir, { llm_provider: { provider: 'gemini', api_key: '' } });
 
@@ -93,7 +95,7 @@ test('image extraction notifies when LLM API key is missing', async () => {
 
     try {
         const { handleImageExtractionEvent } = require('../src/extraction/image/handler');
-        const result = await handleImageExtractionEvent({ metadata: { path: '/tmp/fake.png' } });
+        const result = await handleImageExtractionEvent({ metadata: { path: '/tmp/fake.png' }, flow_id: flowId });
 
         assert.deepEqual(result, { skipped: true, reason: 'missing_api_key' });
         assert.equal(toastCalls.length, 1);

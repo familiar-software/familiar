@@ -4,6 +4,7 @@ const { JsonContextGraphStore } = require('../context-graph');
 const { runAnalysis } = require('./processor');
 const { showToast } = require('../toast');
 const { InvalidLlmProviderApiKeyError } = require('../modelProviders');
+const { recordEvent } = require('../history');
 
 const shortenPath = (fullPath, maxComponents = 2) => {
     const parts = fullPath.split(path.sep).filter(Boolean);
@@ -33,13 +34,29 @@ const createAnalysisHandler =
         runAnalysisImpl = runAnalysis,
     } = {}) =>
     async (event) => {
+        const flowId = event?.flow_id;
+        if (typeof flowId !== 'string' || flowId.trim().length === 0) {
+            console.error('Analysis event missing flow_id', { event });
+            throw new Error('Analysis event missing flow_id.');
+        }
+        const trigger = event?.trigger;
+        const settings = loadSettingsImpl();
+        const contextFolderPath = settings?.contextFolderPath || '';
         const resultMdPath = event?.result_md_path;
         if (!resultMdPath) {
             console.warn('Skipping analysis due to missing result markdown path', { event });
+            recordEvent({
+                contextFolderPath,
+                flowId,
+                trigger,
+                step: 'analysis',
+                status: 'skipped',
+                summary: 'Analysis skipped',
+                detail: 'Missing result markdown path.',
+            });
             return { skipped: true, reason: 'missing_result_md_path' };
         }
 
-        const settings = loadSettingsImpl();
         const provider = settings?.llm_provider?.provider || '';
         const apiKey = settings?.llm_provider?.api_key || '';
         const model =
@@ -53,6 +70,16 @@ const createAnalysisHandler =
                 body: 'Select an LLM provider in Settings to run analysis.',
                 type: 'warning',
             });
+            recordEvent({
+                contextFolderPath,
+                flowId,
+                trigger,
+                step: 'analysis',
+                status: 'skipped',
+                summary: 'Analysis skipped',
+                detail: 'Missing LLM provider.',
+                sourcePath: resultMdPath,
+            });
             return { skipped: true, reason: 'missing_provider' };
         }
         if (!apiKey && !isLlmMockEnabled()) {
@@ -62,10 +89,19 @@ const createAnalysisHandler =
                 body: 'Add your LLM API key in Settings to run analysis.',
                 type: 'warning',
             });
+            recordEvent({
+                contextFolderPath,
+                flowId,
+                trigger,
+                step: 'analysis',
+                status: 'skipped',
+                summary: 'Analysis skipped',
+                detail: 'Missing LLM API key.',
+                sourcePath: resultMdPath,
+            });
             return { skipped: true, reason: 'missing_api_key' };
         }
 
-        const contextFolderPath = settings?.contextFolderPath || '';
         const store = createStore({ contextFolderPath });
         const contextGraph = store.load();
 
@@ -76,10 +112,30 @@ const createAnalysisHandler =
                 body: 'Set a Context Folder Path in Settings to run analysis.',
                 type: 'warning',
             });
+            recordEvent({
+                contextFolderPath,
+                flowId,
+                trigger,
+                step: 'analysis',
+                status: 'skipped',
+                summary: 'Analysis skipped',
+                detail: 'Missing context folder path.',
+                sourcePath: resultMdPath,
+            });
             return { skipped: true, reason: 'missing_context_folder' };
         }
 
         console.log('Starting analysis for result markdown', { resultMdPath, provider, model });
+        recordEvent({
+            contextFolderPath,
+            flowId,
+            trigger,
+            step: 'analysis',
+            status: 'started',
+            summary: 'Analysis started',
+            sourcePath: resultMdPath,
+            metadata: { provider, model },
+        });
 
         let result;
         try {
@@ -103,9 +159,31 @@ const createAnalysisHandler =
                     body: 'Update it in Settings and try again.',
                     type: 'error',
                 });
+                recordEvent({
+                    contextFolderPath,
+                    flowId,
+                    trigger,
+                    step: 'analysis',
+                    status: 'skipped',
+                    summary: 'Analysis skipped',
+                    detail: 'Invalid LLM API key.',
+                    sourcePath: resultMdPath,
+                    metadata: { provider, model },
+                });
                 return { skipped: true, reason: 'invalid_api_key' };
             }
 
+            recordEvent({
+                contextFolderPath,
+                flowId,
+                trigger,
+                step: 'analysis',
+                status: 'failed',
+                summary: 'Analysis failed',
+                detail: error?.message || 'Analysis failed.',
+                sourcePath: resultMdPath,
+                metadata: { provider, model },
+            });
             throw error;
         }
 
@@ -113,6 +191,17 @@ const createAnalysisHandler =
             resultMdPath,
             outputPath: result.outputPath,
             relevantNodeId: result.relevantNodeId,
+        });
+        recordEvent({
+            contextFolderPath,
+            flowId,
+            trigger,
+            step: 'analysis',
+            status: 'success',
+            summary: 'Analysis complete',
+            sourcePath: resultMdPath,
+            outputPath: result.outputPath,
+            metadata: { provider, model, relevantNodeId: result.relevantNodeId },
         });
 
         const nodeName = result.relevantNodeName || 'General';

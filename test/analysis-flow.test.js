@@ -17,6 +17,7 @@ const makeFakeImageFile = async () => {
 };
 
 test('image extraction enqueues analysis event with result md path', async () => {
+    const flowId = 'flow-test-123';
     const previousMock = process.env.JIMINY_LLM_MOCK;
     const previousMockText = process.env.JIMINY_LLM_MOCK_TEXT;
     const previousSettingsDir = process.env.JIMINY_SETTINGS_DIR;
@@ -48,11 +49,12 @@ test('image extraction enqueues analysis event with result md path', async () =>
     });
 
     try {
-        const result = await handleImageExtractionEvent({ metadata: { path: imagePath } });
+        const result = await handleImageExtractionEvent({ metadata: { path: imagePath }, flow_id: flowId });
         await handlerPromise;
 
         assert.ok(result.outputPath);
-        assert.deepEqual(capturedEvent, { result_md_path: result.outputPath });
+        assert.equal(capturedEvent.result_md_path, result.outputPath);
+        assert.equal(capturedEvent.flow_id, flowId);
     } finally {
         analysisQueue.clearHandlers();
         if (typeof previousMock === 'undefined') {

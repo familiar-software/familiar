@@ -173,7 +173,12 @@ const createElements = () => {
     'settings-header': new TestElement(),
     'settings-content': new TestElement(),
     'section-title': new TestElement(),
-    'section-subtitle': new TestElement()
+    'section-subtitle': new TestElement(),
+    'section-history': new TestElement(),
+    'history-list': new TestElement(),
+    'history-empty': new TestElement(),
+    'history-error': new TestElement(),
+    'history-nav': new TestElement()
   }
 
   elements['context-folder-path'].dataset.setting = 'context-folder-path'
@@ -208,6 +213,9 @@ const createElements = () => {
   elements['hotkeys-reset'].dataset.action = 'hotkeys-reset'
   elements['hotkeys-status'].dataset.settingStatus = 'hotkeys-status'
   elements['hotkeys-error'].dataset.settingError = 'hotkeys-error'
+
+  elements['section-history'].dataset.sectionPane = 'history'
+  elements['history-nav'].dataset.sectionTarget = 'history'
 
   return elements
 }
@@ -654,6 +662,38 @@ test('auto-saves LLM provider selection', async () => {
 
     assert.equal(saveCalls.length, 1)
     assert.deepEqual(saveCalls[0], { llmProviderName: 'openai' })
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('history tab fetches flows when selected', async () => {
+  const flowCalls = []
+  const jiminy = createJiminy({
+    getHistoryFlows: async () => {
+      flowCalls.push(true)
+      return []
+    }
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['history-nav'].click()
+    await flushPromises()
+
+    assert.equal(flowCalls.length, 1)
+    assert.equal(elements['history-empty'].textContent, 'No history yet.')
   } finally {
     global.document = priorDocument
     global.window = priorWindow

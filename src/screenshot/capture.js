@@ -1,10 +1,12 @@
 const { app, BrowserWindow, desktopCapturer, ipcMain, screen } = require('electron')
+const { randomUUID } = require('node:crypto')
 const path = require('node:path')
 const { normalizeRect, clampRectToBounds } = require('./capture-utils')
 const { getCaptureDirectory, savePngToDirectory } = require('./capture-storage')
 const { extractionQueue } = require('../extraction')
 const { loadSettings, validateContextFolderPath } = require('../settings')
 const { showToast } = require('../toast')
+const { recordEvent } = require('../history')
 
 let overlayWindow = null
 let overlaySession = null
@@ -38,7 +40,7 @@ function closeOverlayWindow () {
   overlaySession = null
 }
 
-function createOverlayWindow (display, captureDirectory) {
+function createOverlayWindow (display, captureDirectory, contextFolderPath, flowId) {
   const bounds = display.bounds
   const captureSize = {
     width: Math.max(1, Math.round(bounds.width * display.scaleFactor)),
@@ -72,7 +74,9 @@ function createOverlayWindow (display, captureDirectory) {
     displayId: display.id,
     bounds,
     captureSize,
-    captureDirectory
+    captureDirectory,
+    contextFolderPath,
+    flowId
   }
 
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
@@ -112,7 +116,16 @@ async function startCaptureFlow () {
 
   const display = getCaptureDisplay()
   const captureDirectory = getCaptureDirectory(validation.path)
-  createOverlayWindow(display, captureDirectory)
+  const flowId = randomUUID()
+  recordEvent({
+    contextFolderPath: validation.path,
+    flowId,
+    trigger: 'capture_selection',
+    step: 'capture',
+    status: 'started',
+    summary: 'Screen Capture started'
+  })
+  createOverlayWindow(display, captureDirectory, validation.path, flowId)
 
   return { ok: true }
 }
@@ -127,8 +140,33 @@ async function handleCaptureGrab (_event, payload) {
   }
 
   const rectCss = payload?.rectCss
+  const flowId = overlaySession.flowId
+  if (!flowId) {
+    console.error('Capture flow missing flow_id', { overlaySession })
+    closeOverlayWindow()
+    throw new Error('Capture flow missing flow_id.')
+  }
+  const contextFolderPath = overlaySession.contextFolderPath || ''
+  const logCaptureEvent = ({ status, summary, detail, outputPath, errorMessage }) => {
+    recordEvent({
+      contextFolderPath,
+      flowId,
+      trigger: 'capture_selection',
+      step: 'capture',
+      status,
+      summary,
+      detail,
+      outputPath,
+      errorMessage
+    })
+  }
   if (!rectCss) {
     result = { ok: false, error: 'Selection missing.' }
+    logCaptureEvent({
+      status: 'failed',
+      summary: 'Capture failed',
+      detail: 'Selection missing.'
+    })
     closeOverlayWindow()
     return result
   }
@@ -142,6 +180,11 @@ async function handleCaptureGrab (_event, payload) {
     if (!Array.isArray(sources) || sources.length === 0) {
       console.error('No screen sources available for capture.')
       result = { ok: false, error: 'No screen sources available.' }
+      logCaptureEvent({
+        status: 'failed',
+        summary: 'Capture failed',
+        detail: 'No screen sources available.'
+      })
       return result
     }
 
@@ -167,6 +210,11 @@ async function handleCaptureGrab (_event, payload) {
     if (!source || !source.thumbnail) {
       console.error('Failed to resolve capture source.', { displayId: overlaySession.displayId })
       result = { ok: false, error: 'Failed to resolve capture source.' }
+      logCaptureEvent({
+        status: 'failed',
+        summary: 'Capture failed',
+        detail: 'Failed to resolve capture source.'
+      })
       return result
     }
 
@@ -175,10 +223,15 @@ async function handleCaptureGrab (_event, payload) {
       console.warn('Capture source returned empty image. Check permissions.')
       showToast({
         title: 'Permission Required',
-        body: 'Screen Recording permission is required to capture screenshots.',
+        body: 'Screen Recording failed, try again or check permissions.',
         type: 'warning'
       })
-      result = { ok: false, error: 'Capture failed. Check Screen Recording permission.' }
+      result = { ok: false, error: 'Screen Recording failed, try again or check permissions.' }
+      logCaptureEvent({
+        status: 'failed',
+        summary: 'Capture failed',
+        detail: 'Screen Recording failed, try again or check permissions.'
+      })
       return result
     }
 
@@ -186,6 +239,11 @@ async function handleCaptureGrab (_event, payload) {
     const normalizedRect = normalizeRect(rectCss)
     if (!normalizedRect) {
       result = { ok: false, error: 'Selection is invalid.' }
+      logCaptureEvent({
+        status: 'failed',
+        summary: 'Capture failed',
+        detail: 'Selection is invalid.'
+      })
       return result
     }
 
@@ -228,6 +286,11 @@ async function handleCaptureGrab (_event, payload) {
     if (!cropRect) {
       console.warn('Selection outside capture bounds', { rectCss, imageSize })
       result = { ok: false, error: 'Selection is outside capture bounds.' }
+      logCaptureEvent({
+        status: 'failed',
+        summary: 'Capture failed',
+        detail: 'Selection is outside capture bounds.'
+      })
       return result
     }
 
@@ -239,6 +302,11 @@ async function handleCaptureGrab (_event, payload) {
     try {
       if (!overlaySession.captureDirectory) {
         result = { ok: false, error: 'Capture directory is not configured.' }
+        logCaptureEvent({
+          status: 'failed',
+          summary: 'Capture failed',
+          detail: 'Capture directory is not configured.'
+        })
         return result
       }
 
@@ -252,6 +320,12 @@ async function handleCaptureGrab (_event, payload) {
         title: 'Capture Failed',
         body: 'Failed to save screenshot. Check write permissions.',
         type: 'error'
+      })
+      logCaptureEvent({
+        status: 'failed',
+        summary: 'Capture failed',
+        detail: 'Failed to save screenshot.',
+        errorMessage: error?.message
       })
       result = { ok: false, error: 'Capture save failed. Check write permissions for capture directory.' }
       return result
@@ -272,6 +346,12 @@ async function handleCaptureGrab (_event, payload) {
       savedFilename
     }
 
+    logCaptureEvent({
+      status: 'success',
+      summary: 'Screenshot captured',
+      outputPath: savedPath
+    })
+
     showToast({
       title: 'Screenshot Captured',
       body: 'Screenshot saved and queued for analysis.',
@@ -280,7 +360,9 @@ async function handleCaptureGrab (_event, payload) {
 
     void extractionQueue.enqueue({
       sourceType: 'image',
-      metadata: { path: savedPath }
+      metadata: { path: savedPath },
+      flow_id: flowId,
+      trigger: 'capture_selection'
     }).catch((error) => {
       console.error('Failed to enqueue extraction event', { error, savedPath })
       showToast({
@@ -297,6 +379,12 @@ async function handleCaptureGrab (_event, payload) {
       title: 'Capture Failed',
       body: 'Screenshot capture failed unexpectedly.',
       type: 'error'
+    })
+    logCaptureEvent({
+      status: 'failed',
+      summary: 'Capture failed',
+      detail: 'Capture failed unexpectedly.',
+      errorMessage: error?.message
     })
     result = { ok: false, error: 'Capture failed.' }
     return result

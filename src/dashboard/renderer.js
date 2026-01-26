@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
           window.JiminyExclusions = moduleExports
         } else if (moduleExports && typeof moduleExports.createHotkeys === 'function') {
           window.JiminyHotkeys = moduleExports
+        } else if (moduleExports && typeof moduleExports.createHistory === 'function') {
+          window.JiminyHistory = moduleExports
         } else if (moduleExports && typeof moduleExports.createSettings === 'function') {
           window.JiminySettings = moduleExports
         }
@@ -24,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadModule('JiminyWizard', './wizard.js')
     loadModule('JiminyExclusions', './exclusions.js')
     loadModule('JiminyHotkeys', './hotkeys.js')
+    loadModule('JiminyHistory', './history.js')
     loadModule('JiminySettings', './settings.js')
   }
   const selectAll = (selector) => typeof document.querySelectorAll === 'function'
@@ -78,6 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const sectionSubtitle = document.getElementById('section-subtitle')
   const sectionNavButtons = selectAll('[data-section-target]')
   const sectionPanes = selectAll('[data-section-pane]')
+  const historyList = document.getElementById('history-list')
+  const historyEmpty = document.getElementById('history-empty')
+  const historyError = document.getElementById('history-error')
 
   const DEFAULT_CAPTURE_HOTKEY = 'CommandOrControl+Shift+J'
   const DEFAULT_CLIPBOARD_HOTKEY = 'CommandOrControl+J'
@@ -96,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let wizardApi = null
   let exclusionsApi = null
   let hotkeysApi = null
+  let historyApi = null
   let settingsApi = null
 
   const updateWizardUI = () => {
@@ -141,6 +148,10 @@ document.addEventListener('DOMContentLoaded', () => {
     hotkeys: {
       title: 'Hotkeys',
       subtitle: 'Configure global keyboard shortcuts.'
+    },
+    history: {
+      title: 'History',
+      subtitle: 'Recent captures and analysis flows.'
     }
   }
 
@@ -185,6 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (isWizard) {
       updateWizardUI()
+    }
+    if (historyApi && historyApi.handleSectionChange) {
+      historyApi.handleSectionChange(nextSection)
     }
 
     console.log('Settings section changed', { section: nextSection })
@@ -240,6 +254,18 @@ document.addEventListener('DOMContentLoaded', () => {
     targets.filter(Boolean).forEach((element) => {
       element.textContent = value
       element.classList.toggle('hidden', !value)
+    })
+  }
+
+  if (window.JiminyHistory && typeof window.JiminyHistory.createHistory === 'function') {
+    historyApi = window.JiminyHistory.createHistory({
+      elements: {
+        historyList,
+        historyEmpty,
+        historyError
+      },
+      jiminy,
+      setMessage
     })
   }
 

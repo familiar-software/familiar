@@ -14,6 +14,7 @@ const {
 } = require('./hotkeys');
 const { registerExtractionHandlers } = require('./extraction');
 const { registerAnalysisHandlers } = require('./analysis');
+const { getRecentFlows } = require('./history');
 const { showWindow } = require('./utils/window');
 const { loadSettings } = require('./settings');
 const { initLogging } = require('./logger');
@@ -123,7 +124,26 @@ function resolveHotkeyAccelerators(settings = {}) {
     return { captureAccelerator, clipboardAccelerator };
 }
 
-function updateTrayMenu({ captureAccelerator, clipboardAccelerator } = {}) {
+function resolveHistoryItems(settings = {}) {
+    const contextFolderPath =
+        typeof settings.contextFolderPath === 'string' ? settings.contextFolderPath : '';
+    if (!contextFolderPath) {
+        return [];
+    }
+
+    return getRecentFlows({ contextFolderPath, limit: 3 });
+}
+
+function buildTrayMenuPayload(settings = {}) {
+    const { captureAccelerator, clipboardAccelerator } = resolveHotkeyAccelerators(settings);
+    return {
+        captureAccelerator,
+        clipboardAccelerator,
+        historyItems: resolveHistoryItems(settings),
+    };
+}
+
+function updateTrayMenu({ captureAccelerator, clipboardAccelerator, historyItems } = {}) {
     if (!tray) {
         console.warn('Tray menu update skipped: tray not ready');
         return;
@@ -134,12 +154,16 @@ function updateTrayMenu({ captureAccelerator, clipboardAccelerator } = {}) {
         return;
     }
 
+    const resolvedHistoryItems = Array.isArray(historyItems)
+        ? historyItems
+        : resolveHistoryItems(loadSettings());
     const showHotkeys = process.platform === 'darwin';
     const trayMenu = Menu.buildFromTemplate(
         buildTrayMenuTemplate({
             ...trayHandlers,
             captureAccelerator: showHotkeys ? captureAccelerator : undefined,
             clipboardAccelerator: showHotkeys ? clipboardAccelerator : undefined,
+            historyItems: resolvedHistoryItems,
         })
     );
 
@@ -148,6 +172,11 @@ function updateTrayMenu({ captureAccelerator, clipboardAccelerator } = {}) {
         captureAccelerator: Boolean(showHotkeys && captureAccelerator),
         clipboardAccelerator: Boolean(showHotkeys && clipboardAccelerator),
     });
+}
+
+function refreshTrayMenuFromSettings() {
+    const settings = loadSettings();
+    updateTrayMenu(buildTrayMenuPayload(settings));
 }
 
 function registerHotkeysFromSettings() {
@@ -222,8 +251,19 @@ function createTray() {
         onQuit: quitApp,
     };
 
-    const { captureAccelerator, clipboardAccelerator } = resolveHotkeyAccelerators(loadSettings());
-    updateTrayMenu({ captureAccelerator, clipboardAccelerator });
+    refreshTrayMenuFromSettings();
+
+    if (tray && typeof tray.on === 'function') {
+        tray.on('click', () => {
+            refreshTrayMenuFromSettings();
+        });
+
+        tray.on('right-click', () => {
+            refreshTrayMenuFromSettings();
+        });
+    } else {
+        console.warn('Tray menu refresh handlers unavailable');
+    }
 
     console.log('Tray created');
 }

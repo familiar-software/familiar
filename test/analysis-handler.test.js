@@ -23,6 +23,7 @@ const writeSettings = async (settingsDir, payload) =>
     fs.writeFile(path.join(settingsDir, 'settings.json'), JSON.stringify(payload, null, 2), 'utf-8');
 
 test('analysis handler notifies when LLM provider is missing', async () => {
+    const flowId = 'flow-analysis-missing-provider';
     const settingsDir = await makeTempSettingsDir();
     await writeSettings(settingsDir, { llm_provider: { provider: '', api_key: 'test-key' } });
 
@@ -44,7 +45,7 @@ test('analysis handler notifies when LLM provider is missing', async () => {
 
     try {
         const { handleAnalysisEvent } = require('../src/analysis/handler');
-        const result = await handleAnalysisEvent({ result_md_path: '/tmp/result.md' });
+        const result = await handleAnalysisEvent({ result_md_path: '/tmp/result.md', flow_id: flowId });
 
         assert.deepEqual(result, { skipped: true, reason: 'missing_provider' });
         assert.equal(toastCalls.length, 1);
@@ -72,6 +73,7 @@ test('analysis handler notifies when LLM provider is missing', async () => {
 });
 
 test('analysis handler notifies when LLM API key is missing', async () => {
+    const flowId = 'flow-analysis-missing-api-key';
     const settingsDir = await makeTempSettingsDir();
     await writeSettings(settingsDir, { llm_provider: { provider: 'gemini', api_key: '' } });
 
@@ -93,7 +95,7 @@ test('analysis handler notifies when LLM API key is missing', async () => {
 
     try {
         const { handleAnalysisEvent } = require('../src/analysis/handler');
-        const result = await handleAnalysisEvent({ result_md_path: '/tmp/result.md' });
+        const result = await handleAnalysisEvent({ result_md_path: '/tmp/result.md', flow_id: flowId });
 
         assert.deepEqual(result, { skipped: true, reason: 'missing_api_key' });
         assert.equal(toastCalls.length, 1);
@@ -121,6 +123,7 @@ test('analysis handler notifies when LLM API key is missing', async () => {
 });
 
 test('analysis handler notifies when LLM API key is invalid', async () => {
+    const flowId = 'flow-analysis-invalid-key';
     const settingsDir = await makeTempSettingsDir();
     await writeSettings(settingsDir, {
         llm_provider: { provider: 'gemini', api_key: 'bad-key' },
@@ -151,7 +154,7 @@ test('analysis handler notifies when LLM API key is invalid', async () => {
                 throw new InvalidLlmProviderApiKeyError({ provider: 'gemini' });
             },
         });
-        const result = await handler({ result_md_path: '/tmp/result.md' });
+        const result = await handler({ result_md_path: '/tmp/result.md', flow_id: flowId });
 
         assert.deepEqual(result, { skipped: true, reason: 'invalid_api_key' });
         assert.equal(toastCalls.length, 1);
