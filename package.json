@@ -59,9 +59,8 @@
       "icon": "build/icon.icns"
     },
     "dmg": {
-      "background": "build/background-jiminy-to-applications.png",
       "window": {
-        "width": 450,
+        "width": 650,
         "height": 250
       },
       "contents": [
