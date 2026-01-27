@@ -65,6 +65,14 @@ Environment:
   - `--disable-gpu`: avoids GPU initialization failures under Xvfb/headless Linux.
   - `--disable-dev-shm-usage`: avoids crashes when `/dev/shm` is tiny in containers (uses disk instead).
 
+## Publish desktop release (manual)
+
+The workflow `Publish Desktop Release` is a manual GitHub Actions job that builds the macOS artifacts and publishes them to `jiminy-releases`.
+
+- Workflow: `.github/workflows/release-desktopapp.yml`
+- Requires secret: `RELEASE_REPO_GITHUB_TOKEN`
+- Uses `CSC_IDENTITY_AUTO_DISCOVERY=false` until signing/notarization is configured.
+
 ## Notes
 
 -   The app runs from the macOS menu bar with a Settings window that stores the Context Folder Path, LLM provider, and API key in `~/.jiminy/settings.json`.
