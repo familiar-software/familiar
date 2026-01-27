@@ -158,7 +158,7 @@ test('context graph store exposes load errors for diagnostics', () => {
     assert.ok(lastError.message.length > 0);
 });
 
-test('context graph store writes under jiminy-behind-the-scenes', () => {
+test('context graph store writes under jiminy', () => {
     const contextRoot = createTempDir('jiminy-context-');
     const store = createStore(contextRoot);
     const expectedPath = path.join(contextRoot, JIMINY_BEHIND_THE_SCENES_DIR_NAME, 'context-tree.json');

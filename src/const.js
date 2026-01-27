@@ -1,6 +1,6 @@
 const SETTINGS_DIR_NAME = '.jiminy'
 const SETTINGS_FILE_NAME = 'settings.json'
-const JIMINY_BEHIND_THE_SCENES_DIR_NAME = 'jiminy-behind-the-scenes'
+const JIMINY_BEHIND_THE_SCENES_DIR_NAME = 'jiminy'
 const CONTEXT_GRAPH_FILE_NAME = 'context-tree.json'
 const CAPTURES_DIR_NAME = 'jiminy-captures'
 const EXTRA_CONTEXT_SUFFIX = 'jiminy-extra-context'
