@@ -39,7 +39,8 @@
       barNew,
       syncedCount,
       pendingCount,
-      newCount
+      newCount,
+      ignoredCount
     } = elements
 
     let isSyncing = false
@@ -92,11 +93,12 @@
       }
     }
 
-    const updateGraphMetrics = ({ syncedNodes, outOfSyncNodes, newNodes, totalNodes }) => {
+    const updateGraphMetrics = ({ syncedNodes, outOfSyncNodes, newNodes, totalNodes, ignoredFiles }) => {
       const total = Math.max(0, toNumber(totalNodes))
       const synced = Math.max(0, toNumber(syncedNodes))
       const outOfSync = Math.max(0, toNumber(outOfSyncNodes))
       const incoming = Math.max(0, toNumber(newNodes))
+      const ignored = Math.max(0, toNumber(ignoredFiles))
 
       const syncedRatio = total > 0 ? synced / total : 0
       const pendingRatio = total > 0 ? outOfSync / total : 0
@@ -121,6 +123,10 @@
 
       if (newCount) {
         newCount.textContent = String(incoming)
+      }
+
+      if (ignoredCount) {
+        ignoredCount.textContent = String(ignored)
       }
     }
 
@@ -157,17 +163,18 @@
       setMessage(syncStats, '')
       setMessage(syncProgress, 'Loading...')
       setStatusPill('syncing', 'Syncing')
-      updateGraphMetrics({ syncedNodes: 0, outOfSyncNodes: 0, newNodes: 0, totalNodes: 0 })
+      updateGraphMetrics({ syncedNodes: 0, outOfSyncNodes: 0, newNodes: 0, totalNodes: 0, ignoredFiles: 0 })
     }
 
-    const showContextGraphCounts = ({ syncedNodes, outOfSyncNodes, newNodes, totalNodes }) => {
+    const showContextGraphCounts = ({ syncedNodes, outOfSyncNodes, newNodes, totalNodes, ignoredFiles }) => {
       syncButtons.forEach((button) => {
         button.hidden = false
       })
-      const statsText = `Synced: ${syncedNodes}/${totalNodes} | Out of sync: ${outOfSyncNodes}/${totalNodes} | New: ${newNodes}`
+      const ignored = Math.max(0, toNumber(ignoredFiles))
+      const statsText = `Synced: ${syncedNodes}/${totalNodes} | Out of sync: ${outOfSyncNodes}/${totalNodes} | New: ${newNodes} | Ignored: ${ignored}`
       setMessage(syncStats, statsText)
       setMessage(syncProgress, '')
-      updateGraphMetrics({ syncedNodes, outOfSyncNodes, newNodes, totalNodes })
+      updateGraphMetrics({ syncedNodes, outOfSyncNodes, newNodes, totalNodes, ignoredFiles })
     }
 
     const refreshContextGraphStatus = async (options = {}) => {
@@ -176,7 +183,7 @@
         syncButtons.forEach((button) => {
           button.hidden = false
         })
-        showContextGraphCounts({ syncedNodes: 0, outOfSyncNodes: 0, newNodes: 0, totalNodes: 0 })
+        showContextGraphCounts({ syncedNodes: 0, outOfSyncNodes: 0, newNodes: 0, totalNodes: 0, ignoredFiles: 0 })
         setStatusPill('error', 'Unavailable')
         return
       }
@@ -200,6 +207,7 @@
         const outOfSyncNodes = toNumber(result?.outOfSyncNodes ?? 0)
         const newNodes = toNumber(result?.newNodes ?? 0)
         const totalNodes = toNumber(result?.totalNodes ?? 0)
+        const ignoredFiles = toNumber(result?.ignoredFiles ?? 0)
         isMaxNodesExceeded = Boolean(result?.maxNodesExceeded)
 
         if (isMaxNodesExceeded) {
@@ -208,7 +216,7 @@
           setMessage(syncErrors, '')
         }
 
-        showContextGraphCounts({ syncedNodes, outOfSyncNodes, newNodes, totalNodes })
+        showContextGraphCounts({ syncedNodes, outOfSyncNodes, newNodes, totalNodes, ignoredFiles })
         const isContextGraphSynced = totalNodes > 0 &&
           outOfSyncNodes === 0 &&
           newNodes === 0 &&
@@ -231,7 +239,7 @@
         console.error('Failed to load context graph status', error)
         isMaxNodesExceeded = false
         setMessage(syncErrors, 'Failed to load context graph status.')
-        showContextGraphCounts({ syncedNodes: 0, outOfSyncNodes: 0, newNodes: 0, totalNodes: 0 })
+        showContextGraphCounts({ syncedNodes: 0, outOfSyncNodes: 0, newNodes: 0, totalNodes: 0, ignoredFiles: 0 })
         setStatusPill('error', 'Error')
       } finally {
         updateSyncButtonState()

@@ -64,7 +64,7 @@ function parseMaxNodesError(error) {
 
     return {
         maxNodesExceeded: true,
-        totalNodes: Number(match[1])
+        totalNodes: Number(match[1]),
     };
 }
 
@@ -73,9 +73,10 @@ async function handleSync(event) {
     const contextFolderPath = settings.contextFolderPath || '';
     const llmProviderName = settings?.llm_provider?.provider || '';
     const llmProviderApiKey = settings?.llm_provider?.api_key || '';
-    const textModel = typeof settings?.llm_provider?.text_model === 'string' && settings.llm_provider.text_model.trim()
-        ? settings.llm_provider.text_model
-        : undefined;
+    const textModel =
+        typeof settings?.llm_provider?.text_model === 'string' && settings.llm_provider.text_model.trim()
+            ? settings.llm_provider.text_model
+            : undefined;
     const exclusions = Array.isArray(settings.exclusions) ? settings.exclusions : [];
     const validation = validateContextFolderPath(contextFolderPath);
 
@@ -96,7 +97,7 @@ async function handleSync(event) {
         const summarizer = createSummarizer({
             provider: llmProviderName,
             apiKey: llmProviderApiKey,
-            textModel
+            textModel,
         });
         const result = await syncContextGraph({
             rootPath: validation.path,
@@ -107,6 +108,7 @@ async function handleSync(event) {
                 event.sender.send('contextGraph:progress', progress);
             },
         });
+        console.log('context graph sync errors', result.errors);
 
         return {
             ok: true,
@@ -114,6 +116,8 @@ async function handleSync(event) {
             counts: result.graph.counts,
             errors: result.errors,
             warnings: result.warnings,
+            ignores: result.ignores,
+            ignoredFiles: result.ignoredFiles,
         };
     } catch (error) {
         console.error('Context graph sync failed', error);
@@ -121,7 +125,7 @@ async function handleSync(event) {
             showToast({
                 title: 'LLM provider exhausted',
                 body: 'Your LLM provider is rate limited. Please wait and try again.',
-                type: 'warning'
+                type: 'warning',
             });
             return { ok: false, message: 'LLM provider rate limit exhausted. Please try again later.' };
         }
@@ -164,14 +168,13 @@ function handlePrune() {
 
 async function handleStatus(_event, payload = {}) {
     const settings = loadSettings();
-    const contextFolderPath = typeof payload?.contextFolderPath === 'string'
-        ? payload.contextFolderPath
-        : settings.contextFolderPath || '';
+    const contextFolderPath =
+        typeof payload?.contextFolderPath === 'string' ? payload.contextFolderPath : settings.contextFolderPath || '';
     const exclusions = Array.isArray(payload?.exclusions)
         ? payload.exclusions
         : Array.isArray(settings.exclusions)
-            ? settings.exclusions
-            : [];
+        ? settings.exclusions
+        : [];
 
     const emptyStatus = {
         ok: true,
@@ -179,7 +182,8 @@ async function handleStatus(_event, payload = {}) {
         outOfSyncNodes: 0,
         newNodes: 0,
         totalNodes: 0,
-        maxNodesExceeded: false
+        ignoredFiles: 0,
+        maxNodesExceeded: false,
     };
 
     if (!contextFolderPath) {
@@ -203,13 +207,17 @@ async function handleStatus(_event, payload = {}) {
         });
 
         const stats = computeSyncStats(storedGraph, scanResult);
+        const ignoredFiles = Array.isArray(scanResult.ignores)
+            ? scanResult.ignores.filter((ignore) => ignore?.type === 'file').length
+            : 0;
         return {
             ok: true,
             syncedNodes: stats.synced,
             outOfSyncNodes: stats.outOfSync,
             newNodes: stats.new,
             totalNodes: stats.total,
-            maxNodesExceeded: false
+            ignoredFiles,
+            maxNodesExceeded: false,
         };
     } catch (error) {
         const maxNodes = parseMaxNodesError(error);

@@ -38,7 +38,7 @@ const stubModules = ({ isPackaged = true, dialogResponse = 1 } = {}) => {
     };
 
     const stubElectron = {
-        app: { isPackaged },
+        app: { isPackaged, getVersion: () => '0.0.1' },
         dialog: {
             showMessageBox: async (options) => {
                 calls.showMessageBox.push(options);

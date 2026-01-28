@@ -382,6 +382,44 @@ test('sync skips non-md/txt files and logs a warning', async () => {
     assert.equal(skipped, undefined);
 });
 
+test('constructContextGraphSkeleton returns ignored paths separately', () => {
+    const contextRoot = createTempDir('jiminy-context-');
+    writeSkipFixture(contextRoot);
+    writeHiddenFolderFixture(contextRoot);
+
+    const result = constructContextGraphSkeleton(contextRoot);
+
+    assert.ok(Array.isArray(result.ignores));
+    const ignoredPaths = result.ignores.map((entry) => entry.path);
+    assert.ok(ignoredPaths.includes('image.png'));
+    assert.ok(ignoredPaths.includes('.git'));
+
+    const imageIgnore = result.ignores.find((entry) => entry.path === 'image.png');
+    assert.equal(imageIgnore?.type, 'file');
+});
+
+test('sync returns ignored paths in results', async () => {
+    const contextRoot = createTempDir('jiminy-context-');
+    writeSkipFixture(contextRoot);
+
+    const store = createStore(contextRoot);
+    const summarizer = {
+        model: 'test-model',
+        summarizeFile: async ({ relativePath }) => `Summary for ${relativePath}`,
+        summarizeFolder: async ({ relativePath }) => `Folder summary for ${relativePath || '.'}`,
+    };
+
+    const result = await syncContextGraph({
+        rootPath: contextRoot,
+        store,
+        summarizer,
+    });
+
+    assert.ok(Array.isArray(result.ignores));
+    assert.ok(result.ignores.some((entry) => entry.path === 'image.png'));
+    assert.equal(result.ignoredFiles, 1);
+});
+
 test('sync skips files larger than MAX_CONTEXT_FILE_SIZE_BYTES', async () => {
     const contextRoot = createTempDir('jiminy-context-');
     writeLargeFileFixture(contextRoot);

@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const graphSyncedCount = document.getElementById('context-graph-synced-count')
   const graphPendingCount = document.getElementById('context-graph-pending-count')
   const graphNewCount = document.getElementById('context-graph-new-count')
+  const graphIgnoredCount = document.getElementById('context-graph-ignored-count')
   const updateButtons = selectAll('[data-action="updates-check"]')
   const updateStatuses = selectAll('[data-setting-status="updates-status"]')
   const updateErrors = selectAll('[data-setting-error="updates-error"]')
@@ -305,7 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
         barNew: graphBarNew,
         syncedCount: graphSyncedCount,
         pendingCount: graphPendingCount,
-        newCount: graphNewCount
+        newCount: graphNewCount,
+        ignoredCount: graphIgnoredCount
       },
       jiminy,
       getState: () => ({

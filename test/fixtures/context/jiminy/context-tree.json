@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "rootPath": "/Users/maximvovshin/software/startup/Jiminy/code/desktopapp/test/fixtures/context",
+  "generatedAt": "2026-01-27T13:38:18.277Z",
+  "model": "mock",
+  "rootId": "n_19ec2fb35088",
+  "counts": {
+    "files": 0,
+    "folders": 2
+  },
+  "nodes": {
+    "n_19ec2fb35088": {
+      "id": "n_19ec2fb35088",
+      "type": "folder",
+      "name": "context",
+      "relativePath": "",
+      "summary": "",
+      "summaryUpdatedAt": null,
+      "children": [
+        "n_699e2018182b"
+      ],
+      "contentHash": "cd372fb85148700fa88095e3492d3f9f5beb43e555e5ff26d95f5a6adc36f8e6"
+    },
+    "n_699e2018182b": {
+      "id": "n_699e2018182b",
+      "type": "folder",
+      "name": "jiminy-behind-the-scenes",
+      "relativePath": "jiminy-behind-the-scenes",
+      "summary": "",
+      "summaryUpdatedAt": null,
+      "children": [],
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

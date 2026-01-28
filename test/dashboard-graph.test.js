@@ -117,7 +117,7 @@ test('refreshContextGraphStatus updates metrics and status text', async () => {
     assert.equal(barSynced.style.width, '80%')
     assert.equal(barPending.style.width, '20%')
     assert.equal(barNew.style.width, '0%')
-    assert.equal(syncStats.textContent, 'Synced: 8/10 | Out of sync: 2/10 | New: 0')
+    assert.equal(syncStats.textContent, 'Synced: 8/10 | Out of sync: 2/10 | New: 0 | Ignored: 0')
     assert.equal(statusLabel.textContent, 'Needs sync')
     assert.equal(updates[0].isContextGraphSynced, false)
   } finally {

@@ -238,13 +238,28 @@ const checkForUpdates = async ({ reason = 'manual' } = {}) => {
   checking = true;
   recordUpdateCheckAt(Date.now());
   console.log('Starting update check', { reason });
+  let currentVersion = null;
+  try {
+    currentVersion = app.getVersion();
+  } catch (error) {
+    console.error('Failed to read current app version', error);
+  }
 
   try {
     const result = await getAutoUpdater().checkForUpdates();
-    return { ok: true, updateInfo: result && result.updateInfo ? result.updateInfo : null };
+    return {
+      ok: true,
+      updateInfo: result && result.updateInfo ? result.updateInfo : null,
+      currentVersion,
+    };
   } catch (error) {
     console.error('Update check failed', error);
-    return { ok: false, reason: 'error', message: error && error.message ? error.message : 'unknown error' };
+    return {
+      ok: false,
+      reason: 'error',
+      message: error && error.message ? error.message : 'unknown error',
+      currentVersion,
+    };
   } finally {
     checking = false;
   }

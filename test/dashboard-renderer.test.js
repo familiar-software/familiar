@@ -165,6 +165,7 @@ const createElements = () => {
     'context-graph-prune': new TestElement(),
     'context-graph-prune-status': new TestElement(),
     'context-graph-stats': new TestElement(),
+    'context-graph-ignored-count': new TestElement(),
     'updates-check': new TestElement(),
     'updates-status': new TestElement(),
     'updates-error': new TestElement(),
@@ -278,6 +279,38 @@ test('refreshes context graph status when context path changes', async () => {
     assert.equal(elements['context-folder-status'].textContent, 'Saved.')
     assert.equal(statusCalls.length, 2)
     assert.equal(statusCalls[1].contextFolderPath, '/tmp/new-context')
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('context graph status shows ignored file count', async () => {
+  const jiminy = createJiminy({
+    getContextGraphStatus: async () => ({
+      syncedNodes: 2,
+      outOfSyncNodes: 1,
+      newNodes: 0,
+      totalNodes: 3,
+      ignoredFiles: 4,
+      maxNodesExceeded: false
+    })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    assert.equal(elements['context-graph-ignored-count'].textContent, '4')
+    assert.match(elements['context-graph-stats'].textContent, /Ignored: 4/)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -679,12 +712,12 @@ test('auto-saves LLM provider selection', async () => {
   }
 })
 
-test('check for updates button reports download status', async () => {
+test('check for updates reports update when latest is higher', async () => {
   const updateCalls = []
   const jiminy = createJiminy({
     checkForUpdates: async () => {
       updateCalls.push(true)
-      return { ok: true, updateInfo: { version: '0.0.2' } }
+      return { ok: true, updateInfo: { version: '0.0.2' }, currentVersion: '0.0.1' }
     }
   })
 
@@ -704,7 +737,42 @@ test('check for updates button reports download status', async () => {
     await flushPromises()
 
     assert.equal(updateCalls.length, 1)
-    assert.equal(elements['updates-status'].textContent, 'Update 0.0.2 is available. Check the download prompt.')
+    assert.equal(
+      elements['updates-status'].textContent,
+      'Update available: 0.0.1 -> 0.0.2. Check the download prompt.'
+    )
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('check for updates reports no update when latest matches current', async () => {
+  const updateCalls = []
+  const jiminy = createJiminy({
+    checkForUpdates: async () => {
+      updateCalls.push(true)
+      return { ok: true, updateInfo: { version: '0.0.4' }, currentVersion: '0.0.4' }
+    }
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['updates-check'].click()
+    await flushPromises()
+
+    assert.equal(updateCalls.length, 1)
+    assert.equal(elements['updates-status'].textContent, 'No updates found.')
   } finally {
     global.document = priorDocument
     global.window = priorWindow

@@ -171,6 +171,7 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
   const folderDepths = new Map()
   const errors = []
   const warnings = []
+  const ignores = []
   const visitedDirs = new Set()
   let totalNodes = 0
   let exceededLimit = false
@@ -191,6 +192,15 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
       if (normalized.startsWith(excluded + '/')) return true
     }
     return false
+  }
+
+  const addIgnore = (relativePath, type, reason) => {
+    if (!relativePath) return
+    ignores.push({
+      path: relativePath,
+      type,
+      reason
+    })
   }
 
   const registerNode = () => {
@@ -272,36 +282,43 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
 
       if (ignoredByGitignore) {
         logger.log('Skipping gitignored path', { path: normalizedEntryRelative })
+        addIgnore(normalizedEntryRelative, isDirectory ? 'folder' : 'file', 'gitignore')
         continue
       }
 
       if (isExcluded(normalizedEntryRelative)) {
         logger.log('Skipping excluded path', { path: normalizedEntryRelative })
+        addIgnore(normalizedEntryRelative, isDirectory ? 'folder' : 'file', 'exclusion')
         continue
       }
 
       if (isDirectory && entry.name.startsWith('.')) {
         logger.log('Skipping hidden folder', { path: normalizedEntryRelative })
+        addIgnore(normalizedEntryRelative, 'folder', 'hidden')
         continue
       }
 
       if (isDirectory && isExtraContextDirName(entry.name)) {
         logger.log('Skipping generated context folder', { path: normalizedEntryRelative })
+        addIgnore(normalizedEntryRelative, 'folder', 'extra_context')
         continue
       }
 
       if (isDirectory && isCapturesDirName(entry.name)) {
         logger.log('Skipping captures folder', { path: normalizedEntryRelative })
+        addIgnore(normalizedEntryRelative, 'folder', 'captures')
         continue
       }
 
       if (isDirectory && isBehindTheScenesDirName(entry.name)) {
         logger.log('Skipping jiminy behind-the-scenes folder', { path: normalizedEntryRelative })
+        addIgnore(normalizedEntryRelative, 'folder', 'behind_the_scenes')
         continue
       }
 
       if (isDirectory && isGeneralAnalysisDirName(entry.name)) {
         logger.log('Skipping general analysis folder', { path: normalizedEntryRelative })
+        addIgnore(normalizedEntryRelative, 'folder', 'general_analysis')
         continue
       }
 
@@ -318,6 +335,7 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
           warnings.push({ path: normalizedEntryRelative, message: `Failed to resolve symlink: ${error.message}` })
           logger.warn('Failed to resolve symlink', { path: entryPath, error })
         }
+        addIgnore(normalizedEntryRelative, 'symlink', 'symlink')
         continue
       }
 
@@ -330,17 +348,20 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
       }
 
       if (!entry.isFile()) {
+        addIgnore(normalizedEntryRelative, 'unknown', 'unsupported_entry')
         continue
       }
 
       const extension = path.extname(entry.name).toLowerCase()
       if (!ALLOWED_EXTENSIONS.has(extension)) {
         logger.log('Skipping unsupported file', { path: entryPath, extension })
+        addIgnore(normalizedEntryRelative, 'file', 'unsupported_extension')
         continue
       }
 
       const fileStat = fs.statSync(entryPath)
       if (isFileTooLarge(fileStat, normalizedEntryRelative, logger)) {
+        addIgnore(normalizedEntryRelative, 'file', 'file_too_large')
         continue
       }
 
@@ -423,7 +444,8 @@ const constructContextGraphSkeleton = (rootPath, { logger = console, maxNodes = 
     folderDepths,
     fileContents,
     errors,
-    warnings
+    warnings,
+    ignores
   }
 }
 

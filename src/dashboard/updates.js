@@ -12,6 +12,35 @@
 
     let isCheckingUpdates = false
 
+    const parseVersionParts = (value) => {
+      if (typeof value !== 'string') {
+        return []
+      }
+      const trimmed = value.trim().replace(/^v/i, '')
+      const base = trimmed.split(/[-+]/)[0]
+      return base.split('.').map((part) => Number.parseInt(part, 10)).filter(Number.isFinite)
+    }
+
+    const compareVersions = (next, current) => {
+      const nextParts = parseVersionParts(next)
+      const currentParts = parseVersionParts(current)
+      const maxLength = Math.max(nextParts.length, currentParts.length)
+      if (maxLength === 0) {
+        return null
+      }
+      for (let i = 0; i < maxLength; i += 1) {
+        const nextValue = nextParts[i] || 0
+        const currentValue = currentParts[i] || 0
+        if (nextValue > currentValue) {
+          return 1
+        }
+        if (nextValue < currentValue) {
+          return -1
+        }
+      }
+      return 0
+    }
+
     const setUpdateCheckState = (nextIsChecking) => {
       isCheckingUpdates = Boolean(nextIsChecking)
       updateButtons.forEach((button) => {
@@ -35,9 +64,19 @@
           const version = result.updateInfo && result.updateInfo.version
             ? result.updateInfo.version
             : ''
-          const message = version
-            ? `Update ${version} is available. Check the download prompt.`
-            : 'No updates found.'
+          const currentVersion = result.currentVersion || ''
+          let message = 'No updates found.'
+          if (version && currentVersion) {
+            const comparison = compareVersions(version, currentVersion)
+            if (comparison === 1) {
+              message = `Update available: ${currentVersion} -> ${version}. Check the download prompt.`
+              console.log('Update available', { from: currentVersion, to: version })
+            } else if (comparison === null) {
+              console.warn('Unable to compare update versions', { version, currentVersion })
+            }
+          } else if (version) {
+            console.warn('Missing current version; unable to compare update version', { version })
+          }
           setMessage(updateStatuses, message)
         } else if (result && result.reason === 'checking') {
           setMessage(updateStatuses, 'Already checking for updates...')

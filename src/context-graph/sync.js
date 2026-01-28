@@ -56,7 +56,8 @@ const syncContextGraph = async ({
     folderDepths,
     fileContents,
     errors,
-    warnings
+    warnings,
+    ignores
   } = scanResult
 
   const deletedNodes = Object.entries(previousNodes)
@@ -228,16 +229,20 @@ const syncContextGraph = async ({
   store.save(graph)
 
   const durationMs = Date.now() - start
+  const ignoredFiles = Array.isArray(ignores)
+    ? ignores.filter((ignore) => ignore?.type === 'file').length
+    : 0
   logger.log('Context graph sync completed', {
     rootPath,
     files: counts.files,
     folders: counts.folders,
     errors: errors.length,
+    ignoredFiles,
     syncStats,
     durationMs
   })
 
-  return { graph, errors, warnings, durationMs, syncStats }
+  return { graph, errors, warnings, ignores, ignoredFiles, durationMs, syncStats }
 }
 
 module.exports = {
