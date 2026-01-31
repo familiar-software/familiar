@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const hotkeyButtons = selectAll('.hotkey-recorder')
   const captureHotkeyButtons = hotkeyButtons.filter((button) => button.dataset.hotkeyRole === 'capture')
   const clipboardHotkeyButtons = hotkeyButtons.filter((button) => button.dataset.hotkeyRole === 'clipboard')
+  const recordingHotkeyButtons = hotkeyButtons.filter((button) => button.dataset.hotkeyRole === 'recording')
   const hotkeysSaveButtons = selectAll('[data-action="hotkeys-save"]')
   const hotkeysResetButtons = selectAll('[data-action="hotkeys-reset"]')
   const hotkeysStatuses = selectAll('[data-setting-status="hotkeys-status"]')
@@ -121,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const DEFAULT_CAPTURE_HOTKEY = 'CommandOrControl+Shift+J'
   const DEFAULT_CLIPBOARD_HOTKEY = 'CommandOrControl+J'
+  const DEFAULT_RECORDING_HOTKEY = 'CommandOrControl+R'
 
   let currentContextFolderPath = ''
   let currentLlmProviderName = ''
@@ -130,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isLlmApiKeySaved = false
   let currentCaptureHotkey = DEFAULT_CAPTURE_HOTKEY
   let currentClipboardHotkey = DEFAULT_CLIPBOARD_HOTKEY
+  let currentRecordingHotkey = DEFAULT_RECORDING_HOTKEY
   let currentExclusions = []
   let isContextGraphSynced = false
   let hasCompletedSync = false
@@ -153,6 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextValue = value || ''
     if (role === 'capture') {
       currentCaptureHotkey = nextValue
+      return
+    }
+    if (role === 'recording') {
+      currentRecordingHotkey = nextValue
       return
     }
     currentClipboardHotkey = nextValue
@@ -281,7 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
         hasCompletedSync,
         isContextGraphSynced,
         currentCaptureHotkey,
-        currentClipboardHotkey
+        currentClipboardHotkey,
+        currentRecordingHotkey
       }),
       onDone: () => {
         setActiveSection('general')
@@ -478,7 +486,8 @@ document.addEventListener('DOMContentLoaded', () => {
       jiminy,
       defaults: {
         capture: DEFAULT_CAPTURE_HOTKEY,
-        clipboard: DEFAULT_CLIPBOARD_HOTKEY
+        clipboard: DEFAULT_CLIPBOARD_HOTKEY,
+        recording: DEFAULT_RECORDING_HOTKEY
       },
       getState: () => ({
         currentContextFolderPath,
@@ -500,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         setHotkeyValue('capture', hotkeys.capture)
         setHotkeyValue('clipboard', hotkeys.clipboard)
+        setHotkeyValue('recording', hotkeys.recording)
         updateWizardUI()
       },
       setExclusions: setExclusionsValue,
@@ -565,6 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hotkeyButtons,
         captureHotkeyButtons,
         clipboardHotkeyButtons,
+        recordingHotkeyButtons,
         hotkeysSaveButtons,
         hotkeysResetButtons,
         hotkeysStatuses,
@@ -575,12 +586,14 @@ document.addEventListener('DOMContentLoaded', () => {
       updateWizardUI,
       getState: () => ({
         currentCaptureHotkey,
-        currentClipboardHotkey
+        currentClipboardHotkey,
+        currentRecordingHotkey
       }),
       setHotkeyValue,
       defaults: {
         capture: DEFAULT_CAPTURE_HOTKEY,
-        clipboard: DEFAULT_CLIPBOARD_HOTKEY
+        clipboard: DEFAULT_CLIPBOARD_HOTKEY,
+        recording: DEFAULT_RECORDING_HOTKEY
       }
     })
   }

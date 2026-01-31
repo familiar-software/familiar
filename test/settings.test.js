@@ -72,15 +72,16 @@ test('validateContextFolderPath rejects file path', () => {
   assert.equal(result.message, 'Selected path is not a directory.')
 })
 
-test('saveSettings persists captureHotkey and clipboardHotkey', () => {
+test('saveSettings persists captureHotkey, clipboardHotkey, and recordingHotkey', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')
 
-  saveSettings({ captureHotkey: 'Alt+S', clipboardHotkey: 'Alt+C' }, { settingsDir })
+  saveSettings({ captureHotkey: 'Alt+S', clipboardHotkey: 'Alt+C', recordingHotkey: 'Alt+R' }, { settingsDir })
 
   const loaded = loadSettings({ settingsDir })
   assert.equal(loaded.captureHotkey, 'Alt+S')
   assert.equal(loaded.clipboardHotkey, 'Alt+C')
+  assert.equal(loaded.recordingHotkey, 'Alt+R')
 })
 
 test('saveSettings persists control/option hotkey combinations', () => {
@@ -103,12 +104,13 @@ test('saveSettings preserves hotkeys when updating other settings', () => {
   const contextDir = path.join(tempRoot, 'context')
   fs.mkdirSync(contextDir)
 
-  saveSettings({ captureHotkey: 'Alt+S', clipboardHotkey: 'Alt+C' }, { settingsDir })
+  saveSettings({ captureHotkey: 'Alt+S', clipboardHotkey: 'Alt+C', recordingHotkey: 'Alt+R' }, { settingsDir })
   saveSettings({ contextFolderPath: contextDir }, { settingsDir })
 
   const loaded = loadSettings({ settingsDir })
   assert.equal(loaded.captureHotkey, 'Alt+S')
   assert.equal(loaded.clipboardHotkey, 'Alt+C')
+  assert.equal(loaded.recordingHotkey, 'Alt+R')
   assert.equal(loaded.contextFolderPath, contextDir)
 })
 

@@ -2,7 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { loadSettings, resolveSettingsPath, saveSettings, validateContextFolderPath } = require('../settings');
-const { DEFAULT_CAPTURE_HOTKEY, DEFAULT_CLIPBOARD_HOTKEY } = require('../hotkeys');
+const { DEFAULT_CAPTURE_HOTKEY, DEFAULT_CLIPBOARD_HOTKEY, DEFAULT_RECORDING_HOTKEY } = require('../hotkeys');
 const { getScreenRecordingPermissionStatus } = require('../screen-recording/permissions');
 
 let onSettingsSaved = null;
@@ -30,6 +30,7 @@ function handleGetSettings() {
         const exclusions = Array.isArray(settings.exclusions) ? settings.exclusions : [];
         const captureHotkey = typeof settings.captureHotkey === 'string' ? settings.captureHotkey : DEFAULT_CAPTURE_HOTKEY;
         const clipboardHotkey = typeof settings.clipboardHotkey === 'string' ? settings.clipboardHotkey : DEFAULT_CLIPBOARD_HOTKEY;
+        const recordingHotkey = typeof settings.recordingHotkey === 'string' ? settings.recordingHotkey : DEFAULT_RECORDING_HOTKEY;
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
         const screenRecordingPermissionStatus = getScreenRecordingPermissionStatus();
         let validationMessage = '';
@@ -53,6 +54,7 @@ function handleGetSettings() {
             exclusions,
             captureHotkey,
             clipboardHotkey,
+            recordingHotkey,
             alwaysRecordWhenActive,
             screenRecordingPermissionStatus,
             isFirstRun
@@ -67,6 +69,7 @@ function handleGetSettings() {
             exclusions: [],
             captureHotkey: DEFAULT_CAPTURE_HOTKEY,
             clipboardHotkey: DEFAULT_CLIPBOARD_HOTKEY,
+            recordingHotkey: DEFAULT_RECORDING_HOTKEY,
             alwaysRecordWhenActive: false,
             screenRecordingPermissionStatus: getScreenRecordingPermissionStatus(),
             isFirstRun: false
@@ -82,6 +85,7 @@ function handleSaveSettings(_event, payload) {
     const hasCaptureHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'captureHotkey');
     const hasClipboardHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'clipboardHotkey');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(payload || {}, 'alwaysRecordWhenActive');
+    const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'recordingHotkey');
     const settingsPayload = {};
 
     if (
@@ -91,7 +95,8 @@ function handleSaveSettings(_event, payload) {
         !hasExclusions &&
         !hasCaptureHotkey &&
         !hasClipboardHotkey &&
-        !hasAlwaysRecordWhenActive
+        !hasAlwaysRecordWhenActive &&
+        !hasRecordingHotkey
     ) {
         return { ok: false, message: 'No settings provided.' };
     }
@@ -139,6 +144,12 @@ function handleSaveSettings(_event, payload) {
             : DEFAULT_CLIPBOARD_HOTKEY;
     }
 
+    if (hasRecordingHotkey) {
+        settingsPayload.recordingHotkey = typeof payload.recordingHotkey === 'string'
+            ? payload.recordingHotkey
+            : DEFAULT_RECORDING_HOTKEY;
+    }
+
     if (hasAlwaysRecordWhenActive) {
         const nextValue = payload.alwaysRecordWhenActive === true;
         if (nextValue) {
@@ -164,7 +175,7 @@ function handleSaveSettings(_event, payload) {
                 console.error('Failed to notify settings update', error);
             }
         }
-        return { ok: true, hotkeysChanged: hasCaptureHotkey || hasClipboardHotkey };
+        return { ok: true, hotkeysChanged: hasCaptureHotkey || hasClipboardHotkey || hasRecordingHotkey };
     } catch (error) {
         console.error('Failed to save settings', error);
         return { ok: false, message: 'Failed to save settings.' };

@@ -7,9 +7,11 @@ const { captureClipboard } = require('./clipboard');
 const {
     registerCaptureHotkey,
     registerClipboardHotkey,
+    registerRecordingHotkey,
     unregisterGlobalHotkeys,
     DEFAULT_CAPTURE_HOTKEY,
     DEFAULT_CLIPBOARD_HOTKEY,
+    DEFAULT_RECORDING_HOTKEY,
 } = require('./hotkeys');
 const { registerExtractionHandlers } = require('./extraction');
 const { registerAnalysisHandlers } = require('./analysis');
@@ -164,9 +166,10 @@ function quitApp() {
 
 function registerHotkeysFromSettings() {
     const settings = loadSettings();
-    const { captureAccelerator, clipboardAccelerator } = resolveHotkeyAccelerators(settings, {
+    const { captureAccelerator, clipboardAccelerator, recordingAccelerator } = resolveHotkeyAccelerators(settings, {
         DEFAULT_CAPTURE_HOTKEY,
         DEFAULT_CLIPBOARD_HOTKEY,
+        DEFAULT_RECORDING_HOTKEY,
     });
 
     unregisterGlobalHotkeys();
@@ -209,7 +212,81 @@ function registerHotkeysFromSettings() {
         });
     }
 
-    return { captureResult, clipboardResult, captureAccelerator, clipboardAccelerator };
+    const recordingResult = registerRecordingHotkey({
+        onRecording: () => {
+            if (!screenRecordingController) {
+                console.warn('Recording hotkey ignored: controller unavailable');
+                return;
+            }
+            const state = screenRecordingController.getState();
+            const isRecording = state.state === 'recording' || state.state === 'idleGrace';
+            if (isRecording) {
+                screenRecordingController.manualStop()
+                    .then((result) => {
+                        if (result && result.ok === false) {
+                            showToast({
+                                title: 'Screen recording',
+                                body: result.message || 'Failed to stop recording.',
+                                type: 'warning',
+                                size: 'large'
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Failed to stop screen recording via hotkey', error);
+                        showToast({
+                            title: 'Screen recording',
+                            body: 'Failed to stop recording.',
+                            type: 'warning',
+                            size: 'large'
+                        });
+                    });
+                return;
+            }
+            screenRecordingController.manualStart()
+                .then((result) => {
+                    if (result && result.ok === false) {
+                        showToast({
+                            title: 'Screen recording',
+                            body: result.message || 'Failed to start recording.',
+                            type: 'warning',
+                            size: 'large'
+                        });
+                    }
+                })
+                .catch((error) => {
+                    console.error('Failed to start screen recording via hotkey', error);
+                    showToast({
+                        title: 'Screen recording',
+                        body: 'Failed to start recording.',
+                        type: 'warning',
+                        size: 'large'
+                    });
+                });
+        },
+        accelerator: recordingAccelerator,
+    });
+    if (!recordingResult.ok) {
+        console.warn('Recording hotkey inactive', {
+            reason: recordingResult.reason,
+            accelerator: recordingResult.accelerator,
+        });
+        showToast({
+            title: 'Recording hotkey inactive',
+            body: 'The recording shortcut could not be registered. Open Settings to update it.',
+            type: 'warning',
+            size: 'large'
+        });
+    }
+
+    return {
+        captureResult,
+        clipboardResult,
+        recordingResult,
+        captureAccelerator,
+        clipboardAccelerator,
+        recordingAccelerator
+    };
 }
 
 function createTray() {
@@ -242,6 +319,7 @@ function createTray() {
         trayHandlers,
         DEFAULT_CAPTURE_HOTKEY,
         DEFAULT_CLIPBOARD_HOTKEY,
+        DEFAULT_RECORDING_HOTKEY,
     });
 
     trayMenuController.refreshTrayMenuFromSettings();
@@ -269,9 +347,10 @@ ipcMain.handle('hotkeys:reregister', () => {
         console.warn('Tray menu update skipped: controller not ready');
     }
     return {
-        ok: result.captureResult.ok && result.clipboardResult.ok,
+        ok: result.captureResult.ok && result.clipboardResult.ok && result.recordingResult.ok,
         captureHotkey: result.captureResult,
         clipboardHotkey: result.clipboardResult,
+        recordingHotkey: result.recordingResult,
     };
 });
 
@@ -295,9 +374,10 @@ ipcMain.handle('hotkeys:resume', () => {
         console.warn('Tray menu update skipped: controller not ready');
     }
     return {
-        ok: result.captureResult.ok && result.clipboardResult.ok,
+        ok: result.captureResult.ok && result.clipboardResult.ok && result.recordingResult.ok,
         captureHotkey: result.captureResult,
         clipboardHotkey: result.clipboardResult,
+        recordingHotkey: result.recordingResult,
     };
 });
 

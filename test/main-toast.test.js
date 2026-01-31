@@ -66,6 +66,7 @@ test('hotkey re-registration triggers toast warnings on failure', async () => {
             return {
                 DEFAULT_CAPTURE_HOTKEY: 'Cmd+Shift+P',
                 DEFAULT_CLIPBOARD_HOTKEY: 'Cmd+Shift+C',
+                DEFAULT_RECORDING_HOTKEY: 'Cmd+Shift+R',
                 registerCaptureHotkey: () => ({
                     ok: false,
                     reason: 'registration-failed',
@@ -75,6 +76,11 @@ test('hotkey re-registration triggers toast warnings on failure', async () => {
                     ok: false,
                     reason: 'registration-failed',
                     accelerator: 'Cmd+Shift+C',
+                }),
+                registerRecordingHotkey: () => ({
+                    ok: false,
+                    reason: 'registration-failed',
+                    accelerator: 'Cmd+Shift+R',
                 }),
                 unregisterGlobalHotkeys: () => {},
             };
@@ -117,9 +123,10 @@ test('hotkey re-registration triggers toast warnings on failure', async () => {
         toastCalls.length = 0;
         await handlers['hotkeys:reregister']();
 
-        assert.equal(toastCalls.length, 2);
+        assert.equal(toastCalls.length, 3);
         assert.equal(toastCalls[0].title, 'Capture hotkey inactive');
         assert.equal(toastCalls[1].title, 'Clipboard hotkey inactive');
+        assert.equal(toastCalls[2].title, 'Recording hotkey inactive');
     } finally {
         Module._load = originalLoad;
         resetMainModule();

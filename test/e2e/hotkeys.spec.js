@@ -52,6 +52,7 @@ test('hotkeys save regular and option combinations', async () => {
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
     expect(stored.captureHotkey).toBe('CommandOrControl+Shift+O')
     expect(stored.clipboardHotkey).toBe('Alt+O')
+    expect(stored.recordingHotkey).toBe('CommandOrControl+R')
     expect(stored.captureHotkey).not.toBe(stored.clipboardHotkey)
   } finally {
     await electronApp.close()

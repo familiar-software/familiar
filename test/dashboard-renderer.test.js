@@ -154,6 +154,7 @@ const createElements = () => {
     'add-exclusion': new TestElement(),
     'capture-hotkey': new TestElement(),
     'clipboard-hotkey': new TestElement(),
+    'recording-hotkey': new TestElement(),
     'context-folder-path': new TestElement(),
     'context-folder-choose': new TestElement(),
     'context-folder-error': new TestElement(),
@@ -241,6 +242,8 @@ const createElements = () => {
   elements['capture-hotkey'].classList.add('hotkey-recorder')
   elements['clipboard-hotkey'].dataset.hotkeyRole = 'clipboard'
   elements['clipboard-hotkey'].classList.add('hotkey-recorder')
+  elements['recording-hotkey'].dataset.hotkeyRole = 'recording'
+  elements['recording-hotkey'].classList.add('hotkey-recorder')
   elements['hotkeys-save'].dataset.action = 'hotkeys-save'
   elements['hotkeys-reset'].dataset.action = 'hotkeys-reset'
   elements['hotkeys-status'].dataset.settingStatus = 'hotkeys-status'

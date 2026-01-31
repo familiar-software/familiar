@@ -9,7 +9,7 @@ const getElectronMenu = () => {
 
 function resolveHotkeyAccelerators(
     settings = {},
-    { DEFAULT_CAPTURE_HOTKEY, DEFAULT_CLIPBOARD_HOTKEY } = {}
+    { DEFAULT_CAPTURE_HOTKEY, DEFAULT_CLIPBOARD_HOTKEY, DEFAULT_RECORDING_HOTKEY } = {}
 ) {
     const captureAccelerator =
         typeof settings.captureHotkey === 'string' && settings.captureHotkey
@@ -19,8 +19,12 @@ function resolveHotkeyAccelerators(
         typeof settings.clipboardHotkey === 'string' && settings.clipboardHotkey
             ? settings.clipboardHotkey
             : DEFAULT_CLIPBOARD_HOTKEY;
+    const recordingAccelerator =
+        typeof settings.recordingHotkey === 'string' && settings.recordingHotkey
+            ? settings.recordingHotkey
+            : DEFAULT_RECORDING_HOTKEY;
 
-    return { captureAccelerator, clipboardAccelerator };
+    return { captureAccelerator, clipboardAccelerator, recordingAccelerator };
 }
 
 function resolveHistoryItems(settings = {}, { getRecentFlowsFn = getRecentFlows } = {}) {
@@ -38,16 +42,19 @@ function buildTrayMenuPayload(
     {
         DEFAULT_CAPTURE_HOTKEY,
         DEFAULT_CLIPBOARD_HOTKEY,
+        DEFAULT_RECORDING_HOTKEY,
         getRecentFlowsFn = getRecentFlows,
     } = {}
 ) {
-    const { captureAccelerator, clipboardAccelerator } = resolveHotkeyAccelerators(settings, {
+    const { captureAccelerator, clipboardAccelerator, recordingAccelerator } = resolveHotkeyAccelerators(settings, {
         DEFAULT_CAPTURE_HOTKEY,
         DEFAULT_CLIPBOARD_HOTKEY,
+        DEFAULT_RECORDING_HOTKEY
     });
     return {
         captureAccelerator,
         clipboardAccelerator,
+        recordingAccelerator,
         historyItems: resolveHistoryItems(settings, { getRecentFlowsFn }),
     };
 }
@@ -57,6 +64,7 @@ function createTrayMenuController({
     trayHandlers,
     DEFAULT_CAPTURE_HOTKEY,
     DEFAULT_CLIPBOARD_HOTKEY,
+    DEFAULT_RECORDING_HOTKEY,
     loadSettingsFn = loadSettings,
     getRecentFlowsFn = getRecentFlows,
     buildTrayMenuTemplateFn = buildTrayMenuTemplate,
@@ -105,6 +113,7 @@ function createTrayMenuController({
             buildTrayMenuPayload(settings, {
                 DEFAULT_CAPTURE_HOTKEY,
                 DEFAULT_CLIPBOARD_HOTKEY,
+                DEFAULT_RECORDING_HOTKEY,
                 getRecentFlowsFn,
             })
         );

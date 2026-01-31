@@ -12,6 +12,7 @@
       hotkeyButtons = [],
       captureHotkeyButtons = [],
       clipboardHotkeyButtons = [],
+      recordingHotkeyButtons = [],
       hotkeysSaveButtons = [],
       hotkeysResetButtons = [],
       hotkeysStatuses = [],
@@ -20,6 +21,7 @@
 
     const DEFAULT_CAPTURE_HOTKEY = defaults.capture || ''
     const DEFAULT_CLIPBOARD_HOTKEY = defaults.clipboard || ''
+    const DEFAULT_RECORDING_HOTKEY = defaults.recording || ''
 
     let recordingElement = null
 
@@ -146,7 +148,12 @@
     }
 
     const updateHotkeyDisplay = (role, accelerator) => {
-      const buttons = role === 'capture' ? captureHotkeyButtons : clipboardHotkeyButtons
+      let buttons = clipboardHotkeyButtons
+      if (role === 'capture') {
+        buttons = captureHotkeyButtons
+      } else if (role === 'recording') {
+        buttons = recordingHotkeyButtons
+      }
       const value = accelerator || ''
       buttons.forEach((button) => {
         button.dataset.hotkey = value
@@ -162,6 +169,9 @@
       }
       if (Object.prototype.hasOwnProperty.call(payload, 'clipboard')) {
         updateHotkeyDisplay('clipboard', payload.clipboard)
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, 'recording')) {
+        updateHotkeyDisplay('recording', payload.recording)
       }
     }
 
@@ -259,15 +269,16 @@
           const state = getState()
           const captureHotkey = state.currentCaptureHotkey
           const clipboardHotkey = state.currentClipboardHotkey
+          const recordingHotkey = state.currentRecordingHotkey
 
-          if (!captureHotkey && !clipboardHotkey) {
+          if (!captureHotkey && !clipboardHotkey && !recordingHotkey) {
             setMessage(hotkeysStatuses, '')
             setMessage(hotkeysErrors, 'At least one hotkey is required.')
             return
           }
 
           try {
-            const result = await jiminy.saveSettings({ captureHotkey, clipboardHotkey })
+            const result = await jiminy.saveSettings({ captureHotkey, clipboardHotkey, recordingHotkey })
             if (result && result.ok) {
               if (jiminy.reregisterHotkeys) {
                 const reregisterResult = await jiminy.reregisterHotkeys()
@@ -276,10 +287,12 @@
                 } else {
                   const captureError = reregisterResult?.captureHotkey?.ok === false
                   const clipboardError = reregisterResult?.clipboardHotkey?.ok === false
-                  if (captureError || clipboardError) {
+                  const recordingError = reregisterResult?.recordingHotkey?.ok === false
+                  if (captureError || clipboardError || recordingError) {
                     const errorParts = []
                     if (captureError) errorParts.push('capture')
                     if (clipboardError) errorParts.push('clipboard')
+                    if (recordingError) errorParts.push('recording')
                     setMessage(hotkeysStatuses, 'Saved.')
                     setMessage(hotkeysErrors, `Failed to register ${errorParts.join(' and ')} hotkey. The shortcut may be in use by another app.`)
                   } else {
@@ -307,6 +320,7 @@
         button.addEventListener('click', () => {
           updateHotkeyDisplay('capture', DEFAULT_CAPTURE_HOTKEY)
           updateHotkeyDisplay('clipboard', DEFAULT_CLIPBOARD_HOTKEY)
+          updateHotkeyDisplay('recording', DEFAULT_RECORDING_HOTKEY)
           setMessage(hotkeysStatuses, '')
           setMessage(hotkeysErrors, '')
         })

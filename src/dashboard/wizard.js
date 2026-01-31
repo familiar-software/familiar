@@ -40,7 +40,7 @@
         case 4:
           return Boolean(state.hasCompletedSync || state.isContextGraphSynced)
         case 5:
-          return Boolean(state.currentCaptureHotkey || state.currentClipboardHotkey)
+          return Boolean(state.currentCaptureHotkey || state.currentClipboardHotkey || state.currentRecordingHotkey)
         default:
           return false
       }
