@@ -25,6 +25,9 @@ contextBridge.exposeInMainWorld('jiminy', {
   getScreenRecordingStatus: () => ipcRenderer.invoke('screenRecording:getStatus'),
   startScreenRecording: () => ipcRenderer.invoke('screenRecording:start'),
   stopScreenRecording: () => ipcRenderer.invoke('screenRecording:stop'),
+  runRecordingQuery: (payload) => ipcRenderer.invoke('recordingQuery:run', payload),
+  getRecordingQueryAvailability: () => ipcRenderer.invoke('recordingQuery:availability'),
+  getRecordingQueryEstimate: (payload) => ipcRenderer.invoke('recordingQuery:estimate', payload),
   onUpdateDownloadProgress: (handler) => {
     const listener = (_event, payload) => handler(payload)
     ipcRenderer.on('updates:download-progress', listener)

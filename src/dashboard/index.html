@@ -259,6 +259,55 @@
                 </div>
                 <p id="recording-permission" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
               </section>
+
+              <section id="recording-query" class="space-y-3 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                <div class="space-y-1">
+                  <h4 class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Ask About Recordings</h4>
+                  <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                    Query a date range of recordings and get an answer from Gemini.
+                  </p>
+                </div>
+                <p id="recording-query-availability" class="text-xs text-amber-600 dark:text-amber-400 hidden" role="alert" aria-live="polite"></p>
+                <div class="space-y-2">
+                  <label for="recording-query-question" class="section-label">Question</label>
+                  <textarea
+                    id="recording-query-question"
+                    rows="3"
+                    placeholder="Ask a question about your recordings..."
+                    class="input-ring w-full resize-none rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
+                  ></textarea>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="flex-1 space-y-1">
+                    <label for="recording-query-from" class="section-label">From</label>
+                    <input
+                      id="recording-query-from"
+                      type="date"
+                      class="input-ring w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                    >
+                  </div>
+                  <div class="flex-1 space-y-1">
+                    <label for="recording-query-to" class="section-label">To</label>
+                    <input
+                      id="recording-query-to"
+                      type="date"
+                      class="input-ring w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                    >
+                  </div>
+                </div>
+                <p id="recording-query-estimate" class="text-xs text-zinc-500 dark:text-zinc-400 hidden" aria-live="polite"></p>
+                <div class="flex items-center gap-2">
+                  <button
+                    id="recording-query-submit"
+                    type="button"
+                    class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >Submit</button>
+                  <span id="recording-query-spinner" class="recording-query-spinner hidden" aria-hidden="true"></span>
+                  <span id="recording-query-status" class="text-xs text-zinc-500 dark:text-zinc-400" aria-live="polite"></span>
+                </div>
+                <p id="recording-query-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                <div id="recording-query-answer" class="recording-query-answer hidden"></div>
+              </section>
             </section>
 
             <section id="section-graph" data-section-pane="graph" role="tabpanel" aria-label="Context graph" class="space-y-6 hidden">

@@ -3,13 +3,19 @@ const path = require('node:path');
 
 const { JIMINY_BEHIND_THE_SCENES_DIR_NAME, RECORDINGS_DIR_NAME } = require('../const');
 
-const formatTimestamp = (date) => date.toISOString().replace(/[:.]/g, '-');
-const padSegmentIndex = (index) => String(index).padStart(4, '0');
+function formatTimestamp(date) {
+  return date.toISOString().replace(/[:.]/g, '-');
+}
 
-const getRecordingsRoot = (contextFolderPath) =>
-  path.join(contextFolderPath, JIMINY_BEHIND_THE_SCENES_DIR_NAME, RECORDINGS_DIR_NAME);
+function padSegmentIndex(index) {
+  return String(index).padStart(4, '0');
+}
 
-const createSessionStore = ({ contextFolderPath, captureConfig, segmentLengthMs, logger = console } = {}) => {
+function getRecordingsRoot(contextFolderPath) {
+  return path.join(contextFolderPath, JIMINY_BEHIND_THE_SCENES_DIR_NAME, RECORDINGS_DIR_NAME);
+}
+
+function createSessionStore({ contextFolderPath, captureConfig, segmentLengthMs, logger = console } = {}) {
   if (!contextFolderPath) {
     throw new Error('Context folder path is required to create a recording session.');
   }
@@ -29,19 +35,19 @@ const createSessionStore = ({ contextFolderPath, captureConfig, segmentLengthMs,
   const manifestPath = path.join(sessionDir, 'manifest.json');
   let segmentIndex = 0;
 
-  const writeManifest = () => {
+  function writeManifest() {
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
-  };
+  }
 
-  const nextSegmentFile = () => {
+  function nextSegmentFile() {
     segmentIndex += 1;
     return {
       index: segmentIndex,
       fileName: `segment-${padSegmentIndex(segmentIndex)}.${captureConfig.container}`
     };
-  };
+  }
 
-  const addSegment = ({ index, fileName, startedAt, endedAt, durationMs }) => {
+  function addSegment({ index, fileName, startedAt, endedAt, durationMs }) {
     manifest.segments.push({
       index,
       file: fileName,
@@ -50,13 +56,13 @@ const createSessionStore = ({ contextFolderPath, captureConfig, segmentLengthMs,
       durationMs
     });
     writeManifest();
-  };
+  }
 
-  const finalize = (stopReason) => {
+  function finalize(stopReason) {
     manifest.endedAt = new Date().toISOString();
     manifest.stopReason = stopReason || 'stop';
     writeManifest();
-  };
+  }
 
   writeManifest();
   logger.log('Recording manifest created', { manifestPath });
@@ -69,9 +75,9 @@ const createSessionStore = ({ contextFolderPath, captureConfig, segmentLengthMs,
     addSegment,
     finalize
   };
-};
+}
 
-const recoverIncompleteSessions = (contextFolderPath, logger = console) => {
+function recoverIncompleteSessions(contextFolderPath, logger = console) {
   const recordingsRoot = getRecordingsRoot(contextFolderPath);
   if (!fs.existsSync(recordingsRoot)) {
     return 0;
@@ -80,10 +86,13 @@ const recoverIncompleteSessions = (contextFolderPath, logger = console) => {
   const entries = fs.readdirSync(recordingsRoot, { withFileTypes: true });
   let updatedCount = 0;
 
-  entries.filter((entry) => entry.isDirectory()).forEach((entry) => {
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
     const manifestPath = path.join(recordingsRoot, entry.name, 'manifest.json');
     if (!fs.existsSync(manifestPath)) {
-      return;
+      continue;
     }
 
     try {
@@ -97,12 +106,12 @@ const recoverIncompleteSessions = (contextFolderPath, logger = console) => {
         logger.warn('Recovered incomplete recording session', { manifestPath });
       }
     } catch (error) {
-      logger.error('Failed to recover recording manifest', { manifestPath, error });
+        logger.error('Failed to recover recording manifest', { manifestPath, error });
     }
-  });
+  }
 
   return updatedCount;
-};
+}
 
 module.exports = {
   createSessionStore,

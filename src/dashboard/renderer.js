@@ -72,6 +72,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const recordingStatus = document.getElementById('recording-status')
   const recordingActionButton = document.getElementById('recording-action')
   const recordingPermission = document.getElementById('recording-permission')
+  const recordingQueryQuestion = document.getElementById('recording-query-question')
+  const recordingQueryFrom = document.getElementById('recording-query-from')
+  const recordingQueryTo = document.getElementById('recording-query-to')
+  const recordingQuerySubmit = document.getElementById('recording-query-submit')
+  const recordingQuerySpinner = document.getElementById('recording-query-spinner')
+  const recordingQueryStatus = document.getElementById('recording-query-status')
+  const recordingQueryError = document.getElementById('recording-query-error')
+  const recordingQueryAnswer = document.getElementById('recording-query-answer')
+  const recordingQueryAvailability = document.getElementById('recording-query-availability')
+  const recordingQueryEstimate = document.getElementById('recording-query-estimate')
 
   const syncButtons = selectAll('[data-action="context-graph-sync"]')
   const syncStatuses = selectAll('[data-setting-status="context-graph-status"]')
@@ -395,12 +405,24 @@ document.addEventListener('DOMContentLoaded', () => {
         recordingPath,
         recordingStatus,
         recordingActionButton,
-        recordingPermission
+        recordingPermission,
+        recordingQueryQuestion,
+        recordingQueryFrom,
+        recordingQueryTo,
+        recordingQuerySubmit,
+        recordingQuerySpinner,
+        recordingQueryStatus,
+        recordingQueryError,
+        recordingQueryAnswer,
+        recordingQueryAvailability,
+        recordingQueryEstimate
       },
       jiminy,
       getState: () => ({
         currentContextFolderPath,
-        currentAlwaysRecordWhenActive
+        currentAlwaysRecordWhenActive,
+        currentLlmProviderName,
+        currentLlmApiKey
       })
     })
   }
@@ -437,6 +459,9 @@ document.addEventListener('DOMContentLoaded', () => {
         select.value = currentLlmProviderName
       }
     })
+    if (recordingApi && recordingApi.updateRecordingUI) {
+      recordingApi.updateRecordingUI()
+    }
     updateWizardUI()
   }
 
@@ -451,6 +476,9 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLlmApiKey = value || ''
     setLlmApiKeyPending(currentLlmApiKey)
     isLlmApiKeySaved = Boolean(currentLlmApiKey)
+    if (recordingApi && recordingApi.updateRecordingUI) {
+      recordingApi.updateRecordingUI()
+    }
     updateWizardUI()
   }
 

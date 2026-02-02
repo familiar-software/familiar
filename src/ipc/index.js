@@ -1,6 +1,7 @@
 const { registerSettingsHandlers } = require('./settings');
 const { registerContextGraphHandlers, computeSyncStats, parseMaxNodesError } = require('./contextGraph');
 const { registerHistoryHandlers } = require('./history');
+const { registerRecordingQueryHandlers } = require('./recordingQuery');
 const { registerUpdateHandlers } = require('./updates');
 
 /**
@@ -10,6 +11,7 @@ function registerIpcHandlers(options = {}) {
     registerSettingsHandlers({ onSettingsSaved: options.onSettingsSaved });
     registerContextGraphHandlers();
     registerHistoryHandlers();
+    registerRecordingQueryHandlers();
     registerUpdateHandlers();
 }
 
@@ -18,6 +20,7 @@ module.exports = {
     registerSettingsHandlers,
     registerContextGraphHandlers,
     registerHistoryHandlers,
+    registerRecordingQueryHandlers,
     registerUpdateHandlers,
     computeSyncStats,
     parseMaxNodesError,
