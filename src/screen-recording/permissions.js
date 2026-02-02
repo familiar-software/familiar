@@ -1,6 +1,6 @@
 const { systemPreferences } = require('electron');
 
-const getScreenRecordingPermissionStatus = () => {
+function getScreenRecordingPermissionStatus() {
   if (process.platform !== 'darwin') {
     return 'unavailable';
   }
@@ -9,10 +9,11 @@ const getScreenRecordingPermissionStatus = () => {
   } catch (error) {
     return 'unknown';
   }
-};
+}
 
-const isScreenRecordingPermissionGranted = () =>
-  getScreenRecordingPermissionStatus() === 'granted';
+function isScreenRecordingPermissionGranted() {
+  return getScreenRecordingPermissionStatus() === 'granted';
+}
 
 module.exports = {
   getScreenRecordingPermissionStatus,

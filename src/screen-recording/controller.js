@@ -10,9 +10,11 @@ const STATES = Object.freeze({
   STOPPING: 'stopping'
 });
 
-const createScreenRecordingController = (options = {}) => {
+function noop() {}
+
+function createScreenRecordingController(options = {}) {
   const logger = options.logger || console;
-  const onError = typeof options.onError === 'function' ? options.onError : () => {};
+  const onError = typeof options.onError === 'function' ? options.onError : noop;
   const idleThresholdSeconds =
     typeof options.idleThresholdSeconds === 'number' ? options.idleThresholdSeconds : 60;
   const presenceMonitor = options.presenceMonitor ||
@@ -26,7 +28,7 @@ const createScreenRecordingController = (options = {}) => {
   let pendingStart = false;
   let manualPaused = false;
 
-  const setState = (nextState, details = {}) => {
+  function setState(nextState, details = {}) {
     if (state === nextState) {
       return;
     }
@@ -36,16 +38,16 @@ const createScreenRecordingController = (options = {}) => {
       ...details
     });
     state = nextState;
-  };
+  }
 
-  const validateContext = () => {
+  function validateContext() {
     if (!settings.contextFolderPath) {
       return { ok: false, message: 'Context folder path missing.' };
     }
     return validateContextFolderPath(settings.contextFolderPath);
-  };
+  }
 
-  const canRecord = () => {
+  function canRecord() {
     if (!settings.enabled) {
       return false;
     }
@@ -58,25 +60,25 @@ const createScreenRecordingController = (options = {}) => {
       return false;
     }
     return true;
-  };
+  }
 
-  const ensurePresenceRunning = () => {
+  function ensurePresenceRunning() {
     if (presenceRunning) {
       return;
     }
     presenceMonitor.start();
     presenceRunning = true;
-  };
+  }
 
-  const stopPresence = () => {
+  function stopPresence() {
     if (!presenceRunning) {
       return;
     }
     presenceMonitor.stop();
     presenceRunning = false;
-  };
+  }
 
-  const startRecording = async (source) => {
+  async function startRecording(source) {
     if (!canRecord()) {
       setState(STATES.DISABLED, { reason: 'invalid-context' });
       return;
@@ -93,9 +95,9 @@ const createScreenRecordingController = (options = {}) => {
       onError({ message: error?.message || 'Failed to start screen recording.', reason: 'start-failed' });
       setState(settings.enabled ? STATES.ARMED : STATES.DISABLED, { reason: 'start-failed' });
     }
-  };
+  }
 
-  const stopRecording = async (reason) => {
+  async function stopRecording(reason) {
     if (state !== STATES.RECORDING && state !== STATES.IDLE_GRACE) {
       return;
     }
@@ -118,13 +120,10 @@ const createScreenRecordingController = (options = {}) => {
     }
 
     setState(STATES.DISABLED, { reason: 'disabled' });
-  };
+  }
 
-  const handleActive = () => {
-    if (!settings.enabled) {
-      return;
-    }
-    if (manualPaused) {
+  function handleActive() {
+    if (!settings.enabled || manualPaused) {
       return;
     }
     if (state === STATES.STOPPING) {
@@ -134,37 +133,34 @@ const createScreenRecordingController = (options = {}) => {
     if (state === STATES.ARMED || state === STATES.IDLE_GRACE) {
       void startRecording('active');
     }
-  };
+  }
 
-  const handleIdle = ({ idleSeconds } = {}) => {
-    if (state !== STATES.RECORDING) {
-      if (manualPaused) {
-        manualPaused = false;
-      }
-      return;
-    }
+  function handleIdle({ idleSeconds } = {}) {
     if (manualPaused) {
       manualPaused = false;
     }
+    if (state !== STATES.RECORDING) {
+      return;
+    }
     setState(STATES.IDLE_GRACE, { idleSeconds });
     void stopRecording('idle');
-  };
+  }
 
-  const handleLock = () => {
+  function handleLock() {
     manualPaused = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       void stopRecording('lock');
     }
-  };
+  }
 
-  const handleSuspend = () => {
+  function handleSuspend() {
     manualPaused = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       void stopRecording('suspend');
     }
-  };
+  }
 
-  const updateSettings = ({ enabled, contextFolderPath } = {}) => {
+  function updateSettings({ enabled, contextFolderPath } = {}) {
     settings = {
       enabled: enabled === true,
       contextFolderPath: typeof contextFolderPath === 'string' ? contextFolderPath : ''
@@ -192,18 +188,18 @@ const createScreenRecordingController = (options = {}) => {
 
     setState(STATES.ARMED, { reason: 'enabled' });
     ensurePresenceRunning();
-  };
+  }
 
-  const manualStart = async () => {
+  async function manualStart() {
     if (!settings.enabled) {
       return { ok: false, message: 'Recording is disabled.' };
     }
     manualPaused = false;
     await startRecording('manual');
     return { ok: true };
-  };
+  }
 
-  const manualStop = async () => {
+  async function manualStop() {
     if (!settings.enabled) {
       return { ok: false, message: 'Recording is disabled.' };
     }
@@ -213,9 +209,9 @@ const createScreenRecordingController = (options = {}) => {
     manualPaused = true;
     await stopRecording('manual');
     return { ok: true };
-  };
+  }
 
-  const start = () => {
+  function start() {
     if (started) {
       return;
     }
@@ -226,18 +222,18 @@ const createScreenRecordingController = (options = {}) => {
     presenceMonitor.on('suspend', handleSuspend);
     presenceMonitor.on('unlock', handleActive);
     presenceMonitor.on('resume', handleActive);
-  };
+  }
 
-  const shutdown = async (reason = 'quit') => {
+  async function shutdown(reason = 'quit') {
     stopPresence();
     pendingStart = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       await recorder.stop({ reason });
     }
     setState(STATES.DISABLED, { reason });
-  };
+  }
 
-  const dispose = () => {
+  function dispose() {
     stopPresence();
     presenceMonitor.off('active', handleActive);
     presenceMonitor.off('idle', handleIdle);
@@ -245,7 +241,11 @@ const createScreenRecordingController = (options = {}) => {
     presenceMonitor.off('suspend', handleSuspend);
     presenceMonitor.off('unlock', handleActive);
     presenceMonitor.off('resume', handleActive);
-  };
+  }
+
+  function getState() {
+    return { ...settings, state, manualPaused };
+  }
 
   return {
     start,
@@ -254,9 +254,9 @@ const createScreenRecordingController = (options = {}) => {
     manualStart,
     manualStop,
     updateSettings,
-    getState: () => ({ ...settings, state, manualPaused })
+    getState
   };
-};
+}
 
 module.exports = {
   STATES,

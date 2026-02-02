@@ -17,12 +17,12 @@ const DEFAULT_SEGMENT_LENGTH_MS = 0.5 * 60 * 1000;
 const START_TIMEOUT_MS = 10000;
 const STOP_TIMEOUT_MS = 10000;
 
-const ensureEven = (value) => {
+function ensureEven(value) {
   const rounded = Math.max(2, Math.round(value));
   return rounded % 2 === 0 ? rounded : rounded - 1;
-};
+}
 
-const createRecorder = (options = {}) => {
+function createRecorder(options = {}) {
   const logger = options.logger || console;
   const segmentLengthMs =
     typeof options.segmentLengthMs === 'number' ? options.segmentLengthMs : DEFAULT_SEGMENT_LENGTH_MS;
@@ -36,7 +36,7 @@ const createRecorder = (options = {}) => {
   let segmentTimer = null;
   let stopInProgress = null;
 
-  const ensureWindow = () => {
+  function ensureWindow() {
     if (recordingWindow) {
       return;
     }
@@ -62,76 +62,82 @@ const createRecorder = (options = {}) => {
       }
     });
 
-    windowReadyPromise = new Promise((resolve) => {
-      recordingWindow.webContents.once('did-finish-load', () => {
+    windowReadyPromise = new Promise(function (resolve) {
+      recordingWindow.webContents.once('did-finish-load', function () {
         logger.log('Screen recording renderer loaded', {
           url: recordingWindow?.webContents?.getURL?.()
         });
         resolve();
       });
-      recordingWindow.webContents.once('did-fail-load', (_event, code, description) => {
+      recordingWindow.webContents.once('did-fail-load', function (_event, code, description) {
         logger.error('Screen recording renderer failed to load', { code, description });
       });
     });
 
     recordingWindow.loadFile(path.join(__dirname, 'recording.html'));
 
-    recordingWindow.webContents.on('render-process-gone', (_event, details) => {
+    recordingWindow.webContents.on('render-process-gone', function (_event, details) {
       logger.error('Screen recording renderer process gone', details);
     });
 
-    recordingWindow.webContents.on('unresponsive', () => {
+    recordingWindow.webContents.on('unresponsive', function () {
       logger.error('Screen recording renderer became unresponsive');
     });
 
-    recordingWindow.on('closed', () => {
+    recordingWindow.on('closed', function () {
       recordingWindow = null;
       windowReadyPromise = null;
       rendererReady = false;
     });
-  };
+  }
 
-  const waitForRendererReady = async () => {
+  async function waitForRendererReady() {
     const deadline = Date.now() + START_TIMEOUT_MS;
     while (!rendererReady) {
       if (Date.now() > deadline) {
         throw new Error('Recording renderer did not become ready.');
       }
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise(function (resolve) {
+        setTimeout(resolve, 50);
+      });
     }
-  };
+  }
 
-  const ensureWindowReady = async () => {
+  async function ensureWindowReady() {
     ensureWindow();
     if (windowReadyPromise) {
       await windowReadyPromise;
     }
     await waitForRendererReady();
     return recordingWindow;
-  };
+  }
 
-  const waitForStatus = (requestId, timeoutMs, expectedStatuses = null) => new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(requestId);
-      reject(new Error('Timed out waiting for recording response.'));
-    }, timeoutMs);
+  function waitForStatus(requestId, timeoutMs, expectedStatuses = null) {
+    return new Promise(function (resolve, reject) {
+      const timeout = setTimeout(function () {
+        pendingRequests.delete(requestId);
+        reject(new Error('Timed out waiting for recording response.'));
+      }, timeoutMs);
 
-    pendingRequests.set(requestId, {
-      expectedStatuses: Array.isArray(expectedStatuses) ? expectedStatuses : null,
-      resolve: (payload) => {
-        clearTimeout(timeout);
-        pendingRequests.delete(requestId);
-        resolve(payload);
-      },
-      reject: (error) => {
-        clearTimeout(timeout);
-        pendingRequests.delete(requestId);
-        reject(error);
-      }
+      const pending = {
+        expectedStatuses: Array.isArray(expectedStatuses) ? expectedStatuses : null,
+        resolve: function (payload) {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          resolve(payload);
+        },
+        reject: function (error) {
+          clearTimeout(timeout);
+          pendingRequests.delete(requestId);
+          reject(error);
+        }
+      };
+
+      pendingRequests.set(requestId, pending);
     });
-  });
+  }
 
-  const resolveCaptureSource = async () => {
+  async function resolveCaptureSource() {
     const displays = screen.getAllDisplays();
     const primaryDisplay = screen.getPrimaryDisplay();
     const sources = await desktopCapturer.getSources({ types: ['screen'] });
@@ -146,9 +152,9 @@ const createRecorder = (options = {}) => {
       });
     }
 
-    const source = sources.find((candidate) =>
-      String(candidate.display_id) === String(primaryDisplay.id)
-    ) || sources[0];
+    const source = sources.find(function (candidate) {
+      return String(candidate.display_id) === String(primaryDisplay.id);
+    }) || sources[0];
 
     const fullWidth = Math.max(1, Math.round(primaryDisplay.bounds.width * primaryDisplay.scaleFactor));
     const fullHeight = Math.max(1, Math.round(primaryDisplay.bounds.height * primaryDisplay.scaleFactor));
@@ -161,32 +167,30 @@ const createRecorder = (options = {}) => {
       captureWidth,
       captureHeight
     };
-  };
+  }
 
-  const scheduleSegmentRoll = () => {
+  function scheduleSegmentRoll() {
     if (segmentTimer) {
       clearTimeout(segmentTimer);
     }
-    segmentTimer = setTimeout(async () => {
-      try {
-        await rollSegment();
-      } catch (error) {
+    segmentTimer = setTimeout(function () {
+      rollSegment().catch(function (error) {
         logger.error('Failed to roll recording segment', error);
-      }
+      });
     }, segmentLengthMs);
     if (typeof segmentTimer.unref === 'function') {
       segmentTimer.unref();
     }
-  };
+  }
 
-  const clearSegmentTimer = () => {
+  function clearSegmentTimer() {
     if (segmentTimer) {
       clearTimeout(segmentTimer);
       segmentTimer = null;
     }
-  };
+  }
 
-  const startSegment = async () => {
+  async function startSegment() {
     if (!sessionStore) {
       return;
     }
@@ -225,9 +229,9 @@ const createRecorder = (options = {}) => {
       currentSegment = null;
       throw error;
     }
-  };
+  }
 
-  const stopSegment = async (reason) => {
+  async function stopSegment(reason) {
     if (!sessionStore || !currentSegment) {
       return;
     }
@@ -257,18 +261,18 @@ const createRecorder = (options = {}) => {
 
     currentSegment = null;
     logger.log('Screen recording segment stopped', { reason, durationMs });
-  };
+  }
 
-  const rollSegment = async () => {
+  async function rollSegment() {
     if (!sessionStore) {
       return;
     }
     await stopSegment('segment-roll');
     await startSegment();
     scheduleSegmentRoll();
-  };
+  }
 
-  const start = async ({ contextFolderPath } = {}) => {
+  async function start({ contextFolderPath } = {}) {
     if (sessionStore) {
       logger.log('Screen recording already active; start skipped');
       return { ok: true, alreadyRecording: true };
@@ -297,22 +301,23 @@ const createRecorder = (options = {}) => {
     }
     scheduleSegmentRoll();
     return { ok: true };
-  };
+  }
 
-  const stop = async ({ reason } = {}) => {
+  async function stop({ reason } = {}) {
     if (stopInProgress) {
       return stopInProgress;
     }
 
-    stopInProgress = (async () => {
+    stopInProgress = (async function () {
       if (!sessionStore) {
         return { ok: true, alreadyStopped: true };
       }
 
+      const stopReason = reason || 'stop';
       clearSegmentTimer();
-      await stopSegment(reason || 'stop');
+      await stopSegment(stopReason);
       if (sessionStore) {
-        sessionStore.finalize(reason || 'stop');
+        sessionStore.finalize(stopReason);
       }
       logger.log('Screen recording session stopped', { reason });
 
@@ -325,19 +330,20 @@ const createRecorder = (options = {}) => {
     } finally {
       stopInProgress = null;
     }
-  };
+  }
 
   if (ipcMain && typeof ipcMain.on === 'function') {
-    ipcMain.on('screen-recording:ready', (event) => {
+    ipcMain.on('screen-recording:ready', function (event) {
       if (!recordingWindow || event.sender !== recordingWindow.webContents) {
         return;
       }
       rendererReady = true;
       logger.log('Screen recording renderer ready');
     });
-    ipcMain.on('screen-recording:status', (_event, payload) => {
+    ipcMain.on('screen-recording:status', function (_event, payload) {
       const requestId = payload?.requestId;
-      if (!requestId || !pendingRequests.has(requestId)) {
+      const pending = requestId ? pendingRequests.get(requestId) : null;
+      if (!pending) {
         if (payload?.status === 'error') {
           logger.error('Screen recording error', payload);
         }
@@ -345,25 +351,29 @@ const createRecorder = (options = {}) => {
       }
 
       if (payload.status === 'error') {
-        pendingRequests.get(requestId).reject(new Error(payload.message || 'Recording failed.'));
+        pending.reject(new Error(payload.message || 'Recording failed.'));
         return;
       }
 
-      const expected = pendingRequests.get(requestId).expectedStatuses;
+      const expected = pending.expectedStatuses;
       if (!expected || expected.includes(payload.status)) {
-        pendingRequests.get(requestId).resolve(payload);
+        pending.resolve(payload);
       }
     });
   } else {
     logger.warn('IPC unavailable; screen recording status listener not registered');
   }
 
+  function recover(contextFolderPath) {
+    return recoverIncompleteSessions(contextFolderPath, logger);
+  }
+
   return {
     start,
     stop,
-    recover: (contextFolderPath) => recoverIncompleteSessions(contextFolderPath, logger)
+    recover
   };
-};
+}
 
 module.exports = {
   CAPTURE_CONFIG,

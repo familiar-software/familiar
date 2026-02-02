@@ -11,31 +11,33 @@ const START_TIMEOUT_MS = 8000;
 
 let currentRecording = null;
 
-const pickMimeType = () => {
+function pickMimeType() {
   if (typeof MediaRecorder === 'undefined') {
     return '';
   }
-  return MIME_TYPE_CANDIDATES.find((candidate) => MediaRecorder.isTypeSupported(candidate)) || '';
-};
+  return MIME_TYPE_CANDIDATES.find(function (candidate) {
+    return MediaRecorder.isTypeSupported(candidate);
+  }) || '';
+}
 
-const sendStatus = (requestId, status, payload = {}) => {
+function sendStatus(requestId, status, payload = {}) {
   ipcRenderer.send('screen-recording:status', {
     requestId,
     status,
     ...payload
   });
-};
+}
 
-const cleanupRecording = () => {
+function cleanupRecording() {
   if (currentRecording?.stream) {
-    currentRecording.stream.getTracks().forEach((track) => track.stop());
+    currentRecording.stream.getTracks().forEach(function (track) {
+      track.stop();
+    });
   }
   currentRecording = null;
-};
+}
 
-ipcRenderer.send('screen-recording:ready');
-
-ipcRenderer.on('screen-recording:start', async (_event, payload) => {
+async function handleStart(_event, payload) {
   const requestId = payload?.requestId;
   if (!requestId) {
     return;
@@ -53,12 +55,7 @@ ipcRenderer.on('screen-recording:start', async (_event, payload) => {
       throw new Error('MP4 MediaRecorder not supported on this system.');
     }
 
-    const sourceId = payload?.sourceId;
-    const captureWidth = payload?.captureWidth;
-    const captureHeight = payload?.captureHeight;
-    const fps = payload?.fps;
-    const filePath = payload?.filePath;
-
+    const { sourceId, captureWidth, captureHeight, fps, filePath } = payload || {};
     if (!sourceId || !filePath) {
       throw new Error('Missing recording parameters.');
     }
@@ -79,12 +76,11 @@ ipcRenderer.on('screen-recording:start', async (_event, payload) => {
           }
         }
       }),
-      new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Timed out starting capture. Check Screen Recording permission.')),
-          START_TIMEOUT_MS
-        )
-      )
+      new Promise(function (_resolve, reject) {
+        setTimeout(function () {
+          reject(new Error('Timed out starting capture. Check Screen Recording permission.'));
+        }, START_TIMEOUT_MS);
+      })
     ]);
 
     const chunks = [];
@@ -100,20 +96,20 @@ ipcRenderer.on('screen-recording:start', async (_event, payload) => {
       startedAt: Date.now()
     };
 
-    recorder.ondataavailable = (event) => {
+    recorder.ondataavailable = function (event) {
       if (event.data && event.data.size > 0) {
         chunks.push(event.data);
       }
     };
 
-    recorder.onerror = (event) => {
+    recorder.onerror = function (event) {
       const message = event?.error?.message || 'Recorder error.';
       const errorRequestId = currentRecording?.stopRequestId || requestId;
       sendStatus(errorRequestId, 'error', { message });
       cleanupRecording();
     };
 
-    recorder.onstop = async () => {
+    recorder.onstop = async function () {
       const stopRequestId = currentRecording?.stopRequestId || requestId;
       try {
         const blob = new Blob(chunks, { type: mimeType });
@@ -134,9 +130,9 @@ ipcRenderer.on('screen-recording:start', async (_event, payload) => {
     cleanupRecording();
     sendStatus(requestId, 'error', { message: error.message || 'Failed to start recording.' });
   }
-});
+}
 
-ipcRenderer.on('screen-recording:stop', (_event, payload) => {
+function handleStop(_event, payload) {
   const requestId = payload?.requestId;
   if (!requestId) {
     return;
@@ -149,4 +145,9 @@ ipcRenderer.on('screen-recording:stop', (_event, payload) => {
 
   currentRecording.stopRequestId = requestId;
   currentRecording.recorder.stop();
-});
+}
+
+ipcRenderer.send('screen-recording:ready');
+
+ipcRenderer.on('screen-recording:start', handleStart);
+ipcRenderer.on('screen-recording:stop', handleStop);

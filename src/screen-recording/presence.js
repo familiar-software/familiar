@@ -3,7 +3,7 @@ const { EventEmitter } = require('node:events');
 
 const DEFAULT_POLL_INTERVAL_MS = 1000;
 
-const createPresenceMonitor = (options = {}) => {
+function createPresenceMonitor(options = {}) {
   const idleThresholdSeconds =
     typeof options.idleThresholdSeconds === 'number' ? options.idleThresholdSeconds : 60;
   const pollIntervalMs =
@@ -13,15 +13,15 @@ const createPresenceMonitor = (options = {}) => {
   let timer = null;
   let lastState = null;
 
-  const emitState = (nextState, payload = {}) => {
+  function emitState(nextState, payload = {}) {
     if (lastState === nextState) {
       return;
     }
     lastState = nextState;
     emitter.emit(nextState, payload);
-  };
+  }
 
-  const evaluateIdle = (source) => {
+  function evaluateIdle(source) {
     let idleSeconds = 0;
     try {
       idleSeconds = powerMonitor.getSystemIdleTime();
@@ -31,27 +31,42 @@ const createPresenceMonitor = (options = {}) => {
     }
     const nextState = idleSeconds >= idleThresholdSeconds ? 'idle' : 'active';
     emitState(nextState, { idleSeconds, source });
-  };
+  }
 
-  const handleLock = () => emitter.emit('lock');
-  const handleUnlock = () => {
+  function handleLock() {
+    emitter.emit('lock');
+  }
+
+  function handleUnlock() {
     emitter.emit('unlock');
     evaluateIdle('unlock');
-  };
-  const handleSuspend = () => emitter.emit('suspend');
-  const handleResume = () => {
+  }
+
+  function handleSuspend() {
+    emitter.emit('suspend');
+  }
+
+  function handleResume() {
     emitter.emit('resume');
     evaluateIdle('resume');
-  };
-  const handleActive = () => emitState('active', { source: 'user-did-become-active' });
-  const handleResign = () => evaluateIdle('user-did-resign-active');
+  }
 
-  const start = () => {
+  function handleActive() {
+    emitState('active', { source: 'user-did-become-active' });
+  }
+
+  function handleResign() {
+    evaluateIdle('user-did-resign-active');
+  }
+
+  function start() {
     if (timer) {
       return;
     }
     evaluateIdle('start');
-    timer = setInterval(() => evaluateIdle('poll'), pollIntervalMs);
+    timer = setInterval(function () {
+      evaluateIdle('poll');
+    }, pollIntervalMs);
     if (typeof timer.unref === 'function') {
       timer.unref();
     }
@@ -62,9 +77,9 @@ const createPresenceMonitor = (options = {}) => {
     powerMonitor.on('user-did-become-active', handleActive);
     powerMonitor.on('user-did-resign-active', handleResign);
     logger.log('Presence monitor started', { idleThresholdSeconds, pollIntervalMs });
-  };
+  }
 
-  const stop = () => {
+  function stop() {
     if (timer) {
       clearInterval(timer);
       timer = null;
@@ -76,21 +91,31 @@ const createPresenceMonitor = (options = {}) => {
     powerMonitor.removeListener('user-did-become-active', handleActive);
     powerMonitor.removeListener('user-did-resign-active', handleResign);
     logger.log('Presence monitor stopped');
-  };
+  }
 
-  const getState = () => ({
-    state: lastState,
-    idleSeconds: powerMonitor.getSystemIdleTime()
-  });
+  function getState() {
+    return {
+      state: lastState,
+      idleSeconds: powerMonitor.getSystemIdleTime()
+    };
+  }
+
+  function on(eventName, handler) {
+    return emitter.on(eventName, handler);
+  }
+
+  function off(eventName, handler) {
+    return emitter.off(eventName, handler);
+  }
 
   return {
     start,
     stop,
-    on: (...args) => emitter.on(...args),
-    off: (...args) => emitter.off(...args),
+    on,
+    off,
     getState
   };
-};
+}
 
 module.exports = {
   createPresenceMonitor
