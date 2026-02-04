@@ -160,6 +160,9 @@ const createElements = () => {
     'always-record-when-active': new TestElement(),
     'always-record-when-active-error': new TestElement(),
     'always-record-when-active-status': new TestElement(),
+    'wizard-always-record-when-active': new TestElement(),
+    'wizard-always-record-when-active-error': new TestElement(),
+    'wizard-always-record-when-active-status': new TestElement(),
     'recording-details': new TestElement(),
     'recording-path': new TestElement(),
     'recording-status': new TestElement(),
@@ -205,6 +208,9 @@ const createElements = () => {
   elements['always-record-when-active'].dataset.setting = 'always-record-when-active'
   elements['always-record-when-active-error'].dataset.settingError = 'always-record-when-active-error'
   elements['always-record-when-active-status'].dataset.settingStatus = 'always-record-when-active-status'
+  elements['wizard-always-record-when-active'].dataset.setting = 'always-record-when-active'
+  elements['wizard-always-record-when-active-error'].dataset.settingError = 'always-record-when-active-error'
+  elements['wizard-always-record-when-active-status'].dataset.settingStatus = 'always-record-when-active-status'
 
   elements['updates-check'].dataset.action = 'updates-check'
   elements['updates-status'].dataset.settingStatus = 'updates-status'
@@ -309,6 +315,8 @@ test('always record toggle saves on change', async () => {
     assert.equal(saveCalls.length, 1)
     assert.deepEqual(saveCalls[0], { alwaysRecordWhenActive: true })
     assert.equal(elements['always-record-when-active-status'].textContent, 'Saved.')
+    assert.equal(elements['wizard-always-record-when-active-status'].textContent, 'Saved.')
+    assert.equal(elements['wizard-always-record-when-active'].checked, true)
   } finally {
     global.document = priorDocument
     global.window = priorWindow

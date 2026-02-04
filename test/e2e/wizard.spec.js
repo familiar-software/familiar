@@ -29,6 +29,21 @@ const launchElectron = (options = {}) => {
   }
 }
 
+const advanceWizardToHotkeys = async (window, nextButton) => {
+  const hotkeysCapture = window.locator('#wizard-capture-hotkey')
+
+  for (let attempts = 0; attempts < 3; attempts += 1) {
+    if (await hotkeysCapture.isVisible()) {
+      return
+    }
+
+    await expect(nextButton).toBeEnabled()
+    await nextButton.click()
+  }
+
+  await expect(hotkeysCapture).toBeVisible()
+}
+
 test('wizard happy flow completes setup and routes to General', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
@@ -62,6 +77,7 @@ test('wizard happy flow completes setup and routes to General', async () => {
     await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
 
     const doneButton = window.locator('#wizard-done')
+    await advanceWizardToHotkeys(window, nextButton)
     await expect(doneButton).toBeEnabled()
     await doneButton.click()
 
@@ -72,6 +88,7 @@ test('wizard happy flow completes setup and routes to General', async () => {
     expect(stored.contextFolderPath).toBe(path.resolve(contextPath))
     expect(stored.llm_provider.provider).toBe('gemini')
     expect(stored.llm_provider.api_key).toBe('test-key')
+    expect(stored.alwaysRecordWhenActive ?? false).toBe(false)
   } finally {
     await (await electronApp).close()
   }
@@ -176,12 +193,14 @@ test('wizard resets to first step after Done', async () => {
     await nextButton.click()
     await expect(window.locator('[data-wizard-step=\"3\"]')).toBeVisible()
 
-    await window.locator('#wizard-done').click()
+    const doneButton = window.locator('#wizard-done')
+    await advanceWizardToHotkeys(window, nextButton)
+    await doneButton.click()
     await expect(window.locator('#section-title')).toHaveText('General Settings')
 
     await window.getByRole('tab', { name: 'Wizard' }).click()
     await expect(window.locator('[data-wizard-step=\"1\"]')).toBeVisible()
-    await expect(window.locator('[data-wizard-step=\"3\"]')).toBeHidden()
+    await expect(window.locator('#wizard-capture-hotkey')).toBeHidden()
   } finally {
     await (await electronApp).close()
   }

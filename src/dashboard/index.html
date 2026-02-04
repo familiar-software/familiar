@@ -357,7 +357,7 @@
             <div class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
               <div>
                 <h2 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Setup Wizard</h2>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400">Guided setup in three steps.</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Guided setup in four steps.</p>
               </div>
               <span id="wizard-complete-status" class="text-xs font-medium text-emerald-600 dark:text-emerald-400 hidden">Setup complete</span>
             </div>
@@ -380,7 +380,14 @@
                 </div>
                 <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="3">
                   <div class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center" data-wizard-step-circle="3">3</div>
-                  <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="3">Hotkeys</span>
+                  <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="3">Recording</span>
+                </div>
+                <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
+                  <div class="absolute inset-y-0 left-0 bg-indigo-600 w-0 transition-all" data-wizard-step-connector="3"></div>
+                </div>
+                <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="4">
+                  <div class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center" data-wizard-step-circle="4">4</div>
+                  <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="4">Hotkeys</span>
                 </div>
               </div>
             </div>
@@ -453,6 +460,35 @@
               </div>
 
               <div data-wizard-step="3" class="max-w-[360px] mx-auto space-y-5 hidden">
+                <div class="text-center space-y-1">
+                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enable always-on recording</h3>
+                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Turn this on now or skip and decide later in Recording settings.</p>
+                </div>
+                <section class="space-y-2">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="space-y-1">
+                      <label for="wizard-always-record-when-active" class="section-label">Record While Active</label>
+                      <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                        Record screen while you are active. Saves low-fps clips to your context folder.
+                      </p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input
+                        id="wizard-always-record-when-active"
+                        data-setting="always-record-when-active"
+                        type="checkbox"
+                        class="sr-only peer"
+                      >
+                      <div class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
+                      <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                    </label>
+                  </div>
+                  <p id="wizard-always-record-when-active-error" data-setting-error="always-record-when-active-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                  <span id="wizard-always-record-when-active-status" data-setting-status="always-record-when-active-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                </section>
+              </div>
+
+              <div data-wizard-step="4" class="max-w-[360px] mx-auto space-y-5 hidden">
                 <div class="text-center space-y-1">
                   <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Review hotkeys</h3>
                   <p class="text-xs text-zinc-500 dark:text-zinc-400">Confirm shortcuts for the tools you will use most.</p>

@@ -98,6 +98,7 @@
         }
       }
       callIfAvailable(apis.recordingApi, 'updateRecordingUI')
+      updateWizardUI()
     }
 
     function setHotkeysFromSettings(hotkeys) {

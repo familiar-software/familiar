@@ -25,7 +25,7 @@
       wizardStepConnectors = []
     } = elements
 
-    const WIZARD_STEP_COUNT = 3
+    const WIZARD_STEP_COUNT = 4
     let wizardStep = 1
 
     const isWizardStepComplete = (step) => {
@@ -36,6 +36,8 @@
         case 2:
           return Boolean(state.currentLlmProviderName && state.currentLlmApiKey && state.isLlmApiKeySaved)
         case 3:
+          return true
+        case 4:
           return Boolean(state.currentCaptureHotkey || state.currentClipboardHotkey || state.currentRecordingHotkey)
         default:
           return false
