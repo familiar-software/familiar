@@ -91,7 +91,7 @@ function createSettingsWindow() {
     window.loadFile(path.join(__dirname, 'dashboard', 'index.html'));
 
     window.on('close', (event) => {
-        if (!isQuitting) {
+        if (!isQuitting && !app.isQuittingForUpdate) {
             event.preventDefault();
             window.hide();
             console.log('Settings window hidden');
@@ -504,6 +504,9 @@ app.on('render-process-gone', (_event, details) => {
 
 app.on('window-all-closed', (event) => {
     if (process.platform === 'darwin') {
+        if (isQuitting || app.isQuittingForUpdate) {
+            return;
+        }
         event.preventDefault();
         console.log('preventing app from exiting when all windows are closed');
         return;

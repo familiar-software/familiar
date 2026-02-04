@@ -15,6 +15,16 @@ let dailyTimeoutId = null;
 let dailyIntervalId = null;
 let downloadedUpdateInfo = null;
 
+const markAppQuittingForUpdate = (reason) => {
+  if (app && app.isQuittingForUpdate) {
+    return;
+  }
+  if (app) {
+    app.isQuittingForUpdate = true;
+  }
+  console.log('Marked app quitting for update', { reason });
+};
+
 const broadcastToWindows = (channel, payload) => {
   if (!BrowserWindow || typeof BrowserWindow.getAllWindows !== 'function') {
     return;
@@ -133,6 +143,7 @@ const promptForRestart = async (info) => {
 
     if (result.response === 0) {
       console.log('User accepted update restart', { version });
+      markAppQuittingForUpdate('prompt-restart');
       getAutoUpdater().quitAndInstall();
     } else {
       console.log('User deferred update restart', { version });
@@ -307,6 +318,7 @@ const installDownloadedUpdate = ({ reason = 'restart' } = {}) => {
   const version =
     downloadedUpdateInfo && downloadedUpdateInfo.version ? downloadedUpdateInfo.version : 'unknown';
   console.log('Applying downloaded update', { version, reason });
+  markAppQuittingForUpdate(reason);
   getAutoUpdater().quitAndInstall();
   return true;
 };
