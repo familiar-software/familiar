@@ -13,7 +13,7 @@ const CAPTURE_CONFIG = Object.freeze({
   audio: false
 });
 
-const DEFAULT_SEGMENT_LENGTH_MS = 0.5 * 60 * 1000;
+const DEFAULT_SEGMENT_LENGTH_MS = 10 * 60 * 1000;
 const START_TIMEOUT_MS = 10000;
 const STOP_TIMEOUT_MS = 10000;
 
