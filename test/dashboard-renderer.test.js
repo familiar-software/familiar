@@ -183,13 +183,8 @@ const createElements = () => {
     'settings-content': new TestElement(),
     'section-title': new TestElement(),
     'section-subtitle': new TestElement(),
-    'section-history': new TestElement(),
     'section-updates': new TestElement(),
     'section-recording': new TestElement(),
-    'history-list': new TestElement(),
-    'history-empty': new TestElement(),
-    'history-error': new TestElement(),
-    'history-nav': new TestElement(),
     'updates-nav': new TestElement(),
     'recording-nav': new TestElement()
   }
@@ -224,8 +219,6 @@ const createElements = () => {
   elements['hotkeys-status'].dataset.settingStatus = 'hotkeys-status'
   elements['hotkeys-error'].dataset.settingError = 'hotkeys-error'
 
-  elements['section-history'].dataset.sectionPane = 'history'
-  elements['history-nav'].dataset.sectionTarget = 'history'
   elements['section-updates'].dataset.sectionPane = 'updates'
   elements['updates-nav'].dataset.sectionTarget = 'updates'
   elements['section-recording'].dataset.sectionPane = 'recording'
@@ -581,38 +574,6 @@ test('download progress updates the updates progress bar', async () => {
       elements['updates-progress-label'].textContent,
       'Download complete. Restart to install 0.0.2.'
     )
-  } finally {
-    global.document = priorDocument
-    global.window = priorWindow
-  }
-})
-
-test('history tab fetches flows when selected', async () => {
-  const flowCalls = []
-  const jiminy = createJiminy({
-    getHistoryFlows: async () => {
-      flowCalls.push(true)
-      return []
-    }
-  })
-
-  const elements = createElements()
-  const document = new TestDocument(elements)
-  const priorDocument = global.document
-  const priorWindow = global.window
-  global.document = document
-  global.window = { jiminy }
-
-  try {
-    loadRenderer()
-    document.trigger('DOMContentLoaded')
-    await flushPromises()
-
-    await elements['history-nav'].click()
-    await flushPromises()
-
-    assert.equal(flowCalls.length, 1)
-    assert.equal(elements['history-empty'].textContent, 'No history yet.')
   } finally {
     global.document = priorDocument
     global.window = priorWindow

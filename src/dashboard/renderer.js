@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     }
     if (typeof require === 'function') {
       return {
-        ...require('./bootstrap/history'),
         ...require('./bootstrap/hotkeys'),
         ...require('./bootstrap/recording'),
         ...require('./bootstrap/settings'),
@@ -33,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const loadDashboardModules = moduleLoader?.loadDashboardModules
   const createDashboardState = stateModule?.createDashboardState
   const {
-    bootstrapHistory,
     bootstrapHotkeys,
     bootstrapRecording,
     bootstrapSettings,
@@ -139,9 +137,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const sectionSubtitle = document.getElementById('section-subtitle')
   const sectionNavButtons = selectAll('[data-section-target]')
   const sectionPanes = selectAll('[data-section-pane]')
-  const historyList = document.getElementById('history-list')
-  const historyEmpty = document.getElementById('history-empty')
-  const historyError = document.getElementById('history-error')
 
   const DEFAULT_CLIPBOARD_HOTKEY = 'CommandOrControl+J'
   const DEFAULT_RECORDING_HOTKEY = 'CommandOrControl+R'
@@ -149,7 +144,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const apis = {
     wizardApi: null,
     hotkeysApi: null,
-    historyApi: null,
     updatesApi: null,
     settingsApi: null,
     recordingApi: null
@@ -181,10 +175,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     hotkeys: {
       title: 'Hotkeys',
       subtitle: 'Configure global keyboard shortcuts.'
-    },
-    history: {
-      title: 'History',
-      subtitle: 'Recent activity and analysis flows.'
     },
     updates: {
       title: 'Updates',
@@ -239,7 +229,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     if (isWizard) {
       state.updateWizardUI()
     }
-    callIfAvailable(apis.historyApi, 'handleSectionChange', nextSection)
     callIfAvailable(apis.recordingApi, 'handleSectionChange', nextSection)
 
     console.log('Settings section changed', { section: nextSection })
@@ -250,7 +239,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   }
 
   const runBootstrapWizard = typeof bootstrapWizard === 'function' ? bootstrapWizard : () => null
-  const runBootstrapHistory = typeof bootstrapHistory === 'function' ? bootstrapHistory : () => null
   const runBootstrapUpdates = typeof bootstrapUpdates === 'function' ? bootstrapUpdates : () => null
   const runBootstrapRecording = typeof bootstrapRecording === 'function' ? bootstrapRecording : () => null
   const runBootstrapSettings = typeof bootstrapSettings === 'function' ? bootstrapSettings : () => null
@@ -298,17 +286,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       element.classList.toggle('hidden', !value)
     }
   }
-
-  apis.historyApi = runBootstrapHistory({
-    window,
-    elements: {
-      historyList,
-      historyEmpty,
-      historyError
-    },
-    jiminy,
-    setMessage
-  })
 
   apis.updatesApi = runBootstrapUpdates({
     window,

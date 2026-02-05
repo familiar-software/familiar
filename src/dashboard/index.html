@@ -78,22 +78,6 @@
             </button>
             <button
               class="sidebar-item"
-              data-section-target="history"
-              data-active="false"
-              role="tab"
-              aria-controls="section-history"
-              aria-selected="false"
-              type="button"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path d="M3 12a9 9 0 1 0 9-9" />
-                <path d="M3 3v6h6" />
-                <path d="M12 7v5l3 3" />
-              </svg>
-              History
-            </button>
-            <button
-              class="sidebar-item"
               data-section-target="updates"
               data-active="false"
               role="tab"
@@ -332,15 +316,6 @@
               <p id="hotkeys-error" data-setting-error="hotkeys-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
             </section>
 
-            <section id="section-history" data-section-pane="history" role="tabpanel" aria-label="History" class="space-y-4 hidden">
-              <div>
-                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">History</h3>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400">Recent activity and analysis flows.</p>
-              </div>
-              <p id="history-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-              <p id="history-empty" class="text-xs text-zinc-500 dark:text-zinc-400 hidden" aria-live="polite"></p>
-              <div id="history-list" class="space-y-3"></div>
-            </section>
           </div>
 
           <section id="section-wizard" data-section-pane="wizard" role="tabpanel" aria-label="Setup wizard" class="hidden flex-1 flex flex-col min-h-0">
@@ -530,14 +505,12 @@
 
     <script src="./wizard.js"></script>
     <script src="./hotkeys.js"></script>
-    <script src="./history.js"></script>
     <script src="./updates.js"></script>
     <script src="./recording.js"></script>
     <script src="./settings.js"></script>
     <script src="./module-loader.js"></script>
     <script src="./state.js"></script>
     <script src="./bootstrap/wizard.js"></script>
-    <script src="./bootstrap/history.js"></script>
     <script src="./bootstrap/updates.js"></script>
     <script src="./bootstrap/recording.js"></script>
     <script src="./bootstrap/settings.js"></script>

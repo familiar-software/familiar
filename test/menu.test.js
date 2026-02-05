@@ -122,23 +122,3 @@ test('buildTrayMenuTemplate omits accelerators when empty', () => {
 
     assert.equal(clipboardItem.accelerator, undefined);
 });
-
-test('buildTrayMenuTemplate renders recent history items when provided', () => {
-    const template = buildTrayMenuTemplate({
-        onClipboard: () => {},
-        onOpenSettings: () => {},
-        onAbout: () => {},
-        onRestart: () => {},
-        onQuit: () => {},
-        historyItems: [
-            { summary: 'Clipboard -> Analysis', status: 'success' },
-            { trigger: 'capture_clipboard', status: 'failed' },
-        ],
-    });
-
-    const labels = template.filter((item) => item.label).map((item) => item.label);
-
-    assert.equal(labels[0], 'Last: Clipboard -> Analysis (success)');
-    assert.equal(labels[1], 'Recent: capture_clipboard (failed)');
-    assert.ok(labels.includes('Capture Clipboard'));
-});

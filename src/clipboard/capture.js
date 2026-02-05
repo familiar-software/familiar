@@ -4,7 +4,6 @@ const { getClipboardDirectory, saveClipboardToDirectory } = require('./storage')
 const { enqueueAnalysis } = require('../analysis')
 const { loadSettings, validateContextFolderPath } = require('../settings')
 const { showToast } = require('../toast')
-const { recordEvent } = require('../history')
 
 async function captureClipboard () {
   const text = clipboard.readText()
@@ -41,41 +40,14 @@ async function captureClipboard () {
       body: 'Could not determine clipboard directory.',
       type: 'error'
     })
-    recordEvent({
-      contextFolderPath: validation.path,
-      flowId: randomUUID(),
-      trigger: 'capture_clipboard',
-      step: 'clipboard',
-      status: 'failed',
-      summary: 'Clipboard capture failed',
-      detail: 'Clipboard directory could not be resolved.'
-    })
     return { ok: false, reason: 'no-clipboard-directory' }
   }
 
   const flowId = randomUUID()
-  recordEvent({
-    contextFolderPath: validation.path,
-    flowId,
-    trigger: 'capture_clipboard',
-    step: 'clipboard',
-    status: 'started',
-    summary: 'Clipboard capture started'
-  })
 
   try {
     const { path: savedPath } = await saveClipboardToDirectory(text, clipboardDirectory)
     console.log('Clipboard captured', { path: savedPath })
-
-    recordEvent({
-      contextFolderPath: validation.path,
-      flowId,
-      trigger: 'capture_clipboard',
-      step: 'clipboard',
-      status: 'success',
-      summary: 'Clipboard captured',
-      outputPath: savedPath
-    })
 
     showToast({
       title: 'Clipboard Captured',
@@ -99,16 +71,6 @@ async function captureClipboard () {
       title: 'Capture Failed',
       body: 'Failed to save clipboard content. Check write permissions.',
       type: 'error'
-    })
-    recordEvent({
-      contextFolderPath: validation.path,
-      flowId,
-      trigger: 'capture_clipboard',
-      step: 'clipboard',
-      status: 'failed',
-      summary: 'Clipboard capture failed',
-      detail: 'Failed to save clipboard content.',
-      errorMessage: error?.message
     })
     return { ok: false, reason: 'save-failed', error }
   }

@@ -69,7 +69,6 @@ test('captureClipboard surfaces analysis enqueue failures', async () => {
 test('captureClipboard passes flow_id to analysis enqueue', async () => {
   const toastCalls = []
   const originalLoad = Module._load
-  let capturedFlowId = null
   let capturedAnalysisEvent = null
 
   Module._load = function (request, parent, isMain) {
@@ -96,15 +95,6 @@ test('captureClipboard passes flow_id to analysis enqueue', async () => {
         validateContextFolderPath: () => ({ ok: true, path: '/tmp' })
       }
     }
-    if (request === '../history') {
-      return {
-        recordEvent: (payload) => {
-          if (!capturedFlowId && payload?.flowId) {
-            capturedFlowId = payload.flowId
-          }
-        }
-      }
-    }
     if (request === '../toast') {
       return {
         showToast: (payload) => {
@@ -124,8 +114,7 @@ test('captureClipboard passes flow_id to analysis enqueue', async () => {
     await flushPromises()
 
     assert.equal(result.ok, true)
-    assert.ok(capturedFlowId)
-    assert.equal(capturedAnalysisEvent.flow_id, capturedFlowId)
+    assert.ok(typeof capturedAnalysisEvent.flow_id === 'string')
   } finally {
     Module._load = originalLoad
     resetRequireCache()

@@ -1,5 +1,4 @@
 const { buildTrayMenuTemplate } = require('../menu');
-const { getRecentFlows } = require('../history');
 const { loadSettings } = require('../settings');
 
 const getElectronMenu = () => {
@@ -23,22 +22,11 @@ function resolveHotkeyAccelerators(
     return { clipboardAccelerator, recordingAccelerator };
 }
 
-function resolveHistoryItems(settings = {}, { getRecentFlowsFn = getRecentFlows } = {}) {
-    const contextFolderPath =
-        typeof settings.contextFolderPath === 'string' ? settings.contextFolderPath : '';
-    if (!contextFolderPath) {
-        return [];
-    }
-
-    return getRecentFlowsFn({ contextFolderPath, limit: 3 });
-}
-
 function buildTrayMenuPayload(
     settings = {},
     {
         DEFAULT_CLIPBOARD_HOTKEY,
         DEFAULT_RECORDING_HOTKEY,
-        getRecentFlowsFn = getRecentFlows,
     } = {}
 ) {
     const { clipboardAccelerator, recordingAccelerator } = resolveHotkeyAccelerators(settings, {
@@ -48,7 +36,6 @@ function buildTrayMenuPayload(
     return {
         clipboardAccelerator,
         recordingAccelerator,
-        historyItems: resolveHistoryItems(settings, { getRecentFlowsFn }),
     };
 }
 
@@ -58,13 +45,12 @@ function createTrayMenuController({
     DEFAULT_CLIPBOARD_HOTKEY,
     DEFAULT_RECORDING_HOTKEY,
     loadSettingsFn = loadSettings,
-    getRecentFlowsFn = getRecentFlows,
     buildTrayMenuTemplateFn = buildTrayMenuTemplate,
     menu = getElectronMenu(),
     platform = process.platform,
     logger = console,
 } = {}) {
-    function updateTrayMenu({ clipboardAccelerator, historyItems } = {}) {
+    function updateTrayMenu({ clipboardAccelerator } = {}) {
         if (!menu) {
             logger.warn('Tray menu update skipped: menu unavailable');
             return;
@@ -78,16 +64,11 @@ function createTrayMenuController({
             logger.warn('Tray menu update skipped: handlers not ready');
             return;
         }
-
-        const resolvedHistoryItems = Array.isArray(historyItems)
-            ? historyItems
-            : resolveHistoryItems(loadSettingsFn(), { getRecentFlowsFn });
         const showHotkeys = platform === 'darwin';
         const trayMenu = menu.buildFromTemplate(
             buildTrayMenuTemplateFn({
                 ...trayHandlers,
                 clipboardAccelerator: showHotkeys ? clipboardAccelerator : undefined,
-                historyItems: resolvedHistoryItems,
             })
         );
 
@@ -103,7 +84,6 @@ function createTrayMenuController({
             buildTrayMenuPayload(settings, {
                 DEFAULT_CLIPBOARD_HOTKEY,
                 DEFAULT_RECORDING_HOTKEY,
-                getRecentFlowsFn,
             })
         );
     }
@@ -131,7 +111,6 @@ function createTrayMenuController({
 
 module.exports = {
     resolveHotkeyAccelerators,
-    resolveHistoryItems,
     buildTrayMenuPayload,
     createTrayMenuController,
 };

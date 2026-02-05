@@ -1,5 +1,4 @@
 const { registerSettingsHandlers } = require('./settings');
-const { registerHistoryHandlers } = require('./history');
 const { registerRecordingQueryHandlers } = require('./recordingQuery');
 const { registerUpdateHandlers } = require('./updates');
 
@@ -8,7 +7,6 @@ const { registerUpdateHandlers } = require('./updates');
  */
 function registerIpcHandlers(options = {}) {
     registerSettingsHandlers({ onSettingsSaved: options.onSettingsSaved });
-    registerHistoryHandlers();
     registerRecordingQueryHandlers();
     registerUpdateHandlers();
 }
@@ -16,7 +14,6 @@ function registerIpcHandlers(options = {}) {
 module.exports = {
     registerIpcHandlers,
     registerSettingsHandlers,
-    registerHistoryHandlers,
     registerRecordingQueryHandlers,
     registerUpdateHandlers,
 };
