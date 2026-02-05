@@ -24,6 +24,8 @@ const {
 } = require('./tray/refresh');
 const { initializeAutoUpdater, installDownloadedUpdate, scheduleDailyUpdateCheck } = require('./updates');
 const { createScreenRecordingController } = require('./screen-recording');
+const { createScreenStillsController } = require('./screen-stills');
+const { createPresenceMonitor } = require('./screen-recording/presence');
 
 const trayIconPath = path.join(__dirname, 'icon.png');
 
@@ -34,6 +36,8 @@ let trayMenuController = null;
 let settingsWindow = null;
 let isQuitting = false;
 let screenRecordingController = null;
+let screenStillsController = null;
+let presenceMonitor = null;
 let recordingShutdownInProgress = false;
 
 const isE2E = process.env.JIMINY_E2E === '1';
@@ -43,24 +47,33 @@ initLogging();
 ensureHomebrewPath({ logger: console });
 
 const updateScreenRecordingFromSettings = () => {
-    if (!screenRecordingController) {
+    if (!screenRecordingController && !screenStillsController) {
         return;
     }
     const settings = loadSettings();
-    screenRecordingController.updateSettings({
+    const payload = {
         enabled: settings.alwaysRecordWhenActive === true,
         contextFolderPath: typeof settings.contextFolderPath === 'string' ? settings.contextFolderPath : ''
-    });
+    };
+    if (screenRecordingController) {
+        screenRecordingController.updateSettings(payload);
+    }
+    if (screenStillsController) {
+        screenStillsController.updateSettings(payload);
+    }
 };
 
 const attemptRecordingShutdown = (reason) => {
-    if (!screenRecordingController) {
+    const controllers = [screenRecordingController, screenStillsController].filter(Boolean);
+    if (controllers.length === 0) {
         return;
     }
-    screenRecordingController.shutdown(reason)
-        .catch((error) => {
-            console.error('Failed to stop screen recording', error);
-        });
+    controllers.forEach((controller) => {
+        controller.shutdown(reason)
+            .catch((error) => {
+                console.error('Failed to stop screen capture', error);
+            });
+    });
 };
 
 const handleRecordingError = ({ message }) => {
@@ -74,6 +87,53 @@ const handleRecordingError = ({ message }) => {
         type: 'warning',
         size: 'large'
     });
+};
+
+const handleStillsError = ({ message }) => {
+    if (!message) {
+        return;
+    }
+    console.warn('Screen stills issue', { message });
+    showToast({
+        title: 'Screen stills issue',
+        body: message,
+        type: 'warning',
+        size: 'large'
+    });
+};
+
+const startScreenStills = async () => {
+    if (!screenStillsController) {
+        return { ok: true, skipped: true };
+    }
+    try {
+        const result = await screenStillsController.manualStart();
+        if (result && result.ok === false) {
+            handleStillsError({ message: result.message || 'Failed to start screen stills.' });
+        }
+        return result;
+    } catch (error) {
+        console.error('Failed to start screen stills', error);
+        handleStillsError({ message: 'Failed to start screen stills.' });
+        return { ok: false, message: 'Failed to start screen stills.' };
+    }
+};
+
+const stopScreenStills = async () => {
+    if (!screenStillsController) {
+        return { ok: true, skipped: true };
+    }
+    try {
+        const result = await screenStillsController.manualStop();
+        if (result && result.ok === false) {
+            handleStillsError({ message: result.message || 'Failed to stop screen stills.' });
+        }
+        return result;
+    } catch (error) {
+        console.error('Failed to stop screen stills', error);
+        handleStillsError({ message: 'Failed to stop screen stills.' });
+        return { ok: false, message: 'Failed to stop screen stills.' };
+    }
 };
 
 if (process.platform === 'linux' && (isE2E || isCI)) {
@@ -213,6 +273,7 @@ function registerHotkeysFromSettings() {
             const state = screenRecordingController.getState();
             const isRecording = state.state === 'recording' || state.state === 'idleGrace';
             if (isRecording) {
+                void stopScreenStills();
                 screenRecordingController.manualStop()
                     .then((result) => {
                         if (result && result.ok === false) {
@@ -235,6 +296,7 @@ function registerHotkeysFromSettings() {
                     });
                 return;
             }
+            void startScreenStills();
             screenRecordingController.manualStart()
                 .then((result) => {
                     if (result && result.ok === false) {
@@ -375,7 +437,10 @@ ipcMain.handle('screenRecording:start', async () => {
     if (!screenRecordingController) {
         return { ok: false, message: 'Recording controller unavailable.' };
     }
-    const result = await screenRecordingController.manualStart();
+    const [result] = await Promise.all([
+        screenRecordingController.manualStart(),
+        startScreenStills()
+    ]);
     const state = screenRecordingController.getState();
     const isRecording = state.state === 'recording' || state.state === 'idleGrace';
     return { ...result, state: state.state, isRecording };
@@ -385,7 +450,10 @@ ipcMain.handle('screenRecording:stop', async () => {
     if (!screenRecordingController) {
         return { ok: false, message: 'Recording controller unavailable.' };
     }
-    const result = await screenRecordingController.manualStop();
+    const [result] = await Promise.all([
+        screenRecordingController.manualStop(),
+        stopScreenStills()
+    ]);
     const state = screenRecordingController.getState();
     const isRecording = state.state === 'recording' || state.state === 'idleGrace';
     return { ...result, state: state.state, isRecording };
@@ -400,6 +468,9 @@ ipcMain.handle('screenRecording:simulateIdle', (_event, payload = {}) => {
     }
     const idleSeconds = typeof payload.idleSeconds === 'number' ? payload.idleSeconds : undefined;
     screenRecordingController.simulateIdle(idleSeconds);
+    if (screenStillsController && typeof screenStillsController.simulateIdle === 'function') {
+        screenStillsController.simulateIdle(idleSeconds);
+    }
     return { ok: true };
 });
 
@@ -418,11 +489,19 @@ app.whenReady().then(() => {
 
         createTray();
         registerHotkeysFromSettings();
+        presenceMonitor = createPresenceMonitor({ logger: console });
         screenRecordingController = createScreenRecordingController({
             logger: console,
-            onError: handleRecordingError
+            onError: handleRecordingError,
+            presenceMonitor
+        });
+        screenStillsController = createScreenStillsController({
+            logger: console,
+            onError: handleStillsError,
+            presenceMonitor
         });
         screenRecordingController.start();
+        screenStillsController.start();
         updateScreenRecordingFromSettings();
 
         const updateState = initializeAutoUpdater({ isE2E, isCI });
@@ -448,23 +527,39 @@ app.on('before-quit', (event) => {
     if (trayBusyIndicator) {
         trayBusyIndicator.dispose();
     }
-    if (screenRecordingController) {
-        const state = screenRecordingController.getState().state;
-        const isRecording = state === 'recording' || state === 'idleGrace';
-        if (isRecording && !recordingShutdownInProgress) {
+    if (screenRecordingController || screenStillsController) {
+        const recordingState = screenRecordingController?.getState?.().state;
+        const stillsState = screenStillsController?.getState?.().state;
+        const isRecording = recordingState === 'recording' || recordingState === 'idleGrace';
+        const isStills = stillsState === 'recording' || stillsState === 'idleGrace';
+        if ((isRecording || isStills) && !recordingShutdownInProgress) {
             recordingShutdownInProgress = true;
             event.preventDefault();
-            screenRecordingController.shutdown('quit')
-                .catch((error) => {
-                    console.error('Failed to stop screen recording on quit', error);
-                })
+            const shutdowns = [];
+            if (screenRecordingController) {
+                shutdowns.push(
+                    screenRecordingController.shutdown('quit').catch((error) => {
+                        console.error('Failed to stop screen recording on quit', error);
+                    })
+                );
+            }
+            if (screenStillsController) {
+                shutdowns.push(
+                    screenStillsController.shutdown('quit').catch((error) => {
+                        console.error('Failed to stop screen stills on quit', error);
+                    })
+                );
+            }
+            Promise.allSettled(shutdowns)
                 .finally(() => {
-                    screenRecordingController.dispose();
+                    screenRecordingController?.dispose?.();
+                    screenStillsController?.dispose?.();
                     app.quit();
                 });
             return;
         }
-        screenRecordingController.dispose();
+        screenRecordingController?.dispose?.();
+        screenStillsController?.dispose?.();
     }
     unregisterGlobalHotkeys();
 });

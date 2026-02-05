@@ -4,6 +4,7 @@ const JIMINY_BEHIND_THE_SCENES_DIR_NAME = 'jiminy'
 const CAPTURES_DIR_NAME = 'jiminy-captures'
 const JIMINY_ANALYSIS_DIR_NAME = 'analysis'
 const RECORDINGS_DIR_NAME = 'recordings'
+const STILLS_DIR_NAME = 'stills'
 
 module.exports = {
   SETTINGS_DIR_NAME,
@@ -11,5 +12,6 @@ module.exports = {
   JIMINY_BEHIND_THE_SCENES_DIR_NAME,
   CAPTURES_DIR_NAME,
   JIMINY_ANALYSIS_DIR_NAME,
-  RECORDINGS_DIR_NAME
+  RECORDINGS_DIR_NAME,
+  STILLS_DIR_NAME
 }
