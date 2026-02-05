@@ -1,6 +1,7 @@
 const { validateContextFolderPath } = require('../settings');
 const { createPresenceMonitor } = require('../screen-recording/presence');
 const { createRecorder } = require('./recorder');
+const { createStillsMarkdownWorker } = require('./stills-markdown-worker');
 
 const STATES = Object.freeze({
   DISABLED: 'disabled',
@@ -20,6 +21,7 @@ function createScreenStillsController(options = {}) {
   const presenceMonitor = options.presenceMonitor ||
     createPresenceMonitor({ idleThresholdSeconds, logger });
   const recorder = options.recorder || createRecorder({ logger });
+  const markdownWorker = options.markdownWorker || createStillsMarkdownWorker({ logger });
 
   let state = STATES.DISABLED;
   let settings = { enabled: false, contextFolderPath: '' };
@@ -135,6 +137,17 @@ function createScreenStillsController(options = {}) {
     }
   }
 
+  function syncPresenceState(reason) {
+    if (!presenceMonitor || typeof presenceMonitor.getState !== 'function') {
+      return;
+    }
+    const presenceState = presenceMonitor.getState().state;
+    if (presenceState === 'active') {
+      logger.log('Screen stills presence active; syncing state', { reason });
+      handleActive();
+    }
+  }
+
   function handleIdle({ idleSeconds } = {}) {
     if (manualPaused) {
       manualPaused = false;
@@ -177,6 +190,7 @@ function createScreenStillsController(options = {}) {
     if (!settings.enabled) {
       manualPaused = false;
       stopPresence();
+      markdownWorker.stop();
       if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
         void stopRecording('disabled');
       }
@@ -186,6 +200,7 @@ function createScreenStillsController(options = {}) {
 
     if (!canRecord()) {
       stopPresence();
+      markdownWorker.stop();
       setState(STATES.DISABLED, { reason: 'invalid-context' });
       return;
     }
@@ -196,6 +211,8 @@ function createScreenStillsController(options = {}) {
 
     setState(STATES.ARMED, { reason: 'enabled' });
     ensurePresenceRunning();
+    markdownWorker.start({ contextFolderPath: settings.contextFolderPath });
+    syncPresenceState('settings-update');
   }
 
   async function manualStart() {
@@ -238,11 +255,13 @@ function createScreenStillsController(options = {}) {
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       await recorder.stop({ reason });
     }
+    markdownWorker.stop();
     setState(STATES.DISABLED, { reason });
   }
 
   function dispose() {
     stopPresence();
+    markdownWorker.stop();
     presenceMonitor.off('active', handleActive);
     presenceMonitor.off('idle', handleIdle);
     presenceMonitor.off('lock', handleLock);

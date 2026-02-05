@@ -58,6 +58,17 @@ const enableRecordingToggle = async (window) => {
   await expect(window.locator('#always-record-when-active-status')).toHaveText('Saved.')
 }
 
+const setIdleSeconds = async (electronApp, idleSeconds) => {
+  await electronApp.evaluate((seconds) => {
+    const { powerMonitor } = process.mainModule.require('electron')
+    Object.defineProperty(powerMonitor, 'getSystemIdleTime', {
+      value: () => seconds,
+      configurable: true
+    })
+    return powerMonitor.getSystemIdleTime()
+  }, idleSeconds)
+}
+
 const getStillsRoot = (contextPath) =>
   path.join(contextPath, JIMINY_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME)
 
@@ -143,6 +154,48 @@ test('stills save captures to the stills folder', async () => {
     const manifest = readManifest(manifestPath)
     expect(manifest.captures.length).toBeGreaterThan(0)
     assertCaptureFiles(manifestPath, manifest)
+  } finally {
+    await electronApp.close()
+  }
+})
+
+test('stills start while recording is active', async () => {
+  const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-context-stills-'))
+  const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-e2e-'))
+
+  const electronApp = await launchApp({ contextPath, settingsDir })
+
+  try {
+    const window = await electronApp.firstWindow()
+    await window.waitForLoadState('domcontentloaded')
+
+    await ensureRecordingPrereqs(window)
+    await setIdleSeconds(electronApp, 0)
+    await setContextFolder(window)
+    await enableRecordingToggle(window)
+
+    const recordingAction = window.locator('#recording-action')
+    await expect(recordingAction).toBeEnabled()
+
+    await expect(window.locator('#recording-status')).toHaveText('Recording')
+
+    const stillsRoot = getStillsRoot(contextPath)
+    const manifestPath = await waitForManifestPath(stillsRoot)
+    await waitForCaptureCount(manifestPath, 1)
+
+    await expect
+      .poll(async () => {
+        const status = await window.evaluate(() => window.jiminy.getScreenRecordingStatus())
+        return status?.isRecording === true
+      })
+      .toBeTruthy()
+
+    const manifest = readManifest(manifestPath)
+    expect(manifest.captures.length).toBeGreaterThan(0)
+    assertCaptureFiles(manifestPath, manifest, { requireNonEmptyCount: 1 })
+
+    await recordingAction.click()
+    await expect(window.locator('#recording-status')).toHaveText('Not recording')
   } finally {
     await electronApp.close()
   }

@@ -142,6 +142,47 @@ const generateVisionText = async ({
   return extractTextFromResponse(payload).trim()
 }
 
+const generateVisionBatchText = async ({
+  apiKey,
+  model,
+  prompt,
+  images
+} = {}) => {
+  if (!Array.isArray(images) || images.length === 0) {
+    throw new Error('Images are required for Anthropic vision batch extraction.')
+  }
+
+  const content = [{ type: 'text', text: prompt }]
+  for (const image of images) {
+    if (!image?.imageBase64) {
+      throw new Error('Image data is required for Anthropic vision batch extraction.')
+    }
+    const mimeType = image.mimeType || 'image/png'
+    content.push({ type: 'text', text: `Image id: ${image.id}` })
+    content.push({
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: mimeType,
+        data: image.imageBase64
+      }
+    })
+  }
+
+  const response = await requestAnthropic({
+    apiKey,
+    context: 'vision',
+    payload: {
+      model,
+      max_tokens: DEFAULT_ANTHROPIC_MAX_TOKENS,
+      messages: [{ role: 'user', content }]
+    }
+  })
+
+  const payload = await response.json()
+  return extractTextFromResponse(payload).trim()
+}
+
 const createAnthropicProvider = ({
   apiKey,
   textModel = DEFAULT_ANTHROPIC_TEXT_MODEL,
@@ -160,6 +201,12 @@ const createAnthropicProvider = ({
       prompt,
       imageBase64,
       mimeType
+    }),
+    extractBatch: async ({ prompt, images }) => generateVisionBatchText({
+      apiKey,
+      model: visionModel,
+      prompt,
+      images
     })
   }
 })
@@ -169,5 +216,6 @@ module.exports = {
   DEFAULT_ANTHROPIC_VISION_MODEL,
   createAnthropicProvider,
   generateText,
-  generateVisionText
+  generateVisionText,
+  generateVisionBatchText
 }

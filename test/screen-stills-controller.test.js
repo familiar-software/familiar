@@ -38,10 +38,12 @@ test('stills controller starts and stops based on activity', async () => {
       calls.stop.push(payload)
     }
   }
+  const markdownWorker = { start: () => {}, stop: () => {} }
 
   const controller = createScreenStillsController({
     presenceMonitor: presence,
     recorder,
+    markdownWorker,
     logger: { log: () => {}, warn: () => {}, error: () => {} }
   })
 
@@ -74,10 +76,12 @@ test('stills manual stop pauses auto restart until idle, manual start resumes', 
       calls.stop.push(payload)
     }
   }
+  const markdownWorker = { start: () => {}, stop: () => {} }
 
   const controller = createScreenStillsController({
     presenceMonitor: presence,
     recorder,
+    markdownWorker,
     logger: { log: () => {}, warn: () => {}, error: () => {} }
   })
 

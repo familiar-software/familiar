@@ -4,11 +4,12 @@ const path = require('node:path');
 
 const { isScreenRecordingPermissionGranted } = require('../screen-recording/permissions');
 const { createSessionStore, recoverIncompleteSessions } = require('./session-store');
+const { createStillsQueue } = require('./stills-queue');
 
 const CAPTURE_CONFIG = Object.freeze({
   format: 'webp',
   scale: 0.5,
-  intervalSeconds: 2
+  intervalSeconds: 4
 });
 
 const START_TIMEOUT_MS = 10000;
@@ -52,6 +53,7 @@ function createRecorder(options = {}) {
   let startInProgress = null;
   let stopInProgress = null;
   let sourceDetails = null;
+  let queueStore = null;
 
   function ensureWindow() {
     if (captureWindow) {
@@ -239,6 +241,17 @@ function createRecorder(options = {}) {
           fileName: nextCapture.fileName,
           capturedAt: nextCapture.capturedAt
         });
+        if (queueStore) {
+          try {
+            queueStore.enqueueCapture({
+              imagePath: filePath,
+              sessionId: sessionStore.sessionId,
+              capturedAt: nextCapture.capturedAt
+            });
+          } catch (error) {
+            logger.error('Failed to enqueue still capture', { error, filePath });
+          }
+        }
       }
     } finally {
       captureInProgress = false;
@@ -270,6 +283,7 @@ function createRecorder(options = {}) {
       appVersion,
       logger
     });
+    queueStore = createStillsQueue({ contextFolderPath, logger });
 
     logger.log('Screen stills session started', { sessionDir: sessionStore.sessionDir });
 
@@ -288,6 +302,10 @@ function createRecorder(options = {}) {
     } catch (error) {
       sessionStore.finalize('start_failed');
       sessionStore = null;
+      if (queueStore) {
+        queueStore.close();
+        queueStore = null;
+      }
       sourceDetails = null;
       throw error;
     }
@@ -322,6 +340,10 @@ function createRecorder(options = {}) {
 
       if (sessionStore) {
         sessionStore.finalize(stopReason);
+      }
+      if (queueStore) {
+        queueStore.close();
+        queueStore = null;
       }
       logger.log('Screen stills session stopped', { reason: stopReason });
 

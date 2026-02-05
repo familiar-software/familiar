@@ -138,6 +138,40 @@ const generateVisionText = async ({
   return extractTextFromResponse(payload).trim()
 }
 
+const generateVisionBatchText = async ({
+  apiKey,
+  model,
+  prompt,
+  images
+} = {}) => {
+  if (!Array.isArray(images) || images.length === 0) {
+    throw new Error('Images are required for OpenAI vision batch extraction.')
+  }
+
+  const content = [{ type: 'text', text: prompt }]
+  for (const image of images) {
+    if (!image?.imageBase64) {
+      throw new Error('Image data is required for OpenAI vision batch extraction.')
+    }
+    const mimeType = image.mimeType || 'image/png'
+    const dataUrl = `data:${mimeType};base64,${image.imageBase64}`
+    content.push({ type: 'text', text: `Image id: ${image.id}` })
+    content.push({ type: 'image_url', image_url: { url: dataUrl } })
+  }
+
+  const response = await requestOpenAi({
+    apiKey,
+    context: 'vision',
+    payload: {
+      model,
+      messages: [{ role: 'user', content }]
+    }
+  })
+
+  const payload = await response.json()
+  return extractTextFromResponse(payload).trim()
+}
+
 const createOpenAIProvider = ({
   apiKey,
   textModel = DEFAULT_OPENAI_TEXT_MODEL,
@@ -156,6 +190,12 @@ const createOpenAIProvider = ({
       prompt,
       imageBase64,
       mimeType
+    }),
+    extractBatch: async ({ prompt, images }) => generateVisionBatchText({
+      apiKey,
+      model: visionModel,
+      prompt,
+      images
     })
   }
 })
@@ -165,5 +205,6 @@ module.exports = {
   DEFAULT_OPENAI_VISION_MODEL,
   createOpenAIProvider,
   generateText,
-  generateVisionText
+  generateVisionText,
+  generateVisionBatchText
 }

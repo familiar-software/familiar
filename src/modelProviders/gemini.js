@@ -3,7 +3,7 @@ const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./
 
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 const DEFAULT_GEMINI_TEXT_MODEL = 'gemini-2.0-flash-lite'
-const DEFAULT_GEMINI_VISION_MODEL = 'gemini-2.0-flash'
+const DEFAULT_GEMINI_VISION_MODEL = 'gemini-2.5-flash'
 
 const extractTextFromPayload = (payload) => {
     const candidates = payload?.candidates
@@ -145,6 +145,52 @@ const generateVisionContent = async ({
     return extractTextFromPayload(payload).trim()
 }
 
+const generateVisionBatchContent = async ({
+    apiKey,
+    model,
+    prompt,
+    images
+} = {}) => {
+    if (!apiKey) {
+        throw new Error('LLM API key is required for Gemini vision extraction.')
+    }
+    if (!Array.isArray(images) || images.length === 0) {
+        throw new Error('Images are required for Gemini vision batch extraction.')
+    }
+
+    const parts = [{ text: prompt }]
+    for (const image of images) {
+        if (!image?.imageBase64) {
+            throw new Error('Image data is required for Gemini vision batch extraction.')
+        }
+        const mimeType = image.mimeType || 'image/png'
+        parts.push({ text: `Image id: ${image.id}` })
+        parts.push({
+            inline_data: {
+                mime_type: mimeType,
+                data: image.imageBase64
+            }
+        })
+    }
+
+    const response = await requestGemini({
+        apiKey,
+        model,
+        context: 'vision',
+        payload: {
+            contents: [
+                {
+                    role: 'user',
+                    parts
+                }
+            ]
+        }
+    })
+
+    const payload = await response.json()
+    return extractTextFromPayload(payload).trim()
+}
+
 const createGeminiProvider = ({
     apiKey,
     textModel = DEFAULT_GEMINI_TEXT_MODEL,
@@ -167,6 +213,12 @@ const createGeminiProvider = ({
             prompt,
             imageBase64,
             mimeType
+        }),
+        extractBatch: async ({ prompt, images }) => generateVisionBatchContent({
+            apiKey,
+            model: visionModel,
+            prompt,
+            images
         })
     }
 })
@@ -177,5 +229,6 @@ module.exports = {
     ExhaustedLlmProviderError,
     createGeminiProvider,
     generateContent,
-    generateVisionContent
+    generateVisionContent,
+    generateVisionBatchContent
 }

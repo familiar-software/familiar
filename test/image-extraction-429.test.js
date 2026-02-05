@@ -50,7 +50,7 @@ test('image extraction notifies and skips on exhausted provider', async (t) => {
     let toastCalled = false;
 
     mockModule(indexPath, {
-        DEFAULT_VISION_MODEL: 'gemini-2.0-flash',
+        DEFAULT_VISION_MODEL: 'gemini-2.5-flash',
         runImageExtraction: async () => {
             throw new ExhaustedLlmProviderError();
         },

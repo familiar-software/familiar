@@ -8,12 +8,14 @@
     "dist:mac": "npm run clean && electron-builder --mac --arm64",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
     "css:build": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --minify",
-    "start": "npm run css:build && electron .",
-    "dev": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
-    "test": "find test -name \"*.test.js\" -not -path \"*/e2e/*\" -not -path \"*/modelProviderTests/*\" -print0 | xargs -0 node --test",
-    "test:unit:timed": "node scripts/run-unit-tests-with-timeout.js",
-    "test:modelProviderTests": "find test/modelProviderTests -name \"*.test.js\" -print0 | xargs -0 node --test",
-    "test:e2e": "playwright test",
+    "start": "npm run rebuild:electron && npm run css:build && electron .",
+    "dev": "npm run rebuild:electron && tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
+    "rebuild:node": "npm rebuild better-sqlite3",
+    "rebuild:electron": "npm_config_runtime=electron npm_config_target=40.0.0 npm_config_disturl=https://electronjs.org/headers npm rebuild better-sqlite3 --build-from-source",
+    "test": "npm run rebuild:node && find test -name \"*.test.js\" -not -path \"*/e2e/*\" -not -path \"*/modelProviderTests/*\" -print0 | xargs -0 node --test",
+    "test:unit:timed": "npm run rebuild:node && node scripts/run-unit-tests-with-timeout.js",
+    "test:modelProviderTests": "npm run rebuild:node && find test/modelProviderTests -name \"*.test.js\" -print0 | xargs -0 node --test",
+    "test:e2e": "npm run rebuild:electron && playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test && npm run test:modelProviderTests && npm run test:e2e && npm run test:unit:timed"
   },
@@ -77,6 +79,7 @@
   "author": "Jiminy",
   "license": "CC0-1.0",
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "electron-log": "^5.3.4",
     "electron-updater": "^6.6.2"
   },

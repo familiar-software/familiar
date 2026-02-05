@@ -135,6 +135,17 @@ function createScreenRecordingController(options = {}) {
     }
   }
 
+  function syncPresenceState(reason) {
+    if (!presenceMonitor || typeof presenceMonitor.getState !== 'function') {
+      return;
+    }
+    const presenceState = presenceMonitor.getState().state;
+    if (presenceState === 'active') {
+      logger.log('Screen recording presence active; syncing state', { reason });
+      handleActive();
+    }
+  }
+
   function handleIdle({ idleSeconds } = {}) {
     if (manualPaused) {
       manualPaused = false;
@@ -196,6 +207,7 @@ function createScreenRecordingController(options = {}) {
 
     setState(STATES.ARMED, { reason: 'enabled' });
     ensurePresenceRunning();
+    syncPresenceState('settings-update');
   }
 
   async function manualStart() {

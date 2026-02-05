@@ -5,6 +5,8 @@ const CAPTURES_DIR_NAME = 'jiminy-captures'
 const JIMINY_ANALYSIS_DIR_NAME = 'analysis'
 const RECORDINGS_DIR_NAME = 'recordings'
 const STILLS_DIR_NAME = 'stills'
+const STILLS_MARKDOWN_DIR_NAME = 'stills-markdown'
+const STILLS_DB_FILENAME = 'stills.db'
 
 module.exports = {
   SETTINGS_DIR_NAME,
@@ -13,5 +15,7 @@ module.exports = {
   CAPTURES_DIR_NAME,
   JIMINY_ANALYSIS_DIR_NAME,
   RECORDINGS_DIR_NAME,
-  STILLS_DIR_NAME
+  STILLS_DIR_NAME,
+  STILLS_MARKDOWN_DIR_NAME,
+  STILLS_DB_FILENAME
 }
