@@ -51,7 +51,9 @@ test('initLogging writes logs under settings directory', async () => {
 test('initLogging rotates logs when size exceeds limit', async () => {
     const tempSettingsDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'jiminy-settings-'));
     const previousSettingsDir = process.env.JIMINY_SETTINGS_DIR;
+    const previousLogLimit = process.env.JIMINY_LOG_MAX_BYTES;
     process.env.JIMINY_SETTINGS_DIR = tempSettingsDir;
+    process.env.JIMINY_LOG_MAX_BYTES = '1024';
 
     const originalConsole = {
         log: console.log,
@@ -66,7 +68,7 @@ test('initLogging rotates logs when size exceeds limit', async () => {
         const { initLogging } = require('../src/logger');
         initLogging();
 
-        const largePayload = 'x'.repeat(10 * 1024);
+        const largePayload = 'x'.repeat(1200);
         console.log(largePayload);
         console.log('rotation-trigger');
 
@@ -88,6 +90,11 @@ test('initLogging rotates logs when size exceeds limit', async () => {
             delete process.env.JIMINY_SETTINGS_DIR;
         } else {
             process.env.JIMINY_SETTINGS_DIR = previousSettingsDir;
+        }
+        if (typeof previousLogLimit === 'undefined') {
+            delete process.env.JIMINY_LOG_MAX_BYTES;
+        } else {
+            process.env.JIMINY_LOG_MAX_BYTES = previousLogLimit;
         }
     }
 });
