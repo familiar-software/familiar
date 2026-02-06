@@ -337,13 +337,9 @@ test('stills pause and resume with the recording hotkey', async () => {
   const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-context-stills-'))
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-e2e-'))
 
-  const electronApp = await launchApp({
-    contextPath,
-    settingsDir,
-    env: {
-      JIMINY_E2E_PAUSE_MS: '200'
-    }
-  })
+  // Keep the default pause window so the dashboard poller (2s) can observe the paused state.
+  // With a tiny pause window override (ex: 200ms) the app may auto-resume before the UI refreshes.
+  const electronApp = await launchApp({ contextPath, settingsDir })
 
   try {
     const window = await electronApp.firstWindow()
