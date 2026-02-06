@@ -1,0 +1,3 @@
+interface:
+  display_name: "Jiminy"
+  short_description: "Analyze past actions with Jiminy"
