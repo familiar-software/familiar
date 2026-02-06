@@ -97,6 +97,12 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
     WHERE id = ?
   `)
 
+  const updateStaleProcessingStmt = db.prepare(`
+    UPDATE stills_queue
+    SET status = ?, updated_at = ?
+    WHERE status = ? AND updated_at < ?
+  `)
+
   const enqueueCapture = ({ imagePath, sessionId, capturedAt, provider, model } = {}) => {
     if (!imagePath) {
       throw new Error('imagePath is required to enqueue still capture.')
@@ -176,6 +182,24 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
     return info.changes
   }
 
+  const requeueStaleProcessing = ({ olderThanMs } = {}) => {
+    const resolvedOlderThanMs = Number.isFinite(olderThanMs) && olderThanMs > 0
+      ? Math.floor(olderThanMs)
+      : 0
+    if (!resolvedOlderThanMs) {
+      return 0
+    }
+    const cutoff = new Date(Date.now() - resolvedOlderThanMs).toISOString()
+    const now = new Date().toISOString()
+    const info = updateStaleProcessingStmt.run(
+      STATUS.PENDING,
+      now,
+      STATUS.PROCESSING,
+      cutoff
+    )
+    return info.changes
+  }
+
   const close = () => {
     db.close()
   }
@@ -188,6 +212,7 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
     markProcessing,
     markDone,
     markFailed,
+    requeueStaleProcessing,
     close
   }
 }

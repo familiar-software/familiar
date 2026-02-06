@@ -22,9 +22,10 @@ const PROMPT_TEMPLATE = (() => {
   return contents.trimEnd()
 })()
 
-const DEFAULT_BATCH_SIZE = 20
-const DEFAULT_MAX_BATCHES_PER_TICK = 2
+const DEFAULT_BATCH_SIZE = 4
+const DEFAULT_MAX_BATCHES_PER_TICK = 10
 const DEFAULT_POLL_INTERVAL_MS = 1000
+const DEFAULT_REQUEUE_STALE_PROCESSING_AFTER_MS = 60 * 60 * 1000
 
 const isLlmMockEnabled = () => process.env.JIMINY_LLM_MOCK === '1'
 
@@ -152,6 +153,7 @@ const createStillsMarkdownWorker = ({
   logger = console,
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
   maxBatchesPerTick = DEFAULT_MAX_BATCHES_PER_TICK,
+  requeueProcessingAfterMs = DEFAULT_REQUEUE_STALE_PROCESSING_AFTER_MS,
   runImmediately = true,
   loadSettingsImpl = loadSettings,
   createQueueImpl = createStillsQueue,
@@ -278,6 +280,11 @@ const createStillsMarkdownWorker = ({
     isProcessing = true
     logger.log('Stills markdown worker tick')
     try {
+      const requeued = queueStore.requeueStaleProcessing({ olderThanMs: requeueProcessingAfterMs })
+      if (requeued > 0) {
+        logger.log('Requeued stale stills processing rows', { count: requeued })
+      }
+
       const settings = loadSettingsImpl()
       const provider = settings?.llm_provider?.provider || ''
       const apiKey = settings?.llm_provider?.api_key || ''

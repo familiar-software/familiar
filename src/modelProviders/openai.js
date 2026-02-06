@@ -3,7 +3,7 @@ const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./
 
 const OPENAI_BASE_URL = 'https://api.openai.com/v1'
 const DEFAULT_OPENAI_TEXT_MODEL = 'gpt-4o-mini'
-const DEFAULT_OPENAI_VISION_MODEL = 'gpt-4o-mini'
+const DEFAULT_OPENAI_VISION_MODEL = 'gpt-4.1-mini'
 
 const logOpenAiFailure = ({ context, status, message }) => {
   console.warn(`OpenAI ${context} request failed`, { status, message })
@@ -138,12 +138,7 @@ const generateVisionText = async ({
   return extractTextFromResponse(payload).trim()
 }
 
-const generateVisionBatchText = async ({
-  apiKey,
-  model,
-  prompt,
-  images
-} = {}) => {
+const generateVisionBatchText = async ({ apiKey, model, prompt, images } = {}) => {
   if (!Array.isArray(images) || images.length === 0) {
     throw new Error('Images are required for OpenAI vision batch extraction.')
   }
@@ -184,21 +179,64 @@ const createOpenAIProvider = ({
   },
   vision: {
     model: visionModel,
-    extract: async ({ prompt, imageBase64, mimeType }) => generateVisionText({
-      apiKey,
-      model: visionModel,
-      prompt,
-      imageBase64,
-      mimeType
-    }),
-    extractBatch: async ({ prompt, images }) => generateVisionBatchText({
-      apiKey,
-      model: visionModel,
-      prompt,
-      images
-    })
+    extract: async ({ prompt, imageBase64, mimeType }) =>
+      generateVisionText({
+        apiKey,
+        model: visionModel,
+        prompt,
+        imageBase64,
+        mimeType
+      }),
+    extractBatch: async ({ prompt, images }) =>
+      generateVisionBatchText({
+        apiKey,
+        model: visionModel,
+        prompt,
+        images
+      })
   }
 })
+
+const generateVisionTextWithUsage = async ({
+  apiKey,
+  model,
+  prompt,
+  imageBase64,
+  mimeType = 'image/png',
+  detail
+} = {}) => {
+  if (!imageBase64) {
+    throw new Error('Image data is required for OpenAI vision extraction.')
+  }
+
+  const dataUrl = `data:${mimeType};base64,${imageBase64}`
+  const imageUrl = { url: dataUrl }
+  if (detail) {
+    imageUrl.detail = detail
+  }
+  const response = await requestOpenAi({
+    apiKey,
+    context: 'vision',
+    payload: {
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: imageUrl }
+          ]
+        }
+      ]
+    }
+  })
+
+  const payload = await response.json()
+  return {
+    text: extractTextFromResponse(payload).trim(),
+    usage: payload?.usage || null
+  }
+}
 
 module.exports = {
   DEFAULT_OPENAI_TEXT_MODEL,
@@ -206,5 +244,6 @@ module.exports = {
   createOpenAIProvider,
   generateText,
   generateVisionText,
-  generateVisionBatchText
+  generateVisionBatchText,
+  generateVisionTextWithUsage
 }

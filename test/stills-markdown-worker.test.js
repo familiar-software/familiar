@@ -39,6 +39,7 @@ test('parseBatchResponse returns empty map when no blocks', () => {
 test('stills markdown worker does nothing on empty queue', async () => {
   const calls = { extract: 0, processing: 0 }
   const queue = {
+    requeueStaleProcessing: () => 0,
     getPendingBatch: () => [],
     markProcessing: () => { calls.processing += 1 },
     markDone: () => {},
@@ -70,6 +71,47 @@ test('stills markdown worker does nothing on empty queue', async () => {
   assert.equal(calls.processing, 0)
 })
 
+test('stills markdown worker requeues stale processing rows before fetching', async () => {
+  const events = []
+  let requeueArgs = null
+  const queue = {
+    requeueStaleProcessing: (args) => {
+      requeueArgs = args
+      events.push('requeue')
+      return 0
+    },
+    getPendingBatch: () => {
+      events.push('get')
+      return []
+    },
+    markProcessing: () => {},
+    markDone: () => {},
+    markFailed: () => {},
+    close: () => {}
+  }
+
+  const worker = createStillsMarkdownWorker({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    pollIntervalMs: 0,
+    runImmediately: false,
+    loadSettingsImpl: () => ({
+      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
+    }),
+    createQueueImpl: () => queue,
+    readImageAsBase64Impl: async () => 'ZmFrZQ==',
+    inferMimeTypeImpl: () => 'image/webp'
+  })
+
+  worker.start({ contextFolderPath: '/tmp' })
+  await worker.runOnce()
+  worker.stop()
+
+  assert.equal(events[0], 'requeue')
+  assert.equal(events[1], 'get')
+  assert.equal(typeof requeueArgs?.olderThanMs, 'number')
+  assert.ok(requeueArgs.olderThanMs > 0)
+})
+
 test('stills markdown worker processes a batch and writes outputs', async () => {
   const done = []
   const failed = []
@@ -79,6 +121,7 @@ test('stills markdown worker processes a batch and writes outputs', async () => 
     { id: 2, image_path: '/tmp/b.webp' }
   ]
   const queue = {
+    requeueStaleProcessing: () => 0,
     getPendingBatch: () => {
       batchCalls += 1
       return batchCalls === 1 ? batch : []
@@ -131,6 +174,7 @@ test('stills markdown worker processes multiple batches per tick', async () => {
   ]
 
   const queue = {
+    requeueStaleProcessing: () => 0,
     getPendingBatch: () => {
       batchCalls += 1
       return batches[batchCalls - 1] || []
@@ -178,6 +222,7 @@ test('stills markdown worker marks failed when response is missing an id', async
     { id: 2, image_path: '/tmp/b.webp' }
   ]
   const queue = {
+    requeueStaleProcessing: () => 0,
     getPendingBatch: () => {
       batchCalls += 1
       return batchCalls === 1 ? batch : []
@@ -214,6 +259,7 @@ test('stills markdown worker marks failed when response is missing an id', async
 test('stills markdown worker requests default batch size limit', async () => {
   let seenLimit = null
   const queue = {
+    requeueStaleProcessing: () => 0,
     getPendingBatch: (limit) => {
       seenLimit = limit
       return []
@@ -240,5 +286,5 @@ test('stills markdown worker requests default batch size limit', async () => {
   await worker.runOnce()
   worker.stop()
 
-  assert.equal(seenLimit, 20)
+  assert.equal(seenLimit, 4)
 })
