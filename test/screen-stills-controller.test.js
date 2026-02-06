@@ -15,16 +15,90 @@ const makeTempContext = () => {
 
 const createPresenceMonitor = () => {
   const emitter = new EventEmitter()
+  let lastState = null
   return {
     start: () => {},
     stop: () => {},
     on: (...args) => emitter.on(...args),
     off: (...args) => emitter.off(...args),
-    emit: (event, payload) => emitter.emit(event, payload)
+    emit: (event, payload) => {
+      if (event === 'active' || event === 'idle') {
+        lastState = event
+      }
+      emitter.emit(event, payload)
+    },
+    getState: () => ({ state: lastState })
+  }
+}
+
+const createScheduler = () => {
+  let now = 0
+  let nextId = 1
+  const timers = new Map()
+  return {
+    setTimeout: (fn, delay) => {
+      const id = nextId++
+      timers.set(id, { fn, time: now + delay })
+      return id
+    },
+    clearTimeout: (id) => {
+      timers.delete(id)
+    },
+    advanceBy: (ms) => {
+      now += ms
+      const due = Array.from(timers.entries())
+        .filter(([, timer]) => timer.time <= now)
+        .sort((a, b) => a[1].time - b[1].time)
+      due.forEach(([id, timer]) => {
+        timers.delete(id)
+        timer.fn()
+      })
+    }
   }
 }
 
 const flushPromises = () => new Promise((resolve) => setImmediate(resolve))
+const silentLogger = { log: () => {}, warn: () => {}, error: () => {} }
+
+const setupController = () => {
+  const contextFolderPath = makeTempContext()
+  const presence = createPresenceMonitor()
+  const calls = { start: [], stop: [] }
+  const recorder = {
+    start: async (payload) => {
+      calls.start.push(payload)
+    },
+    stop: async (payload) => {
+      calls.stop.push(payload)
+    }
+  }
+  const workerCalls = { start: 0, stop: 0 }
+  const markdownWorker = {
+    start: () => {
+      workerCalls.start += 1
+    },
+    stop: () => {
+      workerCalls.stop += 1
+    }
+  }
+  const controller = createScreenStillsController({
+    presenceMonitor: presence,
+    recorder,
+    markdownWorker,
+    logger: silentLogger
+  })
+
+  controller.start()
+  controller.updateSettings({ enabled: true, contextFolderPath })
+
+  return {
+    controller,
+    presence,
+    calls,
+    workerCalls,
+    contextFolderPath
+  }
+}
 
 test('stills controller starts and stops based on activity', async () => {
   const contextFolderPath = makeTempContext()
@@ -44,7 +118,7 @@ test('stills controller starts and stops based on activity', async () => {
     presenceMonitor: presence,
     recorder,
     markdownWorker,
-    logger: { log: () => {}, warn: () => {}, error: () => {} }
+    logger: silentLogger
   })
 
   controller.start()
@@ -64,9 +138,10 @@ test('stills controller starts and stops based on activity', async () => {
   assert.equal(controller.getState().state, 'armed')
 })
 
-test('stills manual stop pauses auto restart until idle, manual start resumes', async () => {
+test('stills manual pause blocks auto restart until pause window elapses', async () => {
   const contextFolderPath = makeTempContext()
   const presence = createPresenceMonitor()
+  const scheduler = createScheduler()
   const calls = { start: [], stop: [] }
   const recorder = {
     start: async (payload) => {
@@ -82,7 +157,9 @@ test('stills manual stop pauses auto restart until idle, manual start resumes', 
     presenceMonitor: presence,
     recorder,
     markdownWorker,
-    logger: { log: () => {}, warn: () => {}, error: () => {} }
+    scheduler,
+    pauseDurationMs: 5000,
+    logger: silentLogger
   })
 
   controller.start()
@@ -92,24 +169,103 @@ test('stills manual stop pauses auto restart until idle, manual start resumes', 
   await flushPromises()
   assert.equal(calls.start.length, 1)
 
-  await controller.manualStop()
+  await controller.manualPause()
   await flushPromises()
   assert.equal(calls.stop.length, 1)
+  assert.equal(calls.stop[0].reason, 'manual-pause')
+  assert.equal(controller.getState().manualPaused, true)
 
   presence.emit('active')
   await flushPromises()
   assert.equal(calls.start.length, 1)
 
-  presence.emit('idle', { idleSeconds: 120 })
+  scheduler.advanceBy(5000)
   await flushPromises()
+  assert.equal(calls.start.length, 2)
+  assert.equal(controller.getState().manualPaused, false)
+})
+
+test('stills manual resume cancels the pause timer', async () => {
+  const contextFolderPath = makeTempContext()
+  const presence = createPresenceMonitor()
+  const scheduler = createScheduler()
+  const calls = { start: [], stop: [] }
+  const recorder = {
+    start: async (payload) => {
+      calls.start.push(payload)
+    },
+    stop: async (payload) => {
+      calls.stop.push(payload)
+    }
+  }
+  const markdownWorker = { start: () => {}, stop: () => {} }
+
+  const controller = createScreenStillsController({
+    presenceMonitor: presence,
+    recorder,
+    markdownWorker,
+    scheduler,
+    pauseDurationMs: 5000,
+    logger: silentLogger
+  })
+
+  controller.start()
+  controller.updateSettings({ enabled: true, contextFolderPath })
 
   presence.emit('active')
   await flushPromises()
-  assert.equal(calls.start.length, 2)
+  assert.equal(calls.start.length, 1)
 
-  await controller.manualStop()
+  await controller.manualPause()
   await flushPromises()
+  assert.equal(calls.stop.length, 1)
+
+  scheduler.advanceBy(1000)
+  await flushPromises()
+
   await controller.manualStart()
   await flushPromises()
-  assert.equal(calls.start.length, 3)
+  assert.equal(calls.start.length, 2)
+
+  scheduler.advanceBy(5000)
+  await flushPromises()
+  assert.equal(calls.start.length, 2)
+})
+
+test('stills worker stops when recording stops from presence events', async (t) => {
+  const scenarios = [
+    { name: 'idle', payload: { idleSeconds: 120 } },
+    { name: 'lock' },
+    { name: 'suspend' }
+  ]
+
+  for (const scenario of scenarios) {
+    await t.test(`stops worker on ${scenario.name}`, async () => {
+      const { presence, calls, workerCalls } = setupController()
+
+      presence.emit('active')
+      await flushPromises()
+      assert.equal(calls.start.length, 1)
+
+      presence.emit(scenario.name, scenario.payload)
+      await flushPromises()
+
+      assert.equal(calls.stop.length, 1)
+      assert.equal(workerCalls.stop, 1)
+    })
+  }
+})
+
+test('stills worker stops when recording pauses manually', async () => {
+  const { controller, presence, calls, workerCalls } = setupController()
+
+  presence.emit('active')
+  await flushPromises()
+  assert.equal(calls.start.length, 1)
+
+  await controller.manualPause()
+  await flushPromises()
+
+  assert.equal(calls.stop.length, 1)
+  assert.equal(workerCalls.stop, 1)
 })

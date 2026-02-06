@@ -46,11 +46,20 @@ function createTrayMenuController({
     DEFAULT_RECORDING_HOTKEY,
     loadSettingsFn = loadSettings,
     buildTrayMenuTemplateFn = buildTrayMenuTemplate,
+    getRecordingState = null,
     menu = getElectronMenu(),
     platform = process.platform,
     logger = console,
 } = {}) {
-    function updateTrayMenu({ clipboardAccelerator } = {}) {
+    const resolveRecordingPaused = () => {
+        if (typeof getRecordingState !== 'function') {
+            return false;
+        }
+        const state = getRecordingState();
+        return Boolean(state && state.manualPaused);
+    };
+
+    function updateTrayMenu({ clipboardAccelerator, recordingAccelerator, recordingPaused } = {}) {
         if (!menu) {
             logger.warn('Tray menu update skipped: menu unavailable');
             return;
@@ -65,27 +74,34 @@ function createTrayMenuController({
             return;
         }
         const showHotkeys = platform === 'darwin';
+        const isPaused =
+            typeof recordingPaused === 'boolean' ? recordingPaused : resolveRecordingPaused();
         const trayMenu = menu.buildFromTemplate(
             buildTrayMenuTemplateFn({
                 ...trayHandlers,
                 clipboardAccelerator: showHotkeys ? clipboardAccelerator : undefined,
+                recordingAccelerator: showHotkeys ? recordingAccelerator : undefined,
+                recordingPaused: isPaused,
             })
         );
 
         tray.setContextMenu(trayMenu);
         logger.log('Tray menu updated', {
             clipboardAccelerator: Boolean(showHotkeys && clipboardAccelerator),
+            recordingAccelerator: Boolean(showHotkeys && recordingAccelerator),
+            recordingPaused: isPaused,
         });
     }
 
     function refreshTrayMenuFromSettings() {
         const settings = loadSettingsFn();
-        updateTrayMenu(
-            buildTrayMenuPayload(settings, {
+        updateTrayMenu({
+            ...buildTrayMenuPayload(settings, {
                 DEFAULT_CLIPBOARD_HOTKEY,
                 DEFAULT_RECORDING_HOTKEY,
-            })
-        );
+            }),
+            recordingPaused: resolveRecordingPaused(),
+        });
     }
 
     function registerTrayRefreshHandlers() {

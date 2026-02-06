@@ -143,11 +143,13 @@ test('recording saves a segment to the recordings folder', async () => {
 
     await recordingAction.click()
     await expect(window.locator('#recording-status')).toHaveText('Recording')
+    await expect(recordingAction).toHaveText('10 Minute Pause')
 
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     await recordingAction.click()
-    await expect(window.locator('#recording-status')).toHaveText('Not recording')
+    await expect(window.locator('#recording-status')).toHaveText('Paused')
+    await expect(recordingAction).toHaveText('Resume')
 
     const recordingsRoot = getRecordingsRoot(contextPath)
     const manifestPath = await waitForManifestPath(recordingsRoot)
@@ -187,6 +189,7 @@ test('recording rolls to a new segment after the segment length elapses', async 
 
     await recordingAction.click()
     await expect(window.locator('#recording-status')).toHaveText('Recording')
+    await expect(recordingAction).toHaveText('10 Minute Pause')
 
     const recordingsRoot = getRecordingsRoot(contextPath)
     const manifestPath = await waitForManifestPath(recordingsRoot)
@@ -194,7 +197,8 @@ test('recording rolls to a new segment after the segment length elapses', async 
     await waitForSegmentCount(manifestPath, 2)
 
     await recordingAction.click()
-    await expect(window.locator('#recording-status')).toHaveText('Not recording')
+    await expect(window.locator('#recording-status')).toHaveText('Paused')
+    await expect(recordingAction).toHaveText('Resume')
 
     await waitForSegmentCount(manifestPath, 2)
 
@@ -239,6 +243,49 @@ test('recording stops and saves the segment when the user goes idle', async () =
     expect(manifest.stopReason).toBe('idle')
     expect(manifest.segments.length).toBeGreaterThanOrEqual(1)
     assertSegmentFiles(manifestPath, manifest)
+  } finally {
+    await electronApp.close()
+  }
+})
+
+test('recording resumes automatically after the pause window', async () => {
+  const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-context-recording-'))
+  const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-e2e-'))
+
+  const electronApp = await launchApp({
+    contextPath,
+    settingsDir,
+    env: {
+      JIMINY_E2E_PAUSE_MS: '200'
+    }
+  })
+
+  try {
+    const window = await electronApp.firstWindow()
+    await window.waitForLoadState('domcontentloaded')
+
+    await ensureRecordingPrereqs(window)
+    await setIdleSeconds(electronApp, 0)
+    await setContextFolder(window)
+    await enableRecordingToggle(window)
+
+    const recordingAction = window.locator('#recording-action')
+    await expect(recordingAction).toBeEnabled()
+
+    await recordingAction.click()
+    await expect(window.locator('#recording-status')).toHaveText('Recording')
+
+    await recordingAction.click()
+    await expect(window.locator('#recording-status')).toHaveText('Paused')
+    await expect(recordingAction).toHaveText('Resume')
+
+    await expect
+      .poll(async () => {
+        const status = await window.locator('#recording-status').textContent()
+        return status
+      })
+      .toBe('Recording')
+    await expect(recordingAction).toHaveText('10 Minute Pause')
   } finally {
     await electronApp.close()
   }

@@ -3,6 +3,8 @@ const { createPresenceMonitor } = require('../screen-recording/presence');
 const { createRecorder } = require('./recorder');
 const { createStillsMarkdownWorker } = require('./stills-markdown-worker');
 
+const DEFAULT_PAUSE_DURATION_MS = 10 * 60 * 1000;
+
 const STATES = Object.freeze({
   DISABLED: 'disabled',
   ARMED: 'armed',
@@ -18,6 +20,11 @@ function createScreenStillsController(options = {}) {
   const onError = typeof options.onError === 'function' ? options.onError : noop;
   const idleThresholdSeconds =
     typeof options.idleThresholdSeconds === 'number' ? options.idleThresholdSeconds : 60;
+  const pauseDurationMs =
+    Number.isFinite(options.pauseDurationMs) && options.pauseDurationMs > 0
+      ? options.pauseDurationMs
+      : DEFAULT_PAUSE_DURATION_MS;
+  const scheduler = options.scheduler || { setTimeout, clearTimeout };
   const presenceMonitor = options.presenceMonitor ||
     createPresenceMonitor({ idleThresholdSeconds, logger });
   const recorder = options.recorder || createRecorder({ logger });
@@ -29,6 +36,7 @@ function createScreenStillsController(options = {}) {
   let presenceRunning = false;
   let pendingStart = false;
   let manualPaused = false;
+  let pauseTimer = null;
 
   function setState(nextState, details = {}) {
     if (state === nextState) {
@@ -80,6 +88,30 @@ function createScreenStillsController(options = {}) {
     presenceRunning = false;
   }
 
+  function clearPauseTimer() {
+    if (!pauseTimer) {
+      return;
+    }
+    scheduler.clearTimeout(pauseTimer);
+    pauseTimer = null;
+  }
+
+  function schedulePauseResume() {
+    clearPauseTimer();
+    pauseTimer = scheduler.setTimeout(() => {
+      pauseTimer = null;
+      if (!manualPaused) {
+        return;
+      }
+      manualPaused = false;
+      logger.log('Screen stills pause window elapsed', { durationMs: pauseDurationMs });
+      syncPresenceState('pause-elapsed');
+    }, pauseDurationMs);
+    if (pauseTimer && typeof pauseTimer.unref === 'function') {
+      pauseTimer.unref();
+    }
+  }
+
   async function startRecording(source) {
     if (!canRecord()) {
       setState(STATES.DISABLED, { reason: 'invalid-context' });
@@ -91,6 +123,7 @@ function createScreenStillsController(options = {}) {
     pendingStart = false;
     setState(STATES.RECORDING, { source });
     try {
+      markdownWorker.start({ contextFolderPath: settings.contextFolderPath });
       await recorder.start({ contextFolderPath: settings.contextFolderPath });
     } catch (error) {
       logger.error('Failed to start screen stills', error);
@@ -110,6 +143,7 @@ function createScreenStillsController(options = {}) {
       logger.error('Failed to stop screen stills', error);
       onError({ message: error?.message || 'Failed to stop screen stills.', reason: 'stop-failed' });
     }
+    markdownWorker.stop();
 
     if (settings.enabled) {
       if (pendingStart) {
@@ -149,9 +183,6 @@ function createScreenStillsController(options = {}) {
   }
 
   function handleIdle({ idleSeconds } = {}) {
-    if (manualPaused) {
-      manualPaused = false;
-    }
     if (state !== STATES.RECORDING) {
       return;
     }
@@ -168,14 +199,12 @@ function createScreenStillsController(options = {}) {
   }
 
   function handleLock() {
-    manualPaused = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       void stopRecording('lock');
     }
   }
 
   function handleSuspend() {
-    manualPaused = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       void stopRecording('suspend');
     }
@@ -189,6 +218,7 @@ function createScreenStillsController(options = {}) {
 
     if (!settings.enabled) {
       manualPaused = false;
+      clearPauseTimer();
       stopPresence();
       markdownWorker.stop();
       if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
@@ -219,21 +249,38 @@ function createScreenStillsController(options = {}) {
     if (!settings.enabled) {
       return { ok: false, message: 'Recording is disabled.' };
     }
+    const wasPaused = manualPaused;
     manualPaused = false;
+    clearPauseTimer();
+    if (wasPaused) {
+      logger.log('Screen stills resumed manually');
+    }
     await startRecording('manual');
     return { ok: true };
   }
 
-  async function manualStop() {
+  async function manualPause() {
     if (!settings.enabled) {
       return { ok: false, message: 'Recording is disabled.' };
+    }
+    if (manualPaused) {
+      schedulePauseResume();
+      logger.log('Screen stills pause extended', { durationMs: pauseDurationMs });
+      return { ok: true, alreadyPaused: true };
     }
     if (state !== STATES.RECORDING && state !== STATES.IDLE_GRACE) {
       return { ok: false, message: 'Recording is not active.' };
     }
     manualPaused = true;
-    await stopRecording('manual');
+    pendingStart = false;
+    schedulePauseResume();
+    logger.log('Screen stills paused manually', { durationMs: pauseDurationMs });
+    await stopRecording('manual-pause');
     return { ok: true };
+  }
+
+  async function manualStop() {
+    return manualPause();
   }
 
   function start() {
@@ -251,6 +298,8 @@ function createScreenStillsController(options = {}) {
 
   async function shutdown(reason = 'quit') {
     stopPresence();
+    manualPaused = false;
+    clearPauseTimer();
     pendingStart = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       await recorder.stop({ reason });
@@ -261,6 +310,8 @@ function createScreenStillsController(options = {}) {
 
   function dispose() {
     stopPresence();
+    manualPaused = false;
+    clearPauseTimer();
     markdownWorker.stop();
     presenceMonitor.off('active', handleActive);
     presenceMonitor.off('idle', handleIdle);
@@ -279,6 +330,7 @@ function createScreenStillsController(options = {}) {
     dispose,
     shutdown,
     manualStart,
+    manualPause,
     manualStop,
     simulateIdle,
     updateSettings,

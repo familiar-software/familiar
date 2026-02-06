@@ -136,9 +136,10 @@ const createJiminy = (overrides = {}) => ({
   }),
   pickContextFolder: async () => ({ canceled: true }),
   saveSettings: async () => ({ ok: true }),
-  getScreenRecordingStatus: async () => ({ ok: true, state: 'armed', isRecording: false }),
-  startScreenRecording: async () => ({ ok: true, state: 'recording', isRecording: true }),
-  stopScreenRecording: async () => ({ ok: true, state: 'armed', isRecording: false }),
+  getScreenRecordingStatus: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: false }),
+  startScreenRecording: async () => ({ ok: true, state: 'recording', isRecording: true, manualPaused: false }),
+  pauseScreenRecording: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: true }),
+  stopScreenRecording: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: false }),
   checkForUpdates: async () => ({ ok: true, updateInfo: null }),
   ...overrides
 })
@@ -323,10 +324,10 @@ test('recording action button starts recording when inactive', async () => {
       alwaysRecordWhenActive: true,
       screenRecordingPermissionStatus: 'granted'
     }),
-    getScreenRecordingStatus: async () => ({ ok: true, state: 'armed', isRecording: false }),
+    getScreenRecordingStatus: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: false }),
     startScreenRecording: async () => {
       startCalls.push(true)
-      return { ok: true, state: 'recording', isRecording: true }
+      return { ok: true, state: 'recording', isRecording: true, manualPaused: false }
     }
   })
 
@@ -349,6 +350,68 @@ test('recording action button starts recording when inactive', async () => {
     await flushPromises()
 
     assert.equal(startCalls.length, 1)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('recording action button pauses and resumes when paused', async () => {
+  const pauseCalls = []
+  const startCalls = []
+  let status = { ok: true, state: 'recording', isRecording: true, manualPaused: false }
+  const jiminy = createJiminy({
+    getSettings: async () => ({
+      contextFolderPath: '/tmp/context',
+      llmProviderName: 'gemini',
+      llmProviderApiKey: '',
+      alwaysRecordWhenActive: true,
+      screenRecordingPermissionStatus: 'granted'
+    }),
+    getScreenRecordingStatus: async () => status,
+    pauseScreenRecording: async () => {
+      pauseCalls.push(true)
+      status = { ok: true, state: 'armed', isRecording: false, manualPaused: true }
+      return status
+    },
+    startScreenRecording: async () => {
+      startCalls.push(true)
+      status = { ok: true, state: 'recording', isRecording: true, manualPaused: false }
+      return status
+    }
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['recording-nav'].click()
+    await flushPromises()
+
+    assert.equal(elements['recording-status'].textContent, 'Recording')
+    assert.equal(elements['recording-action'].textContent, '10 Minute Pause')
+
+    await elements['recording-action'].click()
+    await flushPromises()
+
+    assert.equal(pauseCalls.length, 1)
+    assert.equal(elements['recording-status'].textContent, 'Paused')
+    assert.equal(elements['recording-action'].textContent, 'Resume')
+
+    await elements['recording-action'].click()
+    await flushPromises()
+
+    assert.equal(startCalls.length, 1)
+    assert.equal(elements['recording-status'].textContent, 'Recording')
+    assert.equal(elements['recording-action'].textContent, '10 Minute Pause')
   } finally {
     global.document = priorDocument
     global.window = priorWindow

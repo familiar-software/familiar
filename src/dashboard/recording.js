@@ -25,6 +25,7 @@
     } = elements
 
     let currentScreenRecordingState = 'disabled'
+    let currentScreenRecordingPaused = false
     let currentScreenRecordingPermissionStatus = ''
     let recordingStatusPoller = null
     let recordingQueryAvailabilityState = { available: false, reason: '' }
@@ -65,12 +66,22 @@
       }
 
       if (recordingStatus) {
-        recordingStatus.textContent = isRecordingActive() ? 'Recording' : 'Not recording'
+        if (currentScreenRecordingPaused) {
+          recordingStatus.textContent = 'Paused'
+        } else {
+          recordingStatus.textContent = isRecordingActive() ? 'Recording' : 'Not recording'
+        }
       }
 
       if (recordingActionButton) {
         const isRecording = isRecordingActive()
-        recordingActionButton.textContent = isRecording ? 'Stop recording' : 'Start recording'
+        let label = 'Start recording'
+        if (currentScreenRecordingPaused) {
+          label = 'Resume'
+        } else if (isRecording) {
+          label = '10 Minute Pause'
+        }
+        recordingActionButton.textContent = label
         recordingActionButton.disabled = !currentAlwaysRecordWhenActive || !currentContextFolderPath
       }
 
@@ -351,6 +362,7 @@
         const result = await jiminy.getScreenRecordingStatus()
         if (result && result.state) {
           currentScreenRecordingState = result.state
+          currentScreenRecordingPaused = Boolean(result.manualPaused)
         }
       } catch (error) {
         console.error('Failed to load recording status', error)
@@ -392,12 +404,15 @@
 
     if (recordingActionButton) {
       recordingActionButton.addEventListener('click', async () => {
-        if (!jiminy.startScreenRecording || !jiminy.stopScreenRecording) {
+        const pauseRecording = jiminy.pauseScreenRecording || jiminy.stopScreenRecording
+        if (!jiminy.startScreenRecording || !pauseRecording) {
           return
         }
         try {
-          if (isRecordingActive()) {
-            await jiminy.stopScreenRecording()
+          if (currentScreenRecordingPaused) {
+            await jiminy.startScreenRecording()
+          } else if (isRecordingActive()) {
+            await pauseRecording()
           } else {
             await jiminy.startScreenRecording()
           }

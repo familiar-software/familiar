@@ -2,6 +2,8 @@ const { validateContextFolderPath } = require('../settings');
 const { createPresenceMonitor } = require('./presence');
 const { createRecorder } = require('./recorder');
 
+const DEFAULT_PAUSE_DURATION_MS = 10 * 60 * 1000;
+
 const STATES = Object.freeze({
   DISABLED: 'disabled',
   ARMED: 'armed',
@@ -17,6 +19,11 @@ function createScreenRecordingController(options = {}) {
   const onError = typeof options.onError === 'function' ? options.onError : noop;
   const idleThresholdSeconds =
     typeof options.idleThresholdSeconds === 'number' ? options.idleThresholdSeconds : 60;
+  const pauseDurationMs =
+    Number.isFinite(options.pauseDurationMs) && options.pauseDurationMs > 0
+      ? options.pauseDurationMs
+      : DEFAULT_PAUSE_DURATION_MS;
+  const scheduler = options.scheduler || { setTimeout, clearTimeout };
   const presenceMonitor = options.presenceMonitor ||
     createPresenceMonitor({ idleThresholdSeconds, logger });
   const recorder = options.recorder || createRecorder({ logger });
@@ -27,6 +34,7 @@ function createScreenRecordingController(options = {}) {
   let presenceRunning = false;
   let pendingStart = false;
   let manualPaused = false;
+  let pauseTimer = null;
 
   function setState(nextState, details = {}) {
     if (state === nextState) {
@@ -76,6 +84,30 @@ function createScreenRecordingController(options = {}) {
     }
     presenceMonitor.stop();
     presenceRunning = false;
+  }
+
+  function clearPauseTimer() {
+    if (!pauseTimer) {
+      return;
+    }
+    scheduler.clearTimeout(pauseTimer);
+    pauseTimer = null;
+  }
+
+  function schedulePauseResume() {
+    clearPauseTimer();
+    pauseTimer = scheduler.setTimeout(() => {
+      pauseTimer = null;
+      if (!manualPaused) {
+        return;
+      }
+      manualPaused = false;
+      logger.log('Screen recording pause window elapsed', { durationMs: pauseDurationMs });
+      syncPresenceState('pause-elapsed');
+    }, pauseDurationMs);
+    if (pauseTimer && typeof pauseTimer.unref === 'function') {
+      pauseTimer.unref();
+    }
   }
 
   async function startRecording(source) {
@@ -147,9 +179,6 @@ function createScreenRecordingController(options = {}) {
   }
 
   function handleIdle({ idleSeconds } = {}) {
-    if (manualPaused) {
-      manualPaused = false;
-    }
     if (state !== STATES.RECORDING) {
       return;
     }
@@ -166,14 +195,12 @@ function createScreenRecordingController(options = {}) {
   }
 
   function handleLock() {
-    manualPaused = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       void stopRecording('lock');
     }
   }
 
   function handleSuspend() {
-    manualPaused = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       void stopRecording('suspend');
     }
@@ -187,6 +214,7 @@ function createScreenRecordingController(options = {}) {
 
     if (!settings.enabled) {
       manualPaused = false;
+      clearPauseTimer();
       stopPresence();
       if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
         void stopRecording('disabled');
@@ -214,21 +242,38 @@ function createScreenRecordingController(options = {}) {
     if (!settings.enabled) {
       return { ok: false, message: 'Recording is disabled.' };
     }
+    const wasPaused = manualPaused;
     manualPaused = false;
+    clearPauseTimer();
+    if (wasPaused) {
+      logger.log('Screen recording resumed manually');
+    }
     await startRecording('manual');
     return { ok: true };
   }
 
-  async function manualStop() {
+  async function manualPause() {
     if (!settings.enabled) {
       return { ok: false, message: 'Recording is disabled.' };
+    }
+    if (manualPaused) {
+      schedulePauseResume();
+      logger.log('Screen recording pause extended', { durationMs: pauseDurationMs });
+      return { ok: true, alreadyPaused: true };
     }
     if (state !== STATES.RECORDING && state !== STATES.IDLE_GRACE) {
       return { ok: false, message: 'Recording is not active.' };
     }
     manualPaused = true;
-    await stopRecording('manual');
+    pendingStart = false;
+    schedulePauseResume();
+    logger.log('Screen recording paused manually', { durationMs: pauseDurationMs });
+    await stopRecording('manual-pause');
     return { ok: true };
+  }
+
+  async function manualStop() {
+    return manualPause();
   }
 
   function start() {
@@ -246,6 +291,8 @@ function createScreenRecordingController(options = {}) {
 
   async function shutdown(reason = 'quit') {
     stopPresence();
+    manualPaused = false;
+    clearPauseTimer();
     pendingStart = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
       await recorder.stop({ reason });
@@ -255,6 +302,8 @@ function createScreenRecordingController(options = {}) {
 
   function dispose() {
     stopPresence();
+    manualPaused = false;
+    clearPauseTimer();
     presenceMonitor.off('active', handleActive);
     presenceMonitor.off('idle', handleIdle);
     presenceMonitor.off('lock', handleLock);
@@ -272,6 +321,7 @@ function createScreenRecordingController(options = {}) {
     dispose,
     shutdown,
     manualStart,
+    manualPause,
     manualStop,
     simulateIdle,
     updateSettings,
