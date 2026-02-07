@@ -1,7 +1,7 @@
 const { loadSettings } = require('../../settings')
 const { enqueueAnalysis } = require('../../analysis')
 const { showToast } = require('../../toast')
-const { ExhaustedLlmProviderError } = require('../../modelProviders')
+const { RetryableError } = require('../../utils/retry')
 const { runImageExtraction } = require('./index')
 
 const isLlmMockEnabled = () => process.env.JIMINY_LLM_MOCK === '1'
@@ -55,7 +55,7 @@ const handleImageExtractionEvent = async (event) => {
       imagePath
     })
   } catch (error) {
-    if (error instanceof ExhaustedLlmProviderError) {
+    if (error instanceof RetryableError && error.status === 429) {
       console.warn('LLM provider exhausted during image extraction', {
         imagePath,
         message: error.message

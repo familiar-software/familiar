@@ -1,5 +1,5 @@
-const { withHttpRetry, HttpRetryableError } = require('../utils/retry')
-const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./errors')
+const { withHttpRetry, RetryableError } = require('../utils/retry')
+const { InvalidLlmProviderApiKeyError } = require('./errors')
 
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 const DEFAULT_GEMINI_TEXT_MODEL = 'gemini-2.5-flash-lite'
@@ -62,9 +62,6 @@ const requestGemini = async ({
         if (!response.ok) {
             const message = await response.text()
             logGeminiFailure({ context, status: response.status, message })
-            if (response.status === 429) {
-                throw new ExhaustedLlmProviderError()
-            }
             const parsedError = parseGeminiError({ status: response.status, message })
             if (parsedError) {
                 throw parsedError
@@ -74,16 +71,9 @@ const requestGemini = async ({
 
         return response
     } catch (error) {
-        if (error instanceof HttpRetryableError) {
+        if (error instanceof RetryableError) {
             logGeminiFailure({ context, status: error.status, message: error.message })
-            if (error.status === 429) {
-                throw new ExhaustedLlmProviderError()
-            }
-            const parsedError = parseGeminiError({ status: error.status, message: error.message })
-            if (parsedError) {
-                throw parsedError
-            }
-            throw new Error(`Gemini ${context} request failed: ${error.status} ${error.message}`)
+            throw error
         }
 
         throw error
@@ -226,7 +216,6 @@ const createGeminiProvider = ({
 module.exports = {
     DEFAULT_GEMINI_TEXT_MODEL,
     DEFAULT_GEMINI_VISION_MODEL,
-    ExhaustedLlmProviderError,
     createGeminiProvider,
     generateContent,
     generateVisionContent,

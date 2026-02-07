@@ -1,5 +1,5 @@
-const { withHttpRetry, HttpRetryableError } = require('../utils/retry')
-const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./errors')
+const { withHttpRetry, RetryableError } = require('../utils/retry')
+const { InvalidLlmProviderApiKeyError } = require('./errors')
 
 const ANTHROPIC_BASE_URL = 'https://api.anthropic.com/v1'
 const DEFAULT_ANTHROPIC_TEXT_MODEL = 'claude-3-5-sonnet-20240620'
@@ -59,9 +59,6 @@ const requestAnthropic = async ({ apiKey, payload, context } = {}) => {
     if (!response.ok) {
       const message = await response.text()
       logAnthropicFailure({ context, status: response.status, message })
-      if (response.status === 429) {
-        throw new ExhaustedLlmProviderError()
-      }
       const parsedError = parseAnthropicError({ status: response.status, message })
       if (parsedError) {
         throw parsedError
@@ -71,16 +68,9 @@ const requestAnthropic = async ({ apiKey, payload, context } = {}) => {
 
     return response
   } catch (error) {
-    if (error instanceof HttpRetryableError) {
+    if (error instanceof RetryableError) {
       logAnthropicFailure({ context, status: error.status, message: error.message })
-      if (error.status === 429) {
-        throw new ExhaustedLlmProviderError()
-      }
-      const parsedError = parseAnthropicError({ status: error.status, message: error.message })
-      if (parsedError) {
-        throw parsedError
-      }
-      throw new Error(`Anthropic ${context} request failed: ${error.status} ${error.message}`)
+      throw error
     }
 
     throw error

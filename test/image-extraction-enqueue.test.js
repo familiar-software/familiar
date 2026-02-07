@@ -36,9 +36,6 @@ test('image extraction surfaces analysis enqueue failures', async () => {
         }
       }
     }
-    if (request === '../../modelProviders') {
-      return { ExhaustedLlmProviderError: class ExhaustedLlmProviderError extends Error {} }
-    }
     if (request === './index') {
       return {
         runImageExtraction: async () => ({

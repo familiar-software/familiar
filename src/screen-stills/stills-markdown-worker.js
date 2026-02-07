@@ -4,6 +4,7 @@ const path = require('node:path')
 
 const { loadSettings } = require('../settings')
 const { createModelProviderClients } = require('../modelProviders')
+const { RetryableError } = require('../utils/retry')
 const { readImageAsBase64, inferMimeType } = require('../extraction/image')
 const { createStillsQueue } = require('./stills-queue')
 const {
@@ -318,14 +319,15 @@ const createStillsMarkdownWorker = ({
       }
     } catch (error) {
       logger.error('Stills markdown batch failed', { error, batchIndex })
-      const retryable = isRetryableNetworkError(error)
+      const retryable = error instanceof RetryableError
       for (const row of batch) {
         try {
           if (retryable && typeof queueStore.markPending === 'function') {
             queueStore.markPending({ id: row.id, error: error?.message || error })
-            logger.warn('Requeued still for markdown retry (network error)', {
+            logger.warn('Requeued still for markdown retry (retryable error)', {
               id: row.id,
-              batchIndex
+              batchIndex,
+              status: error?.status
             })
           } else {
             queueStore.markFailed({ id: row.id, error: error?.message || error })

@@ -17,10 +17,10 @@ const DEFAULT_HTTP_RETRY_OPTIONS = {
 }
 const DEFAULT_HTTP_RETRY_STATUSES = new Set([408, 429, 500, 502, 503, 504])
 
-class HttpRetryableError extends Error {
+class RetryableError extends Error {
   constructor({ status, message, cause } = {}) {
     super(message || 'Retryable HTTP error')
-    this.name = 'HttpRetryableError'
+    this.name = 'RetryableError'
     this.status = status
     if (cause) {
       this.cause = cause
@@ -153,7 +153,7 @@ const withHttpRetry = (fetchFn) => {
 
   const retryConfig = {
     ...DEFAULT_HTTP_RETRY_OPTIONS,
-    shouldRetry: (error) => error instanceof HttpRetryableError
+    shouldRetry: (error) => error instanceof RetryableError
   }
 
   return async (...args) => retry(async () => {
@@ -166,17 +166,17 @@ const withHttpRetry = (fetchFn) => {
 
       if (DEFAULT_HTTP_RETRY_STATUSES.has(response.status)) {
         const message = await response.text()
-        throw new HttpRetryableError({ status: response.status, message })
+        throw new RetryableError({ status: response.status, message })
       }
 
       return response
     } catch (error) {
-      if (error instanceof HttpRetryableError) {
+      if (error instanceof RetryableError) {
         throw error
       }
 
       if (error instanceof Error) {
-        throw new HttpRetryableError({ status: 'network', message: error.message, cause: error })
+        throw new RetryableError({ status: 'network', message: error.message, cause: error })
       }
 
       throw error
@@ -188,7 +188,7 @@ module.exports = {
   DEFAULT_OPTIONS,
   DEFAULT_HTTP_RETRY_OPTIONS,
   DEFAULT_HTTP_RETRY_STATUSES,
-  HttpRetryableError,
+  RetryableError,
   computeBackoffDelay,
   retry,
   withRetry,

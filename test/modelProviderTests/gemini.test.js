@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { createGeminiSummarizer, DEFAULT_MODEL, ExhaustedLlmProviderError } = require('../../src/llms');
+const { createGeminiSummarizer, DEFAULT_MODEL } = require('../../src/llms');
+const { RetryableError } = require('../../src/utils/retry');
 const { createModelProviderClients } = require('../../src/modelProviders');
 
 const liveApiKey = process.env.LLM_API_KEY;
@@ -67,8 +68,8 @@ test('gemini summarizer throws exhausted error on 429', async (t) => {
                 content: 'This is a short test file used to verify Gemini summaries.',
             }),
         (error) => {
-            assert.ok(error instanceof ExhaustedLlmProviderError);
-            assert.equal(error.code, 'exhaustedLlmProvider');
+            assert.ok(error instanceof RetryableError);
+            assert.equal(error.status, 429);
             return true;
         }
     );

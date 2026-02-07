@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 
-const { ExhaustedLlmProviderError } = require('../src/modelProviders');
+const { RetryableError } = require('../src/utils/retry');
 
 const makeTempSettingsDir = async () => fs.mkdtemp(path.join(os.tmpdir(), 'jiminy-settings-'));
 
@@ -52,7 +52,7 @@ test('image extraction notifies and skips on exhausted provider', async (t) => {
     mockModule(indexPath, {
         DEFAULT_VISION_MODEL: 'gemini-2.5-flash',
         runImageExtraction: async () => {
-            throw new ExhaustedLlmProviderError();
+            throw new RetryableError({ status: 429, message: 'rate limited' });
         },
     });
 

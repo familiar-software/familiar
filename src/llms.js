@@ -1,4 +1,4 @@
-const { createModelProviderClients, DEFAULT_TEXT_MODELS, ExhaustedLlmProviderError } = require('./modelProviders');
+const { createModelProviderClients, DEFAULT_TEXT_MODELS } = require('./modelProviders');
 
 const DEFAULT_MODEL = DEFAULT_TEXT_MODELS.gemini;
 
@@ -47,7 +47,6 @@ const createSummarizer = (options = {}) => {
 
 module.exports = {
     DEFAULT_MODEL,
-    ExhaustedLlmProviderError,
     createGeminiSummarizer,
     createProviderSummarizer,
     createMockSummarizer,

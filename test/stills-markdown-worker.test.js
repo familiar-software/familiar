@@ -5,6 +5,7 @@ const {
   parseBatchResponse,
   createStillsMarkdownWorker
 } = require('../src/screen-stills/stills-markdown-worker')
+const { RetryableError } = require('../src/utils/retry')
 
 test('parseBatchResponse splits markdown blocks by separator', () => {
   const response = [
@@ -334,9 +335,55 @@ test('stills markdown worker requeues on network errors instead of failing', asy
     }),
     createQueueImpl: () => queue,
     extractBatchMarkdownImpl: async () => {
-      const err = new Error('fetch failed')
-      err.code = 'ENOTFOUND'
-      throw err
+      throw new RetryableError({ status: 'network', message: 'fetch failed', cause: { code: 'ENOTFOUND' } })
+    },
+    writeMarkdownFileImpl: async ({ imagePath }) => `${imagePath}.md`,
+    readImageAsBase64Impl: async () => 'ZmFrZQ==',
+    inferMimeTypeImpl: () => 'image/webp'
+  })
+
+  worker.start({ contextFolderPath: '/tmp' })
+  await worker.runOnce()
+  worker.stop()
+
+  assert.equal(failed.length, 0)
+  assert.equal(requeued.length, 2)
+})
+
+test('stills markdown worker requeues on retryable HTTP errors instead of failing', async () => {
+  const requeued = []
+  const failed = []
+  let batchCalls = 0
+
+  const batch = [
+    { id: 1, image_path: '/tmp/a.webp' },
+    { id: 2, image_path: '/tmp/b.webp' }
+  ]
+
+  const queue = {
+    requeueStaleProcessing: () => 0,
+    getPendingBatch: () => {
+      batchCalls += 1
+      return batchCalls === 1 ? batch : []
+    },
+    markProcessing: () => {},
+    markDone: () => {},
+    markFailed: ({ id }) => failed.push(id),
+    markPending: ({ id }) => requeued.push(id),
+    close: () => {}
+  }
+
+  const worker = createStillsMarkdownWorker({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    pollIntervalMs: 0,
+    runImmediately: false,
+    isOnlineImpl: async () => true,
+    loadSettingsImpl: () => ({
+      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
+    }),
+    createQueueImpl: () => queue,
+    extractBatchMarkdownImpl: async () => {
+      throw new RetryableError({ status: 503, message: 'The model is overloaded. Please try again later.' })
     },
     writeMarkdownFileImpl: async ({ imagePath }) => `${imagePath}.md`,
     readImageAsBase64Impl: async () => 'ZmFrZQ==',

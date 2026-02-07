@@ -1,5 +1,5 @@
-const { withHttpRetry, HttpRetryableError } = require('../utils/retry')
-const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./errors')
+const { withHttpRetry, RetryableError } = require('../utils/retry')
+const { InvalidLlmProviderApiKeyError } = require('./errors')
 
 const OPENAI_BASE_URL = 'https://api.openai.com/v1'
 const DEFAULT_OPENAI_TEXT_MODEL = 'gpt-4o-mini'
@@ -63,9 +63,6 @@ const requestOpenAi = async ({ apiKey, payload, context } = {}) => {
     if (!response.ok) {
       const message = await response.text()
       logOpenAiFailure({ context, status: response.status, message })
-      if (response.status === 429) {
-        throw new ExhaustedLlmProviderError()
-      }
       const parsedError = parseOpenAiError({ status: response.status, message })
       if (parsedError) {
         throw parsedError
@@ -75,16 +72,9 @@ const requestOpenAi = async ({ apiKey, payload, context } = {}) => {
 
     return response
   } catch (error) {
-    if (error instanceof HttpRetryableError) {
+    if (error instanceof RetryableError) {
       logOpenAiFailure({ context, status: error.status, message: error.message })
-      if (error.status === 429) {
-        throw new ExhaustedLlmProviderError()
-      }
-      const parsedError = parseOpenAiError({ status: error.status, message: error.message })
-      if (parsedError) {
-        throw parsedError
-      }
-      throw new Error(`OpenAI ${context} request failed: ${error.status} ${error.message}`)
+      throw error
     }
 
     throw error

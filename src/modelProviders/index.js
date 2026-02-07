@@ -5,7 +5,7 @@ const {
     DEFAULT_ANTHROPIC_TEXT_MODEL,
     DEFAULT_ANTHROPIC_VISION_MODEL,
 } = require('./anthropic');
-const { ExhaustedLlmProviderError, InvalidLlmProviderApiKeyError } = require('./errors');
+const { InvalidLlmProviderApiKeyError } = require('./errors');
 
 const PROVIDER_CREATORS = {
     gemini: createGeminiProvider,
@@ -44,7 +44,6 @@ const createModelProviderClients = ({ provider, apiKey, textModel, visionModel }
 const getProviderNames = () => Object.keys(PROVIDER_CREATORS);
 
 module.exports = {
-    ExhaustedLlmProviderError,
     InvalidLlmProviderApiKeyError,
     DEFAULT_TEXT_MODELS,
     DEFAULT_VISION_MODELS,
