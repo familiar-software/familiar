@@ -51,7 +51,7 @@ async function captureClipboard () {
 
     showToast({
       title: 'Clipboard Captured',
-      body: 'Text content saved and queued for analysis.',
+      body: 'Saved to jiminy/jiminy-captures. Analysis will run if an AI provider is configured.',
       type: 'success'
     })
 

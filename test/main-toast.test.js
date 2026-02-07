@@ -115,7 +115,7 @@ test('hotkey re-registration triggers toast warnings on failure', async () => {
 
         assert.equal(toastCalls.length, 2);
         assert.equal(toastCalls[0].title, 'Clipboard hotkey inactive');
-        assert.equal(toastCalls[1].title, 'Capture hotkey inactive');
+        assert.equal(toastCalls[1].title, 'Screen stills hotkey inactive');
     } finally {
         Module._load = originalLoad;
         resetMainModule();

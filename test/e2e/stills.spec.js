@@ -52,7 +52,7 @@ const setContextFolder = async (window) => {
 }
 
 const enableRecordingToggle = async (window) => {
-  await window.getByRole('tab', { name: 'Stills' }).click()
+  await window.getByRole('tab', { name: 'Screen Stills' }).click()
   await window.locator('label[for="always-record-when-active"]').click({ force: true })
   await expect(window.locator('#always-record-when-active')).toBeChecked()
   await expect(window.locator('#always-record-when-active-status')).toHaveText('Saved.')
@@ -142,7 +142,7 @@ test('stills save captures to the stills folder', async () => {
 
     await recordingAction.click()
     await expect(window.locator('#recording-status')).toHaveText('Capturing')
-    await expect(recordingAction).toHaveText('10 Minute Pause')
+    await expect(recordingAction).toHaveText('Pause (10 min)')
 
     await new Promise((resolve) => setTimeout(resolve, 1500))
 
@@ -180,7 +180,7 @@ test('stills start while recording is active', async () => {
     await expect(recordingAction).toBeEnabled()
 
     await expect(window.locator('#recording-status')).toHaveText('Capturing')
-    await expect(recordingAction).toHaveText('10 Minute Pause')
+    await expect(recordingAction).toHaveText('Pause (10 min)')
 
     const stillsRoot = getStillsRoot(contextPath)
     const manifestPath = await waitForManifestPath(stillsRoot)
@@ -231,7 +231,7 @@ test('stills capture repeatedly based on the interval', async () => {
 
     await recordingAction.click()
     await expect(window.locator('#recording-status')).toHaveText('Capturing')
-    await expect(recordingAction).toHaveText('10 Minute Pause')
+    await expect(recordingAction).toHaveText('Pause (10 min)')
 
     const stillsRoot = getStillsRoot(contextPath)
     const manifestPath = await waitForManifestPath(stillsRoot)
@@ -327,7 +327,7 @@ test('stills resume automatically after the pause window', async () => {
         return status
       })
       .toBe('Capturing')
-    await expect(recordingAction).toHaveText('10 Minute Pause')
+    await expect(recordingAction).toHaveText('Pause (10 min)')
   } finally {
     await electronApp.close()
   }
@@ -366,7 +366,7 @@ test('stills pause and resume with the recording hotkey', async () => {
     await expect
       .poll(async () => window.locator('#recording-status').textContent())
       .toBe('Capturing')
-    await expect(recordingAction).toHaveText('10 Minute Pause')
+    await expect(recordingAction).toHaveText('Pause (10 min)')
   } finally {
     await electronApp.close()
   }

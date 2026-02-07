@@ -59,6 +59,13 @@ function createTrayMenuController({
         return Boolean(state && state.manualPaused);
     };
 
+    const resolveRecordingState = () => {
+        if (typeof getRecordingState !== 'function') {
+            return null;
+        }
+        return getRecordingState() || null;
+    };
+
     function updateTrayMenu({ clipboardAccelerator, recordingAccelerator, recordingPaused } = {}) {
         if (!menu) {
             logger.warn('Tray menu update skipped: menu unavailable');
@@ -76,12 +83,14 @@ function createTrayMenuController({
         const showHotkeys = platform === 'darwin';
         const isPaused =
             typeof recordingPaused === 'boolean' ? recordingPaused : resolveRecordingPaused();
+        const recordingState = resolveRecordingState();
         const trayMenu = menu.buildFromTemplate(
             buildTrayMenuTemplateFn({
                 ...trayHandlers,
                 clipboardAccelerator: showHotkeys ? clipboardAccelerator : undefined,
                 recordingAccelerator: showHotkeys ? recordingAccelerator : undefined,
                 recordingPaused: isPaused,
+                recordingState
             })
         );
 

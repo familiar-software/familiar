@@ -138,7 +138,7 @@
           if (version && currentVersion) {
             const comparison = compareVersions(version, currentVersion)
             if (comparison === 1) {
-              message = `Update available: ${currentVersion} -> ${version}. Check the download prompt.`
+              message = `Update available: ${currentVersion} -> ${version}. You will be prompted to download.`
               console.log('Update available', { from: currentVersion, to: version })
             } else if (comparison === null) {
               console.warn('Unable to compare update versions', { version, currentVersion })

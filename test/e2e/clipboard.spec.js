@@ -114,7 +114,9 @@ test.describe('clipboard capture flow', () => {
 
             // Verify initial toast shows capture confirmation
             await expect(toastWindow.locator('#title')).toHaveText('Clipboard Captured');
-            await expect(toastWindow.locator('#body')).toHaveText('Text content saved and queued for analysis.');
+            await expect(toastWindow.locator('#body')).toHaveText(
+                'Saved to jiminy/jiminy-captures. Analysis will run if an AI provider is configured.'
+            );
 
             // Verify clipboard file was saved
             const capturesDir = path.join(contextPath, JIMINY_BEHIND_THE_SCENES_DIR_NAME, CAPTURES_DIR_NAME);

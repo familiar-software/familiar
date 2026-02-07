@@ -164,11 +164,15 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const SECTION_META = {
     wizard: {
       title: 'Setup Wizard',
-      subtitle: 'Guided setup in four steps.'
+      subtitle: 'Guided setup in five steps.'
     },
     general: {
       title: 'General Settings',
       subtitle: 'Core app configuration and provider setup.'
+    },
+    privacy: {
+      title: 'Privacy',
+      subtitle: 'Where your data lives and what leaves your machine.'
     },
     hotkeys: {
       title: 'Hotkeys',
@@ -179,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       subtitle: 'Check for new versions and download when available.'
     },
     recording: {
-      title: 'Stills',
-      subtitle: 'Control always-on screen still capture.'
+      title: 'Screen Stills',
+      subtitle: 'Capture screen stills while you are active.'
     }
   }
 

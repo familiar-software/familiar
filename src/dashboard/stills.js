@@ -90,7 +90,7 @@
         if (currentScreenStillsPaused) {
           label = 'Resume'
         } else if (isActive) {
-          label = '10 Minute Pause'
+          label = 'Pause (10 min)'
         }
         recordingActionButton.textContent = label
         recordingActionButton.disabled = !currentAlwaysRecordWhenActive || !currentContextFolderPath
@@ -101,7 +101,7 @@
         const needsPermission = permissionStatus && permissionStatus !== 'granted'
         if (needsPermission) {
           recordingPermission.textContent =
-            'Screen Recording permission required. Open System Settings -> Privacy & Security -> Screen Recording.'
+            'Screen Recording permission required. Enable Jiminy in System Settings \u2192 Privacy & Security \u2192 Screen Recording.'
         } else {
           recordingPermission.textContent = ''
         }
@@ -205,4 +205,3 @@
     module.exports = registry
   }
 })(typeof window !== 'undefined' ? window : global)
-

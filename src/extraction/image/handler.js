@@ -28,8 +28,8 @@ const handleImageExtractionEvent = async (event) => {
   if (!provider) {
     console.warn('Skipping image extraction due to missing LLM provider', { imagePath })
     showToast({
-      title: 'LLM provider required',
-      body: 'Select an LLM provider in Settings to extract text from images.',
+      title: 'AI provider required',
+      body: 'Select an AI provider in Settings to extract text from images.',
       type: 'warning'
     })
     return { skipped: true, reason: 'missing_provider' }
@@ -37,8 +37,8 @@ const handleImageExtractionEvent = async (event) => {
   if (!apiKey && !isLlmMockEnabled()) {
     console.warn('Skipping image extraction due to missing LLM API key', { imagePath })
     showToast({
-      title: 'LLM API key required',
-      body: 'Add your LLM API key in Settings to extract text from images.',
+      title: 'API key required',
+      body: 'Add your API key in Settings to extract text from images.',
       type: 'warning'
     })
     return { skipped: true, reason: 'missing_api_key' }
@@ -61,8 +61,8 @@ const handleImageExtractionEvent = async (event) => {
         message: error.message
       })
       showToast({
-        title: 'LLM provider exhausted',
-        body: 'Your LLM provider is rate limited. Please wait and try again.',
+        title: 'Provider rate limited',
+        body: 'Your provider is rate limited. Please wait and try again.',
         type: 'warning'
       })
       return { skipped: true, reason: 'provider_exhausted' }

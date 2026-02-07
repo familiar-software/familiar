@@ -49,7 +49,7 @@ test('image extraction notifies when LLM provider is missing', async () => {
 
         assert.deepEqual(result, { skipped: true, reason: 'missing_provider' });
         assert.equal(toastCalls.length, 1);
-        assert.equal(toastCalls[0].title, 'LLM provider required');
+        assert.equal(toastCalls[0].title, 'AI provider required');
     } finally {
         if (originalToastModule) {
             require.cache[toastPath] = originalToastModule;
@@ -99,7 +99,7 @@ test('image extraction notifies when LLM API key is missing', async () => {
 
         assert.deepEqual(result, { skipped: true, reason: 'missing_api_key' });
         assert.equal(toastCalls.length, 1);
-        assert.equal(toastCalls[0].title, 'LLM API key required');
+        assert.equal(toastCalls[0].title, 'API key required');
     } finally {
         if (originalToastModule) {
             require.cache[toastPath] = originalToastModule;

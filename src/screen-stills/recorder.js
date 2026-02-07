@@ -267,7 +267,7 @@ function createRecorder(options = {}) {
       throw new Error('Context folder path missing for stills.');
     }
     if (!isScreenRecordingPermissionGranted()) {
-      throw new Error('Screen Recording permission is not granted. Open System Settings -> Privacy & Security -> Screen Recording.');
+      throw new Error('Screen Recording permission is not granted. Enable Jiminy in System Settings \u2192 Privacy & Security \u2192 Screen Recording.');
     }
 
     sourceDetails = await resolveCaptureSource();

@@ -397,7 +397,7 @@ test('stills action button pauses and resumes when paused', async () => {
     await flushPromises()
 
     assert.equal(elements['recording-status'].textContent, 'Capturing')
-    assert.equal(elements['recording-action'].textContent, '10 Minute Pause')
+    assert.equal(elements['recording-action'].textContent, 'Pause (10 min)')
 
     await elements['recording-action'].click()
     await flushPromises()
@@ -411,7 +411,7 @@ test('stills action button pauses and resumes when paused', async () => {
 
     assert.equal(startCalls.length, 1)
     assert.equal(elements['recording-status'].textContent, 'Capturing')
-    assert.equal(elements['recording-action'].textContent, '10 Minute Pause')
+    assert.equal(elements['recording-action'].textContent, 'Pause (10 min)')
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -559,7 +559,7 @@ test('check for updates reports update when latest is higher', async () => {
     assert.equal(updateCalls.length, 1)
     assert.equal(
       elements['updates-status'].textContent,
-      'Update available: 0.0.1 -> 0.0.2. Check the download prompt.'
+      'Update available: 0.0.1 -> 0.0.2. You will be prompted to download.'
     )
   } finally {
     global.document = priorDocument

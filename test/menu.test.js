@@ -17,8 +17,8 @@ test('buildTrayMenuTemplate returns the expected items', () => {
 
     assert.deepEqual(labels, [
         'Capture Clipboard',
-        '10 Minute Pause',
-        'Dashboard',
+        'Start Screen Stills',
+        'Settings',
         'About',
         'Restart',
         'Quit',
@@ -52,7 +52,7 @@ test('about click does not trigger open settings', () => {
     assert.equal(openSettingsCalls, 0);
 });
 
-test('dashboard click does not trigger about', () => {
+test('settings click does not trigger about', () => {
     let openSettingsCalls = 0;
     let aboutCalls = 0;
 
@@ -69,7 +69,7 @@ test('dashboard click does not trigger about', () => {
         onQuit: () => {},
     });
 
-    const openItem = template.find((item) => item.label === 'Dashboard');
+    const openItem = template.find((item) => item.label === 'Settings');
     assert.ok(openItem);
 
     openItem.click();
@@ -104,7 +104,7 @@ test('clipboard click does not trigger settings', () => {
     assert.equal(openSettingsCalls, 0);
 });
 
-test('recording pause click does not trigger settings', () => {
+test('recording item click does not trigger settings', () => {
     let recordingCalls = 0;
     let openSettingsCalls = 0;
 
@@ -121,7 +121,7 @@ test('recording pause click does not trigger settings', () => {
         onQuit: () => {},
     });
 
-    const recordingItem = template.find((item) => item.label === '10 Minute Pause');
+    const recordingItem = template.find((item) => item.label === 'Start Screen Stills');
     assert.ok(recordingItem);
 
     recordingItem.click();
@@ -143,7 +143,7 @@ test('buildTrayMenuTemplate applies accelerators when provided', () => {
     });
 
     const clipboardItem = template.find((item) => item.label === 'Capture Clipboard');
-    const recordingItem = template.find((item) => item.label === '10 Minute Pause');
+    const recordingItem = template.find((item) => item.label === 'Start Screen Stills');
 
     assert.equal(clipboardItem.accelerator, 'CommandOrControl+J');
     assert.equal(recordingItem.accelerator, 'CommandOrControl+R');
@@ -162,7 +162,7 @@ test('buildTrayMenuTemplate omits accelerators when empty', () => {
     });
 
     const clipboardItem = template.find((item) => item.label === 'Capture Clipboard');
-    const recordingItem = template.find((item) => item.label === '10 Minute Pause');
+    const recordingItem = template.find((item) => item.label === 'Start Screen Stills');
 
     assert.equal(clipboardItem.accelerator, undefined);
     assert.equal(recordingItem.accelerator, undefined);
@@ -179,7 +179,7 @@ test('buildTrayMenuTemplate uses resume label when paused', () => {
         recordingPaused: true,
     });
 
-    const recordingItem = template.find((item) => item.label === 'Resume');
+    const recordingItem = template.find((item) => item.label === 'Resume Screen Stills');
 
     assert.ok(recordingItem);
 });

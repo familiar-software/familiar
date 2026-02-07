@@ -229,7 +229,7 @@ function showAboutDialog() {
         type: 'info',
         title: 'About Jiminy',
         message: 'Jiminy',
-        detail: `Menu bar app shell (macOS).\nVersion ${version}`,
+        detail: `Menu bar app (macOS).\nSaves clipboard captures and optional screen stills to your Context Folder.\nVersion ${version}`,
         icon: aboutIcon || undefined,
         buttons: ['OK'],
     });
@@ -289,8 +289,8 @@ function registerHotkeysFromSettings() {
             accelerator: recordingResult.accelerator,
         });
         showToast({
-            title: 'Capture hotkey inactive',
-            body: 'The capture shortcut could not be registered. Open Settings to update it.',
+            title: 'Screen stills hotkey inactive',
+            body: 'The screen stills shortcut could not be registered. Open Settings to update it.',
             type: 'warning',
             size: 'large'
         });

@@ -135,7 +135,7 @@ function handleSaveSettings(_event, payload) {
             if (permissionStatus !== 'granted') {
                 return {
                     ok: false,
-                    message: 'Screen Recording permission required. Open System Settings → Privacy & Security → Screen Recording.',
+                    message: 'Screen Recording permission required. Enable Jiminy in System Settings → Privacy & Security → Screen Recording.',
                     permissionStatus
                 };
             }
