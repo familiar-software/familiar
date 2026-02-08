@@ -61,3 +61,21 @@ test('getSkillInstallStatus reflects presence of the skill directory', async () 
   const installedStatus = getSkillInstallStatus({ harness: 'cursor', homeDir })
   assert.equal(installedStatus.installed, true)
 })
+
+test('installSkill does not delete an existing install when the source dir is invalid', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-skill-nondestructive-'))
+  const homeDir = path.join(tempRoot, 'home')
+  fs.mkdirSync(homeDir, { recursive: true })
+
+  const dest = resolveHarnessSkillPath('codex', { homeDir })
+  fs.mkdirSync(dest, { recursive: true })
+  fs.writeFileSync(path.join(dest, 'SKILL.md'), 'existing-skill', 'utf-8')
+
+  const missingSourceDir = path.join(tempRoot, 'does-not-exist')
+  await assert.rejects(
+    () => installSkill({ harness: 'codex', sourceDir: missingSourceDir, homeDir }),
+    /Skill source directory/
+  )
+
+  assert.equal(fs.readFileSync(path.join(dest, 'SKILL.md'), 'utf-8'), 'existing-skill')
+})

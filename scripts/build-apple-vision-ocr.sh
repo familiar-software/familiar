@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "$(uname -s)" != "Darwin" ]]; then
+  echo "Skipping Apple Vision OCR build (macOS only)."
+  exit 0
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$ROOT_DIR/apple-vision-ocr.swift"
 OUT_DIR="$ROOT_DIR/bin"

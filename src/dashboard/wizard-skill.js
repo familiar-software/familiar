@@ -71,6 +71,7 @@
         setPath('')
         setSkillInstalled(false)
         setStatus('')
+        setPath(result?.path || '')
         setError(result?.message || 'Failed to check skill installation.')
       } catch (error) {
         console.error('Failed to check skill status', error)
