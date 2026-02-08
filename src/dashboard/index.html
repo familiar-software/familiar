@@ -186,7 +186,26 @@
                   <span id="llm-api-key-status" data-setting-status="llm-api-key-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
                 </div>
                 <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                  Used to extract text from screen stills and to analyze captures.
+                  Used to analyze captures, and to extract text from screen stills when "Stills extraction" is set to AI.
+                </p>
+              </section>
+
+              <hr class="border-zinc-100 dark:border-zinc-800">
+
+              <section class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label class="section-label" for="stills-markdown-extractor">Stills Extraction</label>
+                  <span id="stills-markdown-extractor-status" data-setting-status="stills-markdown-extractor-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                </div>
+                <div class="space-y-2">
+                  <select id="stills-markdown-extractor" data-setting="stills-markdown-extractor" class="input-ring w-full appearance-none bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2 px-3 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer">
+                    <option value="llm">AI (send stills to provider)</option>
+                    <option value="apple_vision_ocr">Local OCR (Apple Vision)</option>
+                  </select>
+                  <p id="stills-markdown-extractor-error" data-setting-error="stills-markdown-extractor-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                </div>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                  Controls how screen still images are converted to markdown. Local OCR does not require an API key, but can use high CPU during extraction.
                 </p>
               </section>
 
@@ -197,7 +216,7 @@
                 <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Privacy & Data</h3>
                 <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                   Jiminy is designed to be local-first. Your Context Folder is the source of truth.
-                  Today, generating results from screen stills requires sending still images to the AI provider you configure.
+                  By default, generating results from screen stills sends still images to the AI provider you configure, but you can switch "Stills extraction" to Local OCR to keep still processing on-device.
                 </p>
               </section>
 

@@ -16,6 +16,9 @@
     const setLlmApiKeySaved = typeof options.setLlmApiKeySaved === 'function'
       ? options.setLlmApiKeySaved
       : () => {}
+    const setStillsMarkdownExtractorType = typeof options.setStillsMarkdownExtractorType === 'function'
+      ? options.setStillsMarkdownExtractorType
+      : () => {}
     const setAlwaysRecordWhenActiveValue = typeof options.setAlwaysRecordWhenActiveValue === 'function'
       ? options.setAlwaysRecordWhenActiveValue
       : () => {}
@@ -32,6 +35,9 @@
       llmKeyInputs = [],
       llmKeyErrors = [],
       llmKeyStatuses = [],
+      stillsMarkdownExtractorSelects = [],
+      stillsMarkdownExtractorErrors = [],
+      stillsMarkdownExtractorStatuses = [],
       alwaysRecordWhenActiveInputs = [],
       alwaysRecordWhenActiveErrors = [],
       alwaysRecordWhenActiveStatuses = [],
@@ -167,6 +173,34 @@
       return false
     }
 
+    const saveStillsMarkdownExtractorTypeSelection = async (extractorType) => {
+      if (!isReady) {
+        return false
+      }
+
+      setMessage(stillsMarkdownExtractorStatuses, 'Saving...')
+      setMessage(stillsMarkdownExtractorErrors, '')
+
+      const nextValue = extractorType || 'llm'
+      try {
+        const result = await jiminy.saveSettings({ stillsMarkdownExtractorType: nextValue })
+        if (result && result.ok) {
+          setMessage(stillsMarkdownExtractorStatuses, 'Saved.')
+          setStillsMarkdownExtractorType(nextValue)
+          console.log('Stills markdown extractor saved', { type: nextValue })
+          return true
+        }
+        setMessage(stillsMarkdownExtractorStatuses, '')
+        setMessage(stillsMarkdownExtractorErrors, result?.message || 'Failed to save setting.')
+      } catch (error) {
+        console.error('Failed to save stills markdown extractor', error)
+        setMessage(stillsMarkdownExtractorStatuses, '')
+        setMessage(stillsMarkdownExtractorErrors, 'Failed to save setting.')
+      }
+
+      return false
+    }
+
     const loadSettings = async () => {
       if (!isReady) {
         return null
@@ -177,6 +211,7 @@
         setContextFolderValue(result.contextFolderPath || '')
         setLlmProviderValue(result.llmProviderName || '')
         setLlmApiKeySaved(result.llmProviderApiKey || '')
+        setStillsMarkdownExtractorType(result.stillsMarkdownExtractorType || 'llm')
         setAlwaysRecordWhenActiveValue(result.alwaysRecordWhenActive === true)
         setHotkeys({
           clipboard: result.clipboardHotkey || DEFAULT_CLIPBOARD_HOTKEY,
@@ -187,6 +222,8 @@
         setMessage(llmProviderErrors, '')
         setMessage(llmKeyErrors, '')
         setMessage(llmKeyStatuses, '')
+        setMessage(stillsMarkdownExtractorErrors, '')
+        setMessage(stillsMarkdownExtractorStatuses, '')
         setMessage(alwaysRecordWhenActiveErrors, '')
         setMessage(alwaysRecordWhenActiveStatuses, '')
         setMessage(hotkeysErrors, '')
@@ -197,6 +234,7 @@
         setMessage(contextFolderErrors, 'Failed to load settings.')
         setMessage(llmProviderErrors, 'Failed to load settings.')
         setMessage(llmKeyErrors, 'Failed to load settings.')
+        setMessage(stillsMarkdownExtractorErrors, 'Failed to load settings.')
         setMessage(hotkeysErrors, 'Failed to load settings.')
       }
       return null
@@ -207,6 +245,7 @@
       setMessage(contextFolderErrors, message)
       setMessage(llmProviderErrors, message)
       setMessage(llmKeyErrors, message)
+      setMessage(stillsMarkdownExtractorErrors, message)
       setMessage(alwaysRecordWhenActiveErrors, message)
       setMessage(hotkeysErrors, message)
       return {
@@ -260,6 +299,20 @@
           return
         }
         await saveLlmApiKey(nextValue)
+      })
+    })
+
+    stillsMarkdownExtractorSelects.forEach((select) => {
+      select.addEventListener('change', async () => {
+        setMessage(stillsMarkdownExtractorErrors, '')
+        setMessage(stillsMarkdownExtractorStatuses, '')
+        const nextValue = select.value || 'llm'
+        stillsMarkdownExtractorSelects.forEach((other) => {
+          if (other.value !== nextValue) {
+            other.value = nextValue
+          }
+        })
+        await saveStillsMarkdownExtractorTypeSelection(nextValue)
       })
     })
 

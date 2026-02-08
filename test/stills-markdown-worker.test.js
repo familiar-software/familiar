@@ -48,21 +48,24 @@ test('stills markdown worker does nothing on empty queue', async () => {
     close: () => {}
   }
 
+  const createExtractorImpl = () => ({
+    type: 'stub',
+    execution: { maxParallelBatches: Infinity },
+    canRun: async () => ({ ok: true }),
+    extractBatch: async () => {
+      calls.extract += 1
+      return new Map()
+    }
+  })
+
   const worker = createStillsMarkdownWorker({
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     pollIntervalMs: 0,
     runImmediately: false,
     isOnlineImpl: async () => true,
-    loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
-    }),
+    loadSettingsImpl: () => ({}),
     createQueueImpl: () => queue,
-    extractBatchMarkdownImpl: async () => {
-      calls.extract += 1
-      return new Map()
-    },
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
+    createExtractorImpl
   })
 
   worker.start({ contextFolderPath: '/tmp' })
@@ -96,12 +99,6 @@ test('stills markdown worker pauses when offline', async () => {
       llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
     }),
     createQueueImpl: () => queue,
-    extractBatchMarkdownImpl: async () => {
-      calls.extract += 1
-      return new Map()
-    },
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
   })
 
   worker.start({ contextFolderPath: '/tmp' })
@@ -137,12 +134,14 @@ test('stills markdown worker requeues stale processing rows before fetching', as
     pollIntervalMs: 0,
     runImmediately: false,
     isOnlineImpl: async () => true,
-    loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
-    }),
+    loadSettingsImpl: () => ({}),
     createQueueImpl: () => queue,
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
+    createExtractorImpl: () => ({
+      type: 'stub',
+      execution: { maxParallelBatches: Infinity },
+      canRun: async () => ({ ok: true }),
+      extractBatch: async () => new Map()
+    })
   })
 
   worker.start({ contextFolderPath: '/tmp' })
@@ -175,22 +174,25 @@ test('stills markdown worker processes a batch and writes outputs', async () => 
     close: () => {}
   }
 
+  const createExtractorImpl = () => ({
+    type: 'stub',
+    execution: { maxParallelBatches: Infinity },
+    canRun: async () => ({ ok: true }),
+    extractBatch: async ({ rows }) => new Map(rows.map((row) => [
+      String(row.id),
+      { markdown: `Markdown ${row.id}`, providerLabel: 'stub', modelLabel: 'stub' }
+    ]))
+  })
+
   const worker = createStillsMarkdownWorker({
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     pollIntervalMs: 0,
     runImmediately: false,
     isOnlineImpl: async () => true,
-    loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
-    }),
+    loadSettingsImpl: () => ({}),
     createQueueImpl: () => queue,
-    extractBatchMarkdownImpl: async () => new Map([
-      ['1', 'Markdown A'],
-      ['2', 'Markdown B']
-    ]),
+    createExtractorImpl,
     writeMarkdownFileImpl: async ({ imagePath }) => `${imagePath}.md`,
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
   })
 
   worker.start({ contextFolderPath: '/tmp' })
@@ -229,23 +231,29 @@ test('stills markdown worker processes multiple batches per tick', async () => {
     close: () => {}
   }
 
+  const createExtractorImpl = () => ({
+    type: 'stub',
+    execution: { maxParallelBatches: Infinity },
+    canRun: async () => ({ ok: true }),
+    extractBatch: async ({ rows }) => {
+      extractCalls += 1
+      return new Map(rows.map((row) => [
+        String(row.id),
+        { markdown: `Markdown ${row.id}`, providerLabel: 'stub', modelLabel: 'stub' }
+      ]))
+    }
+  })
+
   const worker = createStillsMarkdownWorker({
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     pollIntervalMs: 0,
     runImmediately: false,
     maxBatchesPerTick: 3,
     isOnlineImpl: async () => true,
-    loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
-    }),
+    loadSettingsImpl: () => ({}),
     createQueueImpl: () => queue,
-    extractBatchMarkdownImpl: async ({ images }) => {
-      extractCalls += 1
-      return new Map(images.map((image) => [String(image.id), `Markdown ${image.id}`]))
-    },
+    createExtractorImpl,
     writeMarkdownFileImpl: async ({ imagePath }) => `${imagePath}.md`,
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
   })
 
   worker.start({ contextFolderPath: '/tmp' })
@@ -278,21 +286,24 @@ test('stills markdown worker marks failed when response is missing an id', async
     close: () => {}
   }
 
+  const createExtractorImpl = () => ({
+    type: 'stub',
+    execution: { maxParallelBatches: Infinity },
+    canRun: async () => ({ ok: true }),
+    extractBatch: async () => new Map([
+      ['1', { markdown: 'Markdown A', providerLabel: 'stub', modelLabel: 'stub' }]
+    ])
+  })
+
   const worker = createStillsMarkdownWorker({
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     pollIntervalMs: 0,
     runImmediately: false,
     isOnlineImpl: async () => true,
-    loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
-    }),
+    loadSettingsImpl: () => ({}),
     createQueueImpl: () => queue,
-    extractBatchMarkdownImpl: async () => new Map([
-      ['1', 'Markdown A']
-    ]),
+    createExtractorImpl,
     writeMarkdownFileImpl: async ({ imagePath }) => `${imagePath}.md`,
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
   })
 
   worker.start({ contextFolderPath: '/tmp' })
@@ -325,21 +336,24 @@ test('stills markdown worker requeues on network errors instead of failing', asy
     close: () => {}
   }
 
+  const createExtractorImpl = () => ({
+    type: 'stub',
+    execution: { maxParallelBatches: Infinity },
+    canRun: async () => ({ ok: true }),
+    extractBatch: async () => {
+      throw new RetryableError({ status: 'network', message: 'fetch failed', cause: { code: 'ENOTFOUND' } })
+    }
+  })
+
   const worker = createStillsMarkdownWorker({
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     pollIntervalMs: 0,
     runImmediately: false,
     isOnlineImpl: async () => true,
-    loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
-    }),
+    loadSettingsImpl: () => ({}),
     createQueueImpl: () => queue,
-    extractBatchMarkdownImpl: async () => {
-      throw new RetryableError({ status: 'network', message: 'fetch failed', cause: { code: 'ENOTFOUND' } })
-    },
+    createExtractorImpl,
     writeMarkdownFileImpl: async ({ imagePath }) => `${imagePath}.md`,
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
   })
 
   worker.start({ contextFolderPath: '/tmp' })
@@ -373,21 +387,24 @@ test('stills markdown worker requeues on retryable HTTP errors instead of failin
     close: () => {}
   }
 
+  const createExtractorImpl = () => ({
+    type: 'stub',
+    execution: { maxParallelBatches: Infinity },
+    canRun: async () => ({ ok: true }),
+    extractBatch: async () => {
+      throw new RetryableError({ status: 503, message: 'The model is overloaded. Please try again later.' })
+    }
+  })
+
   const worker = createStillsMarkdownWorker({
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     pollIntervalMs: 0,
     runImmediately: false,
     isOnlineImpl: async () => true,
-    loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
-    }),
+    loadSettingsImpl: () => ({}),
     createQueueImpl: () => queue,
-    extractBatchMarkdownImpl: async () => {
-      throw new RetryableError({ status: 503, message: 'The model is overloaded. Please try again later.' })
-    },
+    createExtractorImpl,
     writeMarkdownFileImpl: async ({ imagePath }) => `${imagePath}.md`,
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
   })
 
   worker.start({ contextFolderPath: '/tmp' })
@@ -416,12 +433,14 @@ test('stills markdown worker requests default batch size limit', async () => {
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     pollIntervalMs: 0,
     runImmediately: false,
-    loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
-    }),
+    loadSettingsImpl: () => ({}),
     createQueueImpl: () => queue,
-    readImageAsBase64Impl: async () => 'ZmFrZQ==',
-    inferMimeTypeImpl: () => 'image/webp'
+    createExtractorImpl: () => ({
+      type: 'stub',
+      execution: { maxParallelBatches: Infinity },
+      canRun: async () => ({ ok: true }),
+      extractBatch: async () => new Map()
+    })
   })
 
   worker.start({ contextFolderPath: '/tmp' })

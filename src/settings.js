@@ -49,11 +49,14 @@ const saveSettings = (settings, options = {}) => {
     const hasLlmProviderName = Object.prototype.hasOwnProperty.call(settings, 'llmProviderName');
     const hasLlmProviderTextModel = Object.prototype.hasOwnProperty.call(settings, 'llmProviderTextModel');
     const hasLlmProviderVisionModel = Object.prototype.hasOwnProperty.call(settings, 'llmProviderVisionModel');
+    const hasStillsMarkdownExtractorType = Object.prototype.hasOwnProperty.call(settings, 'stillsMarkdownExtractorType');
     const hasClipboardHotkey = Object.prototype.hasOwnProperty.call(settings, 'clipboardHotkey');
     const hasUpdateLastCheckedAt = Object.prototype.hasOwnProperty.call(settings, 'updateLastCheckedAt');
     const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(settings, 'recordingHotkey');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(settings, 'alwaysRecordWhenActive');
     const existingProvider = existing && typeof existing.llm_provider === 'object' ? existing.llm_provider : {};
+    const existingStillsExtractor =
+        existing && typeof existing.stills_markdown_extractor === 'object' ? existing.stills_markdown_extractor : {};
     const contextFolderPath = hasContextFolderPath
         ? typeof settings.contextFolderPath === 'string'
             ? settings.contextFolderPath
@@ -84,6 +87,30 @@ const saveSettings = (settings, options = {}) => {
         }
     } else if (Object.keys(existingProvider).length > 0) {
         payload.llm_provider = { ...existingProvider };
+    }
+
+    if (hasStillsMarkdownExtractorType) {
+        const rawType =
+            typeof settings.stillsMarkdownExtractorType === 'string' ? settings.stillsMarkdownExtractorType : '';
+        const normalized = rawType.trim().toLowerCase();
+        const nextType = normalized === 'apple_vision_ocr' ? 'apple_vision_ocr' : 'llm';
+        payload.stills_markdown_extractor = { ...existingStillsExtractor, type: nextType };
+        if (nextType === 'apple_vision_ocr') {
+            if (typeof payload.stills_markdown_extractor.level !== 'string') {
+                payload.stills_markdown_extractor.level = 'accurate';
+            }
+            if (!Object.prototype.hasOwnProperty.call(payload.stills_markdown_extractor, 'minConfidence')) {
+                payload.stills_markdown_extractor.minConfidence = 0.0;
+            }
+            if (!Object.prototype.hasOwnProperty.call(payload.stills_markdown_extractor, 'noCorrection')) {
+                payload.stills_markdown_extractor.noCorrection = false;
+            }
+            if (!Object.prototype.hasOwnProperty.call(payload.stills_markdown_extractor, 'languages')) {
+                payload.stills_markdown_extractor.languages = [];
+            }
+        }
+    } else if (Object.keys(existingStillsExtractor).length > 0) {
+        payload.stills_markdown_extractor = { ...existingStillsExtractor };
     }
 
     if (hasClipboardHotkey) {

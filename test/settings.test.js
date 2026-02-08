@@ -166,6 +166,31 @@ test('saveSettings preserves alwaysRecordWhenActive when updating other settings
   assert.equal(loaded.contextFolderPath, contextDir)
 })
 
+test('saveSettings persists stills_markdown_extractor type', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+
+  saveSettings({ stillsMarkdownExtractorType: 'apple_vision_ocr' }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.stills_markdown_extractor?.type, 'apple_vision_ocr')
+  assert.equal(loaded.stills_markdown_extractor?.level, 'accurate')
+})
+
+test('saveSettings preserves stills_markdown_extractor when updating other settings', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+  const contextDir = path.join(tempRoot, 'context')
+  fs.mkdirSync(contextDir)
+
+  saveSettings({ stillsMarkdownExtractorType: 'apple_vision_ocr' }, { settingsDir })
+  saveSettings({ contextFolderPath: contextDir }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.contextFolderPath, contextDir)
+  assert.equal(loaded.stills_markdown_extractor?.type, 'apple_vision_ocr')
+})
+
 test('loadSettings exposes parse errors for diagnostics', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

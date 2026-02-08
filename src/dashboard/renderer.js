@@ -98,6 +98,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const llmKeyInputs = selectAll('[data-setting="llm-api-key"]')
   const llmKeyErrors = selectAll('[data-setting-error="llm-api-key-error"]')
   const llmKeyStatuses = selectAll('[data-setting-status="llm-api-key-status"]')
+  const stillsMarkdownExtractorSelects = selectAll('[data-setting="stills-markdown-extractor"]')
+  const stillsMarkdownExtractorErrors = selectAll('[data-setting-error="stills-markdown-extractor-error"]')
+  const stillsMarkdownExtractorStatuses = selectAll('[data-setting-status="stills-markdown-extractor-status"]')
   const alwaysRecordWhenActiveInputs = selectAll('[data-setting="always-record-when-active"]')
   const alwaysRecordWhenActiveErrors = selectAll('[data-setting-error="always-record-when-active-error"]')
   const alwaysRecordWhenActiveStatuses = selectAll('[data-setting-status="always-record-when-active-status"]')
@@ -156,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       contextFolderInputs,
       llmProviderSelects,
       llmKeyInputs,
+      stillsMarkdownExtractorSelects,
       alwaysRecordWhenActiveInputs
     },
     apis
@@ -346,6 +350,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       llmKeyInputs,
       llmKeyErrors,
       llmKeyStatuses,
+      stillsMarkdownExtractorSelects,
+      stillsMarkdownExtractorErrors,
+      stillsMarkdownExtractorStatuses,
       alwaysRecordWhenActiveInputs,
       alwaysRecordWhenActiveErrors,
       alwaysRecordWhenActiveStatuses,
@@ -362,6 +369,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     setLlmProviderValue: state.setLlmProviderValue,
     setLlmApiKeyPending: state.setLlmApiKeyPending,
     setLlmApiKeySaved: state.setLlmApiKeySaved,
+    setStillsMarkdownExtractorType: state.setStillsMarkdownExtractorType,
     setAlwaysRecordWhenActiveValue: state.setAlwaysRecordWhenActiveValue,
     setHotkeys: state.setHotkeysFromSettings,
     setMessage,
@@ -372,6 +380,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     setMessage(contextFolderErrors, 'Settings module unavailable. Restart the app.')
     setMessage(llmProviderErrors, 'Settings module unavailable. Restart the app.')
     setMessage(llmKeyErrors, 'Settings module unavailable. Restart the app.')
+    setMessage(stillsMarkdownExtractorErrors, 'Settings module unavailable. Restart the app.')
     setMessage(hotkeysErrors, 'Settings module unavailable. Restart the app.')
     return
   }

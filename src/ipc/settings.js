@@ -25,6 +25,7 @@ function handleGetSettings() {
         const contextFolderPath = settings.contextFolderPath || '';
         const llmProviderName = settings?.llm_provider?.provider || '';
         const llmProviderApiKey = settings?.llm_provider?.api_key || '';
+        const stillsMarkdownExtractorType = settings?.stills_markdown_extractor?.type || 'llm';
         const clipboardHotkey = typeof settings.clipboardHotkey === 'string' ? settings.clipboardHotkey : DEFAULT_CLIPBOARD_HOTKEY;
         const recordingHotkey = typeof settings.recordingHotkey === 'string' ? settings.recordingHotkey : DEFAULT_RECORDING_HOTKEY;
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
@@ -47,6 +48,7 @@ function handleGetSettings() {
             validationMessage,
             llmProviderName,
             llmProviderApiKey,
+            stillsMarkdownExtractorType,
             clipboardHotkey,
             recordingHotkey,
             alwaysRecordWhenActive,
@@ -60,6 +62,7 @@ function handleGetSettings() {
             validationMessage: 'Failed to load settings.',
             llmProviderName: '',
             llmProviderApiKey: '',
+            stillsMarkdownExtractorType: 'llm',
             clipboardHotkey: DEFAULT_CLIPBOARD_HOTKEY,
             recordingHotkey: DEFAULT_RECORDING_HOTKEY,
             alwaysRecordWhenActive: false,
@@ -73,6 +76,7 @@ function handleSaveSettings(_event, payload) {
     const hasContextFolderPath = Object.prototype.hasOwnProperty.call(payload || {}, 'contextFolderPath');
     const hasLlmProviderApiKey = Object.prototype.hasOwnProperty.call(payload || {}, 'llmProviderApiKey');
     const hasLlmProviderName = Object.prototype.hasOwnProperty.call(payload || {}, 'llmProviderName');
+    const hasStillsMarkdownExtractorType = Object.prototype.hasOwnProperty.call(payload || {}, 'stillsMarkdownExtractorType');
     const hasClipboardHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'clipboardHotkey');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(payload || {}, 'alwaysRecordWhenActive');
     const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'recordingHotkey');
@@ -82,6 +86,7 @@ function handleSaveSettings(_event, payload) {
         !hasContextFolderPath &&
         !hasLlmProviderApiKey &&
         !hasLlmProviderName &&
+        !hasStillsMarkdownExtractorType &&
         !hasClipboardHotkey &&
         !hasAlwaysRecordWhenActive &&
         !hasRecordingHotkey
@@ -114,6 +119,12 @@ function handleSaveSettings(_event, payload) {
         settingsPayload.llmProviderName = typeof payload.llmProviderName === 'string'
             ? payload.llmProviderName
             : '';
+    }
+
+    if (hasStillsMarkdownExtractorType) {
+        const raw = typeof payload.stillsMarkdownExtractorType === 'string' ? payload.stillsMarkdownExtractorType : '';
+        const normalized = raw.trim().toLowerCase();
+        settingsPayload.stillsMarkdownExtractorType = normalized === 'apple_vision_ocr' ? 'apple_vision_ocr' : 'llm';
     }
 
     if (hasClipboardHotkey) {

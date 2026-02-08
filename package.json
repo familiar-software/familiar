@@ -5,7 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "clean": "rimraf dist",
-    "dist:mac": "npm run clean && electron-builder --mac --arm64",
+    "build:apple-vision-ocr": "bash scripts/build-apple-vision-ocr.sh",
+    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && electron-builder --mac --arm64",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
     "css:build": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --minify",
     "start": "npm run rebuild:electron && npm run css:build && electron .",
@@ -44,6 +45,12 @@
       "src/**/*",
       "build/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "scripts/bin/apple-vision-ocr",
+        "to": "apple-vision-ocr"
+      }
     ],
     "mac": {
       "target": [

@@ -131,6 +131,7 @@ const createJiminy = (overrides = {}) => ({
     contextFolderPath: '',
     llmProviderName: 'gemini',
     llmProviderApiKey: '',
+    stillsMarkdownExtractorType: 'llm',
     alwaysRecordWhenActive: false,
     screenRecordingPermissionStatus: 'granted'
   }),
@@ -157,6 +158,9 @@ const createElements = () => {
     'llm-api-key': new TestElement(),
     'llm-api-key-error': new TestElement(),
     'llm-api-key-status': new TestElement(),
+    'stills-markdown-extractor': new TestElement(),
+    'stills-markdown-extractor-error': new TestElement(),
+    'stills-markdown-extractor-status': new TestElement(),
     'always-record-when-active': new TestElement(),
     'always-record-when-active-error': new TestElement(),
     'always-record-when-active-status': new TestElement(),
@@ -200,6 +204,9 @@ const createElements = () => {
   elements['llm-api-key'].dataset.setting = 'llm-api-key'
   elements['llm-api-key-error'].dataset.settingError = 'llm-api-key-error'
   elements['llm-api-key-status'].dataset.settingStatus = 'llm-api-key-status'
+  elements['stills-markdown-extractor'].dataset.setting = 'stills-markdown-extractor'
+  elements['stills-markdown-extractor-error'].dataset.settingError = 'stills-markdown-extractor-error'
+  elements['stills-markdown-extractor-status'].dataset.settingStatus = 'stills-markdown-extractor-status'
   elements['always-record-when-active'].dataset.setting = 'always-record-when-active'
   elements['always-record-when-active-error'].dataset.settingError = 'always-record-when-active-error'
   elements['always-record-when-active-status'].dataset.settingStatus = 'always-record-when-active-status'

@@ -1,34 +1,22 @@
 const fs = require('node:fs/promises')
-const fsSync = require('node:fs')
 const path = require('node:path')
 
 const { loadSettings } = require('../settings')
-const { createModelProviderClients } = require('../modelProviders')
 const { RetryableError } = require('../utils/retry')
-const { readImageAsBase64, inferMimeType } = require('../extraction/image')
 const { createStillsQueue } = require('./stills-queue')
+const { createStillsMarkdownExtractor } = require('./stills-markdown-extractor')
+const { buildBatchPrompt, parseBatchResponse } = require('./stills-markdown-format')
+const { readImageAsBase64, inferMimeType } = require('../extraction/image')
 const {
   JIMINY_BEHIND_THE_SCENES_DIR_NAME,
   STILLS_DIR_NAME,
   STILLS_MARKDOWN_DIR_NAME
 } = require('../const')
 
-const PROMPT_PATH = path.join(__dirname, 'stills-markdown-prompt.md')
-const PROMPT_TEMPLATE = (() => {
-  const contents = fsSync.readFileSync(PROMPT_PATH, 'utf-8')
-  const trimmed = contents.trim()
-  if (!trimmed) {
-    throw new Error('Stills markdown prompt file is empty.')
-  }
-  return contents.trimEnd()
-})()
-
 const DEFAULT_BATCH_SIZE = 4
 const DEFAULT_MAX_BATCHES_PER_TICK = 10
 const DEFAULT_POLL_INTERVAL_MS = 1000
 const DEFAULT_REQUEUE_STALE_PROCESSING_AFTER_MS = 60 * 60 * 1000
-
-const isLlmMockEnabled = () => process.env.JIMINY_LLM_MOCK === '1'
 
 const defaultIsOnlineImpl = async () => {
   // Only meaningful when running inside Electron. In plain Node.js, `require('electron')`
@@ -43,123 +31,6 @@ const defaultIsOnlineImpl = async () => {
     // Ignore; fall through.
   }
   return true
-}
-
-const isRetryableNetworkError = (error) => {
-  const code = error?.cause?.code || error?.code
-  const undiciCode = error?.cause?.code || error?.cause?.name || error?.code
-
-  const retryableCodes = new Set([
-    'ENOTFOUND',
-    'EAI_AGAIN',
-    'ECONNRESET',
-    'ECONNREFUSED',
-    'ETIMEDOUT',
-    'EHOSTUNREACH',
-    'ENETUNREACH',
-    // undici
-    'UND_ERR_CONNECT_TIMEOUT',
-    'UND_ERR_HEADERS_TIMEOUT',
-    'UND_ERR_BODY_TIMEOUT',
-    'UND_ERR_SOCKET'
-  ])
-  if (retryableCodes.has(code) || retryableCodes.has(undiciCode)) {
-    return true
-  }
-
-  const message = String(error?.message || error || '').toLowerCase()
-  if (!message) {
-    return false
-  }
-
-  return (
-    message.includes('fetch failed') ||
-    message.includes('network') ||
-    message.includes('getaddrinfo') ||
-    message.includes('socket hang up') ||
-    message.includes('timed out') ||
-    message.includes('econnreset') ||
-    message.includes('enotfound') ||
-    message.includes('eai_again')
-  )
-}
-
-const buildBatchPrompt = (basePrompt, imageIds) => {
-  const idsLine = imageIds.map((id) => `- ${id}`).join('\n')
-  return [
-    'Return markdown for each image in the same order as provided.',
-    'Do NOT return JSON or wrap in code fences.',
-    'Separate each image response with a single line containing exactly ---',
-    'Each image response must follow the exact format below.',
-    'Keep the frontmatter --- lines inside each response as shown in the template.',
-    '',
-    basePrompt,
-    '',
-    'Image ids (in the same order as images are sent):',
-    idsLine
-  ].join('\n')
-}
-
-const splitMarkdownBlocks = (text) => {
-  if (typeof text !== 'string') {
-    return []
-  }
-  const normalized = text.replace(/\r\n/g, '\n').trim()
-  if (!normalized) {
-    return []
-  }
-  const lines = normalized.split('\n')
-  const starts = []
-  for (let i = 0; i < lines.length - 1; i += 1) {
-    if (lines[i].trim() === '---' && lines[i + 1].trim().startsWith('format:')) {
-      starts.push(i)
-    }
-  }
-  const segments = []
-  if (starts.length === 0) {
-    const rawSegments = normalized.split(/\n---\n/)
-    for (const segment of rawSegments) {
-      const trimmed = segment.trim()
-      if (trimmed) {
-        segments.push(trimmed)
-      }
-    }
-    return segments
-  }
-
-  for (let i = 0; i < starts.length; i += 1) {
-    const start = starts[i]
-    const end = i + 1 < starts.length ? starts[i + 1] : lines.length
-    let chunk = lines.slice(start, end)
-    while (chunk.length > 0 && chunk[0].trim() === '') {
-      chunk = chunk.slice(1)
-    }
-    while (chunk.length > 0 && chunk[chunk.length - 1].trim() === '') {
-      chunk = chunk.slice(0, -1)
-    }
-    if (chunk.length > 1 && chunk[chunk.length - 1].trim() === '---') {
-      chunk = chunk.slice(0, -1)
-    }
-    if (chunk.length > 0) {
-      segments.push(chunk.join('\n').trim())
-    }
-  }
-
-  return segments
-}
-
-const parseBatchResponse = (responseText, imageIds = []) => {
-  const segments = splitMarkdownBlocks(responseText)
-  const map = new Map()
-  const limit = Math.min(segments.length, imageIds.length)
-  for (let i = 0; i < limit; i += 1) {
-    const markdown = segments[i]
-    if (!markdown) {
-      continue
-    }
-    map.set(String(imageIds[i]), markdown.trim())
-  }
-  return map
 }
 
 const resolveMarkdownPath = (contextFolderPath, imagePath) => {
@@ -185,25 +56,6 @@ const writeMarkdownFile = async ({ contextFolderPath, imagePath, markdown }) => 
   return outputPath
 }
 
-const extractBatchMarkdown = async ({ provider, apiKey, model, images }) => {
-  if (!Array.isArray(images) || images.length === 0) {
-    return new Map()
-  }
-
-  if (isLlmMockEnabled()) {
-    const mockText = process.env.JIMINY_LLM_MOCK_TEXT || 'gibberish'
-    return new Map(images.map((image) => [String(image.id), mockText]))
-  }
-
-  const prompt = buildBatchPrompt(PROMPT_TEMPLATE, images.map((image) => image.id))
-  const clients = createModelProviderClients({ provider, apiKey, visionModel: model })
-  const responseText = await clients.vision.extractBatch({
-    prompt,
-    images
-  })
-  return parseBatchResponse(responseText, images.map((image) => image.id))
-}
-
 const createStillsMarkdownWorker = ({
   logger = console,
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
@@ -213,7 +65,7 @@ const createStillsMarkdownWorker = ({
   runImmediately = true,
   loadSettingsImpl = loadSettings,
   createQueueImpl = createStillsQueue,
-  extractBatchMarkdownImpl = extractBatchMarkdown,
+  createExtractorImpl = createStillsMarkdownExtractor,
   writeMarkdownFileImpl = writeMarkdownFile,
   readImageAsBase64Impl = readImageAsBase64,
   inferMimeTypeImpl = inferMimeType
@@ -267,34 +119,22 @@ const createStillsMarkdownWorker = ({
     return Math.floor(maxBatchesPerTick)
   }
 
-  const processSingleBatch = async ({ batch, batchIndex, provider, apiKey, model }) => {
+  const processSingleBatch = async ({ batch, batchIndex, extractor }) => {
     try {
       logger.log('Processing stills markdown batch', {
         count: batch.length,
-        provider,
-        model,
+        extractorType: extractor?.type || 'unknown',
         batchIndex
       })
 
-      const images = await Promise.all(batch.map(async (row) => ({
-        id: String(row.id),
-        imageBase64: await readImageAsBase64Impl(row.image_path),
-        mimeType: inferMimeTypeImpl(row.image_path),
-        imagePath: row.image_path
-      })))
+      const resultsById = await extractor.extractBatch({ rows: batch })
 
-      const markdownById = await extractBatchMarkdownImpl({
-        provider,
-        apiKey,
-        model,
-        images
-      })
-
-      logger.log('Received markdown batch response', { count: markdownById.size, batchIndex })
+      logger.log('Received markdown batch response', { count: resultsById.size, batchIndex })
 
       for (const row of batch) {
-        const markdown = markdownById.get(String(row.id))
-        if (!markdown) {
+        const result = resultsById.get(String(row.id))
+        const markdown = result?.markdown
+        if (typeof markdown !== 'string' || !markdown.trim()) {
           logger.error('Missing markdown response for still', {
             id: row.id,
             imagePath: row.image_path,
@@ -312,8 +152,8 @@ const createStillsMarkdownWorker = ({
         queueStore.markDone({
           id: row.id,
           markdownPath: outputPath,
-          provider,
-          model
+          provider: result?.providerLabel || null,
+          model: result?.modelLabel || null
         })
         logger.log('Wrote stills markdown', { id: row.id, outputPath })
       }
@@ -352,35 +192,29 @@ const createStillsMarkdownWorker = ({
       }
 
       const settings = loadSettingsImpl()
-      const provider = settings?.llm_provider?.provider || ''
-      const apiKey = settings?.llm_provider?.api_key || ''
-      const model = typeof settings?.llm_provider?.vision_model === 'string' &&
-        settings.llm_provider.vision_model.trim()
-        ? settings.llm_provider.vision_model
-        : undefined
+      const extractor = createExtractorImpl({
+        settings,
+        logger,
+        isOnlineImpl,
+        readImageAsBase64Impl,
+        inferMimeTypeImpl
+      })
 
-      if (!provider) {
-        logger.warn('Stills markdown worker paused: missing LLM provider.')
+      const canRun = await extractor.canRun({ contextFolderPath })
+      if (!canRun?.ok) {
+        logger.warn('Stills markdown worker paused', {
+          extractorType: extractor?.type || 'unknown',
+          reason: canRun?.reason || 'unknown',
+          message: canRun?.message || ''
+        })
         return
-      }
-      if (!apiKey && !isLlmMockEnabled()) {
-        logger.warn('Stills markdown worker paused: missing LLM API key.')
-        return
-      }
-
-      try {
-        const online = await isOnlineImpl()
-        if (online === false) {
-          logger.log('Stills markdown worker paused: offline.')
-          return
-        }
-      } catch (error) {
-        // If the online check fails, continue; network failures are handled by retries.
-        logger.warn('Stills markdown worker online check failed; continuing', { error })
       }
 
       const batches = []
-      const maxBatches = resolveMaxBatchesPerTick()
+      const extractorMaxParallel = Number.isFinite(extractor?.execution?.maxParallelBatches)
+        ? Math.max(1, Math.floor(extractor.execution.maxParallelBatches))
+        : Infinity
+      const maxBatches = Math.min(resolveMaxBatchesPerTick(), extractorMaxParallel)
       for (let i = 0; i < maxBatches; i += 1) {
         const batch = queueStore.getPendingBatch(DEFAULT_BATCH_SIZE)
         if (batch.length === 0) {
@@ -402,13 +236,20 @@ const createStillsMarkdownWorker = ({
 
       logger.log('Processing stills markdown batches', {
         count: batches.length,
-        provider,
-        model
+        extractorType: extractor?.type || 'unknown'
       })
-      await Promise.all(
-        batches.map(({ batch, batchIndex }) =>
-          processSingleBatch({ batch, batchIndex, provider, apiKey, model }))
-      )
+      if (extractorMaxParallel <= 1) {
+        for (const { batch, batchIndex } of batches) {
+          // Serial execution for CPU-heavy extractors (OCR).
+          // eslint-disable-next-line no-await-in-loop
+          await processSingleBatch({ batch, batchIndex, extractor })
+        }
+      } else {
+        await Promise.all(
+          batches.map(({ batch, batchIndex }) =>
+            processSingleBatch({ batch, batchIndex, extractor }))
+        )
+      }
     } catch (error) {
       logger.error('Stills markdown worker failed', { error })
     } finally {

@@ -34,6 +34,9 @@
         case 1:
           return Boolean(state.currentContextFolderPath)
         case 2:
+          if (state.currentStillsMarkdownExtractorType === 'apple_vision_ocr') {
+            return true
+          }
           return Boolean(state.currentLlmProviderName && state.currentLlmApiKey && state.isLlmApiKeySaved)
         case 3:
           return true

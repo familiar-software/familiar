@@ -7,6 +7,7 @@
     const contextFolderInputs = elements.contextFolderInputs || []
     const llmProviderSelects = elements.llmProviderSelects || []
     const llmKeyInputs = elements.llmKeyInputs || []
+    const stillsMarkdownExtractorSelects = elements.stillsMarkdownExtractorSelects || []
     const alwaysRecordWhenActiveInputs = elements.alwaysRecordWhenActiveInputs || []
 
     const state = {
@@ -14,6 +15,7 @@
       currentLlmProviderName: '',
       currentLlmApiKey: '',
       pendingLlmApiKey: '',
+      currentStillsMarkdownExtractorType: 'llm',
       currentAlwaysRecordWhenActive: false,
       isLlmApiKeySaved: false,
       currentSkillHarness: '',
@@ -88,6 +90,18 @@
       updateWizardUI()
     }
 
+    function setStillsMarkdownExtractorType(value) {
+      const nextValue = value || 'llm'
+      state.currentStillsMarkdownExtractorType = nextValue
+      for (const select of stillsMarkdownExtractorSelects) {
+        if (select.value !== state.currentStillsMarkdownExtractorType) {
+          select.value = state.currentStillsMarkdownExtractorType
+        }
+      }
+      callIfAvailable(apis.recordingApi, 'updateRecordingUI')
+      updateWizardUI()
+    }
+
     function setAlwaysRecordWhenActiveValue(value) {
       state.currentAlwaysRecordWhenActive = Boolean(value)
       for (const input of alwaysRecordWhenActiveInputs) {
@@ -133,6 +147,7 @@
         currentLlmProviderName: state.currentLlmProviderName,
         currentLlmApiKey: state.currentLlmApiKey,
         isLlmApiKeySaved: state.isLlmApiKeySaved,
+        currentStillsMarkdownExtractorType: state.currentStillsMarkdownExtractorType,
         currentSkillHarness: state.currentSkillHarness,
         isSkillInstalled: state.isSkillInstalled,
         currentClipboardHotkey: state.currentClipboardHotkey,
@@ -155,6 +170,7 @@
         currentLlmProviderName: state.currentLlmProviderName,
         currentLlmApiKey: state.currentLlmApiKey,
         pendingLlmApiKey: state.pendingLlmApiKey,
+        currentStillsMarkdownExtractorType: state.currentStillsMarkdownExtractorType,
         currentAlwaysRecordWhenActive: state.currentAlwaysRecordWhenActive
       }
     }
@@ -173,6 +189,7 @@
       setLlmProviderValue,
       setLlmApiKeyPending,
       setLlmApiKeySaved,
+      setStillsMarkdownExtractorType,
       setAlwaysRecordWhenActiveValue,
       setSkillHarness,
       setSkillInstalled,
