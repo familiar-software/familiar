@@ -1,6 +1,6 @@
 {
   "name": "jiminy-desktopapp",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "Jiminy menu bar app shell (macOS)",
   "main": "src/main.js",
   "scripts": {
