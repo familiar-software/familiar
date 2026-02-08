@@ -134,6 +134,9 @@ test('stills save captures to the stills folder', async () => {
     await window.waitForLoadState('domcontentloaded')
 
     await ensureRecordingPrereqs(window)
+    // Keep the app "active" so presence monitoring doesn't stop the session before
+    // the first capture is written (common in CI / headless environments).
+    await setIdleSeconds(electronApp, 0)
     await setContextFolder(window)
     await enableRecordingToggle(window)
 
@@ -144,14 +147,13 @@ test('stills save captures to the stills folder', async () => {
     await expect(window.locator('#recording-status')).toHaveText('Capturing')
     await expect(recordingAction).toHaveText('Pause (10 min)')
 
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    const stillsRoot = getStillsRoot(contextPath)
+    const manifestPath = await waitForManifestPath(stillsRoot)
+    await waitForCaptureCount(manifestPath, 1)
 
     await recordingAction.click()
     await expect(window.locator('#recording-status')).toHaveText('Paused')
     await expect(recordingAction).toHaveText('Resume')
-
-    const stillsRoot = getStillsRoot(contextPath)
-    const manifestPath = await waitForManifestPath(stillsRoot)
 
     const manifest = readManifest(manifestPath)
     expect(manifest.captures.length).toBeGreaterThan(0)
@@ -263,6 +265,8 @@ test('stills stop and save the manifest when the user goes idle', async () => {
     await window.waitForLoadState('domcontentloaded')
 
     await ensureRecordingPrereqs(window)
+    // Prevent the system idle timer from stopping the session before we explicitly simulate idle.
+    await setIdleSeconds(electronApp, 0)
     await setContextFolder(window)
     await enableRecordingToggle(window)
 
@@ -272,14 +276,12 @@ test('stills stop and save the manifest when the user goes idle', async () => {
     await recordingAction.click()
     await expect(window.locator('#recording-status')).toHaveText('Capturing')
 
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    await window.evaluate(() => window.jiminy.simulateStillsIdle({ idleSeconds: 9999 }))
-    await waitForRecordingStopped(window)
-
     const stillsRoot = getStillsRoot(contextPath)
     const manifestPath = await waitForManifestPath(stillsRoot)
     await waitForCaptureCount(manifestPath, 1)
+
+    await window.evaluate(() => window.jiminy.simulateStillsIdle({ idleSeconds: 9999 }))
+    await waitForRecordingStopped(window)
 
     const manifest = readManifest(manifestPath)
     expect(manifest.stopReason).toBe('idle')

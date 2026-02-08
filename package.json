@@ -6,10 +6,12 @@
   "scripts": {
     "clean": "rimraf dist",
     "build:apple-vision-ocr": "bash scripts/build-apple-vision-ocr.sh",
+    "prestart": "npm run build:apple-vision-ocr",
     "dist:mac": "npm run clean && npm run build:apple-vision-ocr && electron-builder --mac --arm64",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
     "css:build": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --minify",
     "start": "npm run rebuild:electron && npm run css:build && electron .",
+    "predev": "npm run build:apple-vision-ocr",
     "dev": "npm run rebuild:electron && tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
     "rebuild:node": "npm rebuild better-sqlite3",
     "rebuild:electron": "npm_config_runtime=electron npm_config_target=40.0.0 npm_config_disturl=https://electronjs.org/headers npm rebuild better-sqlite3 --build-from-source",
