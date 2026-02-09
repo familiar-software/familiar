@@ -79,9 +79,9 @@ const handleStillsError = ({ message }) => {
     if (!message) {
         return;
     }
-    console.warn('Screen stills issue', { message });
+    console.warn('Recording issue', { message });
     showToast({
-        title: 'Screen stills issue',
+        title: 'Recording issue',
         body: message,
         type: 'warning',
         size: 'large'
@@ -95,13 +95,13 @@ const startScreenStills = async () => {
     try {
         const result = await screenStillsController.manualStart();
         if (result && result.ok === false) {
-            handleStillsError({ message: result.message || 'Failed to start screen stills.' });
+            handleStillsError({ message: result.message || 'Failed to start recording.' });
         }
         return result;
     } catch (error) {
-        console.error('Failed to start screen stills', error);
-        handleStillsError({ message: 'Failed to start screen stills.' });
-        return { ok: false, message: 'Failed to start screen stills.' };
+        console.error('Failed to start recording', error);
+        handleStillsError({ message: 'Failed to start recording.' });
+        return { ok: false, message: 'Failed to start recording.' };
     }
 };
 
@@ -112,13 +112,13 @@ const pauseScreenStills = async () => {
     try {
         const result = await screenStillsController.manualPause();
         if (result && result.ok === false) {
-            handleStillsError({ message: result.message || 'Failed to pause screen stills.' });
+            handleStillsError({ message: result.message || 'Failed to pause recording.' });
         }
         return result;
     } catch (error) {
-        console.error('Failed to pause screen stills', error);
-        handleStillsError({ message: 'Failed to pause screen stills.' });
-        return { ok: false, message: 'Failed to pause screen stills.' };
+        console.error('Failed to pause recording', error);
+        handleStillsError({ message: 'Failed to pause recording.' });
+        return { ok: false, message: 'Failed to pause recording.' };
     }
 };
 
@@ -222,7 +222,7 @@ function showAboutDialog() {
         type: 'info',
         title: 'About Jiminy',
         message: 'Jiminy',
-        detail: `Menu bar app (macOS).\nSaves screen stills to your Context Folder.\nVersion ${version}`,
+        detail: `Menu bar app (macOS).\nSaves recordings to your Context Folder.\nVersion ${version}`,
         icon: aboutIcon || undefined,
         buttons: ['OK'],
     });
@@ -262,8 +262,8 @@ function registerHotkeysFromSettings() {
             accelerator: recordingResult.accelerator,
         });
         showToast({
-            title: 'Screen stills hotkey inactive',
-            body: 'The screen stills shortcut could not be registered. Open Settings to update it.',
+            title: 'Recording hotkey inactive',
+            body: 'The recording shortcut could not be registered. Open Settings to update it.',
             type: 'warning',
             size: 'large'
         });
@@ -463,7 +463,7 @@ app.on('before-quit', (event) => {
             if (screenStillsController) {
                 shutdowns.push(
                     screenStillsController.shutdown('quit').catch((error) => {
-                        console.error('Failed to stop screen stills on quit', error);
+                        console.error('Failed to stop recording on quit', error);
                     })
                 );
             }

@@ -180,8 +180,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       subtitle: 'Check for new versions and download when available.'
     },
     recording: {
-      title: 'Screen Stills',
-      subtitle: 'Capture screen stills while you are active, and configure extraction.'
+      title: 'Recording',
+      subtitle: 'Capture still images while you are active, and configure extraction.'
     }
   }
 

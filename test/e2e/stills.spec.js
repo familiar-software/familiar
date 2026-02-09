@@ -52,7 +52,7 @@ const setContextFolder = async (window) => {
 }
 
 const enableRecordingToggle = async (window) => {
-  await window.getByRole('tab', { name: 'Screen Stills' }).click()
+  await window.getByRole('tab', { name: 'Recording' }).click()
   await window.locator('label[for="always-record-when-active"]').click({ force: true })
   await expect(window.locator('#always-record-when-active')).toBeChecked()
   await expect(window.locator('#always-record-when-active-status')).toHaveText('Saved.')

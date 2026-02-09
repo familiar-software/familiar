@@ -80,13 +80,13 @@ The workflow `Publish Desktop Release` is a manual GitHub Actions job that build
 -   The app runs from the macOS menu bar with a Settings window that stores the Context Folder Path, stills extraction mode (AI vs local OCR), and optionally an LLM provider + API key in `~/.jiminy/settings.json`.
 -   The Settings wizard starts with Context Folder selection; the General tab lets you change it anytime.
 -   Auto-launch on login is enabled via Electron login item settings.
--   The Settings window includes a **Stills** tab with an opt-in **Record while active** toggle plus manual pause/resume. When enabled (and permission granted), Jiminy captures downsampled screen stills into `<contextFolderPath>/jiminy/stills/session-<timestamp>/` with a `manifest.json` describing captures and stop reason.
--   While screen stills recording is active, clipboard text is mirrored to `<contextFolderPath>/jiminy/stills-markdown/session-<timestamp>/<timestamp>.clipboard.txt`.
+-   The Settings window includes a **Recording** tab with an opt-in **Record while active** toggle plus manual pause/resume. When enabled (and permission granted), Jiminy captures downsampled still images into `<contextFolderPath>/jiminy/stills/session-<timestamp>/` with a `manifest.json` describing captures and stop reason.
+-   While recording is active, clipboard text is mirrored to `<contextFolderPath>/jiminy/stills-markdown/session-<timestamp>/<timestamp>.clipboard.txt`.
 -   Global hotkeys trigger still capture pause/resume (`Command+R`) on macOS (Electron accelerator `CommandOrControl+R`).
 
 ## Local OCR (Apple Vision)
 
-Screen stills can be converted to markdown using local-only Apple Vision OCR (no API key).
+Recorded still images can be converted to markdown using local-only Apple Vision OCR (no API key).
 
 Dev helper scripts (from repo root):
 

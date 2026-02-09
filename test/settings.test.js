@@ -23,7 +23,7 @@ test('saveSettings persists contextFolderPath', () => {
   assert.equal(loaded.contextFolderPath, contextDir)
 })
 
-test('saveSettings persists llm_provider api_key/provider and preserves context', () => {
+test('saveSettings persists stills_markdown_extractor.llm_provider api_key/provider and preserves context', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')
   const contextDir = path.join(tempRoot, 'context')
@@ -34,11 +34,11 @@ test('saveSettings persists llm_provider api_key/provider and preserves context'
 
   const loaded = loadSettings({ settingsDir })
   assert.equal(loaded.contextFolderPath, contextDir)
-  assert.equal(loaded.llm_provider?.provider, 'gemini')
-  assert.equal(loaded.llm_provider?.api_key, 'test-key')
+  assert.equal(loaded.stills_markdown_extractor?.llm_provider?.provider, 'gemini')
+  assert.equal(loaded.stills_markdown_extractor?.llm_provider?.api_key, 'test-key')
 })
 
-test('saveSettings preserves llm_provider api_key/provider when updating context path', () => {
+test('saveSettings preserves stills_markdown_extractor.llm_provider api_key/provider when updating context path', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')
   const contextDir = path.join(tempRoot, 'context')
@@ -49,8 +49,8 @@ test('saveSettings preserves llm_provider api_key/provider when updating context
 
   const loaded = loadSettings({ settingsDir })
   assert.equal(loaded.contextFolderPath, contextDir)
-  assert.equal(loaded.llm_provider?.provider, 'openai')
-  assert.equal(loaded.llm_provider?.api_key, 'keep-me')
+  assert.equal(loaded.stills_markdown_extractor?.llm_provider?.provider, 'openai')
+  assert.equal(loaded.stills_markdown_extractor?.llm_provider?.api_key, 'keep-me')
 })
 
 test('validateContextFolderPath rejects missing directory', () => {
@@ -121,8 +121,8 @@ test('saveSettings preserves other settings when updating hotkeys', () => {
   const loaded = loadSettings({ settingsDir })
   assert.equal(loaded.recordingHotkey, 'CommandOrControl+Alt+X')
   assert.equal(loaded.contextFolderPath, contextDir)
-  assert.equal(loaded.llm_provider?.api_key, 'key123')
-  assert.equal(loaded.llm_provider?.provider, 'openai')
+  assert.equal(loaded.stills_markdown_extractor?.llm_provider?.api_key, 'key123')
+  assert.equal(loaded.stills_markdown_extractor?.llm_provider?.provider, 'openai')
 })
 
 test('saveSettings preserves updateLastCheckedAt when updating other settings', () => {

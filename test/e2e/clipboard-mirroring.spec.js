@@ -8,7 +8,7 @@ const { JIMINY_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME, STILLS_MARKDOWN_DIR_
 
 test.describe('clipboard mirroring', () => {
   test('mirrors clipboard text into the current stills-markdown session while recording', async () => {
-    test.skip(process.platform !== 'darwin', 'Clipboard mirroring is tied to screen stills recording (macOS-only in E2E).')
+    test.skip(process.platform !== 'darwin', 'Clipboard mirroring is tied to recording (macOS-only in E2E).')
 
     const appRoot = path.join(__dirname, '../..')
     const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-context-clipboard-'))
@@ -48,7 +48,7 @@ test.describe('clipboard mirroring', () => {
 
       const startResult = await window.evaluate(() => window.jiminy.startScreenStills())
       if (!startResult || startResult.ok !== true) {
-        test.skip(true, startResult?.message || 'Unable to start screen stills in this environment.')
+        test.skip(true, startResult?.message || 'Unable to start recording in this environment.')
       }
 
       const stillsRoot = path.join(contextPath, JIMINY_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME)
@@ -82,4 +82,3 @@ test.describe('clipboard mirroring', () => {
     }
   })
 })
-

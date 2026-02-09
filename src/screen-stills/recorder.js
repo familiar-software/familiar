@@ -83,24 +83,24 @@ function createRecorder(options = {}) {
 
     windowReadyPromise = new Promise(function (resolve) {
       captureWindow.webContents.once('did-finish-load', function () {
-        logger.log('Screen stills renderer loaded', {
+        logger.log('Recording renderer loaded', {
           url: captureWindow?.webContents?.getURL?.()
         });
         resolve();
       });
       captureWindow.webContents.once('did-fail-load', function (_event, code, description) {
-        logger.error('Screen stills renderer failed to load', { code, description });
+        logger.error('Recording renderer failed to load', { code, description });
       });
     });
 
     captureWindow.loadFile(path.join(__dirname, 'stills.html'));
 
     captureWindow.webContents.on('render-process-gone', function (_event, details) {
-      logger.error('Screen stills renderer process gone', details);
+      logger.error('Recording renderer process gone', details);
     });
 
     captureWindow.webContents.on('unresponsive', function () {
-      logger.error('Screen stills renderer became unresponsive');
+      logger.error('Recording renderer became unresponsive');
     });
 
     captureWindow.on('closed', function () {
@@ -114,7 +114,7 @@ function createRecorder(options = {}) {
     const deadline = Date.now() + START_TIMEOUT_MS;
     while (!rendererReady) {
       if (Date.now() > deadline) {
-        throw new Error('Stills renderer did not become ready.');
+        throw new Error('Recording renderer did not become ready.');
       }
       await new Promise(function (resolve) {
         setTimeout(resolve, 50);
@@ -260,7 +260,7 @@ function createRecorder(options = {}) {
 
   async function start({ contextFolderPath } = {}) {
     if (sessionStore) {
-      logger.log('Screen stills already active; start skipped');
+      logger.log('Recording already active; start skipped');
       return {
         ok: true,
         alreadyRecording: true,
@@ -269,7 +269,7 @@ function createRecorder(options = {}) {
       };
     }
     if (!contextFolderPath) {
-      throw new Error('Context folder path missing for stills.');
+      throw new Error('Context folder path missing for recording.');
     }
     if (!isScreenRecordingPermissionGranted()) {
       throw new Error('Screen Recording permission is not granted. Enable Jiminy in System Settings \u2192 Privacy & Security \u2192 Screen Recording.');
@@ -290,7 +290,7 @@ function createRecorder(options = {}) {
     });
     queueStore = createStillsQueue({ contextFolderPath, logger });
 
-    logger.log('Screen stills session started', { sessionDir: sessionStore.sessionDir });
+    logger.log('Recording session started', { sessionDir: sessionStore.sessionDir });
 
     const window = await ensureWindowReady();
     const requestId = randomUUID();
@@ -339,7 +339,7 @@ function createRecorder(options = {}) {
           captureWindow.webContents.send('screen-stills:stop', { requestId });
           await waitForStatus(requestId, STOP_TIMEOUT_MS, ['stopped']);
         } catch (error) {
-          logger.error('Failed to stop stills capture', error);
+          logger.error('Failed to stop recording capture', error);
         }
       }
 
@@ -350,7 +350,7 @@ function createRecorder(options = {}) {
         queueStore.close();
         queueStore = null;
       }
-      logger.log('Screen stills session stopped', { reason: stopReason });
+      logger.log('Recording session stopped', { reason: stopReason });
 
       sessionStore = null;
       sourceDetails = null;
@@ -370,7 +370,7 @@ function createRecorder(options = {}) {
         return;
       }
       rendererReady = true;
-      logger.log('Screen stills renderer ready');
+      logger.log('Recording renderer ready');
     });
 
     ipcMain.on('screen-stills:status', function (_event, payload) {
@@ -378,13 +378,13 @@ function createRecorder(options = {}) {
       const pending = requestId ? pendingRequests.get(requestId) : null;
       if (!pending) {
         if (payload?.status === 'error') {
-          logger.error('Screen stills error', payload);
+          logger.error('Recording error', payload);
         }
         return;
       }
 
       if (payload.status === 'error') {
-        pending.reject(new Error(payload.message || 'Stills capture failed.'));
+        pending.reject(new Error(payload.message || 'Recording capture failed.'));
         return;
       }
 
@@ -394,7 +394,7 @@ function createRecorder(options = {}) {
       }
     });
   } else {
-    logger.warn('IPC unavailable; screen stills status listener not registered');
+    logger.warn('IPC unavailable; recording status listener not registered');
   }
 
   function recover(contextFolderPath) {

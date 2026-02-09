@@ -23,8 +23,8 @@ function handleGetSettings() {
         const isFirstRun = !fs.existsSync(settingsPath);
         const settings = loadSettings();
         const contextFolderPath = settings.contextFolderPath || '';
-        const llmProviderName = settings?.llm_provider?.provider || '';
-        const llmProviderApiKey = settings?.llm_provider?.api_key || '';
+        const llmProviderName = settings?.stills_markdown_extractor?.llm_provider?.provider || '';
+        const llmProviderApiKey = settings?.stills_markdown_extractor?.llm_provider?.api_key || '';
         const stillsMarkdownExtractorType = settings?.stills_markdown_extractor?.type || 'llm';
         const recordingHotkey = typeof settings.recordingHotkey === 'string' ? settings.recordingHotkey : DEFAULT_RECORDING_HOTKEY;
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;

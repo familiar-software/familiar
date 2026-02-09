@@ -21,7 +21,7 @@ function createSessionStore({
   logger = console
 } = {}) {
   if (!contextFolderPath) {
-    throw new Error('Context folder path is required to create a stills session.');
+    throw new Error('Context folder path is required to create a recording session.');
   }
 
   const sessionTimestamp = formatTimestamp(new Date());
@@ -72,7 +72,7 @@ function createSessionStore({
   }
 
   writeManifest();
-  logger.log('Screen stills manifest created', { manifestPath });
+  logger.log('Recording manifest created', { manifestPath });
 
   return {
     sessionDir,
@@ -111,10 +111,10 @@ function recoverIncompleteSessions(contextFolderPath, logger = console) {
         manifest.stopReason = manifest.stopReason || 'crash';
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
         updatedCount += 1;
-        logger.warn('Recovered incomplete stills session', { manifestPath });
+        logger.warn('Recovered incomplete recording session', { manifestPath });
       }
     } catch (error) {
-      logger.error('Failed to recover stills manifest', { manifestPath, error });
+      logger.error('Failed to recover recording manifest', { manifestPath, error });
     }
   }
 

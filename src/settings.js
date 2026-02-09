@@ -53,9 +53,13 @@ const saveSettings = (settings, options = {}) => {
     const hasUpdateLastCheckedAt = Object.prototype.hasOwnProperty.call(settings, 'updateLastCheckedAt');
     const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(settings, 'recordingHotkey');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(settings, 'alwaysRecordWhenActive');
-    const existingProvider = existing && typeof existing.llm_provider === 'object' ? existing.llm_provider : {};
     const existingStillsExtractor =
         existing && typeof existing.stills_markdown_extractor === 'object' ? existing.stills_markdown_extractor : {};
+    const existingStillsExtractorLlmProvider =
+        existingStillsExtractor && typeof existingStillsExtractor.llm_provider === 'object'
+            ? existingStillsExtractor.llm_provider
+            : {};
+    const existingProvider = existingStillsExtractorLlmProvider;
     const contextFolderPath = hasContextFolderPath
         ? typeof settings.contextFolderPath === 'string'
             ? settings.contextFolderPath
@@ -66,27 +70,8 @@ const saveSettings = (settings, options = {}) => {
 
     fs.mkdirSync(settingsDir, { recursive: true });
     const payload = { contextFolderPath };
-    if (hasLlmProviderApiKey || hasLlmProviderName || hasLlmProviderTextModel || hasLlmProviderVisionModel) {
-        payload.llm_provider = { ...existingProvider };
-        if (hasLlmProviderApiKey) {
-            payload.llm_provider.api_key =
-                typeof settings.llmProviderApiKey === 'string' ? settings.llmProviderApiKey : '';
-        }
-        if (hasLlmProviderName) {
-            payload.llm_provider.provider =
-                typeof settings.llmProviderName === 'string' ? settings.llmProviderName : '';
-        }
-        if (hasLlmProviderTextModel) {
-            payload.llm_provider.text_model =
-                typeof settings.llmProviderTextModel === 'string' ? settings.llmProviderTextModel : '';
-        }
-        if (hasLlmProviderVisionModel) {
-            payload.llm_provider.vision_model =
-                typeof settings.llmProviderVisionModel === 'string' ? settings.llmProviderVisionModel : '';
-        }
-    } else if (Object.keys(existingProvider).length > 0) {
-        payload.llm_provider = { ...existingProvider };
-    }
+    const hasAnyLlmProviderField =
+        hasLlmProviderApiKey || hasLlmProviderName || hasLlmProviderTextModel || hasLlmProviderVisionModel;
 
     if (hasStillsMarkdownExtractorType) {
         const rawType =
@@ -108,8 +93,36 @@ const saveSettings = (settings, options = {}) => {
                 payload.stills_markdown_extractor.languages = [];
             }
         }
-    } else if (Object.keys(existingStillsExtractor).length > 0) {
+    } else if (Object.keys(existingStillsExtractor).length > 0 || hasAnyLlmProviderField) {
         payload.stills_markdown_extractor = { ...existingStillsExtractor };
+    }
+
+    if (hasAnyLlmProviderField) {
+        if (!payload.stills_markdown_extractor || typeof payload.stills_markdown_extractor !== 'object') {
+            payload.stills_markdown_extractor = { type: 'llm' };
+        }
+        payload.stills_markdown_extractor.llm_provider = { ...existingProvider };
+        if (hasLlmProviderApiKey) {
+            payload.stills_markdown_extractor.llm_provider.api_key =
+                typeof settings.llmProviderApiKey === 'string' ? settings.llmProviderApiKey : '';
+        }
+        if (hasLlmProviderName) {
+            payload.stills_markdown_extractor.llm_provider.provider =
+                typeof settings.llmProviderName === 'string' ? settings.llmProviderName : '';
+        }
+        if (hasLlmProviderTextModel) {
+            payload.stills_markdown_extractor.llm_provider.text_model =
+                typeof settings.llmProviderTextModel === 'string' ? settings.llmProviderTextModel : '';
+        }
+        if (hasLlmProviderVisionModel) {
+            payload.stills_markdown_extractor.llm_provider.vision_model =
+                typeof settings.llmProviderVisionModel === 'string' ? settings.llmProviderVisionModel : '';
+        }
+    } else if (Object.keys(existingProvider).length > 0) {
+        if (!payload.stills_markdown_extractor || typeof payload.stills_markdown_extractor !== 'object') {
+            payload.stills_markdown_extractor = { ...existingStillsExtractor };
+        }
+        payload.stills_markdown_extractor.llm_provider = { ...existingProvider };
     }
 
     if (hasRecordingHotkey) {

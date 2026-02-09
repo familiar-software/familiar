@@ -96,7 +96,10 @@ test('stills markdown worker pauses when offline', async () => {
     runImmediately: false,
     isOnlineImpl: async () => false,
     loadSettingsImpl: () => ({
-      llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
+      stills_markdown_extractor: {
+        type: 'llm',
+        llm_provider: { provider: 'openai', api_key: 'key', vision_model: 'gpt-4o-mini' }
+      }
     }),
     createQueueImpl: () => queue,
   })

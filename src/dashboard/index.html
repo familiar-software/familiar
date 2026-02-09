@@ -74,7 +74,7 @@
                 <rect x="3" y="7" width="13" height="10" rx="2" />
                 <path d="M16 9.5 21 7v10l-5-2.5" />
               </svg>
-              Screen Stills
+              Recording
             </button>
             <button
               class="sidebar-item"
@@ -160,7 +160,7 @@
                 <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Privacy & Data</h3>
                 <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                   Jiminy is designed to be local-first. Your Context Folder is the source of truth.
-                  By default, generating results from screen stills sends still images to the AI provider you configure, but you can switch "Stills extraction" to Local OCR to keep still processing on-device.
+                  By default, generating results from recordings sends still images to the AI provider you configure, but you can switch "Stills extraction" to Local OCR to keep still processing on-device.
                 </p>
               </section>
 
@@ -168,7 +168,7 @@
                 <label class="section-label">Where Your Data Lives</label>
                 <ul class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed list-disc pl-4 space-y-1">
                   <li>Everything is saved under <span class="font-mono text-zinc-700 dark:text-zinc-200">&lt;Context Folder&gt;/jiminy/</span>.</li>
-                  <li>Screen still images: <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/stills/</span>.</li>
+                  <li>Recorded still images: <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/stills/</span>.</li>
                   <li>Extracted stills markdown: <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/stills-markdown/</span>.</li>
                   <li>Clipboard text (while recording): <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/stills-markdown/session-*/&lt;timestamp&gt;.clipboard.txt</span>.</li>
                   <li>Settings file: <span class="font-mono text-zinc-700 dark:text-zinc-200">~/.jiminy/settings.json</span>.</li>
@@ -185,16 +185,16 @@
               </section>
 
               <section class="space-y-2">
-                <label class="section-label">Screen Stills Behavior</label>
+                <label class="section-label">Recording Behavior</label>
                 <ul class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed list-disc pl-4 space-y-1">
                   <li>When enabled, Jiminy captures a still every few seconds while you are active.</li>
                   <li>It stops when your Mac is idle.</li>
-                  <li>You can pause for 10 minutes from the tray menu or the Toggle Stills hotkey.</li>
+                  <li>You can pause for 10 minutes from the tray menu or the Toggle Recording hotkey.</li>
                 </ul>
               </section>
             </section>
 
-            <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Stills settings" class="space-y-6 hidden">
+            <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Recording settings" class="space-y-6 hidden">
               <section class="space-y-2">
                 <div class="flex items-start justify-between gap-4">
                   <div class="space-y-1">
@@ -294,7 +294,7 @@
 	                  <span id="llm-api-key-status" data-setting-status="llm-api-key-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
 	                </div>
 	                <p class="text-xs text-zinc-500 dark:text-zinc-400">
-	                  Used to extract text from screen stills when "Stills extraction" is set to AI.
+	                  Used to extract text from still images captured during recording when "Stills extraction" is set to AI.
 	                </p>
 	              </section>
 	            </section>
@@ -323,7 +323,7 @@
 
               <div class="space-y-3">
                 <div class="flex items-center gap-3">
-                  <label for="recording-hotkey" class="text-xs uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Toggle Stills</label>
+                  <label for="recording-hotkey" class="text-xs uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Toggle Recording</label>
                   <button
                     id="recording-hotkey"
                     type="button"
@@ -424,7 +424,7 @@
               <div data-wizard-step="2" class="max-w-[360px] mx-auto space-y-5 hidden">
                 <div class="text-center space-y-1">
                   <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Connect an AI provider</h3>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Used to extract text from screen stills and to analyze captures.</p>
+                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Used to extract text from still images captured during recording.</p>
                 </div>
                 <section class="space-y-2">
                   <label for="wizard-llm-provider" class="section-label">Provider</label>
@@ -459,7 +459,7 @@
 
               <div data-wizard-step="3" class="max-w-[360px] mx-auto space-y-5 hidden">
                 <div class="text-center space-y-1">
-                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enable screen stills</h3>
+                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enable recording</h3>
                   <p class="text-xs text-zinc-500 dark:text-zinc-400">Captures a still while you are active, and stops when idle. Requires Screen Recording permission.</p>
                 </div>
                 <section class="space-y-2">
@@ -522,8 +522,8 @@
                   <p class="text-xs text-zinc-500 dark:text-zinc-400">Confirm shortcuts for the tools you will use most.</p>
                 </div>
                 <div class="space-y-3">
-                  <div class="flex items-center gap-3">
-                    <label for="wizard-recording-hotkey" class="text-xs uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Toggle Stills</label>
+                <div class="flex items-center gap-3">
+                    <label for="wizard-recording-hotkey" class="text-xs uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Toggle Recording</label>
                     <button
                       id="wizard-recording-hotkey"
                       type="button"

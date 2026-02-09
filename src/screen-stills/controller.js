@@ -55,7 +55,7 @@ function createScreenStillsController(options = {}) {
       }
       activeSessionId = null;
     }
-    logger.log('Screen stills state change', {
+    logger.log('Recording state change', {
       from: prevState,
       to: nextState,
       ...details
@@ -76,7 +76,7 @@ function createScreenStillsController(options = {}) {
     }
     const validation = validateContext();
     if (!validation.ok) {
-      logger.warn('Screen stills disabled: invalid context folder path', {
+      logger.warn('Recording disabled: invalid context folder path', {
         message: validation.message
       });
       onError({ message: validation.message, reason: 'invalid-context' });
@@ -117,7 +117,7 @@ function createScreenStillsController(options = {}) {
         return;
       }
       manualPaused = false;
-      logger.log('Screen stills pause window elapsed', { durationMs: pauseDurationMs });
+      logger.log('Recording pause window elapsed', { durationMs: pauseDurationMs });
       syncPresenceState('pause-elapsed');
     }, pauseDurationMs);
     if (pauseTimer && typeof pauseTimer.unref === 'function') {
@@ -140,12 +140,12 @@ function createScreenStillsController(options = {}) {
       const result = await recorder.start({ contextFolderPath: settings.contextFolderPath });
       activeSessionId = typeof result?.sessionId === 'string' ? result.sessionId : null;
       if (state !== STATES.RECORDING) {
-        logger.log('Clipboard mirror start skipped: stills not recording', { state });
+        logger.log('Clipboard mirror start skipped: recording not active', { state });
         activeSessionId = null;
         return;
       }
       if (!activeSessionId) {
-        logger.warn('Clipboard mirror disabled: missing stills session id');
+        logger.warn('Clipboard mirror disabled: missing recording session id');
       } else if (clipboardMirror && typeof clipboardMirror.start === 'function') {
         clipboardMirror.start({
           contextFolderPath: settings.contextFolderPath,
@@ -153,8 +153,8 @@ function createScreenStillsController(options = {}) {
         });
       }
     } catch (error) {
-      logger.error('Failed to start screen stills', error);
-      onError({ message: error?.message || 'Failed to start screen stills.', reason: 'start-failed' });
+      logger.error('Failed to start recording', error);
+      onError({ message: error?.message || 'Failed to start recording.', reason: 'start-failed' });
       if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
         clipboardMirror.stop('start-failed');
       }
@@ -171,8 +171,8 @@ function createScreenStillsController(options = {}) {
     try {
       await recorder.stop({ reason });
     } catch (error) {
-      logger.error('Failed to stop screen stills', error);
-      onError({ message: error?.message || 'Failed to stop screen stills.', reason: 'stop-failed' });
+      logger.error('Failed to stop recording', error);
+      onError({ message: error?.message || 'Failed to stop recording.', reason: 'stop-failed' });
     }
     markdownWorker.stop();
     if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
@@ -212,7 +212,7 @@ function createScreenStillsController(options = {}) {
     }
     const presenceState = presenceMonitor.getState().state;
     if (presenceState === 'active') {
-      logger.log('Screen stills presence active; syncing state', { reason });
+      logger.log('Recording presence active; syncing state', { reason });
       handleActive();
     }
   }
@@ -229,7 +229,7 @@ function createScreenStillsController(options = {}) {
     const nextIdleSeconds = Number.isFinite(idleSeconds) && idleSeconds >= 0
       ? idleSeconds
       : idleThresholdSeconds + 1;
-    logger.log('Screen stills idle simulation', { idleSeconds: nextIdleSeconds });
+    logger.log('Recording idle simulation', { idleSeconds: nextIdleSeconds });
     handleIdle({ idleSeconds: nextIdleSeconds });
   }
 
@@ -296,7 +296,7 @@ function createScreenStillsController(options = {}) {
     manualPaused = false;
     clearPauseTimer();
     if (wasPaused) {
-      logger.log('Screen stills resumed manually');
+      logger.log('Recording resumed manually');
     }
     await startRecording('manual');
     return { ok: true };
@@ -308,7 +308,7 @@ function createScreenStillsController(options = {}) {
     }
     if (manualPaused) {
       schedulePauseResume();
-      logger.log('Screen stills pause extended', { durationMs: pauseDurationMs });
+      logger.log('Recording pause extended', { durationMs: pauseDurationMs });
       return { ok: true, alreadyPaused: true };
     }
     if (state !== STATES.RECORDING && state !== STATES.IDLE_GRACE) {
@@ -317,7 +317,7 @@ function createScreenStillsController(options = {}) {
     manualPaused = true;
     pendingStart = false;
     schedulePauseResume();
-    logger.log('Screen stills paused manually', { durationMs: pauseDurationMs });
+    logger.log('Recording paused manually', { durationMs: pauseDurationMs });
     await stopRecording('manual-pause');
     return { ok: true };
   }

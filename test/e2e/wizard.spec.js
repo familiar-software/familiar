@@ -101,8 +101,8 @@ test('wizard happy flow completes setup and routes to General', async () => {
     const settingsPath = path.join(settingsDir, 'settings.json')
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
     expect(stored.contextFolderPath).toBe(path.resolve(contextPath))
-    expect(stored.llm_provider.provider).toBe('gemini')
-    expect(stored.llm_provider.api_key).toBe('test-key')
+    expect(stored.stills_markdown_extractor.llm_provider.provider).toBe('gemini')
+    expect(stored.stills_markdown_extractor.llm_provider.api_key).toBe('test-key')
     expect(stored.alwaysRecordWhenActive ?? false).toBe(false)
   } finally {
     await (await electronApp).close()

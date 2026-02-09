@@ -15,7 +15,7 @@ test('buildTrayMenuTemplate returns the expected items', () => {
     const labels = template.filter((item) => item.label).map((item) => item.label);
 
     assert.deepEqual(labels, [
-        'Start Screen Stills',
+        'Start Recording',
         'Settings',
         'About',
         'Restart',
@@ -90,7 +90,7 @@ test('recording item click does not trigger settings', () => {
         onQuit: () => {},
     });
 
-    const recordingItem = template.find((item) => item.label === 'Start Screen Stills');
+    const recordingItem = template.find((item) => item.label === 'Start Recording');
     assert.ok(recordingItem);
 
     recordingItem.click();
@@ -109,7 +109,7 @@ test('buildTrayMenuTemplate applies accelerators when provided', () => {
         recordingAccelerator: 'CommandOrControl+R',
     });
 
-    const recordingItem = template.find((item) => item.label === 'Start Screen Stills');
+    const recordingItem = template.find((item) => item.label === 'Start Recording');
 
     assert.equal(recordingItem.accelerator, 'CommandOrControl+R');
 });
@@ -124,7 +124,7 @@ test('buildTrayMenuTemplate omits accelerators when empty', () => {
         recordingAccelerator: '',
     });
 
-    const recordingItem = template.find((item) => item.label === 'Start Screen Stills');
+    const recordingItem = template.find((item) => item.label === 'Start Recording');
 
     assert.equal(recordingItem.accelerator, undefined);
 });
@@ -139,7 +139,7 @@ test('buildTrayMenuTemplate uses resume label when paused', () => {
         recordingPaused: true,
     });
 
-    const recordingItem = template.find((item) => item.label === 'Resume Screen Stills');
+    const recordingItem = template.find((item) => item.label === 'Resume Recording');
 
     assert.ok(recordingItem);
 });

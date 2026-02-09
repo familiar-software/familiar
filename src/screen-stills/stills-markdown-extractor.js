@@ -40,12 +40,12 @@ const createLlmVisionExtractor = ({
   inferMimeTypeImpl = inferMimeType,
   createModelProviderClientsImpl = createModelProviderClients
 } = {}) => {
-  const provider = settings?.llm_provider?.provider || ''
-  const apiKey = settings?.llm_provider?.api_key || ''
-  const model =
-    typeof settings?.llm_provider?.vision_model === 'string' && settings.llm_provider.vision_model.trim()
-      ? settings.llm_provider.vision_model
-      : undefined
+  const llmProvider = settings?.stills_markdown_extractor?.llm_provider || {}
+  const provider = llmProvider?.provider || ''
+  const apiKey = llmProvider?.api_key || ''
+  const model = typeof llmProvider?.vision_model === 'string' && llmProvider.vision_model.trim()
+    ? llmProvider.vision_model
+    : undefined
 
   const canRun = async () => {
     if (!provider) {

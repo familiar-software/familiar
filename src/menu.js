@@ -11,10 +11,10 @@ function buildTrayMenuTemplate ({
   const stillsState = recordingState && typeof recordingState === 'object' ? recordingState.state : ''
   const isRecording = stillsState === 'recording' || stillsState === 'idleGrace'
   const recordingLabel = recordingPaused
-    ? 'Resume Screen Stills'
+    ? 'Resume Recording'
     : isRecording
-      ? 'Pause Screen Stills (10 min)'
-      : 'Start Screen Stills'
+      ? 'Pause Recording (10 min)'
+      : 'Start Recording'
   const recordingItem = { label: recordingLabel, click: onRecordingPause }
   if (typeof recordingAccelerator === 'string' && recordingAccelerator) {
     recordingItem.accelerator = recordingAccelerator
