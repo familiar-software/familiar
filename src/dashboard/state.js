@@ -20,7 +20,6 @@
       isLlmApiKeySaved: false,
       currentSkillHarness: '',
       isSkillInstalled: false,
-      currentClipboardHotkey: defaults.clipboard || '',
       currentRecordingHotkey: defaults.recording || '',
       isFirstRun: false
     }
@@ -38,12 +37,8 @@
 
     function setHotkeyValue(role, value) {
       const nextValue = value || ''
-      switch (role) {
-        case 'recording':
-          state.currentRecordingHotkey = nextValue
-          return
-        default:
-          state.currentClipboardHotkey = nextValue
+      if (role === 'recording') {
+        state.currentRecordingHotkey = nextValue
       }
     }
 
@@ -128,7 +123,6 @@
         apis.hotkeysApi.setHotkeys(hotkeys)
         return
       }
-      setHotkeyValue('clipboard', hotkeys.clipboard)
       setHotkeyValue('recording', hotkeys.recording)
       updateWizardUI()
     }
@@ -150,7 +144,6 @@
         currentStillsMarkdownExtractorType: state.currentStillsMarkdownExtractorType,
         currentSkillHarness: state.currentSkillHarness,
         isSkillInstalled: state.isSkillInstalled,
-        currentClipboardHotkey: state.currentClipboardHotkey,
         currentRecordingHotkey: state.currentRecordingHotkey
       }
     }
@@ -177,7 +170,6 @@
 
     function getHotkeysState() {
       return {
-        currentClipboardHotkey: state.currentClipboardHotkey,
         currentRecordingHotkey: state.currentRecordingHotkey
       }
     }

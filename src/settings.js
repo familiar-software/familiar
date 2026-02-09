@@ -3,7 +3,7 @@ const path = require('node:path');
 const os = require('node:os');
 
 const { SETTINGS_DIR_NAME, SETTINGS_FILE_NAME } = require('./const');
-const { DEFAULT_CLIPBOARD_HOTKEY, DEFAULT_RECORDING_HOTKEY } = require('./hotkeys');
+const { DEFAULT_RECORDING_HOTKEY } = require('./hotkeys');
 
 const resolveSettingsDir = (settingsDir) =>
     settingsDir || process.env.JIMINY_SETTINGS_DIR || path.join(os.homedir(), SETTINGS_DIR_NAME);
@@ -50,7 +50,6 @@ const saveSettings = (settings, options = {}) => {
     const hasLlmProviderTextModel = Object.prototype.hasOwnProperty.call(settings, 'llmProviderTextModel');
     const hasLlmProviderVisionModel = Object.prototype.hasOwnProperty.call(settings, 'llmProviderVisionModel');
     const hasStillsMarkdownExtractorType = Object.prototype.hasOwnProperty.call(settings, 'stillsMarkdownExtractorType');
-    const hasClipboardHotkey = Object.prototype.hasOwnProperty.call(settings, 'clipboardHotkey');
     const hasUpdateLastCheckedAt = Object.prototype.hasOwnProperty.call(settings, 'updateLastCheckedAt');
     const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(settings, 'recordingHotkey');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(settings, 'alwaysRecordWhenActive');
@@ -111,13 +110,6 @@ const saveSettings = (settings, options = {}) => {
         }
     } else if (Object.keys(existingStillsExtractor).length > 0) {
         payload.stills_markdown_extractor = { ...existingStillsExtractor };
-    }
-
-    if (hasClipboardHotkey) {
-        payload.clipboardHotkey =
-            typeof settings.clipboardHotkey === 'string' ? settings.clipboardHotkey : DEFAULT_CLIPBOARD_HOTKEY;
-    } else if (typeof existing.clipboardHotkey === 'string') {
-        payload.clipboardHotkey = existing.clipboardHotkey;
     }
 
     if (hasRecordingHotkey) {

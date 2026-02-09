@@ -261,7 +261,12 @@ function createRecorder(options = {}) {
   async function start({ contextFolderPath } = {}) {
     if (sessionStore) {
       logger.log('Screen stills already active; start skipped');
-      return { ok: true, alreadyRecording: true };
+      return {
+        ok: true,
+        alreadyRecording: true,
+        sessionId: sessionStore.sessionId,
+        sessionDir: sessionStore.sessionDir
+      };
     }
     if (!contextFolderPath) {
       throw new Error('Context folder path missing for stills.');
@@ -312,7 +317,7 @@ function createRecorder(options = {}) {
 
     await captureNext();
     scheduleCaptureLoop();
-    return { ok: true };
+    return { ok: true, sessionId: sessionStore.sessionId, sessionDir: sessionStore.sessionDir };
   }
 
   async function stop({ reason } = {}) {

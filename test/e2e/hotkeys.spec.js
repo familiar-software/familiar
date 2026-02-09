@@ -28,7 +28,6 @@ test('hotkeys save regular and option combinations', async () => {
     await window.getByRole('tab', { name: 'Hotkeys' }).click()
 
     const recordingButton = window.locator('#recording-hotkey')
-    const clipboardButton = window.locator('#clipboard-hotkey')
 
     await recordingButton.click()
     await recordingButton.dispatchEvent('keydown', {
@@ -38,21 +37,12 @@ test('hotkeys save regular and option combinations', async () => {
       shiftKey: true
     })
 
-    await clipboardButton.click()
-    await clipboardButton.dispatchEvent('keydown', {
-      key: 'ø',
-      code: 'KeyO',
-      altKey: true
-    })
-
     await window.locator('#hotkeys-save').click()
     await expect(window.locator('#hotkeys-status')).toHaveText(/Saved/)
 
     const settingsPath = path.join(settingsDir, 'settings.json')
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
     expect(stored.recordingHotkey).toBe('CommandOrControl+Shift+O')
-    expect(stored.clipboardHotkey).toBe('Alt+O')
-    expect(stored.recordingHotkey).not.toBe(stored.clipboardHotkey)
   } finally {
     await electronApp.close()
   }

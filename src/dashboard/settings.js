@@ -45,7 +45,6 @@
       hotkeysStatuses = []
     } = elements
 
-    const DEFAULT_CLIPBOARD_HOTKEY = defaults.clipboard || 'CommandOrControl+J'
     const DEFAULT_RECORDING_HOTKEY = defaults.recording || 'CommandOrControl+R'
 
     const isReady = Boolean(jiminy.pickContextFolder && jiminy.saveSettings && jiminy.getSettings)
@@ -214,7 +213,6 @@
         setStillsMarkdownExtractorType(result.stillsMarkdownExtractorType || 'llm')
         setAlwaysRecordWhenActiveValue(result.alwaysRecordWhenActive === true)
         setHotkeys({
-          clipboard: result.clipboardHotkey || DEFAULT_CLIPBOARD_HOTKEY,
           recording: result.recordingHotkey || DEFAULT_RECORDING_HOTKEY
         })
         setMessage(contextFolderErrors, result.validationMessage || '')

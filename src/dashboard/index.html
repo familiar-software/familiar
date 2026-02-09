@@ -168,10 +168,9 @@
                 <label class="section-label">Where Your Data Lives</label>
                 <ul class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed list-disc pl-4 space-y-1">
                   <li>Everything is saved under <span class="font-mono text-zinc-700 dark:text-zinc-200">&lt;Context Folder&gt;/jiminy/</span>.</li>
-                  <li>Clipboard captures: <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/jiminy-captures/</span>.</li>
                   <li>Screen still images: <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/stills/</span>.</li>
                   <li>Extracted stills markdown: <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/stills-markdown/</span>.</li>
-                  <li>Analysis output: <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/analysis/</span>.</li>
+                  <li>Clipboard text (while recording): <span class="font-mono text-zinc-700 dark:text-zinc-200">jiminy/stills-markdown/session-*/&lt;timestamp&gt;.clipboard.txt</span>.</li>
                   <li>Settings file: <span class="font-mono text-zinc-700 dark:text-zinc-200">~/.jiminy/settings.json</span>.</li>
                 </ul>
               </section>
@@ -179,7 +178,7 @@
               <section class="space-y-2">
                 <label class="section-label">What Leaves Your Machine</label>
                 <ul class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed list-disc pl-4 space-y-1">
-                  <li>Jiminy only sends capture content to the AI provider you configure (for extraction/analysis).</li>
+                  <li>Jiminy only sends capture content to the AI provider you configure (for extraction).</li>
                   <li>Requests go directly from your Mac to that provider (not through a Jiminy server).</li>
                   <li>Besides your AI provider, nobody else receives your capture content.</li>
                 </ul>
@@ -295,7 +294,7 @@
 	                  <span id="llm-api-key-status" data-setting-status="llm-api-key-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
 	                </div>
 	                <p class="text-xs text-zinc-500 dark:text-zinc-400">
-	                  Used to analyze captures, and to extract text from screen stills when "Stills extraction" is set to AI.
+	                  Used to extract text from screen stills when "Stills extraction" is set to AI.
 	                </p>
 	              </section>
 	            </section>
@@ -331,16 +330,6 @@
                     class="hotkey-recorder flex-1 px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none font-mono text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                     data-hotkey=""
                     data-hotkey-role="recording"
-                  >Click to set...</button>
-                </div>
-                <div class="flex items-center gap-3">
-                  <label for="clipboard-hotkey" class="text-xs uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Capture Clipboard</label>
-                  <button
-                    id="clipboard-hotkey"
-                    type="button"
-                    class="hotkey-recorder flex-1 px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none font-mono text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                    data-hotkey=""
-                    data-hotkey-role="clipboard"
                   >Click to set...</button>
                 </div>
               </div>
@@ -541,16 +530,6 @@
                       class="hotkey-recorder flex-1 px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none font-mono text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                       data-hotkey=""
                       data-hotkey-role="recording"
-                    >Click to set...</button>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <label for="wizard-clipboard-hotkey" class="text-xs uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Capture Clipboard</label>
-                    <button
-                      id="wizard-clipboard-hotkey"
-                      type="button"
-                      class="hotkey-recorder flex-1 px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none font-mono text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                      data-hotkey=""
-                      data-hotkey-role="clipboard"
                     >Click to set...</button>
                   </div>
                 </div>

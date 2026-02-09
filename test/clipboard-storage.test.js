@@ -4,77 +4,86 @@ const os = require('node:os')
 const path = require('node:path')
 const fs = require('node:fs/promises')
 
-const { buildClipboardFilename, getClipboardDirectory, saveClipboardToDirectory } = require('../src/clipboard/storage')
 const {
-  CAPTURES_DIR_NAME,
-  JIMINY_BEHIND_THE_SCENES_DIR_NAME
+  buildClipboardMirrorFilename,
+  getClipboardMirrorDirectory,
+  saveClipboardMirrorToDirectory
+} = require('../src/clipboard/storage')
+const {
+  JIMINY_BEHIND_THE_SCENES_DIR_NAME,
+  STILLS_MARKDOWN_DIR_NAME
 } = require('../src/const')
 
-test('buildClipboardFilename uses a stable timestamp format with clipboard prefix', () => {
+test('buildClipboardMirrorFilename uses a stable timestamp format with clipboard suffix', () => {
   const date = new Date(2026, 0, 2, 3, 4, 5, 6)
-  const filename = buildClipboardFilename(date)
+  const filename = buildClipboardMirrorFilename(date)
 
-  assert.equal(filename, 'clipboard-2026-01-02_03-04-05-006.md')
+  assert.equal(filename, '2026-01-02_03-04-05-006.clipboard.txt')
 })
 
-test('getClipboardDirectory returns a path under the context folder', () => {
-  const dir = getClipboardDirectory('/tmp/context')
-  assert.equal(dir, path.join('/tmp/context', JIMINY_BEHIND_THE_SCENES_DIR_NAME, CAPTURES_DIR_NAME))
+test('getClipboardMirrorDirectory returns a path under the context folder and session', () => {
+  const dir = getClipboardMirrorDirectory('/tmp/context', 'session-123')
+  assert.equal(
+    dir,
+    path.join('/tmp/context', JIMINY_BEHIND_THE_SCENES_DIR_NAME, STILLS_MARKDOWN_DIR_NAME, 'session-123')
+  )
 })
 
-test('getClipboardDirectory returns null without a context folder', () => {
-  assert.equal(getClipboardDirectory(''), null)
-  assert.equal(getClipboardDirectory(null), null)
+test('getClipboardMirrorDirectory returns null without a context folder or session id', () => {
+  assert.equal(getClipboardMirrorDirectory('', 'session-123'), null)
+  assert.equal(getClipboardMirrorDirectory(null, 'session-123'), null)
+  assert.equal(getClipboardMirrorDirectory('/tmp/context', ''), null)
+  assert.equal(getClipboardMirrorDirectory('/tmp/context', null), null)
 })
 
-test('saveClipboardToDirectory writes text to the target directory', async () => {
+test('saveClipboardMirrorToDirectory writes text to the target directory', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiminy-clipboard-'))
   const nestedDir = path.join(tempDir, 'nested')
   const text = 'Test clipboard content\nwith multiple lines'
   const date = new Date(2026, 0, 2, 3, 4, 5, 6)
 
-  const result = await saveClipboardToDirectory(text, nestedDir, date)
+  const result = await saveClipboardMirrorToDirectory(text, nestedDir, date)
 
   assert.ok(result.path.startsWith(nestedDir))
-  assert.ok(result.path.endsWith('.md'))
-  assert.ok(result.filename.startsWith('clipboard-'))
+  assert.ok(result.path.endsWith('.clipboard.txt'))
+  assert.ok(result.filename.endsWith('.clipboard.txt'))
   const content = await fs.readFile(result.path, 'utf-8')
   assert.equal(content, text)
 })
 
-test('saveClipboardToDirectory stores clipboard under the context captures folder', async () => {
+test('saveClipboardMirrorToDirectory stores clipboard under the context stills-markdown session folder', async () => {
   const contextDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiminy-context-clipboard-'))
-  const clipboardDir = getClipboardDirectory(contextDir)
+  const clipboardDir = getClipboardMirrorDirectory(contextDir, 'session-abc')
   const text = 'Clipboard content for context folder test'
   const date = new Date(2026, 0, 2, 3, 4, 5, 6)
 
-  const result = await saveClipboardToDirectory(text, clipboardDir, date)
+  const result = await saveClipboardMirrorToDirectory(text, clipboardDir, date)
 
   assert.equal(path.dirname(result.path), clipboardDir)
 })
 
-test('saveClipboardToDirectory throws on invalid text', async () => {
+test('saveClipboardMirrorToDirectory throws on invalid text', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiminy-clipboard-invalid-'))
 
   await assert.rejects(
-    saveClipboardToDirectory(null, tempDir),
+    saveClipboardMirrorToDirectory(null, tempDir),
     { message: 'Clipboard text is missing or invalid.' }
   )
 
   await assert.rejects(
-    saveClipboardToDirectory(undefined, tempDir),
+    saveClipboardMirrorToDirectory(undefined, tempDir),
     { message: 'Clipboard text is missing or invalid.' }
   )
 })
 
-test('saveClipboardToDirectory throws on missing directory', async () => {
+test('saveClipboardMirrorToDirectory throws on missing directory', async () => {
   await assert.rejects(
-    saveClipboardToDirectory('test content', null),
-    { message: 'Clipboard directory is missing.' }
+    saveClipboardMirrorToDirectory('test content', null),
+    { message: 'Clipboard mirror directory is missing.' }
   )
 
   await assert.rejects(
-    saveClipboardToDirectory('test content', ''),
-    { message: 'Clipboard directory is missing.' }
+    saveClipboardMirrorToDirectory('test content', ''),
+    { message: 'Clipboard mirror directory is missing.' }
   )
 })

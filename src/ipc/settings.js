@@ -1,7 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('node:fs');
 const { loadSettings, resolveSettingsPath, saveSettings, validateContextFolderPath } = require('../settings');
-const { DEFAULT_CLIPBOARD_HOTKEY, DEFAULT_RECORDING_HOTKEY } = require('../hotkeys');
+const { DEFAULT_RECORDING_HOTKEY } = require('../hotkeys');
 const { getScreenRecordingPermissionStatus } = require('../screen-capture/permissions');
 
 let onSettingsSaved = null;
@@ -26,7 +26,6 @@ function handleGetSettings() {
         const llmProviderName = settings?.llm_provider?.provider || '';
         const llmProviderApiKey = settings?.llm_provider?.api_key || '';
         const stillsMarkdownExtractorType = settings?.stills_markdown_extractor?.type || 'llm';
-        const clipboardHotkey = typeof settings.clipboardHotkey === 'string' ? settings.clipboardHotkey : DEFAULT_CLIPBOARD_HOTKEY;
         const recordingHotkey = typeof settings.recordingHotkey === 'string' ? settings.recordingHotkey : DEFAULT_RECORDING_HOTKEY;
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
         const screenRecordingPermissionStatus = getScreenRecordingPermissionStatus();
@@ -49,7 +48,6 @@ function handleGetSettings() {
             llmProviderName,
             llmProviderApiKey,
             stillsMarkdownExtractorType,
-            clipboardHotkey,
             recordingHotkey,
             alwaysRecordWhenActive,
             screenRecordingPermissionStatus,
@@ -63,7 +61,6 @@ function handleGetSettings() {
             llmProviderName: '',
             llmProviderApiKey: '',
             stillsMarkdownExtractorType: 'llm',
-            clipboardHotkey: DEFAULT_CLIPBOARD_HOTKEY,
             recordingHotkey: DEFAULT_RECORDING_HOTKEY,
             alwaysRecordWhenActive: false,
             screenRecordingPermissionStatus: getScreenRecordingPermissionStatus(),
@@ -77,7 +74,6 @@ function handleSaveSettings(_event, payload) {
     const hasLlmProviderApiKey = Object.prototype.hasOwnProperty.call(payload || {}, 'llmProviderApiKey');
     const hasLlmProviderName = Object.prototype.hasOwnProperty.call(payload || {}, 'llmProviderName');
     const hasStillsMarkdownExtractorType = Object.prototype.hasOwnProperty.call(payload || {}, 'stillsMarkdownExtractorType');
-    const hasClipboardHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'clipboardHotkey');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(payload || {}, 'alwaysRecordWhenActive');
     const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'recordingHotkey');
     const settingsPayload = {};
@@ -87,7 +83,6 @@ function handleSaveSettings(_event, payload) {
         !hasLlmProviderApiKey &&
         !hasLlmProviderName &&
         !hasStillsMarkdownExtractorType &&
-        !hasClipboardHotkey &&
         !hasAlwaysRecordWhenActive &&
         !hasRecordingHotkey
     ) {
@@ -127,12 +122,6 @@ function handleSaveSettings(_event, payload) {
         settingsPayload.stillsMarkdownExtractorType = normalized === 'apple_vision_ocr' ? 'apple_vision_ocr' : 'llm';
     }
 
-    if (hasClipboardHotkey) {
-        settingsPayload.clipboardHotkey = typeof payload.clipboardHotkey === 'string'
-            ? payload.clipboardHotkey
-            : DEFAULT_CLIPBOARD_HOTKEY;
-    }
-
     if (hasRecordingHotkey) {
         settingsPayload.recordingHotkey = typeof payload.recordingHotkey === 'string'
             ? payload.recordingHotkey
@@ -164,7 +153,7 @@ function handleSaveSettings(_event, payload) {
                 console.error('Failed to notify settings update', error);
             }
         }
-        return { ok: true, hotkeysChanged: hasClipboardHotkey || hasRecordingHotkey };
+        return { ok: true, hotkeysChanged: hasRecordingHotkey };
     } catch (error) {
         console.error('Failed to save settings', error);
         return { ok: false, message: 'Failed to save settings.' };

@@ -71,35 +71,6 @@ const stubElectronWithFailure = () => {
     };
 };
 
-test('registerClipboardHotkey registers and invokes the handler', () => {
-    const { registrations, restore } = stubElectron();
-    resetHotkeysModule();
-    const hotkeys = require('../src/hotkeys');
-
-    let called = false;
-    const result = hotkeys.registerClipboardHotkey({
-        onClipboard: () => {
-            called = true;
-        },
-    });
-
-    assert.equal(result.ok, true);
-    assert.equal(result.accelerator, hotkeys.DEFAULT_CLIPBOARD_HOTKEY);
-    assert.equal(registrations.length, 1);
-    assert.equal(registrations[0].type, 'register');
-    assert.equal(registrations[0].accelerator, hotkeys.DEFAULT_CLIPBOARD_HOTKEY);
-
-    registrations[0].callback();
-    assert.equal(called, true);
-
-    hotkeys.unregisterGlobalHotkeys();
-    assert.equal(registrations[1].type, 'unregister');
-    assert.equal(registrations[1].accelerator, hotkeys.DEFAULT_CLIPBOARD_HOTKEY);
-
-    restore();
-    resetHotkeysModule();
-});
-
 test('registerRecordingHotkey registers and invokes the handler', () => {
     const { registrations, restore } = stubElectron();
     resetHotkeysModule();
@@ -129,27 +100,6 @@ test('registerRecordingHotkey registers and invokes the handler', () => {
     resetHotkeysModule();
 });
 
-test('registerClipboardHotkey reports failure when registration fails', () => {
-    const { registrations, restore } = stubElectronWithFailure();
-    resetHotkeysModule();
-    const hotkeys = require('../src/hotkeys');
-
-    const result = hotkeys.registerClipboardHotkey({
-        onClipboard: () => {},
-    });
-
-    assert.equal(result.ok, false);
-    assert.equal(result.reason, 'registration-failed');
-    assert.equal(registrations.length, 1);
-    assert.equal(registrations[0].type, 'register');
-
-    hotkeys.unregisterGlobalHotkeys();
-    assert.equal(registrations.length, 1);
-
-    restore();
-    resetHotkeysModule();
-});
-
 test('registerRecordingHotkey reports failure when registration fails', () => {
     const { registrations, restore } = stubElectronWithFailure();
     resetHotkeysModule();
@@ -171,20 +121,6 @@ test('registerRecordingHotkey reports failure when registration fails', () => {
     resetHotkeysModule();
 });
 
-test('registerClipboardHotkey returns missing-handler when no handler provided', () => {
-    const { restore } = stubElectron();
-    resetHotkeysModule();
-    const hotkeys = require('../src/hotkeys');
-
-    const result = hotkeys.registerClipboardHotkey({});
-
-    assert.equal(result.ok, false);
-    assert.equal(result.reason, 'missing-handler');
-
-    restore();
-    resetHotkeysModule();
-});
-
 test('registerRecordingHotkey returns missing-handler when no handler provided', () => {
     const { restore } = stubElectron();
     resetHotkeysModule();
@@ -199,48 +135,21 @@ test('registerRecordingHotkey returns missing-handler when no handler provided',
     resetHotkeysModule();
 });
 
-test('unregisterGlobalHotkeys unregisters clipboard and recording hotkeys', () => {
+test('unregisterGlobalHotkeys unregisters recording hotkey', () => {
     const { registrations, restore } = stubElectron();
     resetHotkeysModule();
     const hotkeys = require('../src/hotkeys');
 
-    hotkeys.registerClipboardHotkey({ onClipboard: () => {} });
     hotkeys.registerRecordingHotkey({ onRecording: () => {} });
 
-    assert.equal(registrations.length, 2);
-    assert.equal(registrations[0].accelerator, hotkeys.DEFAULT_CLIPBOARD_HOTKEY);
-    assert.equal(registrations[1].accelerator, hotkeys.DEFAULT_RECORDING_HOTKEY);
-
-    hotkeys.unregisterGlobalHotkeys();
-
-    assert.equal(registrations.length, 4);
-    assert.equal(registrations[2].type, 'unregister');
-    assert.equal(registrations[2].accelerator, hotkeys.DEFAULT_CLIPBOARD_HOTKEY);
-    assert.equal(registrations[3].type, 'unregister');
-    assert.equal(registrations[3].accelerator, hotkeys.DEFAULT_RECORDING_HOTKEY);
-
-    restore();
-    resetHotkeysModule();
-});
-
-test('registerClipboardHotkey uses custom accelerator', () => {
-    const { registrations, restore } = stubElectron();
-    resetHotkeysModule();
-    const hotkeys = require('../src/hotkeys');
-
-    const customAccelerator = 'Alt+Shift+C';
-    const result = hotkeys.registerClipboardHotkey({
-        onClipboard: () => {},
-        accelerator: customAccelerator,
-    });
-
-    assert.equal(result.ok, true);
-    assert.equal(result.accelerator, customAccelerator);
     assert.equal(registrations.length, 1);
-    assert.equal(registrations[0].accelerator, customAccelerator);
+    assert.equal(registrations[0].accelerator, hotkeys.DEFAULT_RECORDING_HOTKEY);
 
     hotkeys.unregisterGlobalHotkeys();
-    assert.equal(registrations[1].accelerator, customAccelerator);
+
+    assert.equal(registrations.length, 2);
+    assert.equal(registrations[1].type, 'unregister');
+    assert.equal(registrations[1].accelerator, hotkeys.DEFAULT_RECORDING_HOTKEY);
 
     restore();
     resetHotkeysModule();
@@ -264,23 +173,6 @@ test('registerRecordingHotkey uses custom accelerator', () => {
 
     hotkeys.unregisterGlobalHotkeys();
     assert.equal(registrations[1].accelerator, customAccelerator);
-
-    restore();
-    resetHotkeysModule();
-});
-
-test('registerClipboardHotkey returns disabled when accelerator is empty', () => {
-    const { restore } = stubElectron();
-    resetHotkeysModule();
-    const hotkeys = require('../src/hotkeys');
-
-    const result = hotkeys.registerClipboardHotkey({
-        onClipboard: () => {},
-        accelerator: '',
-    });
-
-    assert.equal(result.ok, false);
-    assert.equal(result.reason, 'disabled');
 
     restore();
     resetHotkeysModule();
@@ -326,15 +218,7 @@ test('hotkeys can be re-registered after unregistration (suspend/resume flow)', 
     const hotkeys = require('../src/hotkeys');
 
     // Initial registration
-    let clipboardCalled = false;
     let recordingCalled = false;
-
-    hotkeys.registerClipboardHotkey({
-        onClipboard: () => {
-            clipboardCalled = true;
-        },
-        accelerator: 'CommandOrControl+C',
-    });
     hotkeys.registerRecordingHotkey({
         onRecording: () => {
             recordingCalled = true;
@@ -342,19 +226,13 @@ test('hotkeys can be re-registered after unregistration (suspend/resume flow)', 
         accelerator: 'CommandOrControl+R',
     });
 
-    assert.equal(registrations.length, 2);
+    assert.equal(registrations.length, 1);
 
     // Suspend (unregister)
     hotkeys.unregisterGlobalHotkeys();
-    assert.equal(registrations.length, 4); // 2 register + 2 unregister
+    assert.equal(registrations.length, 2); // 1 register + 1 unregister
 
     // Resume (re-register with same accelerators)
-    const clipboardResult = hotkeys.registerClipboardHotkey({
-        onClipboard: () => {
-            clipboardCalled = true;
-        },
-        accelerator: 'CommandOrControl+C',
-    });
     const recordingResult = hotkeys.registerRecordingHotkey({
         onRecording: () => {
             recordingCalled = true;
@@ -362,14 +240,11 @@ test('hotkeys can be re-registered after unregistration (suspend/resume flow)', 
         accelerator: 'CommandOrControl+R',
     });
 
-    assert.equal(clipboardResult.ok, true);
     assert.equal(recordingResult.ok, true);
-    assert.equal(registrations.length, 6); // 2 register + 2 unregister + 2 register
+    assert.equal(registrations.length, 3); // 1 register + 1 unregister + 1 register
 
     // Verify callbacks still work
-    registrations[4].callback(); // clipboard
-    registrations[5].callback(); // recording
-    assert.equal(clipboardCalled, true);
+    registrations[2].callback(); // recording
     assert.equal(recordingCalled, true);
 
     hotkeys.unregisterGlobalHotkeys();
@@ -382,28 +257,21 @@ test('hotkeys can be re-registered with different accelerators after suspend', (
     resetHotkeysModule();
     const hotkeys = require('../src/hotkeys');
 
-    // Initial registration with default accelerators
-    hotkeys.registerClipboardHotkey({ onClipboard: () => {} });
+    // Initial registration with default accelerator
     hotkeys.registerRecordingHotkey({ onRecording: () => {} });
 
-    assert.equal(registrations[0].accelerator, hotkeys.DEFAULT_CLIPBOARD_HOTKEY);
-    assert.equal(registrations[1].accelerator, hotkeys.DEFAULT_RECORDING_HOTKEY);
+    assert.equal(registrations[0].accelerator, hotkeys.DEFAULT_RECORDING_HOTKEY);
 
     // Suspend
     hotkeys.unregisterGlobalHotkeys();
 
     // Resume with new accelerators
-    hotkeys.registerClipboardHotkey({
-        onClipboard: () => {},
-        accelerator: 'Alt+Shift+C',
-    });
     hotkeys.registerRecordingHotkey({
         onRecording: () => {},
         accelerator: 'Alt+Shift+R',
     });
 
-    assert.equal(registrations[4].accelerator, 'Alt+Shift+C');
-    assert.equal(registrations[5].accelerator, 'Alt+Shift+R');
+    assert.equal(registrations[2].accelerator, 'Alt+Shift+R');
 
     hotkeys.unregisterGlobalHotkeys();
     restore();
@@ -415,7 +283,6 @@ test('multiple suspend calls do not cause errors', () => {
     resetHotkeysModule();
     const hotkeys = require('../src/hotkeys');
 
-    hotkeys.registerClipboardHotkey({ onClipboard: () => {} });
     hotkeys.registerRecordingHotkey({ onRecording: () => {} });
 
     // First suspend
@@ -425,8 +292,8 @@ test('multiple suspend calls do not cause errors', () => {
     // Third suspend
     hotkeys.unregisterGlobalHotkeys();
 
-    // Should only have 2 register + 2 unregister
-    assert.equal(registrations.length, 4);
+    // Should only have 1 register + 1 unregister
+    assert.equal(registrations.length, 2);
 
     restore();
     resetHotkeysModule();
@@ -437,8 +304,8 @@ test('unregister only affects currently registered hotkeys', () => {
     resetHotkeysModule();
     const hotkeys = require('../src/hotkeys');
 
-    // Only register clipboard hotkey
-    hotkeys.registerClipboardHotkey({ onClipboard: () => {} });
+    // Only register recording hotkey
+    hotkeys.registerRecordingHotkey({ onRecording: () => {} });
 
     hotkeys.unregisterGlobalHotkeys();
 
@@ -446,7 +313,7 @@ test('unregister only affects currently registered hotkeys', () => {
     assert.equal(registrations.length, 2);
     assert.equal(registrations[0].type, 'register');
     assert.equal(registrations[1].type, 'unregister');
-    assert.equal(registrations[1].accelerator, hotkeys.DEFAULT_CLIPBOARD_HOTKEY);
+    assert.equal(registrations[1].accelerator, hotkeys.DEFAULT_RECORDING_HOTKEY);
 
     restore();
     resetHotkeysModule();

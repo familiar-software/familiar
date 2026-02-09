@@ -1,9 +1,16 @@
-const { captureClipboard } = require('./capture')
-const { buildClipboardFilename, getClipboardDirectory, saveClipboardToDirectory } = require('./storage')
+const { createClipboardMirror, DEFAULT_POLL_INTERVAL_MS } = require('./mirror')
+const {
+  buildTimestamp,
+  buildClipboardMirrorFilename,
+  getClipboardMirrorDirectory,
+  saveClipboardMirrorToDirectory
+} = require('./storage')
 
 module.exports = {
-  captureClipboard,
-  buildClipboardFilename,
-  getClipboardDirectory,
-  saveClipboardToDirectory
+  DEFAULT_POLL_INTERVAL_MS,
+  createClipboardMirror,
+  buildTimestamp,
+  buildClipboardMirrorFilename,
+  getClipboardMirrorDirectory,
+  saveClipboardMirrorToDirectory
 }

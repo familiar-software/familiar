@@ -149,7 +149,6 @@ const createElements = () => {
   const elements = {
     'advanced-toggle-btn': new TestElement(),
     'advanced-options': new TestElement(),
-    'clipboard-hotkey': new TestElement(),
     'recording-hotkey': new TestElement(),
     'context-folder-path': new TestElement(),
     'context-folder-choose': new TestElement(),
@@ -218,8 +217,6 @@ const createElements = () => {
   elements['updates-status'].dataset.settingStatus = 'updates-status'
   elements['updates-error'].dataset.settingError = 'updates-error'
 
-  elements['clipboard-hotkey'].dataset.hotkeyRole = 'clipboard'
-  elements['clipboard-hotkey'].classList.add('hotkey-recorder')
   elements['recording-hotkey'].dataset.hotkeyRole = 'recording'
   elements['recording-hotkey'].classList.add('hotkey-recorder')
   elements['hotkeys-save'].dataset.action = 'hotkeys-save'
@@ -444,7 +441,7 @@ test('hotkey recording surfaces suspend errors', async () => {
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    await elements['clipboard-hotkey'].click()
+    await elements['recording-hotkey'].click()
     await flushPromises()
 
     assert.equal(
@@ -477,10 +474,10 @@ test('hotkey recording surfaces resume errors', async () => {
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    await elements['clipboard-hotkey'].click()
+    await elements['recording-hotkey'].click()
     await flushPromises()
 
-    const keydown = elements['clipboard-hotkey']._listeners.keydown
+    const keydown = elements['recording-hotkey']._listeners.keydown
     await keydown({
       metaKey: true,
       key: 'K',

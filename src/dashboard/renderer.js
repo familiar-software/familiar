@@ -118,15 +118,10 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const updateProgressBar = document.getElementById('updates-progress-bar')
   const updateProgressLabel = document.getElementById('updates-progress-label')
 
-
   const hotkeyButtons = selectAll('.hotkey-recorder')
-  function isClipboardHotkey(button) {
-    return button.dataset.hotkeyRole === 'clipboard'
-  }
   function isRecordingHotkey(button) {
     return button.dataset.hotkeyRole === 'recording'
   }
-  const clipboardHotkeyButtons = hotkeyButtons.filter(isClipboardHotkey)
   const recordingHotkeyButtons = hotkeyButtons.filter(isRecordingHotkey)
   const hotkeysSaveButtons = selectAll('[data-action="hotkeys-save"]')
   const hotkeysResetButtons = selectAll('[data-action="hotkeys-reset"]')
@@ -138,7 +133,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const sectionNavButtons = selectAll('[data-section-target]')
   const sectionPanes = selectAll('[data-section-pane]')
 
-  const DEFAULT_CLIPBOARD_HOTKEY = 'CommandOrControl+J'
   const DEFAULT_RECORDING_HOTKEY = 'CommandOrControl+R'
 
   const apis = {
@@ -152,7 +146,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
 
   const state = createDashboardState({
     defaults: {
-      clipboard: DEFAULT_CLIPBOARD_HOTKEY,
       recording: DEFAULT_RECORDING_HOTKEY
     },
     elements: {
@@ -361,7 +354,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     },
     jiminy,
     defaults: {
-      clipboard: DEFAULT_CLIPBOARD_HOTKEY,
       recording: DEFAULT_RECORDING_HOTKEY
     },
     getState: state.getSettingsState,
@@ -393,7 +385,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     window,
     elements: {
       hotkeyButtons,
-      clipboardHotkeyButtons,
       recordingHotkeyButtons,
       hotkeysSaveButtons,
       hotkeysResetButtons,
@@ -406,7 +397,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     getState: state.getHotkeysState,
     setHotkeyValue: state.setHotkeyValue,
     defaults: {
-      clipboard: DEFAULT_CLIPBOARD_HOTKEY,
       recording: DEFAULT_RECORDING_HOTKEY
     }
   })

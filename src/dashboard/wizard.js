@@ -43,7 +43,7 @@
         case 4:
           return Boolean(state.isSkillInstalled)
         case 5:
-          return Boolean(state.currentClipboardHotkey || state.currentRecordingHotkey)
+          return Boolean(state.currentRecordingHotkey)
         default:
           return false
       }

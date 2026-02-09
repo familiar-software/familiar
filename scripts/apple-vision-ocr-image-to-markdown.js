@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
-const { writeExtractionFile } = require('../src/extraction/image');
+const { writeExtractionFile } = require('../src/utils/extraction-files');
 
 const execFileAsync = promisify(execFile);
 

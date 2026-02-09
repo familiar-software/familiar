@@ -6,7 +6,7 @@ const { RetryableError } = require('../utils/retry')
 const { createStillsQueue } = require('./stills-queue')
 const { createStillsMarkdownExtractor } = require('./stills-markdown-extractor')
 const { buildBatchPrompt, parseBatchResponse } = require('./stills-markdown-format')
-const { readImageAsBase64, inferMimeType } = require('../extraction/image')
+const { readImageAsBase64, inferMimeType } = require('../utils/image')
 const {
   JIMINY_BEHIND_THE_SCENES_DIR_NAME,
   STILLS_DIR_NAME,

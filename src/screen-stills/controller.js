@@ -2,6 +2,7 @@ const { validateContextFolderPath } = require('../settings');
 const { createPresenceMonitor } = require('../screen-capture/presence');
 const { createRecorder } = require('./recorder');
 const { createStillsMarkdownWorker } = require('./stills-markdown-worker');
+const { createClipboardMirror } = require('../clipboard/mirror');
 
 const DEFAULT_PAUSE_DURATION_MS = 10 * 60 * 1000;
 
@@ -29,6 +30,10 @@ function createScreenStillsController(options = {}) {
     createPresenceMonitor({ idleThresholdSeconds, logger });
   const recorder = options.recorder || createRecorder({ logger });
   const markdownWorker = options.markdownWorker || createStillsMarkdownWorker({ logger });
+  const clipboardMirror = options.clipboardMirror
+    || ((process.versions && process.versions.electron)
+      ? createClipboardMirror({ logger })
+      : null);
 
   let state = STATES.DISABLED;
   let settings = { enabled: false, contextFolderPath: '' };
@@ -37,13 +42,21 @@ function createScreenStillsController(options = {}) {
   let pendingStart = false;
   let manualPaused = false;
   let pauseTimer = null;
+  let activeSessionId = null;
 
   function setState(nextState, details = {}) {
     if (state === nextState) {
       return;
     }
+    const prevState = state;
+    if (prevState === STATES.RECORDING && nextState !== STATES.RECORDING) {
+      if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
+        clipboardMirror.stop(`state:${prevState}->${nextState}`);
+      }
+      activeSessionId = null;
+    }
     logger.log('Screen stills state change', {
-      from: state,
+      from: prevState,
       to: nextState,
       ...details
     });
@@ -124,10 +137,28 @@ function createScreenStillsController(options = {}) {
     setState(STATES.RECORDING, { source });
     try {
       markdownWorker.start({ contextFolderPath: settings.contextFolderPath });
-      await recorder.start({ contextFolderPath: settings.contextFolderPath });
+      const result = await recorder.start({ contextFolderPath: settings.contextFolderPath });
+      activeSessionId = typeof result?.sessionId === 'string' ? result.sessionId : null;
+      if (state !== STATES.RECORDING) {
+        logger.log('Clipboard mirror start skipped: stills not recording', { state });
+        activeSessionId = null;
+        return;
+      }
+      if (!activeSessionId) {
+        logger.warn('Clipboard mirror disabled: missing stills session id');
+      } else if (clipboardMirror && typeof clipboardMirror.start === 'function') {
+        clipboardMirror.start({
+          contextFolderPath: settings.contextFolderPath,
+          sessionId: activeSessionId
+        });
+      }
     } catch (error) {
       logger.error('Failed to start screen stills', error);
       onError({ message: error?.message || 'Failed to start screen stills.', reason: 'start-failed' });
+      if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
+        clipboardMirror.stop('start-failed');
+      }
+      activeSessionId = null;
       setState(settings.enabled ? STATES.ARMED : STATES.DISABLED, { reason: 'start-failed' });
     }
   }
@@ -144,6 +175,10 @@ function createScreenStillsController(options = {}) {
       onError({ message: error?.message || 'Failed to stop screen stills.', reason: 'stop-failed' });
     }
     markdownWorker.stop();
+    if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
+      clipboardMirror.stop(`stop:${reason || 'stop'}`);
+    }
+    activeSessionId = null;
 
     if (settings.enabled) {
       if (pendingStart) {
@@ -221,6 +256,10 @@ function createScreenStillsController(options = {}) {
       clearPauseTimer();
       stopPresence();
       markdownWorker.stop();
+      if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
+        clipboardMirror.stop('disabled');
+      }
+      activeSessionId = null;
       if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
         void stopRecording('disabled');
       }
@@ -231,6 +270,10 @@ function createScreenStillsController(options = {}) {
     if (!canRecord()) {
       stopPresence();
       markdownWorker.stop();
+      if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
+        clipboardMirror.stop('invalid-context');
+      }
+      activeSessionId = null;
       setState(STATES.DISABLED, { reason: 'invalid-context' });
       return;
     }
@@ -305,6 +348,10 @@ function createScreenStillsController(options = {}) {
       await recorder.stop({ reason });
     }
     markdownWorker.stop();
+    if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
+      clipboardMirror.stop(`shutdown:${reason}`);
+    }
+    activeSessionId = null;
     setState(STATES.DISABLED, { reason });
   }
 
@@ -313,6 +360,10 @@ function createScreenStillsController(options = {}) {
     manualPaused = false;
     clearPauseTimer();
     markdownWorker.stop();
+    if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
+      clipboardMirror.stop('dispose');
+    }
+    activeSessionId = null;
     presenceMonitor.off('active', handleActive);
     presenceMonitor.off('idle', handleIdle);
     presenceMonitor.off('lock', handleLock);
@@ -322,7 +373,7 @@ function createScreenStillsController(options = {}) {
   }
 
   function getState() {
-    return { ...settings, state, manualPaused };
+    return { ...settings, state, manualPaused, activeSessionId };
   }
 
   return {

@@ -64,13 +64,7 @@ test('hotkey re-registration triggers toast warnings on failure', async () => {
         }
         if (request === './hotkeys') {
             return {
-                DEFAULT_CLIPBOARD_HOTKEY: 'Cmd+Shift+C',
                 DEFAULT_RECORDING_HOTKEY: 'Cmd+Shift+R',
-                registerClipboardHotkey: () => ({
-                    ok: false,
-                    reason: 'registration-failed',
-                    accelerator: 'Cmd+Shift+C',
-                }),
                 registerRecordingHotkey: () => ({
                     ok: false,
                     reason: 'registration-failed',
@@ -86,19 +80,20 @@ test('hotkey re-registration triggers toast warnings on failure', async () => {
             request === './menu' ||
             request === './ipc' ||
             request === './clipboard' ||
-            request === './extraction' ||
-            request === './analysis' ||
             request === './utils/window' ||
-            request === './tray/busy'
+            request === './tray/refresh'
         ) {
             return {
                 buildTrayMenuTemplate: () => [],
                 registerIpcHandlers: () => {},
                 captureClipboard: async () => ({}),
-                registerExtractionHandlers: () => {},
-                registerAnalysisHandlers: () => {},
                 showWindow: () => ({ shown: false, reason: 'test', focused: false }),
-                registerTrayBusyIndicator: () => ({ dispose: () => {} }),
+                resolveHotkeyAccelerators: () => ({ recordingAccelerator: null }),
+                createTrayMenuController: () => ({
+                    refreshTrayMenuFromSettings: () => {},
+                    registerTrayRefreshHandlers: () => {},
+                    updateTrayMenu: () => {}
+                })
             };
         }
 
@@ -113,9 +108,8 @@ test('hotkey re-registration triggers toast warnings on failure', async () => {
         toastCalls.length = 0;
         await handlers['hotkeys:reregister']();
 
-        assert.equal(toastCalls.length, 2);
-        assert.equal(toastCalls[0].title, 'Clipboard hotkey inactive');
-        assert.equal(toastCalls[1].title, 'Screen stills hotkey inactive');
+        assert.equal(toastCalls.length, 1);
+        assert.equal(toastCalls[0].title, 'Screen stills hotkey inactive');
     } finally {
         Module._load = originalLoad;
         resetMainModule();

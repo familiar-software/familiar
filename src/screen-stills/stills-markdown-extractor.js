@@ -2,7 +2,7 @@ const fsSync = require('node:fs')
 const path = require('node:path')
 
 const { createModelProviderClients } = require('../modelProviders')
-const { readImageAsBase64, inferMimeType } = require('../extraction/image')
+const { readImageAsBase64, inferMimeType } = require('../utils/image')
 const { buildBatchPrompt, parseBatchResponse } = require('./stills-markdown-format')
 const {
   resolveAppleVisionOcrBinaryPath,

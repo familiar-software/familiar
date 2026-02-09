@@ -2,22 +2,16 @@ const { app, BrowserWindow, Tray, dialog, nativeImage, ipcMain } = require('elec
 const path = require('node:path');
 
 const { registerIpcHandlers } = require('./ipc');
-const { captureClipboard } = require('./clipboard');
 const {
-    registerClipboardHotkey,
     registerRecordingHotkey,
     unregisterGlobalHotkeys,
-    DEFAULT_CLIPBOARD_HOTKEY,
     DEFAULT_RECORDING_HOTKEY,
 } = require('./hotkeys');
-const { registerExtractionHandlers } = require('./extraction');
-const { registerAnalysisHandlers } = require('./analysis');
 const { showWindow } = require('./utils/window');
 const { ensureHomebrewPath } = require('./utils/path');
 const { loadSettings } = require('./settings');
 const { initLogging } = require('./logger');
 const { showToast } = require('./toast');
-const { registerTrayBusyIndicator } = require('./tray/busy');
 const {
     resolveHotkeyAccelerators,
     createTrayMenuController,
@@ -30,7 +24,6 @@ const trayIconPath = path.join(__dirname, 'icon.png');
 
 let tray = null;
 let trayHandlers = null;
-let trayBusyIndicator = null;
 let trayMenuController = null;
 let settingsWindow = null;
 let isQuitting = false;
@@ -229,7 +222,7 @@ function showAboutDialog() {
         type: 'info',
         title: 'About Jiminy',
         message: 'Jiminy',
-        detail: `Menu bar app (macOS).\nSaves clipboard captures and optional screen stills to your Context Folder.\nVersion ${version}`,
+        detail: `Menu bar app (macOS).\nSaves screen stills to your Context Folder.\nVersion ${version}`,
         icon: aboutIcon || undefined,
         buttons: ['OK'],
     });
@@ -251,31 +244,11 @@ function quitApp() {
 
 function registerHotkeysFromSettings() {
     const settings = loadSettings();
-    const { clipboardAccelerator, recordingAccelerator } = resolveHotkeyAccelerators(settings, {
-        DEFAULT_CLIPBOARD_HOTKEY,
+    const { recordingAccelerator } = resolveHotkeyAccelerators(settings, {
         DEFAULT_RECORDING_HOTKEY,
     });
 
     unregisterGlobalHotkeys();
-
-    const clipboardResult = registerClipboardHotkey({
-        onClipboard: () => {
-            void captureClipboard();
-        },
-        accelerator: clipboardAccelerator,
-    });
-    if (!clipboardResult.ok) {
-        console.warn('Clipboard hotkey inactive', {
-            reason: clipboardResult.reason,
-            accelerator: clipboardResult.accelerator,
-        });
-        showToast({
-            title: 'Clipboard hotkey inactive',
-            body: 'The clipboard shortcut could not be registered. Open Settings to update it.',
-            type: 'warning',
-            size: 'large'
-        });
-    }
 
     const recordingResult = registerRecordingHotkey({
         onRecording: () => {
@@ -297,9 +270,7 @@ function registerHotkeysFromSettings() {
     }
 
     return {
-        clipboardResult,
         recordingResult,
-        clipboardAccelerator,
         recordingAccelerator
     };
 }
@@ -314,12 +285,8 @@ function createTray() {
 
     tray = new Tray(trayIcon);
     tray.setToolTip('Jiminy');
-    trayBusyIndicator = registerTrayBusyIndicator({ tray, baseIcon: trayIcon });
 
     trayHandlers = {
-        onClipboard: () => {
-            void captureClipboard();
-        },
         onRecordingPause: () => {
             void handleCaptureHotkey();
         },
@@ -332,7 +299,6 @@ function createTray() {
     trayMenuController = createTrayMenuController({
         tray,
         trayHandlers,
-        DEFAULT_CLIPBOARD_HOTKEY,
         DEFAULT_RECORDING_HOTKEY,
         getRecordingState: () => screenStillsController?.getState?.(),
     });
@@ -345,8 +311,6 @@ function createTray() {
 
 // Register all IPC handlers
 registerIpcHandlers({ onSettingsSaved: updateScreenCaptureFromSettings });
-registerExtractionHandlers();
-registerAnalysisHandlers();
 
 // IPC handler for hotkey re-registration
     ipcMain.handle('hotkeys:reregister', () => {
@@ -354,15 +318,13 @@ registerAnalysisHandlers();
         const result = registerHotkeysFromSettings();
         if (trayMenuController) {
             trayMenuController.updateTrayMenu({
-                clipboardAccelerator: result.clipboardAccelerator,
                 recordingAccelerator: result.recordingAccelerator,
             });
         } else {
             console.warn('Tray menu update skipped: controller not ready');
         }
     return {
-        ok: result.clipboardResult.ok && result.recordingResult.ok,
-        clipboardHotkey: result.clipboardResult,
+        ok: result.recordingResult.ok,
         recordingHotkey: result.recordingResult,
     };
 });
@@ -380,15 +342,13 @@ ipcMain.handle('hotkeys:resume', () => {
     const result = registerHotkeysFromSettings();
     if (trayMenuController) {
         trayMenuController.updateTrayMenu({
-            clipboardAccelerator: result.clipboardAccelerator,
             recordingAccelerator: result.recordingAccelerator,
         });
     } else {
         console.warn('Tray menu update skipped: controller not ready');
     }
     return {
-        ok: result.clipboardResult.ok && result.recordingResult.ok,
-        clipboardHotkey: result.clipboardResult,
+        ok: result.recordingResult.ok,
         recordingHotkey: result.recordingResult,
     };
 });
@@ -493,9 +453,6 @@ app.whenReady().then(() => {
 
 app.on('before-quit', (event) => {
     isQuitting = true;
-    if (trayBusyIndicator) {
-        trayBusyIndicator.dispose();
-    }
     if (screenStillsController) {
         const stillsState = screenStillsController?.getState?.().state;
         const isStills = stillsState === 'recording' || stillsState === 'idleGrace';

@@ -1,20 +1,13 @@
 function buildTrayMenuTemplate ({
-  onClipboard,
   onRecordingPause,
   onOpenSettings,
   onAbout,
   onRestart,
   onQuit,
-  clipboardAccelerator,
   recordingAccelerator,
   recordingPaused,
   recordingState
 }) {
-  const clipboardItem = { label: 'Capture Clipboard', click: onClipboard }
-  if (typeof clipboardAccelerator === 'string' && clipboardAccelerator) {
-    clipboardItem.accelerator = clipboardAccelerator
-  }
-
   const stillsState = recordingState && typeof recordingState === 'object' ? recordingState.state : ''
   const isRecording = stillsState === 'recording' || stillsState === 'idleGrace'
   const recordingLabel = recordingPaused
@@ -28,7 +21,6 @@ function buildTrayMenuTemplate ({
   }
 
   return [
-    clipboardItem,
     recordingItem,
     { label: 'Settings', click: onOpenSettings },
     { label: 'About', click: onAbout },
