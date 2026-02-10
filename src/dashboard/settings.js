@@ -30,6 +30,9 @@
       contextFolderChooseButtons = [],
       contextFolderErrors = [],
       contextFolderStatuses = [],
+      copyLogButtons = [],
+      copyLogErrors = [],
+      copyLogStatuses = [],
       llmProviderSelects = [],
       llmProviderErrors = [],
       llmKeyInputs = [],
@@ -48,6 +51,7 @@
     const DEFAULT_RECORDING_HOTKEY = defaults.recording || 'CommandOrControl+R'
 
     const isReady = Boolean(jiminy.pickContextFolder && jiminy.saveSettings && jiminy.getSettings)
+    const canCopyLog = typeof jiminy.copyCurrentLogToClipboard === 'function'
 
     const saveContextFolderPath = async (contextFolderPath) => {
       if (!isReady) {
@@ -224,6 +228,8 @@
         setMessage(stillsMarkdownExtractorStatuses, '')
         setMessage(alwaysRecordWhenActiveErrors, '')
         setMessage(alwaysRecordWhenActiveStatuses, '')
+        setMessage(copyLogErrors, '')
+        setMessage(copyLogStatuses, '')
         setMessage(hotkeysErrors, '')
         setMessage(hotkeysStatuses, '')
         return result
@@ -245,7 +251,11 @@
       setMessage(llmKeyErrors, message)
       setMessage(stillsMarkdownExtractorErrors, message)
       setMessage(alwaysRecordWhenActiveErrors, message)
+      setMessage(copyLogErrors, message)
       setMessage(hotkeysErrors, message)
+      copyLogButtons.forEach((button) => {
+        button.disabled = true
+      })
       return {
         isReady,
         loadSettings
@@ -278,6 +288,38 @@
           }
         })
       })
+    }
+
+    if (copyLogButtons.length > 0) {
+      if (!canCopyLog) {
+        setMessage(copyLogErrors, 'Log copy unavailable. Restart the app.')
+        copyLogButtons.forEach((button) => {
+          button.disabled = true
+        })
+      } else {
+        copyLogButtons.forEach((button) => {
+          button.addEventListener('click', async () => {
+            button.disabled = true
+            setMessage(copyLogStatuses, 'Copying...')
+            setMessage(copyLogErrors, '')
+            try {
+              const result = await jiminy.copyCurrentLogToClipboard()
+              if (result && result.ok) {
+                setMessage(copyLogStatuses, 'Copied.')
+              } else {
+                setMessage(copyLogStatuses, '')
+                setMessage(copyLogErrors, result?.message || 'Failed to copy log file.')
+              }
+            } catch (error) {
+              console.error('Failed to copy log file', error)
+              setMessage(copyLogStatuses, '')
+              setMessage(copyLogErrors, 'Failed to copy log file.')
+            } finally {
+              button.disabled = false
+            }
+          })
+        })
+      }
     }
 
     llmKeyInputs.forEach((input) => {

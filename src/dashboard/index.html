@@ -125,8 +125,9 @@
 
           <div id="settings-content" class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-slim">
             <!-- General -->
-            <section id="section-general" data-section-pane="general" role="tabpanel" aria-label="General settings" class="space-y-6">
-              <section class="space-y-2">
+            <section id="section-general" data-section-pane="general" role="tabpanel" aria-label="General settings" class="min-h-full flex flex-col">
+              <div class="space-y-6">
+                <section class="space-y-2">
                 <div class="flex items-center justify-between">
                   <label for="context-folder-path" class="section-label">Context Folder</label>
                   <span id="context-folder-status" data-setting-status="context-folder-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
@@ -152,7 +153,19 @@
                   Choose where Jiminy stores local captures.
                 </p>
 	              </section>
+              </div>
 
+              <div class="mt-auto pt-6 flex items-center justify-end gap-3">
+                <span id="copy-log-status" data-setting-status="copy-log-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                <span id="copy-log-error" data-setting-error="copy-log-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></span>
+                <button
+                  id="copy-debug-log"
+                  data-action="copy-debug-log"
+                  type="button"
+                  class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Copies ~/.jiminy/logs/jiminy.log to your clipboard"
+                >Copy Debug Log</button>
+              </div>
 	            </section>
 
             <section id="section-privacy" data-section-pane="privacy" role="tabpanel" aria-label="Privacy settings" class="space-y-6 hidden">

@@ -92,6 +92,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const contextFolderChooseButtons = selectAll('[data-action="context-folder-choose"]')
   const contextFolderErrors = selectAll('[data-setting-error="context-folder-error"]')
   const contextFolderStatuses = selectAll('[data-setting-status="context-folder-status"]')
+  const copyLogButtons = selectAll('[data-action="copy-debug-log"]')
+  const copyLogErrors = selectAll('[data-setting-error="copy-log-error"]')
+  const copyLogStatuses = selectAll('[data-setting-status="copy-log-status"]')
 
   const llmProviderSelects = selectAll('[data-setting="llm-provider"]')
   const llmProviderErrors = selectAll('[data-setting-error="llm-provider-error"]')
@@ -338,6 +341,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       contextFolderChooseButtons,
       contextFolderErrors,
       contextFolderStatuses,
+      copyLogButtons,
+      copyLogErrors,
+      copyLogStatuses,
       llmProviderSelects,
       llmProviderErrors,
       llmKeyInputs,

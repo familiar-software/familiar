@@ -2,6 +2,7 @@ const { registerSettingsHandlers } = require('./settings');
 const { registerStillsHandlers } = require('./stills');
 const { registerUpdateHandlers } = require('./updates');
 const { registerSkillHandlers } = require('./skills');
+const { registerLogsHandlers } = require('./logs');
 
 /**
  * Registers all IPC handlers for the main process.
@@ -11,6 +12,7 @@ function registerIpcHandlers(options = {}) {
     registerStillsHandlers();
     registerUpdateHandlers();
     registerSkillHandlers();
+    registerLogsHandlers();
 }
 
 module.exports = {
@@ -19,4 +21,5 @@ module.exports = {
     registerStillsHandlers,
     registerUpdateHandlers,
     registerSkillHandlers,
+    registerLogsHandlers,
 };

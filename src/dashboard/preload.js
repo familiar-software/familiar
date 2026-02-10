@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('jiminy', {
   simulateStillsHotkey: () => ipcRenderer.invoke('screenStills:simulateHotkey'),
   simulateStillsIdle: (payload) => ipcRenderer.invoke('screenStills:simulateIdle', payload),
   openStillsFolder: () => ipcRenderer.invoke('stills:openFolder'),
+  copyCurrentLogToClipboard: () => ipcRenderer.invoke('logs:copyCurrentLogToClipboard'),
   onUpdateDownloadProgress: (handler) => {
     const listener = (_event, payload) => handler(payload)
     ipcRenderer.on('updates:download-progress', listener)
