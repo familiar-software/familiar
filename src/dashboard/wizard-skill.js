@@ -17,6 +17,7 @@
     } = elements
 
     const isReady = Boolean(jiminy.installSkill && jiminy.getSkillInstallStatus)
+    const canPersist = typeof jiminy.saveSettings === 'function'
 
     const setStatus = (message) => setMessage(skillInstallStatus, message)
     const setError = (message) => setMessage(skillInstallError, message)
@@ -27,6 +28,17 @@
       const value = message || ''
       skillInstallPath.textContent = value ? `Install path: ${value}` : ''
       skillInstallPath.classList.toggle('hidden', !value)
+    }
+
+    const persistSkillInstaller = async ({ harness, installPath } = {}) => {
+      if (!canPersist || !harness) {
+        return
+      }
+      try {
+        await jiminy.saveSettings({ skillInstaller: { harness, installPath: installPath || '' } })
+      } catch (error) {
+        console.warn('Failed to persist skill installer settings', error)
+      }
     }
 
     const clearMessages = () => {
@@ -53,9 +65,10 @@
     const checkInstallStatus = async (harness) => {
       if (!isReady || !harness) {
         setPath('')
-        return
+        return { ok: false }
       }
 
+      syncHarnessSelection(harness)
       try {
         const result = await jiminy.getSkillInstallStatus({ harness })
         if (result && result.ok) {
@@ -66,19 +79,21 @@
           } else {
             setStatus('')
           }
-          return
+          return { ok: true, installed: Boolean(result.installed), path: result.path || '' }
         }
         setPath('')
         setSkillInstalled(false)
         setStatus('')
         setPath(result?.path || '')
         setError(result?.message || 'Failed to check skill installation.')
+        return { ok: false, path: result?.path || '' }
       } catch (error) {
         console.error('Failed to check skill status', error)
         setPath('')
         setSkillInstalled(false)
         setStatus('')
         setError('Failed to check skill installation.')
+        return { ok: false }
       } finally {
         updateInstallButtonState()
         updateWizardUI()
@@ -100,7 +115,10 @@
         return
       }
       console.log('Wizard skill harness selected', { harness })
-      await checkInstallStatus(harness)
+      const status = await checkInstallStatus(harness)
+      if (status && status.ok) {
+        await persistSkillInstaller({ harness, installPath: status.path })
+      }
     }
 
     const handleInstallClick = async () => {
@@ -121,19 +139,20 @@
 
       try {
         const result = await jiminy.installSkill({ harness: currentSkillHarness })
-        if (result && result.ok) {
-          setSkillInstalled(true)
-          if (result.path) {
-            setPath(result.path)
-            setStatus(`Installed at ${result.path}`)
+	        if (result && result.ok) {
+	          setSkillInstalled(true)
+	          if (result.path) {
+	            setPath(result.path)
+	            setStatus(`Installed at ${result.path}`)
           } else {
             setStatus('Installed.')
-          }
-          console.log('Skill installed', { harness: currentSkillHarness, path: result.path })
-          return
-        }
-        setSkillInstalled(false)
-        setStatus('')
+	          }
+	          console.log('Skill installed', { harness: currentSkillHarness, path: result.path })
+	          await persistSkillInstaller({ harness: currentSkillHarness, installPath: result.path || '' })
+	          return
+	        }
+	        setSkillInstalled(false)
+	        setStatus('')
         setError(result?.message || 'Failed to install skill.')
       } catch (error) {
         console.error('Failed to install skill', error)

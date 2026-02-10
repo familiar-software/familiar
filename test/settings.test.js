@@ -38,6 +38,32 @@ test('saveSettings persists stills_markdown_extractor.llm_provider api_key/provi
   assert.equal(loaded.stills_markdown_extractor?.llm_provider?.api_key, 'test-key')
 })
 
+test('saveSettings persists skillInstaller harness + installPath', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+
+  saveSettings({ skillInstaller: { harness: 'codex', installPath: '/tmp/.codex/skills/jiminy' } }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.skillInstaller?.harness, 'codex')
+  assert.equal(loaded.skillInstaller?.installPath, '/tmp/.codex/skills/jiminy')
+})
+
+test('saveSettings preserves skillInstaller when updating other settings', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+  const contextDir = path.join(tempRoot, 'context')
+  fs.mkdirSync(contextDir)
+
+  saveSettings({ skillInstaller: { harness: 'cursor', installPath: '/tmp/.cursor/skills/jiminy' } }, { settingsDir })
+  saveSettings({ contextFolderPath: contextDir }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.contextFolderPath, contextDir)
+  assert.equal(loaded.skillInstaller?.harness, 'cursor')
+  assert.equal(loaded.skillInstaller?.installPath, '/tmp/.cursor/skills/jiminy')
+})
+
 test('saveSettings preserves stills_markdown_extractor.llm_provider api_key/provider when updating context path', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jiminy-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

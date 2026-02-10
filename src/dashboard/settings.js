@@ -7,6 +7,9 @@
     const setContextFolderValue = typeof options.setContextFolderValue === 'function'
       ? options.setContextFolderValue
       : () => {}
+    const setSkillHarness = typeof options.setSkillHarness === 'function'
+      ? options.setSkillHarness
+      : () => {}
     const setLlmProviderValue = typeof options.setLlmProviderValue === 'function'
       ? options.setLlmProviderValue
       : () => {}
@@ -216,6 +219,7 @@
         setLlmApiKeySaved(result.llmProviderApiKey || '')
         setStillsMarkdownExtractorType(result.stillsMarkdownExtractorType || 'llm')
         setAlwaysRecordWhenActiveValue(result.alwaysRecordWhenActive === true)
+        setSkillHarness(result?.skillInstaller?.harness || '')
         setHotkeys({
           recording: result.recordingHotkey || DEFAULT_RECORDING_HOTKEY
         })

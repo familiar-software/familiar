@@ -53,6 +53,7 @@ const saveSettings = (settings, options = {}) => {
     const hasUpdateLastCheckedAt = Object.prototype.hasOwnProperty.call(settings, 'updateLastCheckedAt');
     const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(settings, 'recordingHotkey');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(settings, 'alwaysRecordWhenActive');
+    const hasSkillInstaller = Object.prototype.hasOwnProperty.call(settings, 'skillInstaller');
     const existingStillsExtractor =
         existing && typeof existing.stills_markdown_extractor === 'object' ? existing.stills_markdown_extractor : {};
     const existingStillsExtractorLlmProvider =
@@ -60,6 +61,8 @@ const saveSettings = (settings, options = {}) => {
             ? existingStillsExtractor.llm_provider
             : {};
     const existingProvider = existingStillsExtractorLlmProvider;
+    const existingSkillInstaller =
+        existing && typeof existing.skillInstaller === 'object' ? existing.skillInstaller : {};
     const contextFolderPath = hasContextFolderPath
         ? typeof settings.contextFolderPath === 'string'
             ? settings.contextFolderPath
@@ -143,6 +146,16 @@ const saveSettings = (settings, options = {}) => {
         payload.alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
     } else if (typeof existing.alwaysRecordWhenActive === 'boolean') {
         payload.alwaysRecordWhenActive = existing.alwaysRecordWhenActive;
+    }
+
+    if (hasSkillInstaller) {
+        const raw = settings && typeof settings.skillInstaller === 'object' ? settings.skillInstaller : {};
+        payload.skillInstaller = {
+            harness: typeof raw.harness === 'string' ? raw.harness : '',
+            installPath: typeof raw.installPath === 'string' ? raw.installPath : '',
+        };
+    } else if (Object.keys(existingSkillInstaller).length > 0) {
+        payload.skillInstaller = { ...existingSkillInstaller };
     }
 
     fs.writeFileSync(settingsPath, JSON.stringify(payload, null, 2), 'utf-8');

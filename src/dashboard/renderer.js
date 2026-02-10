@@ -364,6 +364,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     },
     getState: state.getSettingsState,
     setContextFolderValue: state.setContextFolderValue,
+    setSkillHarness: state.setSkillHarness,
     setLlmProviderValue: state.setLlmProviderValue,
     setLlmApiKeyPending: state.setLlmApiKeyPending,
     setLlmApiKeySaved: state.setLlmApiKeySaved,
@@ -412,6 +413,10 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     state.setIsFirstRun(Boolean(settingsResult?.isFirstRun))
     callIfAvailable(apis.recordingApi, 'setPermissionStatus', settingsResult?.screenRecordingPermissionStatus || '')
     callIfAvailable(apis.recordingApi, 'updateStillsUI')
+    const savedHarness = settingsResult?.skillInstaller?.harness || ''
+    if (savedHarness && apis.wizardSkillApi && typeof apis.wizardSkillApi.checkInstallStatus === 'function') {
+      await apis.wizardSkillApi.checkInstallStatus(savedHarness)
+    }
     const defaultSection = state.getIsFirstRun() ? 'wizard' : 'general'
     setActiveSection(defaultSection)
     state.updateWizardUI()

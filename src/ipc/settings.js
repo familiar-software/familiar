@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const { loadSettings, resolveSettingsPath, saveSettings, validateContextFolderPath } = require('../settings');
 const { DEFAULT_RECORDING_HOTKEY } = require('../hotkeys');
 const { getScreenRecordingPermissionStatus } = require('../screen-capture/permissions');
+const { resolveHarnessSkillPath } = require('../skills/installer');
 
 let onSettingsSaved = null;
 
@@ -28,6 +29,9 @@ function handleGetSettings() {
         const stillsMarkdownExtractorType = settings?.stills_markdown_extractor?.type || 'llm';
         const recordingHotkey = typeof settings.recordingHotkey === 'string' ? settings.recordingHotkey : DEFAULT_RECORDING_HOTKEY;
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
+        const skillInstallerHarness = typeof settings?.skillInstaller?.harness === 'string' ? settings.skillInstaller.harness : '';
+        const skillInstallerInstallPath =
+            typeof settings?.skillInstaller?.installPath === 'string' ? settings.skillInstaller.installPath : '';
         const screenRecordingPermissionStatus = getScreenRecordingPermissionStatus();
         let validationMessage = '';
 
@@ -50,6 +54,10 @@ function handleGetSettings() {
             stillsMarkdownExtractorType,
             recordingHotkey,
             alwaysRecordWhenActive,
+            skillInstaller: {
+                harness: skillInstallerHarness,
+                installPath: skillInstallerInstallPath,
+            },
             screenRecordingPermissionStatus,
             isFirstRun
         };
@@ -63,6 +71,7 @@ function handleGetSettings() {
             stillsMarkdownExtractorType: 'llm',
             recordingHotkey: DEFAULT_RECORDING_HOTKEY,
             alwaysRecordWhenActive: false,
+            skillInstaller: { harness: '', installPath: '' },
             screenRecordingPermissionStatus: getScreenRecordingPermissionStatus(),
             isFirstRun: false
         };
@@ -76,6 +85,7 @@ function handleSaveSettings(_event, payload) {
     const hasStillsMarkdownExtractorType = Object.prototype.hasOwnProperty.call(payload || {}, 'stillsMarkdownExtractorType');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(payload || {}, 'alwaysRecordWhenActive');
     const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'recordingHotkey');
+    const hasSkillInstaller = Object.prototype.hasOwnProperty.call(payload || {}, 'skillInstaller');
     const settingsPayload = {};
 
     if (
@@ -84,7 +94,8 @@ function handleSaveSettings(_event, payload) {
         !hasLlmProviderName &&
         !hasStillsMarkdownExtractorType &&
         !hasAlwaysRecordWhenActive &&
-        !hasRecordingHotkey
+        !hasRecordingHotkey &&
+        !hasSkillInstaller
     ) {
         return { ok: false, message: 'No settings provided.' };
     }
@@ -141,6 +152,23 @@ function handleSaveSettings(_event, payload) {
             }
         }
         settingsPayload.alwaysRecordWhenActive = nextValue;
+    }
+
+    if (hasSkillInstaller) {
+        const raw = payload?.skillInstaller;
+        const harness = typeof raw?.harness === 'string' ? raw.harness.trim().toLowerCase() : '';
+        if (!harness) {
+            return { ok: false, message: 'Harness is required.' };
+        }
+        if (harness !== 'claude' && harness !== 'codex' && harness !== 'cursor') {
+            return { ok: false, message: 'Invalid harness.' };
+        }
+
+        // Canonical install path is derived from the harness.
+        settingsPayload.skillInstaller = {
+            harness,
+            installPath: resolveHarnessSkillPath(harness),
+        };
     }
 
     try {

@@ -16,6 +16,7 @@ const launchElectron = (options = {}) => {
   return {
     appRoot,
     settingsDir,
+    skillHomeDir,
     electronApp: electron.launch({
       args: launchArgs,
       cwd: appRoot,
@@ -62,7 +63,7 @@ const advanceWizardToHotkeys = async (window, nextButton) => {
 test('wizard happy flow completes setup and routes to General', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
-  const { electronApp, settingsDir } = launchElectron({
+  const { electronApp, settingsDir, skillHomeDir } = launchElectron({
     contextPath,
     env: { JIMINY_LLM_MOCK: '1', JIMINY_LLM_MOCK_TEXT: 'gibberish' }
   })
@@ -104,6 +105,8 @@ test('wizard happy flow completes setup and routes to General', async () => {
     expect(stored.stills_markdown_extractor.llm_provider.provider).toBe('gemini')
     expect(stored.stills_markdown_extractor.llm_provider.api_key).toBe('test-key')
     expect(stored.alwaysRecordWhenActive ?? false).toBe(false)
+    expect(stored.skillInstaller.harness).toBe('codex')
+    expect(stored.skillInstaller.installPath).toBe(path.join(skillHomeDir, '.codex', 'skills', 'jiminy'))
   } finally {
     await (await electronApp).close()
   }
