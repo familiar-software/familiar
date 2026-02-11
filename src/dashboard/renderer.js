@@ -109,6 +109,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const alwaysRecordWhenActiveInputs = selectAll('[data-setting="always-record-when-active"]')
   const alwaysRecordWhenActiveErrors = selectAll('[data-setting-error="always-record-when-active-error"]')
   const alwaysRecordWhenActiveStatuses = selectAll('[data-setting-status="always-record-when-active-status"]')
+  const sidebarRecordingDot = document.getElementById('sidebar-recording-dot')
+  const sidebarRecordingStatus = document.getElementById('sidebar-recording-status')
   const recordingDetails = document.getElementById('recording-details')
   const recordingPath = document.getElementById('recording-path')
   const recordingOpenFolderButton = document.getElementById('recording-open-folder')
@@ -328,6 +330,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   apis.recordingApi = runBootstrapStills({
     window,
     elements: {
+      sidebarRecordingDot,
+      sidebarRecordingStatus,
       recordingDetails,
       recordingPath,
       recordingOpenFolderButton,

@@ -161,7 +161,8 @@ if (process.platform === 'linux' && (isE2E || isCI)) {
 
 function createSettingsWindow() {
     const window = new BrowserWindow({
-        width: 624,
+        // Keep the content area width stable while matching the sidebar width from the new design.
+        width: 674,
         height: 528,
         resizable: false,
         fullscreenable: false,

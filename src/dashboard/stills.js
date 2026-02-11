@@ -5,6 +5,8 @@
     const getState = typeof options.getState === 'function' ? options.getState : () => ({})
 
     const {
+      sidebarRecordingDot,
+      sidebarRecordingStatus,
       recordingDetails,
       recordingPath,
       recordingOpenFolderButton,
@@ -23,6 +25,36 @@
 
     const buildStillsPath = (contextFolderPath) =>
       contextFolderPath ? `${contextFolderPath}/jiminy/stills` : ''
+
+    const updateSidebarStatus = (alwaysEnabled) => {
+      if (!sidebarRecordingStatus && !sidebarRecordingDot) {
+        return
+      }
+
+      let label = 'Off'
+      let dotClass = 'bg-zinc-400'
+
+      if (alwaysEnabled) {
+        if (currentScreenStillsPaused) {
+          label = 'Paused'
+          dotClass = 'bg-zinc-400'
+        } else if (isCaptureActive()) {
+          label = 'Recording'
+          dotClass = 'bg-emerald-500'
+        } else {
+          label = 'Idle'
+          dotClass = 'bg-zinc-400'
+        }
+      }
+
+      if (sidebarRecordingStatus) {
+        sidebarRecordingStatus.textContent = label
+      }
+      if (sidebarRecordingDot) {
+        sidebarRecordingDot.classList.remove('bg-zinc-400', 'bg-emerald-500')
+        sidebarRecordingDot.classList.add(dotClass)
+      }
+    }
 
     const setText = (element, value) => {
       if (!element) {
@@ -57,6 +89,8 @@
       const currentContextFolderPath = state.currentContextFolderPath || ''
       const currentAlwaysRecordWhenActive = Boolean(state.currentAlwaysRecordWhenActive)
       const stillsPath = buildStillsPath(currentContextFolderPath)
+
+      updateSidebarStatus(currentAlwaysRecordWhenActive)
 
       if (recordingDetails) {
         recordingDetails.classList.toggle('hidden', !currentAlwaysRecordWhenActive)
@@ -169,12 +203,9 @@
     }
 
     function handleSectionChange(nextSection) {
-      if (nextSection === 'general') {
-        void refreshStatus().then(updateStillsUI)
-        startStatusPoller()
-        return
-      }
-      stopStatusPoller()
+      // Sidebar status is always visible, so keep it fresh in any section.
+      void refreshStatus().then(updateStillsUI)
+      startStatusPoller()
     }
 
     if (recordingActionButton) {
