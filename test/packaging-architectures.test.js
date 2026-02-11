@@ -11,15 +11,15 @@ test('package scripts build mac dist for both arm64 and x64', () => {
 
     assert.equal(
         packageJson.scripts['dist:mac'],
-        'npm run clean && npm run build:apple-vision-ocr && electron-builder --mac --arm64 --x64'
+        'npm run clean && npm run build:apple-vision-ocr && npm run css:build && electron-builder --mac --arm64 --x64'
     );
     assert.equal(
         packageJson.scripts['dist:mac:arm64'],
-        'npm run clean && npm run build:apple-vision-ocr && electron-builder --mac --arm64'
+        'npm run clean && npm run build:apple-vision-ocr && npm run css:build && electron-builder --mac --arm64'
     );
     assert.equal(
         packageJson.scripts['dist:mac:x64'],
-        'npm run clean && npm run build:apple-vision-ocr && electron-builder --mac --x64'
+        'npm run clean && npm run build:apple-vision-ocr && npm run css:build && electron-builder --mac --x64'
     );
 });
 

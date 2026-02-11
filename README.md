@@ -77,6 +77,7 @@ The workflow `Publish Desktop Release` is a manual GitHub Actions job that build
 -   Uses `CSC_IDENTITY_AUTO_DISCOVERY=false` until signing/notarization is configured.
 -   `npm run dist:mac` builds and publishes both macOS architectures (`arm64` and `x64`).
 -   You can also build one architecture locally with `npm run dist:mac:arm64` or `npm run dist:mac:x64`.
+-   Packaging scripts also run `npm run css:build` so dashboard Tailwind CSS is rebuilt before artifacts are produced.
 
 ## Notes
 
