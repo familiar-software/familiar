@@ -74,6 +74,8 @@ The workflow `Publish Desktop Release` is a manual GitHub Actions job that build
 -   Workflow: `.github/workflows/release-desktopapp.yml`
 -   Requires secret: `RELEASE_REPO_GITHUB_TOKEN`
 -   Uses `CSC_IDENTITY_AUTO_DISCOVERY=false` until signing/notarization is configured.
+-   `npm run dist:mac` builds and publishes both macOS architectures (`arm64` and `x64`).
+-   You can also build one architecture locally with `npm run dist:mac:arm64` or `npm run dist:mac:x64`.
 
 ## Notes
 
@@ -101,7 +103,7 @@ node code/desktopapp/scripts/apple-vision-ocr-image-to-markdown.js /path/to/imag
 
 Packaging: the app needs to ship a native helper binary named `apple-vision-ocr` in the Electron `resources/` directory. This repo configures electron-builder `extraResources` to copy it from `code/desktopapp/scripts/bin/apple-vision-ocr` into `resources/apple-vision-ocr`.
 
-The helper is implemented as a small Objective-C CLI (no Swift runtime dependencies) and is built with a macOS deployment target of 14.0.
+The helper is implemented as a small Objective-C CLI (no Swift runtime dependencies), built as a universal binary (`arm64` + `x86_64`) with a macOS deployment target of 14.0.
 
 The stills worker looks for the helper binary at:
 
