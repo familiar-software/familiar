@@ -39,7 +39,7 @@
           }
           return Boolean(state.currentLlmProviderName && state.currentLlmApiKey && state.isLlmApiKeySaved)
         case 3:
-          return true
+          return Boolean(state.currentAlwaysRecordWhenActive)
         case 4:
           return Boolean(state.isSkillInstalled)
         case 5:

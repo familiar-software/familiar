@@ -118,6 +118,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const recordingDetails = document.getElementById('recording-details')
   const recordingPath = document.getElementById('recording-path')
   const recordingOpenFolderButton = document.getElementById('recording-open-folder')
+  const wizardCheckPermissionsButton = document.getElementById('wizard-check-permissions')
+  const wizardOpenScreenRecordingSettingsButton = document.getElementById('wizard-open-screen-recording-settings')
+  const wizardRecordingToggleSection = document.getElementById('wizard-recording-toggle-section')
   const appVersionLabel = document.getElementById('app-version')
 
   const updateButtons = selectAll('[data-action="updates-check"]')
@@ -340,7 +343,10 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       sidebarRecordingPermission,
       recordingDetails,
       recordingPath,
-      recordingOpenFolderButton
+      recordingOpenFolderButton,
+      wizardCheckPermissionsButton,
+      wizardOpenScreenRecordingSettingsButton,
+      wizardRecordingToggleSection
     },
     jiminy,
     getState: state.getRecordingState
@@ -430,7 +436,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   async function initialize() {
     const settingsResult = await apis.settingsApi.loadSettings()
     state.setIsFirstRun(Boolean(settingsResult?.isFirstRun))
-    callIfAvailable(apis.recordingApi, 'setPermissionStatus', settingsResult?.screenRecordingPermissionStatus || '')
     callIfAvailable(apis.recordingApi, 'updateStillsUI')
     const savedHarness = settingsResult?.skillInstaller?.harness || ''
     if (savedHarness && apis.wizardSkillApi && typeof apis.wizardSkillApi.checkInstallStatus === 'function') {

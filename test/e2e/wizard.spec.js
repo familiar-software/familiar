@@ -32,15 +32,45 @@ const launchElectron = (options = {}) => {
   }
 }
 
+const completeWizardPermissionsStep = async (window, nextButton) => {
+  const checkPermissionsButton = window.locator('#wizard-check-permissions')
+  const recordingToggle = window.locator('#wizard-always-record-when-active')
+
+  await expect(checkPermissionsButton).toBeVisible()
+  await checkPermissionsButton.click()
+
+  if ((await checkPermissionsButton.textContent()) !== 'Granted') {
+    const permission = await window.evaluate(() => window.jiminy.checkScreenRecordingPermission())
+    test.skip(
+      true,
+      `Screen Recording permission not granted for wizard flow (status: ${permission?.permissionStatus || 'unknown'}).`
+    )
+  }
+
+  await expect(window.locator('#wizard-recording-toggle-section')).toBeVisible()
+  if (!(await recordingToggle.isChecked())) {
+    await window.locator('label[for="wizard-always-record-when-active"]').click({ force: true })
+    await expect(recordingToggle).toBeChecked()
+  }
+  await expect(nextButton).toBeEnabled()
+  await nextButton.click()
+}
+
 const advanceWizardToHotkeys = async (window, nextButton) => {
   const hotkeysRecording = window.locator('#wizard-recording-hotkey')
   const skillInstallButton = window.locator('#wizard-skill-install')
   const skillStatus = window.locator('#wizard-skill-status')
   const codexHarness = window.locator('input[name="wizard-skill-harness"][value="codex"]')
+  const wizardStep3 = window.locator('[data-wizard-step="3"]')
 
   for (let attempts = 0; attempts < 4; attempts += 1) {
     if (await hotkeysRecording.isVisible()) {
       return
+    }
+
+    if (await wizardStep3.isVisible()) {
+      await completeWizardPermissionsStep(window, nextButton)
+      continue
     }
 
     if (await skillInstallButton.isVisible()) {
@@ -113,7 +143,7 @@ test('wizard happy flow completes setup and routes to General', async () => {
     expect(stored.stills_markdown_extractor.type).toBe('llm')
     expect(stored.stills_markdown_extractor.llm_provider.provider).toBe('gemini')
     expect(stored.stills_markdown_extractor.llm_provider.api_key).toBe('test-key')
-    expect(stored.alwaysRecordWhenActive ?? false).toBe(false)
+    expect(stored.alwaysRecordWhenActive ?? false).toBe(true)
     expect(stored.skillInstaller.harness).toBe('codex')
     expect(stored.skillInstaller.installPath).toBe(path.join(skillHomeDir, '.codex', 'skills', 'jiminy'))
   } finally {

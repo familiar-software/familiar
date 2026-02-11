@@ -133,9 +133,10 @@ const createJiminy = (overrides = {}) => ({
     llmProviderApiKey: '',
     stillsMarkdownExtractorType: 'llm',
     alwaysRecordWhenActive: false,
-    screenRecordingPermissionStatus: 'granted',
     appVersion: '0.0.22'
   }),
+  checkScreenRecordingPermission: async () => ({ ok: true, permissionStatus: 'granted', granted: true }),
+  openScreenRecordingSettings: async () => ({ ok: true }),
   pickContextFolder: async () => ({ canceled: true }),
   saveSettings: async () => ({ ok: true }),
   getScreenStillsStatus: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: false }),
@@ -171,6 +172,9 @@ const createElements = () => {
     'wizard-always-record-when-active': new TestElement(),
     'wizard-always-record-when-active-error': new TestElement(),
     'wizard-always-record-when-active-status': new TestElement(),
+    'wizard-check-permissions': new TestElement(),
+    'wizard-open-screen-recording-settings': new TestElement(),
+    'wizard-recording-toggle-section': new TestElement(),
     'recording-details': new TestElement(),
     'recording-path': new TestElement(),
     'llm-provider': new TestElement(),
@@ -215,6 +219,8 @@ const createElements = () => {
   elements['wizard-always-record-when-active'].dataset.setting = 'always-record-when-active'
   elements['wizard-always-record-when-active-error'].dataset.settingError = 'always-record-when-active-error'
   elements['wizard-always-record-when-active-status'].dataset.settingStatus = 'always-record-when-active-status'
+  elements['wizard-open-screen-recording-settings'].classList.add('hidden')
+  elements['wizard-recording-toggle-section'].classList.add('hidden')
 
   elements['updates-check'].dataset.action = 'updates-check'
   elements['updates-status'].dataset.settingStatus = 'updates-status'
@@ -243,7 +249,6 @@ test('loads app version in the sidebar header', async () => {
       llmProviderApiKey: '',
       stillsMarkdownExtractorType: 'llm',
       alwaysRecordWhenActive: false,
-      screenRecordingPermissionStatus: 'granted',
       appVersion: '9.8.7'
     })
   })
@@ -353,6 +358,119 @@ test('always record toggle saves on change', async () => {
   }
 })
 
+test('wizard permission check is click-driven and denied state shows settings shortcut', async () => {
+  let checkCalls = 0
+  let openSettingsCalls = 0
+  const jiminy = createJiminy({
+    checkScreenRecordingPermission: async () => {
+      checkCalls += 1
+      return { ok: true, permissionStatus: 'denied', granted: false }
+    },
+    openScreenRecordingSettings: async () => {
+      openSettingsCalls += 1
+      return { ok: true }
+    }
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    assert.equal(checkCalls, 0)
+    assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), true)
+
+    await elements['wizard-check-permissions'].click()
+    await flushPromises()
+
+    assert.equal(checkCalls, 1)
+    assert.equal(elements['wizard-check-permissions'].textContent, 'Check Permissions')
+    assert.equal(elements['wizard-check-permissions'].classList.contains('bg-red-600'), true)
+    assert.equal(elements['wizard-open-screen-recording-settings'].classList.contains('hidden'), false)
+    assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), true)
+
+    await elements['wizard-open-screen-recording-settings'].click()
+    assert.equal(openSettingsCalls, 1)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('wizard permission check granted state reveals recording toggle', async () => {
+  let checkCalls = 0
+  const jiminy = createJiminy({
+    checkScreenRecordingPermission: async () => {
+      checkCalls += 1
+      return { ok: true, permissionStatus: 'granted', granted: true }
+    }
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['wizard-check-permissions'].click()
+    await flushPromises()
+
+    assert.equal(checkCalls, 1)
+    assert.equal(elements['wizard-check-permissions'].textContent, 'Granted')
+    assert.equal(elements['wizard-check-permissions'].classList.contains('bg-emerald-600'), true)
+    assert.equal(elements['wizard-open-screen-recording-settings'].classList.contains('hidden'), true)
+    assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), false)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('wizard step 3 bypasses permission flow when recording is already enabled', async () => {
+  const jiminy = createJiminy({
+    getSettings: async () => ({
+      contextFolderPath: '/tmp/context',
+      llmProviderName: 'gemini',
+      llmProviderApiKey: '',
+      stillsMarkdownExtractorType: 'llm',
+      alwaysRecordWhenActive: true,
+      appVersion: '0.0.22'
+    })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { jiminy }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    assert.equal(elements['wizard-check-permissions'].textContent, 'Granted')
+    assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), false)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
 test('stills action button starts capture when inactive', async () => {
   const startCalls = []
   const jiminy = createJiminy({
@@ -360,8 +478,7 @@ test('stills action button starts capture when inactive', async () => {
       contextFolderPath: '/tmp/context',
       llmProviderName: 'gemini',
       llmProviderApiKey: '',
-      alwaysRecordWhenActive: true,
-      screenRecordingPermissionStatus: 'granted'
+      alwaysRecordWhenActive: true
     }),
     getScreenStillsStatus: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: false }),
     startScreenStills: async () => {
@@ -404,8 +521,7 @@ test('stills action button pauses and resumes when paused', async () => {
       contextFolderPath: '/tmp/context',
       llmProviderName: 'gemini',
       llmProviderApiKey: '',
-      alwaysRecordWhenActive: true,
-      screenRecordingPermissionStatus: 'granted'
+      alwaysRecordWhenActive: true
     }),
     getScreenStillsStatus: async () => status,
     pauseScreenStills: async () => {

@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('jiminy', {
   electronVersion: process.versions.electron,
   nodeVersion: process.versions.node,
   getSettings: () => ipcRenderer.invoke('settings:get'),
+  checkScreenRecordingPermission: () => ipcRenderer.invoke('settings:checkScreenRecordingPermission'),
+  openScreenRecordingSettings: () => ipcRenderer.invoke('settings:openScreenRecordingSettings'),
   pickContextFolder: () => ipcRenderer.invoke('settings:pickContextFolder'),
   saveSettings: (payload) => {
     const data = typeof payload === 'string' ? { contextFolderPath: payload } : payload

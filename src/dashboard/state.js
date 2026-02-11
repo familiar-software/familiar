@@ -145,7 +145,8 @@
         currentStillsMarkdownExtractorType: state.currentStillsMarkdownExtractorType,
         currentSkillHarness: state.currentSkillHarness,
         isSkillInstalled: state.isSkillInstalled,
-        currentRecordingHotkey: state.currentRecordingHotkey
+        currentRecordingHotkey: state.currentRecordingHotkey,
+        currentAlwaysRecordWhenActive: state.currentAlwaysRecordWhenActive
       }
     }
 

@@ -2,7 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('node:fs');
 const { loadSettings, resolveSettingsPath, saveSettings, validateContextFolderPath } = require('../settings');
 const { DEFAULT_RECORDING_HOTKEY } = require('../hotkeys');
-const { getScreenRecordingPermissionStatus } = require('../screen-capture/permissions');
+const { getScreenRecordingPermissionStatus, openScreenRecordingSettings } = require('../screen-capture/permissions');
 const { resolveHarnessSkillPath } = require('../skills/installer');
 
 let onSettingsSaved = null;
@@ -24,6 +24,8 @@ function registerSettingsHandlers(options = {}) {
     ipcMain.handle('settings:get', handleGetSettings);
     ipcMain.handle('settings:save', handleSaveSettings);
     ipcMain.handle('settings:pickContextFolder', handlePickContextFolder);
+    ipcMain.handle('settings:checkScreenRecordingPermission', handleCheckScreenRecordingPermission);
+    ipcMain.handle('settings:openScreenRecordingSettings', handleOpenScreenRecordingSettings);
     console.log('Settings IPC handlers registered');
 }
 
@@ -52,7 +54,6 @@ function handleGetSettings() {
         const skillInstallerHarness = typeof settings?.skillInstaller?.harness === 'string' ? settings.skillInstaller.harness : '';
         const skillInstallerInstallPath =
             typeof settings?.skillInstaller?.installPath === 'string' ? settings.skillInstaller.installPath : '';
-        const screenRecordingPermissionStatus = getScreenRecordingPermissionStatus();
         let validationMessage = '';
 
         if (contextFolderPath) {
@@ -78,7 +79,6 @@ function handleGetSettings() {
                 harness: skillInstallerHarness,
                 installPath: skillInstallerInstallPath,
             },
-            screenRecordingPermissionStatus,
             appVersion,
             isFirstRun
         };
@@ -93,7 +93,6 @@ function handleGetSettings() {
             recordingHotkey: DEFAULT_RECORDING_HOTKEY,
             alwaysRecordWhenActive: false,
             skillInstaller: { harness: '', installPath: '' },
-            screenRecordingPermissionStatus: getScreenRecordingPermissionStatus(),
             appVersion,
             isFirstRun: false
         };
@@ -163,16 +162,6 @@ function handleSaveSettings(_event, payload) {
 
     if (hasAlwaysRecordWhenActive) {
         const nextValue = payload.alwaysRecordWhenActive === true;
-        if (nextValue) {
-            const permissionStatus = getScreenRecordingPermissionStatus();
-            if (permissionStatus !== 'granted') {
-                return {
-                    ok: false,
-                    message: 'Screen Recording permission required. Enable Jiminy in System Settings → Privacy & Security → Screen Recording.',
-                    permissionStatus
-                };
-            }
-        }
         settingsPayload.alwaysRecordWhenActive = nextValue;
     }
 
@@ -256,6 +245,27 @@ async function handlePickContextFolder(event) {
 
     console.log('Context folder selected', { path: result.filePaths[0] });
     return { canceled: false, path: result.filePaths[0] };
+}
+
+function handleCheckScreenRecordingPermission() {
+    const permissionStatus = getScreenRecordingPermissionStatus();
+    const granted = permissionStatus === 'granted';
+    console.log('Screen Recording permission checked', { permissionStatus, granted });
+    return {
+        ok: true,
+        permissionStatus,
+        granted
+    };
+}
+
+async function handleOpenScreenRecordingSettings() {
+    const result = await openScreenRecordingSettings();
+    if (result.ok) {
+        console.log('Opened Screen Recording settings');
+    } else {
+        console.warn('Failed to open Screen Recording settings', { message: result.message || 'unknown-error' });
+    }
+    return result;
 }
 
 module.exports = {

@@ -36,8 +36,8 @@ const ensureRecordingPrereqs = async (window) => {
     test.skip(true, 'Screen capture is only supported on macOS.')
   }
 
-  const settings = await window.evaluate(() => window.jiminy.getSettings())
-  if (settings.screenRecordingPermissionStatus !== 'granted') {
+  const permission = await window.evaluate(() => window.jiminy.checkScreenRecordingPermission())
+  if (permission?.permissionStatus !== 'granted') {
     test.skip(
       true,
       'Screen Recording permission not granted. Enable it in System Settings -> Privacy & Security -> Screen Recording.'

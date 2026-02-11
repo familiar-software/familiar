@@ -15,13 +15,17 @@
       recordingOpenFolderButton,
       recordingStatus,
       recordingActionButton,
-      recordingPermission
+      recordingPermission,
+      wizardCheckPermissionsButton,
+      wizardOpenScreenRecordingSettingsButton,
+      wizardRecordingToggleSection
     } = elements
 
     let currentScreenStillsState = 'disabled'
     let currentScreenStillsPaused = false
-    let currentScreenRecordingPermissionStatus = ''
     let statusPoller = null
+    let wizardPermissionState = 'idle'
+    let isCheckingPermission = false
 
     const isCaptureActive = () =>
       currentScreenStillsState === 'recording' || currentScreenStillsState === 'idleGrace'
@@ -66,13 +70,66 @@
       }
     }
 
-    const setText = (element, value) => {
-      if (!element) {
-        return
+    const updateWizardPermissionControls = (alwaysEnabled) => {
+      if (alwaysEnabled) {
+        wizardPermissionState = 'granted'
       }
-      const nextValue = value || ''
-      if (element.textContent !== nextValue) {
-        element.textContent = nextValue
+
+      if (wizardRecordingToggleSection) {
+        const showToggle = alwaysEnabled || wizardPermissionState === 'granted'
+        wizardRecordingToggleSection.classList.toggle('hidden', !showToggle)
+      }
+
+      if (wizardCheckPermissionsButton) {
+        wizardCheckPermissionsButton.disabled = isCheckingPermission
+        wizardCheckPermissionsButton.classList.remove(
+          'bg-indigo-600',
+          'hover:bg-indigo-700',
+          'border-indigo-600',
+          'hover:border-indigo-700',
+          'bg-red-600',
+          'hover:bg-red-700',
+          'border-red-600',
+          'hover:border-red-700',
+          'bg-emerald-600',
+          'hover:bg-emerald-700',
+          'border-emerald-600',
+          'hover:border-emerald-700'
+        )
+        if (isCheckingPermission) {
+          wizardCheckPermissionsButton.textContent = 'Checking...'
+        } else {
+          if (wizardPermissionState === 'granted') {
+            wizardCheckPermissionsButton.classList.add(
+              'bg-emerald-600',
+              'hover:bg-emerald-700',
+              'border-emerald-600',
+              'hover:border-emerald-700'
+            )
+            wizardCheckPermissionsButton.textContent = 'Granted'
+          } else if (wizardPermissionState === 'denied') {
+            wizardCheckPermissionsButton.classList.add(
+              'bg-red-600',
+              'hover:bg-red-700',
+              'border-red-600',
+              'hover:border-red-700'
+            )
+            wizardCheckPermissionsButton.textContent = 'Check Permissions'
+          } else {
+            wizardCheckPermissionsButton.classList.add(
+              'bg-indigo-600',
+              'hover:bg-indigo-700',
+              'border-indigo-600',
+              'hover:border-indigo-700'
+            )
+            wizardCheckPermissionsButton.textContent = 'Check Permissions'
+          }
+        }
+      }
+
+      if (wizardOpenScreenRecordingSettingsButton) {
+        const showOpenSettingsButton = wizardPermissionState === 'denied' && !alwaysEnabled
+        wizardOpenScreenRecordingSettingsButton.classList.toggle('hidden', !showOpenSettingsButton)
       }
     }
 
@@ -154,20 +211,43 @@
 
       const permissionElement = sidebarRecordingPermission || recordingPermission
       if (permissionElement) {
-        const permissionStatus = currentScreenRecordingPermissionStatus || ''
-        const needsPermission = permissionStatus && permissionStatus !== 'granted'
-        if (needsPermission) {
-          permissionElement.textContent =
-            'Screen Recording permission required. Enable Jiminy in System Settings \u2192 Privacy & Security \u2192 Screen Recording.'
-        } else {
-          permissionElement.textContent = ''
-        }
+        permissionElement.textContent = ''
         permissionElement.classList.toggle('hidden', !permissionElement.textContent)
+      }
+
+      updateWizardPermissionControls(currentAlwaysRecordWhenActive)
+    }
+
+    const handleCheckPermissions = async () => {
+      if (!jiminy.checkScreenRecordingPermission || isCheckingPermission) {
+        return
+      }
+      isCheckingPermission = true
+      updateStillsUI()
+      try {
+        const result = await jiminy.checkScreenRecordingPermission()
+        wizardPermissionState = result?.permissionStatus === 'granted' ? 'granted' : 'denied'
+      } catch (error) {
+        console.error('Failed to check Screen Recording permission', error)
+        wizardPermissionState = 'denied'
+      } finally {
+        isCheckingPermission = false
+        updateStillsUI()
       }
     }
 
-    const updatePermission = (permissionStatus) => {
-      currentScreenRecordingPermissionStatus = permissionStatus || ''
+    const handleOpenScreenRecordingSettings = async () => {
+      if (!jiminy.openScreenRecordingSettings) {
+        return
+      }
+      try {
+        const result = await jiminy.openScreenRecordingSettings()
+        if (!result || result.ok !== true) {
+          console.error('Failed to open Screen Recording settings', result?.message || result)
+        }
+      } catch (error) {
+        console.error('Failed to open Screen Recording settings', error)
+      }
     }
 
     const startStatusPoller = () => {
@@ -249,9 +329,20 @@
       })
     }
 
+    if (wizardCheckPermissionsButton) {
+      wizardCheckPermissionsButton.addEventListener('click', () => {
+        void handleCheckPermissions()
+      })
+    }
+
+    if (wizardOpenScreenRecordingSettingsButton) {
+      wizardOpenScreenRecordingSettingsButton.addEventListener('click', () => {
+        void handleOpenScreenRecordingSettings()
+      })
+    }
+
     return {
       handleSectionChange,
-      setPermissionStatus: updatePermission,
       updateStillsUI,
       updateRecordingUI: updateStillsUI
     }

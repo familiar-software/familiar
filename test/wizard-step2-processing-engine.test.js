@@ -103,3 +103,25 @@ test('wizard step 2 requires provider + saved API key in Cloud mode', () => {
     assert.equal(wizardNextButton.disabled, false)
   }
 })
+
+test('wizard step 3 requires recording toggle to be enabled', () => {
+  const { wizard, wizardNextButton } = createWizardHarness({
+    getState: () => ({
+      currentAlwaysRecordWhenActive: false
+    })
+  })
+
+  wizard.setWizardStep(3)
+  assert.equal(wizardNextButton.disabled, true)
+})
+
+test('wizard step 3 is complete when recording toggle is enabled', () => {
+  const { wizard, wizardNextButton } = createWizardHarness({
+    getState: () => ({
+      currentAlwaysRecordWhenActive: true
+    })
+  })
+
+  wizard.setWizardStep(3)
+  assert.equal(wizardNextButton.disabled, false)
+})
