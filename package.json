@@ -1,6 +1,6 @@
 {
   "name": "familiar-desktopapp",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "description": "Familiar menu bar app shell (macOS)",
   "main": "src/main.js",
   "scripts": {
@@ -38,7 +38,7 @@
       {
         "provider": "github",
         "owner": "familiar-ai-labs",
-        "repo": "familiar-releases",
+        "repo": "familiar",
         "releaseType": "release"
       }
     ],
