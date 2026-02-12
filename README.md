@@ -88,7 +88,6 @@ The workflow `Publish Desktop Release` is a manual GitHub Actions job that build
 -   Auto-launch on login is enabled via Electron login item settings.
 -   The Settings window includes a **Recording** tab with an opt-in **Record while active** toggle plus manual pause/resume. When enabled (and permission granted), Familiar captures downsampled still images into `<contextFolderPath>/familiar/stills/session-<timestamp>/` with a `manifest.json` describing captures and stop reason. On multi-monitor setups, capture follows the display nearest the cursor.
 -   While recording is active, clipboard text is mirrored to `<contextFolderPath>/familiar/stills-markdown/session-<timestamp>/<timestamp>.clipboard.txt`.
--   Global hotkeys trigger still capture pause/resume (`Command+R`) on macOS (Electron accelerator `CommandOrControl+R`).
 
 ## Local OCR (Apple Vision)
 

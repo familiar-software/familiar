@@ -1,6 +1,5 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { loadSettings, saveSettings, validateContextFolderPath } = require('../settings');
-const { DEFAULT_RECORDING_HOTKEY } = require('../hotkeys');
 const { getScreenRecordingPermissionStatus, openScreenRecordingSettings } = require('../screen-capture/permissions');
 const { resolveHarnessSkillPath } = require('../skills/installer');
 
@@ -46,7 +45,6 @@ function handleGetSettings() {
             }
             return 'apple_vision_ocr';
         })();
-        const recordingHotkey = typeof settings.recordingHotkey === 'string' ? settings.recordingHotkey : DEFAULT_RECORDING_HOTKEY;
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
         const wizardCompleted = settings.wizardCompleted === true;
         const skillInstallerHarness = typeof settings?.skillInstaller?.harness === 'string' ? settings.skillInstaller.harness : '';
@@ -71,7 +69,6 @@ function handleGetSettings() {
             llmProviderName,
             llmProviderApiKey,
             stillsMarkdownExtractorType,
-            recordingHotkey,
             alwaysRecordWhenActive,
             wizardCompleted,
             skillInstaller: {
@@ -88,7 +85,6 @@ function handleGetSettings() {
             llmProviderName: '',
             llmProviderApiKey: '',
             stillsMarkdownExtractorType: 'apple_vision_ocr',
-            recordingHotkey: DEFAULT_RECORDING_HOTKEY,
             alwaysRecordWhenActive: false,
             wizardCompleted: false,
             skillInstaller: { harness: '', installPath: '' },
@@ -104,7 +100,6 @@ function handleSaveSettings(_event, payload) {
     const hasStillsMarkdownExtractorType = Object.prototype.hasOwnProperty.call(payload || {}, 'stillsMarkdownExtractorType');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(payload || {}, 'alwaysRecordWhenActive');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(payload || {}, 'wizardCompleted');
-    const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(payload || {}, 'recordingHotkey');
     const hasSkillInstaller = Object.prototype.hasOwnProperty.call(payload || {}, 'skillInstaller');
     const settingsPayload = {};
 
@@ -115,7 +110,6 @@ function handleSaveSettings(_event, payload) {
         !hasStillsMarkdownExtractorType &&
         !hasAlwaysRecordWhenActive &&
         !hasWizardCompleted &&
-        !hasRecordingHotkey &&
         !hasSkillInstaller
     ) {
         return { ok: false, message: 'No settings provided.' };
@@ -154,12 +148,6 @@ function handleSaveSettings(_event, payload) {
         settingsPayload.stillsMarkdownExtractorType = normalized === 'apple_vision_ocr' ? 'apple_vision_ocr' : 'llm';
     }
 
-    if (hasRecordingHotkey) {
-        settingsPayload.recordingHotkey = typeof payload.recordingHotkey === 'string'
-            ? payload.recordingHotkey
-            : DEFAULT_RECORDING_HOTKEY;
-    }
-
     if (hasAlwaysRecordWhenActive) {
         const nextValue = payload.alwaysRecordWhenActive === true;
         settingsPayload.alwaysRecordWhenActive = nextValue;
@@ -196,7 +184,7 @@ function handleSaveSettings(_event, payload) {
                 console.error('Failed to notify settings update', error);
             }
         }
-        return { ok: true, hotkeysChanged: hasRecordingHotkey };
+        return { ok: true };
     } catch (error) {
         console.error('Failed to save settings', error);
         return { ok: false, message: 'Failed to save settings.' };

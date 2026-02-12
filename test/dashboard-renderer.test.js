@@ -151,7 +151,6 @@ const createElements = () => {
   const elements = {
     'advanced-toggle-btn': new TestElement(),
     'advanced-options': new TestElement(),
-    'recording-hotkey': new TestElement(),
     'sidebar-recording-dot': new TestElement(),
     'sidebar-recording-status': new TestElement(),
     'sidebar-recording-action': new TestElement(),
@@ -207,10 +206,6 @@ const createElements = () => {
     'updates-progress': new TestElement(),
     'updates-progress-bar': new TestElement(),
     'updates-progress-label': new TestElement(),
-    'hotkeys-save': new TestElement(),
-    'hotkeys-reset': new TestElement(),
-    'hotkeys-status': new TestElement(),
-    'hotkeys-error': new TestElement(),
     'wizard-back': new TestElement(),
     'wizard-next': new TestElement(),
     'wizard-done': new TestElement(),
@@ -292,13 +287,6 @@ const createElements = () => {
   elements['updates-check'].dataset.action = 'updates-check'
   elements['updates-status'].dataset.settingStatus = 'updates-status'
   elements['updates-error'].dataset.settingError = 'updates-error'
-
-  elements['recording-hotkey'].dataset.hotkeyRole = 'recording'
-  elements['recording-hotkey'].classList.add('hotkey-recorder')
-  elements['hotkeys-save'].dataset.action = 'hotkeys-save'
-  elements['hotkeys-reset'].dataset.action = 'hotkeys-reset'
-  elements['hotkeys-status'].dataset.settingStatus = 'hotkeys-status'
-  elements['hotkeys-error'].dataset.settingError = 'hotkeys-error'
 
   elements['wizard-back'].dataset.action = 'wizard-back'
   elements['wizard-next'].dataset.action = 'wizard-next'
@@ -899,77 +887,6 @@ test('stills action button pauses and resumes when paused', async () => {
     assert.equal(startCalls.length, 1)
     assert.equal(elements['sidebar-recording-status'].textContent, 'Recording')
     assert.equal(elements['sidebar-recording-action'].textContent, 'Pause (10 min)')
-  } finally {
-    global.document = priorDocument
-    global.window = priorWindow
-  }
-})
-
-test('hotkey recording surfaces suspend errors', async () => {
-  const familiar = createFamiliar({
-    suspendHotkeys: async () => {
-      throw new Error('suspend failed')
-    }
-  })
-
-  const elements = createElements()
-  const document = new TestDocument(elements)
-  const priorDocument = global.document
-  const priorWindow = global.window
-  global.document = document
-  global.window = { familiar }
-
-  try {
-    loadRenderer()
-    document.trigger('DOMContentLoaded')
-    await flushPromises()
-
-    await elements['recording-hotkey'].click()
-    await flushPromises()
-
-    assert.equal(
-      elements['hotkeys-error'].textContent,
-      'Failed to suspend hotkeys. Try again or restart the app.'
-    )
-  } finally {
-    global.document = priorDocument
-    global.window = priorWindow
-  }
-})
-
-test('hotkey recording surfaces resume errors', async () => {
-  const familiar = createFamiliar({
-    suspendHotkeys: async () => {},
-    resumeHotkeys: async () => {
-      throw new Error('resume failed')
-    }
-  })
-
-  const elements = createElements()
-  const document = new TestDocument(elements)
-  const priorDocument = global.document
-  const priorWindow = global.window
-  global.document = document
-  global.window = { familiar }
-
-  try {
-    loadRenderer()
-    document.trigger('DOMContentLoaded')
-    await flushPromises()
-
-    await elements['recording-hotkey'].click()
-    await flushPromises()
-
-    const keydown = elements['recording-hotkey']._listeners.keydown
-    await keydown({
-      metaKey: true,
-      key: 'K',
-      preventDefault: () => {},
-      stopPropagation: () => {}
-    })
-    await flushPromises()
-
-    assert.equal(elements['hotkeys-error'].textContent, 'Failed to resume hotkeys. Restart the app.')
   } finally {
     global.document = priorDocument
     global.window = priorWindow

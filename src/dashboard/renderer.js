@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     }
     if (typeof require === 'function') {
       return {
-        ...require('./bootstrap/hotkeys'),
         ...require('./bootstrap/processing-engine'),
         ...require('./bootstrap/stills'),
         ...require('./bootstrap/settings'),
@@ -34,7 +33,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const loadDashboardModules = moduleLoader?.loadDashboardModules
   const createDashboardState = stateModule?.createDashboardState
   const {
-    bootstrapHotkeys,
     bootstrapProcessingEngine,
     bootstrapStills,
     bootstrapSettings,
@@ -194,28 +192,15 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const updateProgressBar = document.getElementById('updates-progress-bar')
   const updateProgressLabel = document.getElementById('updates-progress-label')
 
-  const hotkeyButtons = selectAll('.hotkey-recorder')
-  function isRecordingHotkey(button) {
-    return button.dataset.hotkeyRole === 'recording'
-  }
-  const recordingHotkeyButtons = hotkeyButtons.filter(isRecordingHotkey)
-  const hotkeysSaveButtons = selectAll('[data-action="hotkeys-save"]')
-  const hotkeysResetButtons = selectAll('[data-action="hotkeys-reset"]')
-  const hotkeysStatuses = selectAll('[data-setting-status="hotkeys-status"]')
-  const hotkeysErrors = selectAll('[data-setting-error="hotkeys-error"]')
-
   const sectionTitle = document.getElementById('section-title')
   const sectionSubtitle = document.getElementById('section-subtitle')
   const sectionNavButtons = selectAll('[data-section-target]')
   const wizardNavButton = sectionNavButtons.find((button) => button.dataset.sectionTarget === 'wizard') || null
   const sectionPanes = selectAll('[data-section-pane]')
 
-  const DEFAULT_RECORDING_HOTKEY = 'CommandOrControl+R'
-
   const apis = {
     wizardApi: null,
     wizardSkillApi: null,
-    hotkeysApi: null,
     updatesApi: null,
     settingsApi: null,
     recordingApi: null,
@@ -223,9 +208,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   }
 
   const state = createDashboardState({
-    defaults: {
-      recording: DEFAULT_RECORDING_HOTKEY
-    },
     elements: {
       contextFolderInputs,
       llmProviderSelects,
@@ -239,19 +221,11 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const SECTION_META = {
     wizard: {
       title: 'Setup Wizard',
-      subtitle: 'Guided setup in five steps.'
+      subtitle: 'Guided setup in four steps.'
     },
     general: {
       title: 'General Settings',
       subtitle: 'Core app configuration.'
-    },
-    privacy: {
-      title: 'Privacy',
-      subtitle: 'Where your data lives and what leaves your machine.'
-    },
-    hotkeys: {
-      title: 'Hotkeys',
-      subtitle: 'Configure global keyboard shortcuts.'
     },
     updates: {
       title: 'Updates',
@@ -377,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const runBootstrapUpdates = typeof bootstrapUpdates === 'function' ? bootstrapUpdates : () => null
   const runBootstrapStills = typeof bootstrapStills === 'function' ? bootstrapStills : () => null
   const runBootstrapSettings = typeof bootstrapSettings === 'function' ? bootstrapSettings : () => null
-  const runBootstrapHotkeys = typeof bootstrapHotkeys === 'function' ? bootstrapHotkeys : () => null
   const runBootstrapProcessingEngine = typeof bootstrapProcessingEngine === 'function' ? bootstrapProcessingEngine : () => null
 
   apis.wizardApi = runBootstrapWizard({
@@ -504,14 +477,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       stillsMarkdownExtractorStatuses,
       alwaysRecordWhenActiveInputs,
       alwaysRecordWhenActiveErrors,
-      alwaysRecordWhenActiveStatuses,
-      hotkeysErrors,
-      hotkeysStatuses
+      alwaysRecordWhenActiveStatuses
     },
     familiar,
-    defaults: {
-      recording: DEFAULT_RECORDING_HOTKEY
-    },
     getState: state.getSettingsState,
     setContextFolderValue: state.setContextFolderValue,
     setSkillHarness: state.setSkillHarness,
@@ -520,7 +488,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     setLlmApiKeySaved: state.setLlmApiKeySaved,
     setStillsMarkdownExtractorType: state.setStillsMarkdownExtractorType,
     setAlwaysRecordWhenActiveValue: state.setAlwaysRecordWhenActiveValue,
-    setHotkeys: state.setHotkeysFromSettings,
     setMessage,
     updateWizardUI: state.updateWizardUI
   })
@@ -530,33 +497,12 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     setMessage(llmProviderErrors, 'Settings module unavailable. Restart the app.')
     setMessage(llmKeyErrors, 'Settings module unavailable. Restart the app.')
     setMessage(stillsMarkdownExtractorErrors, 'Settings module unavailable. Restart the app.')
-    setMessage(hotkeysErrors, 'Settings module unavailable. Restart the app.')
     return
   }
 
   if (!apis.settingsApi.isReady) {
     return
   }
-
-  apis.hotkeysApi = runBootstrapHotkeys({
-    window,
-    elements: {
-      hotkeyButtons,
-      recordingHotkeyButtons,
-      hotkeysSaveButtons,
-      hotkeysResetButtons,
-      hotkeysStatuses,
-      hotkeysErrors
-    },
-    familiar,
-    setMessage,
-    updateWizardUI: state.updateWizardUI,
-    getState: state.getHotkeysState,
-    setHotkeyValue: state.setHotkeyValue,
-    defaults: {
-      recording: DEFAULT_RECORDING_HOTKEY
-    }
-  })
 
   async function initialize() {
     const settingsResult = await apis.settingsApi.loadSettings()

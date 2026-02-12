@@ -2,7 +2,6 @@
   const MODULE_SPECS = [
     { globalKey: 'FamiliarWizard', modulePath: './wizard.js', factory: 'createWizard' },
     { globalKey: 'FamiliarWizardSkill', modulePath: './wizard-skill.js', factory: 'createWizardSkill' },
-    { globalKey: 'FamiliarHotkeys', modulePath: './hotkeys.js', factory: 'createHotkeys' },
     { globalKey: 'FamiliarUpdates', modulePath: './updates.js', factory: 'createUpdates' },
     { globalKey: 'FamiliarSettings', modulePath: './settings.js', factory: 'createSettings' },
     { globalKey: 'FamiliarProcessingEngine', modulePath: './processing-engine.js', factory: 'createProcessingEngine' },

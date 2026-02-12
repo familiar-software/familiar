@@ -29,7 +29,6 @@ test('bootstrapSettings forwards setSkillHarness to FamiliarSettings.createSetti
     setLlmApiKeySaved: () => {},
     setStillsMarkdownExtractorType: () => {},
     setAlwaysRecordWhenActiveValue: () => {},
-    setHotkeys: () => {},
     setMessage: () => {},
     updateWizardUI: () => {}
   })

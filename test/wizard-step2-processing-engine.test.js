@@ -26,8 +26,7 @@ function createWizardHarness({ getState }) {
     { dataset: { wizardStep: '1' }, classList: createNoopClassList() },
     { dataset: { wizardStep: '2' }, classList: createNoopClassList() },
     { dataset: { wizardStep: '3' }, classList: createNoopClassList() },
-    { dataset: { wizardStep: '4' }, classList: createNoopClassList() },
-    { dataset: { wizardStep: '5' }, classList: createNoopClassList() }
+    { dataset: { wizardStep: '4' }, classList: createNoopClassList() }
   ]
 
   const wizard = createWizard({

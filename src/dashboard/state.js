@@ -1,6 +1,5 @@
 (function registerDashboardState(global) {
   function createDashboardState(options = {}) {
-    const defaults = options.defaults || {}
     const elements = options.elements || {}
     const apis = options.apis || {}
 
@@ -19,8 +18,7 @@
       currentAlwaysRecordWhenActive: false,
       isLlmApiKeySaved: false,
       currentSkillHarness: '',
-      isSkillInstalled: false,
-      currentRecordingHotkey: defaults.recording || ''
+      isSkillInstalled: false
     }
 
     function callIfAvailable(target, method, ...args) {
@@ -32,13 +30,6 @@
 
     function updateWizardUI() {
       callIfAvailable(apis.wizardApi, 'updateWizardUI')
-    }
-
-    function setHotkeyValue(role, value) {
-      const nextValue = value || ''
-      if (role === 'recording') {
-        state.currentRecordingHotkey = nextValue
-      }
     }
 
     function setInputValues(targets, value) {
@@ -118,15 +109,6 @@
       updateWizardUI()
     }
 
-    function setHotkeysFromSettings(hotkeys) {
-      if (apis.hotkeysApi && typeof apis.hotkeysApi.setHotkeys === 'function') {
-        apis.hotkeysApi.setHotkeys(hotkeys)
-        return
-      }
-      setHotkeyValue('recording', hotkeys.recording)
-      updateWizardUI()
-    }
-
     function getWizardState() {
       return {
         currentContextFolderPath: state.currentContextFolderPath,
@@ -136,7 +118,6 @@
         currentStillsMarkdownExtractorType: state.currentStillsMarkdownExtractorType,
         currentSkillHarness: state.currentSkillHarness,
         isSkillInstalled: state.isSkillInstalled,
-        currentRecordingHotkey: state.currentRecordingHotkey,
         currentAlwaysRecordWhenActive: state.currentAlwaysRecordWhenActive
       }
     }
@@ -161,15 +142,8 @@
       }
     }
 
-    function getHotkeysState() {
-      return {
-        currentRecordingHotkey: state.currentRecordingHotkey
-      }
-    }
-
     return {
       updateWizardUI,
-      setHotkeyValue,
       setContextFolderValue,
       setLlmProviderValue,
       setLlmApiKeyPending,
@@ -178,11 +152,9 @@
       setAlwaysRecordWhenActiveValue,
       setSkillHarness,
       setSkillInstalled,
-      setHotkeysFromSettings,
       getWizardState,
       getRecordingState,
-      getSettingsState,
-      getHotkeysState
+      getSettingsState
     }
   }
 

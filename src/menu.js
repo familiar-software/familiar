@@ -2,7 +2,6 @@ function buildTrayMenuTemplate ({
   onRecordingPause,
   onOpenSettings,
   onQuit,
-  recordingAccelerator,
   recordingPaused,
   recordingState
 }) {
@@ -14,9 +13,6 @@ function buildTrayMenuTemplate ({
       ? 'Pause Recording (10 min)'
       : 'Start Recording'
   const recordingItem = { label: recordingLabel, click: onRecordingPause }
-  if (typeof recordingAccelerator === 'string' && recordingAccelerator) {
-    recordingItem.accelerator = recordingAccelerator
-  }
 
   return [
     recordingItem,

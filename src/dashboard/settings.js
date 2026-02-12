@@ -2,7 +2,6 @@
   const createSettings = (options = {}) => {
     const elements = options.elements || {}
     const familiar = options.familiar || {}
-    const defaults = options.defaults || {}
     const getState = typeof options.getState === 'function' ? options.getState : () => ({})
     const setContextFolderValue = typeof options.setContextFolderValue === 'function'
       ? options.setContextFolderValue
@@ -25,7 +24,6 @@
     const setAlwaysRecordWhenActiveValue = typeof options.setAlwaysRecordWhenActiveValue === 'function'
       ? options.setAlwaysRecordWhenActiveValue
       : () => {}
-    const setHotkeys = typeof options.setHotkeys === 'function' ? options.setHotkeys : () => {}
     const setMessage = typeof options.setMessage === 'function' ? options.setMessage : () => {}
     const updateWizardUI = typeof options.updateWizardUI === 'function' ? options.updateWizardUI : () => {}
 
@@ -47,12 +45,8 @@
       stillsMarkdownExtractorStatuses = [],
       alwaysRecordWhenActiveInputs = [],
       alwaysRecordWhenActiveErrors = [],
-      alwaysRecordWhenActiveStatuses = [],
-      hotkeysErrors = [],
-      hotkeysStatuses = []
+      alwaysRecordWhenActiveStatuses = []
     } = elements
-
-    const DEFAULT_RECORDING_HOTKEY = defaults.recording || 'CommandOrControl+R'
 
     const isReady = Boolean(familiar.pickContextFolder && familiar.saveSettings && familiar.getSettings)
     const canCopyLog = typeof familiar.copyCurrentLogToClipboard === 'function'
@@ -221,9 +215,6 @@
         setStillsMarkdownExtractorType(result.stillsMarkdownExtractorType || 'apple_vision_ocr')
         setAlwaysRecordWhenActiveValue(result.alwaysRecordWhenActive === true)
         setSkillHarness(result?.skillInstaller?.harness || '')
-        setHotkeys({
-          recording: result.recordingHotkey || DEFAULT_RECORDING_HOTKEY
-        })
         setMessage(contextFolderErrors, result.validationMessage || '')
         setMessage(contextFolderStatuses, '')
         setMessage(llmProviderErrors, '')
@@ -235,8 +226,6 @@
         setMessage(alwaysRecordWhenActiveStatuses, '')
         setMessage(copyLogErrors, '')
         setMessage(copyLogStatuses, '')
-        setMessage(hotkeysErrors, '')
-        setMessage(hotkeysStatuses, '')
         if (appVersionLabel) {
           appVersionLabel.textContent = result.appVersion || ''
         }
@@ -247,7 +236,6 @@
         setMessage(llmProviderErrors, 'Failed to load settings.')
         setMessage(llmKeyErrors, 'Failed to load settings.')
         setMessage(stillsMarkdownExtractorErrors, 'Failed to load settings.')
-        setMessage(hotkeysErrors, 'Failed to load settings.')
       }
       return null
     }
@@ -260,7 +248,6 @@
       setMessage(stillsMarkdownExtractorErrors, message)
       setMessage(alwaysRecordWhenActiveErrors, message)
       setMessage(copyLogErrors, message)
-      setMessage(hotkeysErrors, message)
       copyLogButtons.forEach((button) => {
         button.disabled = true
       })

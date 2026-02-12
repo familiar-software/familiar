@@ -56,16 +56,18 @@ const completeWizardPermissionsStep = async (window, nextButton) => {
   await nextButton.click()
 }
 
-const advanceWizardToHotkeys = async (window, nextButton) => {
-  const hotkeysRecording = window.locator('#wizard-recording-hotkey')
+const advanceWizardToInstallSkill = async (window, nextButton) => {
   const skillInstallButton = window.locator('#wizard-skill-install')
   const skillStatus = window.locator('#wizard-skill-status')
   const codexHarness = window.locator('input[name="wizard-skill-harness"][value="codex"]')
   const wizardStep3 = window.locator('[data-wizard-step="3"]')
+  const wizardStep4 = window.locator('[data-wizard-step="4"]')
+  let reachedInstallSkillStep = false
 
   for (let attempts = 0; attempts < 4; attempts += 1) {
-    if (await hotkeysRecording.isVisible()) {
-      return
+    if (await wizardStep4.isVisible()) {
+      reachedInstallSkillStep = true
+      break
     }
 
     if (await wizardStep3.isVisible()) {
@@ -87,7 +89,14 @@ const advanceWizardToHotkeys = async (window, nextButton) => {
     await nextButton.click()
   }
 
-  await expect(hotkeysRecording).toBeVisible()
+  if (!reachedInstallSkillStep) {
+    await expect(wizardStep4).toBeVisible()
+  }
+
+  await codexHarness.check()
+  await expect(skillInstallButton).toBeEnabled()
+  await skillInstallButton.click()
+  await expect(skillStatus).toContainText('Installed')
 }
 
 test('wizard happy flow completes setup and routes to General', async () => {
@@ -131,7 +140,7 @@ test('wizard happy flow completes setup and routes to General', async () => {
     await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
 
     const doneButton = window.locator('#wizard-done')
-    await advanceWizardToHotkeys(window, nextButton)
+    await advanceWizardToInstallSkill(window, nextButton)
     await expect(doneButton).toBeEnabled()
     await doneButton.click()
 
@@ -264,7 +273,7 @@ test('wizard hides wizard tab after Done', async () => {
     await expect(window.locator('[data-wizard-step=\"3\"]')).toBeVisible()
 
     const doneButton = window.locator('#wizard-done')
-    await advanceWizardToHotkeys(window, nextButton)
+    await advanceWizardToInstallSkill(window, nextButton)
     await doneButton.click()
     await expect(window.locator('#section-title')).toHaveText('General Settings')
     await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()

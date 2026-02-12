@@ -3,7 +3,6 @@ const path = require('node:path');
 const os = require('node:os');
 
 const { SETTINGS_DIR_NAME, SETTINGS_FILE_NAME } = require('./const');
-const { DEFAULT_RECORDING_HOTKEY } = require('./hotkeys');
 
 const resolveSettingsDir = (settingsDir) =>
     settingsDir || process.env.FAMILIAR_SETTINGS_DIR || path.join(os.homedir(), SETTINGS_DIR_NAME);
@@ -51,7 +50,6 @@ const saveSettings = (settings, options = {}) => {
     const hasLlmProviderVisionModel = Object.prototype.hasOwnProperty.call(settings, 'llmProviderVisionModel');
     const hasStillsMarkdownExtractorType = Object.prototype.hasOwnProperty.call(settings, 'stillsMarkdownExtractorType');
     const hasUpdateLastCheckedAt = Object.prototype.hasOwnProperty.call(settings, 'updateLastCheckedAt');
-    const hasRecordingHotkey = Object.prototype.hasOwnProperty.call(settings, 'recordingHotkey');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(settings, 'alwaysRecordWhenActive');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(settings, 'wizardCompleted');
     const hasSkillInstaller = Object.prototype.hasOwnProperty.call(settings, 'skillInstaller');
@@ -127,13 +125,6 @@ const saveSettings = (settings, options = {}) => {
             payload.stills_markdown_extractor = { ...existingStillsExtractor };
         }
         payload.stills_markdown_extractor.llm_provider = { ...existingProvider };
-    }
-
-    if (hasRecordingHotkey) {
-        payload.recordingHotkey =
-            typeof settings.recordingHotkey === 'string' ? settings.recordingHotkey : DEFAULT_RECORDING_HOTKEY;
-    } else if (typeof existing.recordingHotkey === 'string') {
-        payload.recordingHotkey = existing.recordingHotkey;
     }
 
     if (hasUpdateLastCheckedAt) {

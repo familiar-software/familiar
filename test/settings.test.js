@@ -98,59 +98,6 @@ test('validateContextFolderPath rejects file path', () => {
   assert.equal(result.message, 'Selected path is not a directory.')
 })
 
-test('saveSettings persists recordingHotkey', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-
-  saveSettings({ recordingHotkey: 'Alt+R' }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.recordingHotkey, 'Alt+R')
-})
-
-test('saveSettings persists control/option hotkey combinations', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-
-  saveSettings(
-    { recordingHotkey: 'CommandOrControl+Alt+Shift+R' },
-    { settingsDir }
-  )
-
-  const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.recordingHotkey, 'CommandOrControl+Alt+Shift+R')
-})
-
-test('saveSettings preserves hotkeys when updating other settings', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-  const contextDir = path.join(tempRoot, 'context')
-  fs.mkdirSync(contextDir)
-
-  saveSettings({ recordingHotkey: 'Alt+R' }, { settingsDir })
-  saveSettings({ contextFolderPath: contextDir }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.recordingHotkey, 'Alt+R')
-  assert.equal(loaded.contextFolderPath, contextDir)
-})
-
-test('saveSettings preserves other settings when updating hotkeys', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-  const contextDir = path.join(tempRoot, 'context')
-  fs.mkdirSync(contextDir)
-
-  saveSettings({ contextFolderPath: contextDir, llmProviderApiKey: 'key123', llmProviderName: 'openai' }, { settingsDir })
-  saveSettings({ recordingHotkey: 'CommandOrControl+Alt+X' }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.recordingHotkey, 'CommandOrControl+Alt+X')
-  assert.equal(loaded.contextFolderPath, contextDir)
-  assert.equal(loaded.stills_markdown_extractor?.llm_provider?.api_key, 'key123')
-  assert.equal(loaded.stills_markdown_extractor?.llm_provider?.provider, 'openai')
-})
-
 test('saveSettings preserves updateLastCheckedAt when updating other settings', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

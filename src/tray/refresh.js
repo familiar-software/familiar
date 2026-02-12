@@ -6,41 +6,13 @@ const getElectronMenu = () => {
     return electron && electron.Menu ? electron.Menu : null;
 };
 
-function resolveHotkeyAccelerators(
-    settings = {},
-    { DEFAULT_RECORDING_HOTKEY } = {}
-) {
-    const recordingAccelerator =
-        typeof settings.recordingHotkey === 'string' && settings.recordingHotkey
-            ? settings.recordingHotkey
-            : DEFAULT_RECORDING_HOTKEY;
-
-    return { recordingAccelerator };
-}
-
-function buildTrayMenuPayload(
-    settings = {},
-    {
-        DEFAULT_RECORDING_HOTKEY,
-    } = {}
-) {
-    const { recordingAccelerator } = resolveHotkeyAccelerators(settings, {
-        DEFAULT_RECORDING_HOTKEY
-    });
-    return {
-        recordingAccelerator,
-    };
-}
-
 function createTrayMenuController({
     tray,
     trayHandlers,
-    DEFAULT_RECORDING_HOTKEY,
     loadSettingsFn = loadSettings,
     buildTrayMenuTemplateFn = buildTrayMenuTemplate,
     getRecordingState = null,
     menu = getElectronMenu(),
-    platform = process.platform,
     logger = console,
 } = {}) {
     const resolveRecordingPaused = () => {
@@ -58,7 +30,7 @@ function createTrayMenuController({
         return getRecordingState() || null;
     };
 
-    function updateTrayMenu({ recordingAccelerator, recordingPaused } = {}) {
+    function updateTrayMenu({ recordingPaused } = {}) {
         if (!menu) {
             logger.warn('Tray menu update skipped: menu unavailable');
             return;
@@ -72,14 +44,12 @@ function createTrayMenuController({
             logger.warn('Tray menu update skipped: handlers not ready');
             return;
         }
-        const showHotkeys = platform === 'darwin';
         const isPaused =
             typeof recordingPaused === 'boolean' ? recordingPaused : resolveRecordingPaused();
         const recordingState = resolveRecordingState();
         const trayMenu = menu.buildFromTemplate(
             buildTrayMenuTemplateFn({
                 ...trayHandlers,
-                recordingAccelerator: showHotkeys ? recordingAccelerator : undefined,
                 recordingPaused: isPaused,
                 recordingState
             })
@@ -87,17 +57,13 @@ function createTrayMenuController({
 
         tray.setContextMenu(trayMenu);
         logger.log('Tray menu updated', {
-            recordingAccelerator: Boolean(showHotkeys && recordingAccelerator),
             recordingPaused: isPaused,
         });
     }
 
     function refreshTrayMenuFromSettings() {
-        const settings = loadSettingsFn();
+        loadSettingsFn();
         updateTrayMenu({
-            ...buildTrayMenuPayload(settings, {
-                DEFAULT_RECORDING_HOTKEY,
-            }),
             recordingPaused: resolveRecordingPaused(),
         });
     }
@@ -124,7 +90,5 @@ function createTrayMenuController({
 }
 
 module.exports = {
-    resolveHotkeyAccelerators,
-    buildTrayMenuPayload,
     createTrayMenuController,
 };

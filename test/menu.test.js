@@ -89,32 +89,6 @@ test('recording item click does not trigger settings', () => {
     assert.equal(openSettingsCalls, 0);
 });
 
-test('buildTrayMenuTemplate applies accelerators when provided', () => {
-    const template = buildTrayMenuTemplate({
-        onRecordingPause: () => {},
-        onOpenSettings: () => {},
-        onQuit: () => {},
-        recordingAccelerator: 'CommandOrControl+R',
-    });
-
-    const recordingItem = template.find((item) => item.label === 'Start Recording');
-
-    assert.equal(recordingItem.accelerator, 'CommandOrControl+R');
-});
-
-test('buildTrayMenuTemplate omits accelerators when empty', () => {
-    const template = buildTrayMenuTemplate({
-        onRecordingPause: () => {},
-        onOpenSettings: () => {},
-        onQuit: () => {},
-        recordingAccelerator: '',
-    });
-
-    const recordingItem = template.find((item) => item.label === 'Start Recording');
-
-    assert.equal(recordingItem.accelerator, undefined);
-});
-
 test('buildTrayMenuTemplate uses resume label when paused', () => {
     const template = buildTrayMenuTemplate({
         onRecordingPause: () => {},

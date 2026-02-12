@@ -17,7 +17,6 @@
       setLlmApiKeySaved: options.setLlmApiKeySaved,
       setStillsMarkdownExtractorType: options.setStillsMarkdownExtractorType,
       setAlwaysRecordWhenActiveValue: options.setAlwaysRecordWhenActiveValue,
-      setHotkeys: options.setHotkeys,
       setExclusions: options.setExclusions,
       setMessage: options.setMessage,
       refreshContextGraphStatus: options.refreshContextGraphStatus,

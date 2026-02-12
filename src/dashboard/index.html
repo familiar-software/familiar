@@ -150,36 +150,6 @@
             </button>
             <button
               class="sidebar-item"
-              data-section-target="hotkeys"
-              data-active="false"
-              role="tab"
-              aria-controls="section-hotkeys"
-              aria-selected="false"
-              type="button"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <rect x="3" y="7" width="18" height="10" rx="2" />
-                <path d="M7 11h2m2 0h2m2 0h2M7 14h10" />
-              </svg>
-              Hotkeys
-            </button>
-            <button
-              class="sidebar-item"
-              data-section-target="privacy"
-              data-active="false"
-              role="tab"
-              aria-controls="section-privacy"
-              aria-selected="false"
-              type="button"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path d="M12 3l7 4v6c0 5-3 9-7 8-4 1-7-3-7-8V7l7-4Z" />
-                <path d="M9.5 12.5l1.5 1.5 3.5-3.5" />
-              </svg>
-              Privacy
-            </button>
-            <button
-              class="sidebar-item"
               data-section-target="updates"
               data-active="false"
               role="tab"
@@ -268,49 +238,9 @@
                   >Copy Debug Log</button>
                 </div>
               </div>
-	            </section>
+		            </section>
 
-	            <section id="section-privacy" data-section-pane="privacy" role="tabpanel" aria-label="Privacy settings" class="space-y-6 hidden">
-	              <section class="space-y-2">
-	                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Privacy & Data</h3>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  Familiar is designed to be local-first. Your Context Folder is the source of truth.
-                  In Cloud mode, generating results from recordings sends still images directly from your Mac to the provider you configure.
-                  In Local mode, still processing happens on-device and nothing leaves your machine.
-                  </p>
-              </section>
-
-              <section class="space-y-2">
-                <label class="section-label">Where Your Data Lives</label>
-                <ul class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed list-disc pl-4 space-y-1">
-                  <li>Everything is saved under <span class="font-mono text-zinc-700 dark:text-zinc-200">&lt;Context Folder&gt;/familiar/</span>.</li>
-                  <li>Recorded still images: <span class="font-mono text-zinc-700 dark:text-zinc-200">familiar/stills/</span>.</li>
-                  <li>Extracted stills markdown: <span class="font-mono text-zinc-700 dark:text-zinc-200">familiar/stills-markdown/</span>.</li>
-                  <li>Clipboard text (while recording): <span class="font-mono text-zinc-700 dark:text-zinc-200">familiar/stills-markdown/session-*/&lt;timestamp&gt;.clipboard.txt</span>.</li>
-                  <li>Settings file: <span class="font-mono text-zinc-700 dark:text-zinc-200">~/.familiar/settings.json</span>.</li>
-                </ul>
-              </section>
-
-	              <section class="space-y-2">
-	                <label class="section-label">What Leaves Your Machine</label>
-	                <ul class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed list-disc pl-4 space-y-1">
-	                  <li>In Cloud mode, Familiar sends capture content directly to the AI provider you configure (for extraction).</li>
-	                  <li>Requests go directly from your Mac to that provider (not through a Familiar server).</li>
-	                  <li>In Local mode, capture content stays on-device.</li>
-	                </ul>
-	              </section>
-
-              <section class="space-y-2">
-                <label class="section-label">Recording Behavior</label>
-                <ul class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed list-disc pl-4 space-y-1">
-                  <li>When enabled, Familiar captures a still every few seconds while you are active.</li>
-                  <li>It stops when your Mac is idle.</li>
-                  <li>You can pause for 10 minutes from the tray menu or the Toggle Recording hotkey.</li>
-                </ul>
-              </section>
-            </section>
-
-	            <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Recording settings" class="space-y-6 hidden">
+		            <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Recording settings" class="space-y-6 hidden">
 	              <section class="space-y-2" data-processing-engine>
                   <div class="flex items-center justify-between">
                     <label class="section-label">Processing Engine</label>
@@ -426,41 +356,13 @@
               <p id="updates-error" data-setting-error="updates-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
             </section>
 
-            <!-- Hotkeys -->
-            <section id="section-hotkeys" data-section-pane="hotkeys" role="tabpanel" aria-label="Hotkeys" class="space-y-4 hidden">
-              <div>
-                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Keyboard Shortcuts</h3>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400">Click a field and press your desired key combination.</p>
-              </div>
-
-              <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                  <label for="recording-hotkey" class="text-xs uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Toggle Recording</label>
-                  <button
-                    id="recording-hotkey"
-                    type="button"
-                    class="hotkey-recorder flex-1 px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none font-mono text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                    data-hotkey=""
-                    data-hotkey-role="recording"
-                  >Click to set...</button>
-                </div>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2">
-                <button id="hotkeys-save" data-action="hotkeys-save" type="button" class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Save Hotkeys</button>
-                <button id="hotkeys-reset" data-action="hotkeys-reset" type="button" class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer">Reset Defaults</button>
-                <span id="hotkeys-status" data-setting-status="hotkeys-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-              </div>
-              <p id="hotkeys-error" data-setting-error="hotkeys-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-            </section>
-
           </div>
 
           <section id="section-wizard" data-section-pane="wizard" role="tabpanel" aria-label="Setup wizard" class="hidden flex-1 flex flex-col min-h-0">
             <div class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
               <div>
                 <h2 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Setup Wizard</h2>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400">Guided setup in five steps.</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Guided setup in four steps.</p>
               </div>
               <span id="wizard-complete-status" class="text-xs font-medium text-emerald-600 dark:text-emerald-400 hidden">Setup complete</span>
             </div>
@@ -491,13 +393,6 @@
                 <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="4">
                   <div class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center" data-wizard-step-circle="4">4</div>
                   <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="4">Install Skill</span>
-                </div>
-                <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
-                  <div class="absolute inset-y-0 left-0 bg-indigo-600 w-0 transition-all" data-wizard-step-connector="4"></div>
-                </div>
-                <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="5">
-                  <div class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center" data-wizard-step-circle="5">5</div>
-                  <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="5">Hotkeys</span>
                 </div>
               </div>
             </div>
@@ -689,31 +584,6 @@
                   <p id="wizard-skill-error" data-skill-install-error class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
                 </div>
               </div>
-
-              <div data-wizard-step="5" class="max-w-[360px] mx-auto space-y-5 hidden">
-                <div class="text-center space-y-1">
-                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Review hotkeys</h3>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Confirm shortcuts for the tools you will use most.</p>
-                </div>
-                <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                    <label for="wizard-recording-hotkey" class="text-xs uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 w-28">Toggle Recording</label>
-                    <button
-                      id="wizard-recording-hotkey"
-                      type="button"
-                      class="hotkey-recorder flex-1 px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-700 dark:text-zinc-300 focus:outline-none font-mono text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                      data-hotkey=""
-                      data-hotkey-role="recording"
-                    >Click to set...</button>
-                  </div>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <button id="wizard-hotkeys-save" data-action="hotkeys-save" type="button" class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Save Hotkeys</button>
-                  <button id="wizard-hotkeys-reset" data-action="hotkeys-reset" type="button" class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer">Reset Defaults</button>
-                  <span id="wizard-hotkeys-status" data-setting-status="hotkeys-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                </div>
-                <p id="wizard-hotkeys-error" data-setting-error="hotkeys-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-              </div>
             </div>
 
             <div class="flex-none px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/70 dark:bg-zinc-900/60">
@@ -732,7 +602,6 @@
 
     <script src="./wizard.js"></script>
     <script src="./wizard-skill.js"></script>
-    <script src="./hotkeys.js"></script>
     <script src="./updates.js"></script>
     <script src="./stills.js"></script>
     <script src="./settings.js"></script>
@@ -745,7 +614,6 @@
     <script src="./bootstrap/stills.js"></script>
     <script src="./bootstrap/settings.js"></script>
     <script src="./bootstrap/processing-engine.js"></script>
-    <script src="./bootstrap/hotkeys.js"></script>
     <script src="./renderer.js"></script>
   </body>
 </html>

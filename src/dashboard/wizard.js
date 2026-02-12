@@ -26,7 +26,7 @@
       wizardStepConnectors = []
     } = elements
 
-    const WIZARD_STEP_COUNT = 5
+    const WIZARD_STEP_COUNT = 4
     let wizardStep = 1
 
     const isWizardStepComplete = (step) => {
@@ -43,8 +43,6 @@
           return Boolean(state.currentAlwaysRecordWhenActive)
         case 4:
           return Boolean(state.isSkillInstalled)
-        case 5:
-          return Boolean(state.currentRecordingHotkey)
         default:
           return false
       }

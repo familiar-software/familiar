@@ -2,18 +2,12 @@ const { app, BrowserWindow, Tray, nativeImage, ipcMain } = require('electron');
 const path = require('node:path');
 
 const { registerIpcHandlers } = require('./ipc');
-const {
-    registerRecordingHotkey,
-    unregisterGlobalHotkeys,
-    DEFAULT_RECORDING_HOTKEY,
-} = require('./hotkeys');
 const { showWindow } = require('./utils/window');
 const { ensureHomebrewPath } = require('./utils/path');
 const { loadSettings } = require('./settings');
 const { initLogging } = require('./logger');
 const { showToast } = require('./toast');
 const {
-    resolveHotkeyAccelerators,
     createTrayMenuController,
 } = require('./tray/refresh');
 const { initializeAutoUpdater, scheduleDailyUpdateCheck } = require('./updates');
@@ -131,9 +125,9 @@ const pauseScreenStills = async () => {
     }
 };
 
-const handleCaptureHotkey = async () => {
+const handleRecordingToggleAction = async () => {
     if (!screenStillsController) {
-        console.warn('Capture hotkey ignored: controller unavailable');
+        console.warn('Recording toggle action ignored: controller unavailable');
         return { ok: false, message: 'Capture controller unavailable.' };
     }
     const state = screenStillsController.getState();
@@ -213,39 +207,6 @@ function quitApp() {
     app.quit();
 }
 
-function registerHotkeysFromSettings() {
-    const settings = loadSettings();
-    const { recordingAccelerator } = resolveHotkeyAccelerators(settings, {
-        DEFAULT_RECORDING_HOTKEY,
-    });
-
-    unregisterGlobalHotkeys();
-
-    const recordingResult = registerRecordingHotkey({
-        onRecording: () => {
-            void handleCaptureHotkey();
-        },
-        accelerator: recordingAccelerator,
-    });
-    if (!recordingResult.ok) {
-        console.warn('Recording hotkey inactive', {
-            reason: recordingResult.reason,
-            accelerator: recordingResult.accelerator,
-        });
-        showToast({
-            title: 'Recording hotkey inactive',
-            body: 'The recording shortcut could not be registered. Open Settings to update it.',
-            type: 'warning',
-            size: 'large'
-        });
-    }
-
-    return {
-        recordingResult,
-        recordingAccelerator
-    };
-}
-
 function createTray() {
     const trayIconBase = nativeImage.createFromPath(trayIconPath);
     if (trayIconBase.isEmpty()) {
@@ -259,7 +220,7 @@ function createTray() {
 
     trayHandlers = {
         onRecordingPause: () => {
-            void handleCaptureHotkey();
+            void handleRecordingToggleAction();
         },
         onOpenSettings: showSettingsWindow,
         onQuit: quitApp,
@@ -268,7 +229,6 @@ function createTray() {
     trayMenuController = createTrayMenuController({
         tray,
         trayHandlers,
-        DEFAULT_RECORDING_HOTKEY,
         getRecordingState: () => screenStillsController?.getState?.(),
     });
 
@@ -280,47 +240,6 @@ function createTray() {
 
 // Register all IPC handlers
 registerIpcHandlers({ onSettingsSaved: updateScreenCaptureFromSettings });
-
-// IPC handler for hotkey re-registration
-    ipcMain.handle('hotkeys:reregister', () => {
-        console.log('Re-registering hotkeys from settings');
-        const result = registerHotkeysFromSettings();
-        if (trayMenuController) {
-            trayMenuController.updateTrayMenu({
-                recordingAccelerator: result.recordingAccelerator,
-            });
-        } else {
-            console.warn('Tray menu update skipped: controller not ready');
-        }
-    return {
-        ok: result.recordingResult.ok,
-        recordingHotkey: result.recordingResult,
-    };
-});
-
-// IPC handler to temporarily suspend hotkeys (for recording new ones)
-ipcMain.handle('hotkeys:suspend', () => {
-    console.log('Suspending global hotkeys for recording');
-    unregisterGlobalHotkeys();
-    return { ok: true };
-});
-
-// IPC handler to resume hotkeys after recording
-ipcMain.handle('hotkeys:resume', () => {
-    console.log('Resuming global hotkeys after recording');
-    const result = registerHotkeysFromSettings();
-    if (trayMenuController) {
-        trayMenuController.updateTrayMenu({
-            recordingAccelerator: result.recordingAccelerator,
-        });
-    } else {
-        console.warn('Tray menu update skipped: controller not ready');
-    }
-    return {
-        ok: result.recordingResult.ok,
-        recordingHotkey: result.recordingResult,
-    };
-});
 
 ipcMain.handle('screenStills:getStatus', () => {
     if (!screenStillsController) {
@@ -353,14 +272,6 @@ ipcMain.handle('screenStills:stop', async () => {
     return { ...result, state: state.state, isRecording, manualPaused: state.manualPaused };
 });
 
-ipcMain.handle('screenStills:simulateHotkey', async () => {
-    if (!isE2E) {
-        return { ok: false, message: 'Hotkey simulation is only available in E2E mode.' };
-    }
-    const result = await handleCaptureHotkey();
-    return { ok: true, result };
-});
-
 ipcMain.handle('screenStills:simulateIdle', (_event, payload = {}) => {
     if (!isE2E) {
         return { ok: false, message: 'Idle simulation is only available in E2E mode.' };
@@ -386,7 +297,6 @@ app.whenReady().then(() => {
         app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
 
         createTray();
-        registerHotkeysFromSettings();
         presenceMonitor = createPresenceMonitor({ logger: console });
         if (pauseDurationOverrideMs) {
             console.log('Screen capture pause duration override enabled', {
@@ -445,7 +355,6 @@ app.on('before-quit', (event) => {
         }
         screenStillsController?.dispose?.();
     }
-    unregisterGlobalHotkeys();
 });
 
 process.on('uncaughtException', (error) => {
