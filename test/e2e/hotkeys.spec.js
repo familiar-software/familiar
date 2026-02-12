@@ -7,6 +7,17 @@ const { _electron: electron } = require('playwright')
 test('hotkeys save regular and option combinations', async () => {
   const appRoot = path.join(__dirname, '../..')
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
+  const settingsPath = path.join(settingsDir, 'settings.json')
+  fs.writeFileSync(
+    settingsPath,
+    JSON.stringify(
+      {
+        wizardCompleted: true
+      },
+      null,
+      2
+    )
+  )
   const launchArgs = ['.']
   if (process.platform === 'linux' || process.env.CI) {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
@@ -40,7 +51,6 @@ test('hotkeys save regular and option combinations', async () => {
     await window.locator('#hotkeys-save').click()
     await expect(window.locator('#hotkeys-status')).toHaveText(/Saved/)
 
-    const settingsPath = path.join(settingsDir, 'settings.json')
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
     expect(stored.recordingHotkey).toBe('CommandOrControl+Shift+O')
   } finally {

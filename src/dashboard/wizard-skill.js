@@ -10,6 +10,11 @@
 
     const {
       skillHarnessInputs = [],
+      skillInstallButtons = [],
+      skillInstallStatuses = [],
+      skillInstallErrors = [],
+      skillInstallPaths = [],
+      skillCursorRestartNotes = [],
       skillInstallButton,
       skillInstallStatus,
       skillInstallError,
@@ -17,25 +22,51 @@
       skillCursorRestartNote
     } = elements
 
+    const toArray = (value) => {
+      if (Array.isArray(value)) {
+        return value.filter(Boolean)
+      }
+      return value ? [value] : []
+    }
+
+    const allSkillInstallButtons = [
+      ...toArray(skillInstallButtons),
+      ...toArray(skillInstallButton)
+    ]
+    const allSkillInstallStatuses = [
+      ...toArray(skillInstallStatuses),
+      ...toArray(skillInstallStatus)
+    ]
+    const allSkillInstallErrors = [
+      ...toArray(skillInstallErrors),
+      ...toArray(skillInstallError)
+    ]
+    const allSkillInstallPaths = [
+      ...toArray(skillInstallPaths),
+      ...toArray(skillInstallPath)
+    ]
+    const allSkillCursorRestartNotes = [
+      ...toArray(skillCursorRestartNotes),
+      ...toArray(skillCursorRestartNote)
+    ]
+
     const isReady = Boolean(familiar.installSkill && familiar.getSkillInstallStatus)
     const canPersist = typeof familiar.saveSettings === 'function'
 
-    const setStatus = (message) => setMessage(skillInstallStatus, message)
-    const setError = (message) => setMessage(skillInstallError, message)
+    const setStatus = (message) => setMessage(allSkillInstallStatuses, message)
+    const setError = (message) => setMessage(allSkillInstallErrors, message)
     const setPath = (message) => {
-      if (!skillInstallPath) {
-        return
+      for (const pathElement of allSkillInstallPaths) {
+        const value = message || ''
+        pathElement.textContent = value ? `Install path: ${value}` : ''
+        pathElement.classList.toggle('hidden', !value)
       }
-      const value = message || ''
-      skillInstallPath.textContent = value ? `Install path: ${value}` : ''
-      skillInstallPath.classList.toggle('hidden', !value)
     }
     const setCursorRestartNoteVisibility = (harness) => {
-      if (!skillCursorRestartNote) {
-        return
-      }
       const shouldShow = harness === 'cursor'
-      skillCursorRestartNote.classList.toggle('hidden', !shouldShow)
+      for (const note of allSkillCursorRestartNotes) {
+        note.classList.toggle('hidden', !shouldShow)
+      }
     }
 
     const persistSkillInstaller = async ({ harness, installPath } = {}) => {
@@ -55,18 +86,15 @@
     }
 
     const updateInstallButtonState = () => {
-      if (!skillInstallButton) {
-        return
-      }
       const { currentSkillHarness } = getState()
-      skillInstallButton.disabled = !isReady || !currentSkillHarness
+      for (const button of allSkillInstallButtons) {
+        button.disabled = !isReady || !currentSkillHarness
+      }
     }
 
     const syncHarnessSelection = (value) => {
       for (const input of skillHarnessInputs) {
-        if (input.value === value) {
-          input.checked = true
-        }
+        input.checked = input.value === value
       }
     }
 
@@ -183,11 +211,11 @@
       input.addEventListener('change', handleHarnessChange)
     })
 
-    if (skillInstallButton) {
-      skillInstallButton.addEventListener('click', () => {
+    allSkillInstallButtons.forEach((button) => {
+      button.addEventListener('click', () => {
         void handleInstallClick()
       })
-    }
+    })
 
     const { currentSkillHarness } = getState()
     setCursorRestartNoteVisibility(currentSkillHarness)

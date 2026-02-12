@@ -60,7 +60,10 @@ const createHarness = ({ currentSkillHarness = '' } = {}) => {
   const claude = new TestInput('claude')
   const codex = new TestInput('codex')
   const cursor = new TestInput('cursor')
-  const skillCursorRestartNote = { classList: new ClassList() }
+  const settingsCodex = new TestInput('codex')
+  const settingsCursor = new TestInput('cursor')
+  const wizardSkillCursorRestartNote = { classList: new ClassList() }
+  const settingsSkillCursorRestartNote = { classList: new ClassList() }
 
   const familiar = {
     getSkillInstallStatus: async () => ({ ok: true, installed: false, path: '' }),
@@ -70,10 +73,16 @@ const createHarness = ({ currentSkillHarness = '' } = {}) => {
   const registry = loadWizardSkillModule()
   registry.createWizardSkill({
     elements: {
-      skillHarnessInputs: [claude, codex, cursor],
-      skillInstallButton: { disabled: false, addEventListener: () => {} },
-      skillInstallPath: { classList: new ClassList(), textContent: '' },
-      skillCursorRestartNote
+      skillHarnessInputs: [claude, codex, cursor, settingsCodex, settingsCursor],
+      skillInstallButtons: [
+        { disabled: false, addEventListener: () => {} },
+        { disabled: false, addEventListener: () => {} }
+      ],
+      skillInstallPaths: [
+        { classList: new ClassList(), textContent: '' },
+        { classList: new ClassList(), textContent: '' }
+      ],
+      skillCursorRestartNotes: [wizardSkillCursorRestartNote, settingsSkillCursorRestartNote]
     },
     familiar,
     getState: () => ({ currentSkillHarness: state.currentSkillHarness }),
@@ -89,7 +98,10 @@ const createHarness = ({ currentSkillHarness = '' } = {}) => {
     claude,
     codex,
     cursor,
-    skillCursorRestartNote
+    settingsCodex,
+    settingsCursor,
+    wizardSkillCursorRestartNote,
+    settingsSkillCursorRestartNote
   }
 }
 
@@ -98,18 +110,36 @@ test('wizard skill shows cursor restart note only for cursor harness selection',
   global.window = {}
 
   try {
-    const { claude, codex, cursor, skillCursorRestartNote } = createHarness()
+    const {
+      claude,
+      codex,
+      cursor,
+      settingsCodex,
+      settingsCursor,
+      wizardSkillCursorRestartNote,
+      settingsSkillCursorRestartNote
+    } = createHarness()
 
-    assert.equal(skillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
 
     await codex.triggerChange()
-    assert.equal(skillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(codex.checked, true)
+    assert.equal(settingsCodex.checked, true)
 
     await cursor.triggerChange()
-    assert.equal(skillCursorRestartNote.classList.contains('hidden'), false)
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), false)
+    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), false)
+    assert.equal(codex.checked, false)
+    assert.equal(settingsCodex.checked, false)
+    assert.equal(cursor.checked, true)
+    assert.equal(settingsCursor.checked, true)
 
     await claude.triggerChange()
-    assert.equal(skillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
   } finally {
     global.window = priorWindow
   }
@@ -120,10 +150,11 @@ test('wizard skill shows cursor restart note on init when cursor is already sele
   global.window = {}
 
   try {
-    const { skillCursorRestartNote } = createHarness({ currentSkillHarness: 'cursor' })
+    const { wizardSkillCursorRestartNote, settingsSkillCursorRestartNote } = createHarness({ currentSkillHarness: 'cursor' })
     await new Promise((resolve) => setImmediate(resolve))
 
-    assert.equal(skillCursorRestartNote.classList.contains('hidden'), false)
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), false)
+    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), false)
   } finally {
     global.window = priorWindow
   }

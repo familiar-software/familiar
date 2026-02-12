@@ -18,6 +18,16 @@ const buildLaunchArgs = () => {
 
 const launchApp = async ({ contextPath, settingsDir, env = {} }) => {
   const appRoot = path.join(__dirname, '../..')
+  fs.writeFileSync(
+    path.join(settingsDir, 'settings.json'),
+    JSON.stringify(
+      {
+        wizardCompleted: true
+      },
+      null,
+      2
+    )
+  )
   return electron.launch({
     args: buildLaunchArgs(),
     cwd: appRoot,

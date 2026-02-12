@@ -235,7 +235,7 @@ test('wizard recording step requires provider and saved api key', async () => {
   }
 })
 
-test('wizard resets to first step after Done', async () => {
+test('wizard hides wizard tab after Done', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const { electronApp } = launchElectron({
@@ -267,10 +267,8 @@ test('wizard resets to first step after Done', async () => {
     await advanceWizardToHotkeys(window, nextButton)
     await doneButton.click()
     await expect(window.locator('#section-title')).toHaveText('General Settings')
-
-    await window.getByRole('tab', { name: 'Wizard' }).click()
-    await expect(window.locator('[data-wizard-step=\"1\"]')).toBeVisible()
-    await expect(window.locator('#wizard-recording-hotkey')).toBeHidden()
+    await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()
+    await expect(window.locator('[data-wizard-step=\"1\"]')).toBeHidden()
   } finally {
     await (await electronApp).close()
   }

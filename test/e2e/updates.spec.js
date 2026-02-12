@@ -8,6 +8,16 @@ test('check for updates shows disabled message in e2e mode', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
+  fs.writeFileSync(
+    path.join(settingsDir, 'settings.json'),
+    JSON.stringify(
+      {
+        wizardCompleted: true
+      },
+      null,
+      2
+    )
+  )
   const launchArgs = ['.']
   if (process.platform === 'linux' || process.env.CI) {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')

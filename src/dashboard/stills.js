@@ -16,10 +16,33 @@
       recordingStatus,
       recordingActionButton,
       recordingPermission,
+      permissionCheckButtons = [],
+      openScreenRecordingSettingsButtons = [],
+      permissionRecordingToggleSections = [],
       wizardCheckPermissionsButton,
       wizardOpenScreenRecordingSettingsButton,
       wizardRecordingToggleSection
     } = elements
+
+    const toArray = (value) => {
+      if (Array.isArray(value)) {
+        return value.filter(Boolean)
+      }
+      return value ? [value] : []
+    }
+
+    const allPermissionCheckButtons = [
+      ...toArray(permissionCheckButtons),
+      ...toArray(wizardCheckPermissionsButton)
+    ]
+    const allOpenScreenRecordingSettingsButtons = [
+      ...toArray(openScreenRecordingSettingsButtons),
+      ...toArray(wizardOpenScreenRecordingSettingsButton)
+    ]
+    const allPermissionRecordingToggleSections = [
+      ...toArray(permissionRecordingToggleSections),
+      ...toArray(wizardRecordingToggleSection)
+    ]
 
     let currentScreenStillsState = 'disabled'
     let currentScreenStillsPaused = false
@@ -70,15 +93,17 @@
       }
     }
 
-    const updateWizardPermissionControls = () => {
-      if (wizardRecordingToggleSection) {
-        const showToggle = wizardPermissionState === 'granted'
-        wizardRecordingToggleSection.classList.toggle('hidden', !showToggle)
+    const updatePermissionControls = () => {
+      const showToggle = wizardPermissionState === 'granted'
+      const showOpenSettingsButton = wizardPermissionState === 'denied'
+
+      for (const section of allPermissionRecordingToggleSections) {
+        section.classList.toggle('hidden', !showToggle)
       }
 
-      if (wizardCheckPermissionsButton) {
-        wizardCheckPermissionsButton.disabled = isCheckingPermission
-        wizardCheckPermissionsButton.classList.remove(
+      for (const button of allPermissionCheckButtons) {
+        button.disabled = isCheckingPermission
+        button.classList.remove(
           'bg-indigo-600',
           'hover:bg-indigo-700',
           'border-indigo-600',
@@ -93,39 +118,38 @@
           'hover:border-emerald-700'
         )
         if (isCheckingPermission) {
-          wizardCheckPermissionsButton.textContent = 'Checking...'
+          button.textContent = 'Checking...'
         } else {
           if (wizardPermissionState === 'granted') {
-            wizardCheckPermissionsButton.classList.add(
+            button.classList.add(
               'bg-emerald-600',
               'hover:bg-emerald-700',
               'border-emerald-600',
               'hover:border-emerald-700'
             )
-            wizardCheckPermissionsButton.textContent = 'Granted'
+            button.textContent = 'Granted'
           } else if (wizardPermissionState === 'denied') {
-            wizardCheckPermissionsButton.classList.add(
+            button.classList.add(
               'bg-red-600',
               'hover:bg-red-700',
               'border-red-600',
               'hover:border-red-700'
             )
-            wizardCheckPermissionsButton.textContent = 'Check Permissions'
+            button.textContent = 'Check Permissions'
           } else {
-            wizardCheckPermissionsButton.classList.add(
+            button.classList.add(
               'bg-indigo-600',
               'hover:bg-indigo-700',
               'border-indigo-600',
               'hover:border-indigo-700'
             )
-            wizardCheckPermissionsButton.textContent = 'Check Permissions'
+            button.textContent = 'Check Permissions'
           }
         }
       }
 
-      if (wizardOpenScreenRecordingSettingsButton) {
-        const showOpenSettingsButton = wizardPermissionState === 'denied'
-        wizardOpenScreenRecordingSettingsButton.classList.toggle('hidden', !showOpenSettingsButton)
+      for (const button of allOpenScreenRecordingSettingsButtons) {
+        button.classList.toggle('hidden', !showOpenSettingsButton)
       }
     }
 
@@ -211,7 +235,7 @@
         permissionElement.classList.toggle('hidden', !permissionElement.textContent)
       }
 
-      updateWizardPermissionControls()
+      updatePermissionControls()
     }
 
     const handleCheckPermissions = async () => {
@@ -332,14 +356,14 @@
       })
     }
 
-    if (wizardCheckPermissionsButton) {
-      wizardCheckPermissionsButton.addEventListener('click', () => {
+    for (const button of allPermissionCheckButtons) {
+      button.addEventListener('click', () => {
         void handleCheckPermissions()
       })
     }
 
-    if (wizardOpenScreenRecordingSettingsButton) {
-      wizardOpenScreenRecordingSettingsButton.addEventListener('click', () => {
+    for (const button of allOpenScreenRecordingSettingsButtons) {
+      button.addEventListener('click', () => {
         void handleOpenScreenRecordingSettings()
       })
     }

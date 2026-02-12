@@ -175,6 +175,28 @@ const createElements = () => {
     'wizard-check-permissions': new TestElement(),
     'wizard-open-screen-recording-settings': new TestElement(),
     'wizard-recording-toggle-section': new TestElement(),
+    'permissions-always-record-when-active': new TestElement(),
+    'permissions-always-record-when-active-error': new TestElement(),
+    'permissions-always-record-when-active-status': new TestElement(),
+    'permissions-check-permissions': new TestElement(),
+    'permissions-open-screen-recording-settings': new TestElement(),
+    'permissions-recording-toggle-section': new TestElement(),
+    'wizard-skill-status': new TestElement(),
+    'wizard-skill-error': new TestElement(),
+    'wizard-skill-path': new TestElement(),
+    'wizard-skill-cursor-restart-note': new TestElement(),
+    'wizard-skill-install': new TestElement(),
+    'settings-skill-status': new TestElement(),
+    'settings-skill-error': new TestElement(),
+    'settings-skill-path': new TestElement(),
+    'settings-skill-cursor-restart-note': new TestElement(),
+    'settings-skill-install': new TestElement(),
+    'wizard-skill-harness-claude': new TestElement(),
+    'wizard-skill-harness-codex': new TestElement(),
+    'wizard-skill-harness-cursor': new TestElement(),
+    'settings-skill-harness-claude': new TestElement(),
+    'settings-skill-harness-codex': new TestElement(),
+    'settings-skill-harness-cursor': new TestElement(),
     'recording-details': new TestElement(),
     'recording-path': new TestElement(),
     'llm-provider': new TestElement(),
@@ -193,6 +215,7 @@ const createElements = () => {
     'wizard-next': new TestElement(),
     'wizard-done': new TestElement(),
     'app-version': new TestElement(),
+    'settings-sidebar': new TestElement(),
     'settings-header': new TestElement(),
     'settings-content': new TestElement(),
     'section-title': new TestElement(),
@@ -201,10 +224,14 @@ const createElements = () => {
     'section-wizard': new TestElement(),
     'section-updates': new TestElement(),
     'section-recording': new TestElement(),
+    'section-permissions': new TestElement(),
+    'section-install-skill': new TestElement(),
     'general-nav': new TestElement(),
     'wizard-nav': new TestElement(),
     'updates-nav': new TestElement(),
-    'recording-nav': new TestElement()
+    'recording-nav': new TestElement(),
+    'permissions-nav': new TestElement(),
+    'install-skill-nav': new TestElement()
   }
 
   elements['context-folder-path'].dataset.setting = 'context-folder-path'
@@ -226,8 +253,41 @@ const createElements = () => {
   elements['wizard-always-record-when-active'].dataset.setting = 'always-record-when-active'
   elements['wizard-always-record-when-active-error'].dataset.settingError = 'always-record-when-active-error'
   elements['wizard-always-record-when-active-status'].dataset.settingStatus = 'always-record-when-active-status'
+  elements['permissions-always-record-when-active'].dataset.setting = 'always-record-when-active'
+  elements['permissions-always-record-when-active-error'].dataset.settingError = 'always-record-when-active-error'
+  elements['permissions-always-record-when-active-status'].dataset.settingStatus = 'always-record-when-active-status'
+  elements['wizard-check-permissions'].dataset.action = 'check-permissions'
+  elements['permissions-check-permissions'].dataset.action = 'check-permissions'
+  elements['wizard-open-screen-recording-settings'].dataset.action = 'open-screen-recording-settings'
+  elements['permissions-open-screen-recording-settings'].dataset.action = 'open-screen-recording-settings'
+  elements['wizard-recording-toggle-section'].dataset.role = 'permission-recording-toggle-section'
+  elements['permissions-recording-toggle-section'].dataset.role = 'permission-recording-toggle-section'
+  elements['wizard-skill-install'].dataset.action = 'skill-install'
+  elements['settings-skill-install'].dataset.action = 'skill-install'
+  elements['wizard-skill-status'].dataset.skillInstallStatus = 'wizard'
+  elements['settings-skill-status'].dataset.skillInstallStatus = 'settings'
+  elements['wizard-skill-error'].dataset.skillInstallError = 'wizard'
+  elements['settings-skill-error'].dataset.skillInstallError = 'settings'
+  elements['wizard-skill-path'].dataset.skillInstallPath = 'wizard'
+  elements['settings-skill-path'].dataset.skillInstallPath = 'settings'
+  elements['wizard-skill-cursor-restart-note'].dataset.skillCursorRestartNote = 'wizard'
+  elements['settings-skill-cursor-restart-note'].dataset.skillCursorRestartNote = 'settings'
+  elements['wizard-skill-harness-claude'].dataset.skillHarness = ''
+  elements['wizard-skill-harness-codex'].dataset.skillHarness = ''
+  elements['wizard-skill-harness-cursor'].dataset.skillHarness = ''
+  elements['settings-skill-harness-claude'].dataset.skillHarness = ''
+  elements['settings-skill-harness-codex'].dataset.skillHarness = ''
+  elements['settings-skill-harness-cursor'].dataset.skillHarness = ''
+  elements['wizard-skill-harness-claude'].value = 'claude'
+  elements['wizard-skill-harness-codex'].value = 'codex'
+  elements['wizard-skill-harness-cursor'].value = 'cursor'
+  elements['settings-skill-harness-claude'].value = 'claude'
+  elements['settings-skill-harness-codex'].value = 'codex'
+  elements['settings-skill-harness-cursor'].value = 'cursor'
   elements['wizard-open-screen-recording-settings'].classList.add('hidden')
+  elements['permissions-open-screen-recording-settings'].classList.add('hidden')
   elements['wizard-recording-toggle-section'].classList.add('hidden')
+  elements['permissions-recording-toggle-section'].classList.add('hidden')
 
   elements['updates-check'].dataset.action = 'updates-check'
   elements['updates-status'].dataset.settingStatus = 'updates-status'
@@ -252,6 +312,10 @@ const createElements = () => {
   elements['updates-nav'].dataset.sectionTarget = 'updates'
   elements['section-recording'].dataset.sectionPane = 'recording'
   elements['recording-nav'].dataset.sectionTarget = 'recording'
+  elements['section-permissions'].dataset.sectionPane = 'permissions'
+  elements['permissions-nav'].dataset.sectionTarget = 'permissions'
+  elements['section-install-skill'].dataset.sectionPane = 'install-skill'
+  elements['install-skill-nav'].dataset.sectionTarget = 'install-skill'
 
   return elements
 }
@@ -312,6 +376,7 @@ test('defaults to wizard when wizardCompleted is missing', async () => {
     await flushPromises()
 
     assert.equal(elements['section-title'].textContent, 'Setup Wizard')
+    assert.equal(elements['settings-sidebar'].classList.contains('hidden'), true)
     assert.equal(elements['settings-header'].classList.contains('hidden'), true)
     assert.equal(elements['settings-content'].classList.contains('hidden'), true)
   } finally {
@@ -346,6 +411,8 @@ test('defaults to general when wizardCompleted is true', async () => {
     await flushPromises()
 
     assert.equal(elements['section-title'].textContent, 'General Settings')
+    assert.equal(elements['settings-sidebar'].classList.contains('hidden'), false)
+    assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
     assert.equal(elements['settings-header'].classList.contains('hidden'), false)
     assert.equal(elements['settings-content'].classList.contains('hidden'), false)
   } finally {
@@ -388,6 +455,8 @@ test('wizard done saves wizardCompleted flag', async () => {
 
     assert.equal(saveCalls.length, 1)
     assert.deepEqual(saveCalls[0], { wizardCompleted: true })
+    assert.equal(elements['settings-sidebar'].classList.contains('hidden'), false)
+    assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
     assert.equal(elements['section-title'].textContent, 'General Settings')
   } finally {
     global.document = priorDocument
@@ -474,7 +543,9 @@ test('always record toggle saves on change', async () => {
     assert.deepEqual(saveCalls[0], { alwaysRecordWhenActive: true })
     assert.equal(elements['always-record-when-active-status'].textContent, 'Saved.')
     assert.equal(elements['wizard-always-record-when-active-status'].textContent, 'Saved.')
+    assert.equal(elements['permissions-always-record-when-active-status'].textContent, 'Saved.')
     assert.equal(elements['wizard-always-record-when-active'].checked, true)
+    assert.equal(elements['permissions-always-record-when-active'].checked, true)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -516,8 +587,12 @@ test('wizard permission check is click-driven and denied state shows settings sh
     assert.equal(checkCalls, 1)
     assert.equal(elements['wizard-check-permissions'].textContent, 'Check Permissions')
     assert.equal(elements['wizard-check-permissions'].classList.contains('bg-red-600'), true)
+    assert.equal(elements['permissions-check-permissions'].textContent, 'Check Permissions')
+    assert.equal(elements['permissions-check-permissions'].classList.contains('bg-red-600'), true)
     assert.equal(elements['wizard-open-screen-recording-settings'].classList.contains('hidden'), false)
+    assert.equal(elements['permissions-open-screen-recording-settings'].classList.contains('hidden'), false)
     assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), true)
+    assert.equal(elements['permissions-recording-toggle-section'].classList.contains('hidden'), true)
 
     await elements['wizard-open-screen-recording-settings'].click()
     assert.equal(openSettingsCalls, 1)
@@ -554,8 +629,121 @@ test('wizard permission check granted state reveals recording toggle', async () 
     assert.equal(checkCalls, 1)
     assert.equal(elements['wizard-check-permissions'].textContent, 'Granted')
     assert.equal(elements['wizard-check-permissions'].classList.contains('bg-emerald-600'), true)
+    assert.equal(elements['permissions-check-permissions'].textContent, 'Granted')
+    assert.equal(elements['permissions-check-permissions'].classList.contains('bg-emerald-600'), true)
     assert.equal(elements['wizard-open-screen-recording-settings'].classList.contains('hidden'), true)
+    assert.equal(elements['permissions-open-screen-recording-settings'].classList.contains('hidden'), true)
     assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), false)
+    assert.equal(elements['permissions-recording-toggle-section'].classList.contains('hidden'), false)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('cannot navigate away from wizard while wizard is incomplete', async () => {
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '',
+      llmProviderName: 'gemini',
+      llmProviderApiKey: '',
+      stillsMarkdownExtractorType: 'llm',
+      alwaysRecordWhenActive: false,
+      appVersion: '9.8.7'
+    })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['general-nav'].click()
+    await flushPromises()
+
+    assert.equal(elements['section-title'].textContent, 'Setup Wizard')
+    assert.equal(elements['settings-sidebar'].classList.contains('hidden'), true)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('cannot navigate back to wizard after wizard completion', async () => {
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '',
+      llmProviderName: 'gemini',
+      llmProviderApiKey: '',
+      stillsMarkdownExtractorType: 'llm',
+      alwaysRecordWhenActive: false,
+      wizardCompleted: true,
+      appVersion: '9.8.7'
+    })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['wizard-nav'].click()
+    await flushPromises()
+
+    assert.equal(elements['section-title'].textContent, 'General Settings')
+    assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('completed wizard can navigate to Permissions and Install Skill sections', async () => {
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '',
+      llmProviderName: 'gemini',
+      llmProviderApiKey: '',
+      stillsMarkdownExtractorType: 'llm',
+      alwaysRecordWhenActive: false,
+      wizardCompleted: true,
+      appVersion: '9.8.7'
+    })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['permissions-nav'].click()
+    await flushPromises()
+    assert.equal(elements['section-title'].textContent, 'Permissions')
+
+    await elements['install-skill-nav'].click()
+    await flushPromises()
+    assert.equal(elements['section-title'].textContent, 'Install Skill')
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -601,8 +789,12 @@ test('wizard step 3 re-checks permissions even when recording is already enabled
     assert.equal(checkCalls, 1)
     assert.equal(elements['wizard-check-permissions'].textContent, 'Check Permissions')
     assert.equal(elements['wizard-check-permissions'].classList.contains('bg-red-600'), true)
+    assert.equal(elements['permissions-check-permissions'].textContent, 'Check Permissions')
+    assert.equal(elements['permissions-check-permissions'].classList.contains('bg-red-600'), true)
     assert.equal(elements['wizard-open-screen-recording-settings'].classList.contains('hidden'), false)
+    assert.equal(elements['permissions-open-screen-recording-settings'].classList.contains('hidden'), false)
     assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), true)
+    assert.equal(elements['permissions-recording-toggle-section'].classList.contains('hidden'), true)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -616,7 +808,8 @@ test('stills action button starts capture when inactive', async () => {
       contextFolderPath: '/tmp/context',
       llmProviderName: 'gemini',
       llmProviderApiKey: '',
-      alwaysRecordWhenActive: true
+      alwaysRecordWhenActive: true,
+      wizardCompleted: true
     }),
     getScreenStillsStatus: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: false }),
     startScreenStills: async () => {
@@ -659,7 +852,8 @@ test('stills action button pauses and resumes when paused', async () => {
       contextFolderPath: '/tmp/context',
       llmProviderName: 'gemini',
       llmProviderApiKey: '',
-      alwaysRecordWhenActive: true
+      alwaysRecordWhenActive: true,
+      wizardCompleted: true
     }),
     getScreenStillsStatus: async () => status,
     pauseScreenStills: async () => {

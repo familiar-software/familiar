@@ -69,12 +69,76 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     return undefined
   }
 
+  function getClonedComponentId(componentName, sourceId) {
+    if (componentName === 'permissions') {
+      return sourceId.replace(/^wizard-/, 'permissions-')
+    }
+    if (componentName === 'install-skill') {
+      return sourceId.replace(/^wizard-/, 'settings-')
+    }
+    return `${componentName}-${sourceId}`
+  }
+
+  function remapClonedComponentIdentifiers(componentName, rootElement) {
+    if (!rootElement || typeof rootElement.querySelectorAll !== 'function') {
+      return
+    }
+
+    const idMap = new Map()
+    const idElements = Array.from(rootElement.querySelectorAll('[id]'))
+    for (const element of idElements) {
+      const sourceId = element.id
+      if (!sourceId) {
+        continue
+      }
+      const clonedId = getClonedComponentId(componentName, sourceId)
+      element.id = clonedId
+      idMap.set(sourceId, clonedId)
+    }
+
+    const labelElements = Array.from(rootElement.querySelectorAll('[for]'))
+    for (const label of labelElements) {
+      const sourceFor = label.getAttribute('for')
+      if (sourceFor && idMap.has(sourceFor)) {
+        label.setAttribute('for', idMap.get(sourceFor))
+      }
+    }
+
+    if (componentName === 'install-skill') {
+      const harnessInputs = Array.from(rootElement.querySelectorAll('input[name="wizard-skill-harness"]'))
+      for (const input of harnessInputs) {
+        input.name = 'settings-skill-harness'
+      }
+    }
+  }
+
+  function mountSharedWizardComponents() {
+    const mounts = selectAll('[data-component-mount]')
+    for (const mount of mounts) {
+      const componentName = mount?.dataset?.componentMount
+      if (!componentName) {
+        continue
+      }
+      const source = selectAll(`[data-component-source="${componentName}"]`)[0]
+      if (!source || typeof source.cloneNode !== 'function' || typeof mount.replaceChildren !== 'function') {
+        continue
+      }
+      const clone = source.cloneNode(true)
+      clone.removeAttribute('data-component-source')
+      remapClonedComponentIdentifiers(componentName, clone)
+      mount.replaceChildren(clone)
+    }
+  }
+
   if (typeof loadDashboardModules === 'function') {
     loadDashboardModules(window)
   }
 
+  mountSharedWizardComponents()
+
   const settingsHeader = document.getElementById('settings-header')
   const settingsContent = document.getElementById('settings-content')
+  const settingsSidebar = document.getElementById('settings-sidebar')
   const wizardSection = document.getElementById('section-wizard')
   const wizardBackButton = selectAll('[data-action="wizard-back"]')[0]
   const wizardNextButton = selectAll('[data-action="wizard-next"]')[0]
@@ -85,11 +149,11 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const wizardStepIndicators = selectAll('[data-wizard-step-indicator]')
   const wizardStepConnectors = selectAll('[data-wizard-step-connector]')
   const skillHarnessInputs = selectAll('[data-skill-harness]')
-  const wizardSkillInstallButton = document.getElementById('wizard-skill-install')
-  const wizardSkillStatus = document.getElementById('wizard-skill-status')
-  const wizardSkillError = document.getElementById('wizard-skill-error')
-  const wizardSkillPath = document.getElementById('wizard-skill-path')
-  const wizardSkillCursorRestartNote = document.getElementById('wizard-skill-cursor-restart-note')
+  const skillInstallButtons = selectAll('[data-action="skill-install"]')
+  const skillInstallStatuses = selectAll('[data-skill-install-status]')
+  const skillInstallErrors = selectAll('[data-skill-install-error]')
+  const skillInstallPaths = selectAll('[data-skill-install-path]')
+  const skillCursorRestartNotes = selectAll('[data-skill-cursor-restart-note]')
 
   const contextFolderInputs = selectAll('[data-setting="context-folder-path"]')
   const contextFolderChooseButtons = selectAll('[data-action="context-folder-choose"]')
@@ -118,9 +182,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const recordingDetails = document.getElementById('recording-details')
   const recordingPath = document.getElementById('recording-path')
   const recordingOpenFolderButton = document.getElementById('recording-open-folder')
-  const wizardCheckPermissionsButton = document.getElementById('wizard-check-permissions')
-  const wizardOpenScreenRecordingSettingsButton = document.getElementById('wizard-open-screen-recording-settings')
-  const wizardRecordingToggleSection = document.getElementById('wizard-recording-toggle-section')
+  const permissionCheckButtons = selectAll('[data-action="check-permissions"]')
+  const openScreenRecordingSettingsButtons = selectAll('[data-action="open-screen-recording-settings"]')
+  const permissionRecordingToggleSections = selectAll('[data-role="permission-recording-toggle-section"]')
   const appVersionLabel = document.getElementById('app-version')
 
   const updateButtons = selectAll('[data-action="updates-check"]')
@@ -143,6 +207,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const sectionTitle = document.getElementById('section-title')
   const sectionSubtitle = document.getElementById('section-subtitle')
   const sectionNavButtons = selectAll('[data-section-target]')
+  const wizardNavButton = sectionNavButtons.find((button) => button.dataset.sectionTarget === 'wizard') || null
   const sectionPanes = selectAll('[data-section-pane]')
 
   const DEFAULT_RECORDING_HOTKEY = 'CommandOrControl+R'
@@ -195,10 +260,48 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     recording: {
       title: 'Recording',
       subtitle: 'Choose whether processing runs in the cloud or locally.'
+    },
+    permissions: {
+      title: 'Permissions',
+      subtitle: 'Check Screen Recording access and enable capture while active.'
+    },
+    'install-skill': {
+      title: 'Install Skill',
+      subtitle: 'Install Familiar into your coding assistant skills folder.'
     }
   }
 
+  let isWizardCompleted = false
+
+  function updateOnboardingLayout() {
+    if (settingsSidebar) {
+      settingsSidebar.classList.toggle('hidden', !isWizardCompleted)
+    }
+
+    if (wizardNavButton) {
+      wizardNavButton.classList.toggle('hidden', isWizardCompleted)
+      wizardNavButton.setAttribute('aria-hidden', String(isWizardCompleted))
+    }
+  }
+
+  function setWizardCompletionState(completed) {
+    isWizardCompleted = completed === true
+    updateOnboardingLayout()
+  }
+
+  setWizardCompletionState(false)
+
   function setActiveSection(nextSection) {
+    if (!isWizardCompleted && nextSection !== 'wizard') {
+      console.log('Ignoring section change while wizard is incomplete', { section: nextSection })
+      return
+    }
+
+    if (isWizardCompleted && nextSection === 'wizard') {
+      console.log('Ignoring wizard section after completion')
+      return
+    }
+
     const sectionMeta = SECTION_META[nextSection]
     if (!sectionMeta) {
       console.warn('Unknown settings section', nextSection)
@@ -249,6 +352,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   }
 
   function handleWizardDone() {
+    setWizardCompletionState(true)
     if (typeof familiar.saveSettings === 'function') {
       familiar
         .saveSettings({ wizardCompleted: true })
@@ -326,11 +430,11 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     window,
     elements: {
       skillHarnessInputs,
-      skillInstallButton: wizardSkillInstallButton,
-      skillInstallStatus: wizardSkillStatus,
-      skillInstallError: wizardSkillError,
-      skillInstallPath: wizardSkillPath,
-      skillCursorRestartNote: wizardSkillCursorRestartNote
+      skillInstallButtons,
+      skillInstallStatuses,
+      skillInstallErrors,
+      skillInstallPaths,
+      skillCursorRestartNotes
     },
     familiar,
     getState: state.getWizardState,
@@ -365,9 +469,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       recordingDetails,
       recordingPath,
       recordingOpenFolderButton,
-      wizardCheckPermissionsButton,
-      wizardOpenScreenRecordingSettingsButton,
-      wizardRecordingToggleSection
+      permissionCheckButtons,
+      openScreenRecordingSettingsButtons,
+      permissionRecordingToggleSections
     },
     familiar,
     getState: state.getRecordingState
@@ -456,12 +560,13 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
 
   async function initialize() {
     const settingsResult = await apis.settingsApi.loadSettings()
+    setWizardCompletionState(settingsResult?.wizardCompleted === true)
     callIfAvailable(apis.recordingApi, 'updateStillsUI')
     const savedHarness = settingsResult?.skillInstaller?.harness || ''
     if (savedHarness && apis.wizardSkillApi && typeof apis.wizardSkillApi.checkInstallStatus === 'function') {
       await apis.wizardSkillApi.checkInstallStatus(savedHarness)
     }
-    const defaultSection = settingsResult?.wizardCompleted === true ? 'general' : 'wizard'
+    const defaultSection = isWizardCompleted ? 'general' : 'wizard'
     setActiveSection(defaultSection)
     state.updateWizardUI()
   }

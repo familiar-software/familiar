@@ -13,6 +13,16 @@ test.describe('clipboard mirroring', () => {
     const appRoot = path.join(__dirname, '../..')
     const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-clipboard-'))
     const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
+    fs.writeFileSync(
+      path.join(settingsDir, 'settings.json'),
+      JSON.stringify(
+        {
+          wizardCompleted: true
+        },
+        null,
+        2
+      )
+    )
     const launchArgs = ['.']
 
     const electronApp = await electron.launch({

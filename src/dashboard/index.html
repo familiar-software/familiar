@@ -10,7 +10,7 @@
   <body class="bg-white dark:bg-[#111] text-zinc-800 dark:text-zinc-200 font-sans h-screen overflow-hidden">
     <div class="relative h-full w-full flex">
       <!-- Sidebar -->
-      <aside class="w-[190px] flex-none bg-zinc-50/90 dark:bg-zinc-900/60 border-r border-zinc-200 dark:border-zinc-800 flex flex-col pt-3 pb-3">
+      <aside id="settings-sidebar" class="w-[190px] flex-none bg-zinc-50/90 dark:bg-zinc-900/60 border-r border-zinc-200 dark:border-zinc-800 flex flex-col pt-3 pb-3">
           <div class="px-4 mb-4 flex items-center gap-2">
             <img src="../icon.png" alt="" class="w-5 h-5 rounded-md object-cover shadow-sm">
             <span class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Familiar</span>
@@ -115,6 +115,38 @@
                 <path d="M16 9.5 21 7v10l-5-2.5" />
               </svg>
               Recording
+            </button>
+            <button
+              class="sidebar-item"
+              data-section-target="permissions"
+              data-active="false"
+              role="tab"
+              aria-controls="section-permissions"
+              aria-selected="false"
+              type="button"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M12 3l7 4v6c0 5-3 9-7 8-4 1-7-3-7-8V7l7-4Z" />
+                <path d="M9.5 12.5l1.5 1.5 3.5-3.5" />
+              </svg>
+              Permissions
+            </button>
+            <button
+              class="sidebar-item"
+              data-section-target="install-skill"
+              data-active="false"
+              role="tab"
+              aria-controls="section-install-skill"
+              aria-selected="false"
+              type="button"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M12 3v6" />
+                <path d="m9 6 3-3 3 3" />
+                <path d="M5 13v6h14v-6" />
+                <path d="M8 13h8" />
+              </svg>
+              Install Skill
             </button>
             <button
               class="sidebar-item"
@@ -363,6 +395,22 @@
 	              </section>
 	            </section>
 
+            <section id="section-permissions" data-section-pane="permissions" role="tabpanel" aria-label="Permissions settings" class="space-y-6 hidden">
+              <div class="space-y-1">
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Screen Recording Permission</h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Familiar needs Screen Recording permission to capture stills while you are active.</p>
+              </div>
+              <div data-component-mount="permissions" class="max-w-[360px] space-y-5"></div>
+            </section>
+
+            <section id="section-install-skill" data-section-pane="install-skill" role="tabpanel" aria-label="Install skill settings" class="space-y-6 hidden">
+              <div class="space-y-1">
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Install Familiar Skill</h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Pick the harness and install Familiar into your skills folder.</p>
+              </div>
+              <div data-component-mount="install-skill" class="max-w-[360px] space-y-5"></div>
+            </section>
+
             <!-- Updates -->
             <section id="section-updates" data-section-pane="updates" role="tabpanel" aria-label="Updates" class="space-y-4 hidden">
               <div class="flex flex-wrap items-center gap-2">
@@ -570,39 +618,43 @@
                   <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enable recording</h3>
                   <p class="text-xs text-zinc-500 dark:text-zinc-400">Captures a still while you are active, and stops when idle. Requires Screen Recording permission.</p>
                 </div>
-                <section class="space-y-2">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <button
-                      id="wizard-check-permissions"
-                      type="button"
-                      class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >Check Permissions</button>
-                    <button
-                      id="wizard-open-screen-recording-settings"
-                      type="button"
-                      class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden"
-                    >Enable Familiar In Screen Reording</button>
-                  </div>
-                </section>
-                <section id="wizard-recording-toggle-section" class="space-y-2 hidden">
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="space-y-1">
-                      <label for="wizard-always-record-when-active" class="section-label">Record While Active</label>
+                <div data-component-source="permissions" class="space-y-5">
+                  <section class="space-y-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button
+                        id="wizard-check-permissions"
+                        data-action="check-permissions"
+                        type="button"
+                        class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >Check Permissions</button>
+                      <button
+                        id="wizard-open-screen-recording-settings"
+                        data-action="open-screen-recording-settings"
+                        type="button"
+                        class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden"
+                      >Enable Familiar In Screen Reording</button>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input
-                        id="wizard-always-record-when-active"
-                        data-setting="always-record-when-active"
-                        type="checkbox"
-                        class="sr-only peer"
-                      >
-                  <div class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
-                  <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-                  <p id="wizard-always-record-when-active-error" data-setting-error="always-record-when-active-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                  <span id="wizard-always-record-when-active-status" data-setting-status="always-record-when-active-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                </section>
+                  </section>
+                  <section id="wizard-recording-toggle-section" data-role="permission-recording-toggle-section" class="space-y-2 hidden">
+                    <div class="flex items-start justify-between gap-4">
+                      <div class="space-y-1">
+                        <label for="wizard-always-record-when-active" class="section-label">Record While Active</label>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input
+                          id="wizard-always-record-when-active"
+                          data-setting="always-record-when-active"
+                          type="checkbox"
+                          class="sr-only peer"
+                        >
+                    <div class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
+                    <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5"></div>
+                  </label>
+                </div>
+                    <p id="wizard-always-record-when-active-error" data-setting-error="always-record-when-active-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                    <span id="wizard-always-record-when-active-status" data-setting-status="always-record-when-active-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                  </section>
+                </div>
               </div>
 
               <div data-wizard-step="4" class="max-w-[360px] mx-auto space-y-5 hidden">
@@ -610,30 +662,32 @@
                   <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Install the Familiar skill</h3>
                   <p class="text-xs text-zinc-500 dark:text-zinc-400">Pick the harness and install Familiar into your skills folder.</p>
                 </div>
-                <section class="space-y-2">
-                  <label class="section-label">Harness</label>
-                  <div class="space-y-2">
-                    <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                      <input type="radio" name="wizard-skill-harness" value="claude" data-skill-harness>
-                      Claude Code/Cowork
-                    </label>
-                    <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                      <input type="radio" name="wizard-skill-harness" value="codex" data-skill-harness>
-                      Codex
-                    </label>
-                    <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                      <input type="radio" name="wizard-skill-harness" value="cursor" data-skill-harness>
-                      Cursor
-                      <span id="wizard-skill-cursor-restart-note" class="font-semibold text-zinc-700 dark:text-zinc-200 hidden">(Restart Cursor for the skill to take effect)</span>
-                    </label>
+                <div data-component-source="install-skill" class="space-y-5">
+                  <section class="space-y-2">
+                    <label class="section-label">Harness</label>
+                    <div class="space-y-2">
+                      <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
+                        <input type="radio" name="wizard-skill-harness" value="claude" data-skill-harness>
+                        Claude Code/Cowork
+                      </label>
+                      <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
+                        <input type="radio" name="wizard-skill-harness" value="codex" data-skill-harness>
+                        Codex
+                      </label>
+                      <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
+                        <input type="radio" name="wizard-skill-harness" value="cursor" data-skill-harness>
+                        Cursor
+                        <span id="wizard-skill-cursor-restart-note" data-skill-cursor-restart-note class="font-semibold text-zinc-700 dark:text-zinc-200 hidden">(Restart Cursor for the skill to take effect)</span>
+                      </label>
+                    </div>
+                  </section>
+                  <p id="wizard-skill-path" data-skill-install-path class="text-xs text-zinc-500 dark:text-zinc-400 hidden"></p>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button id="wizard-skill-install" data-action="skill-install" type="button" class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Install Skill</button>
+                    <span id="wizard-skill-status" data-skill-install-status class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
                   </div>
-                </section>
-                <p id="wizard-skill-path" class="text-xs text-zinc-500 dark:text-zinc-400 hidden"></p>
-                <div class="flex flex-wrap items-center gap-2">
-                  <button id="wizard-skill-install" data-action="skill-install" type="button" class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Install Skill</button>
-                  <span id="wizard-skill-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                  <p id="wizard-skill-error" data-skill-install-error class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
                 </div>
-                <p id="wizard-skill-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
               </div>
 
               <div data-wizard-step="5" class="max-w-[360px] mx-auto space-y-5 hidden">

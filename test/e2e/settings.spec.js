@@ -9,6 +9,17 @@ test('choose button sets the context folder path', async () => {
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const expectedContextPath = path.resolve(contextPath)
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
+  const settingsPath = path.join(settingsDir, 'settings.json')
+  fs.writeFileSync(
+    settingsPath,
+    JSON.stringify(
+      {
+        wizardCompleted: true
+      },
+      null,
+      2
+    )
+  )
   const launchArgs = ['.']
   if (process.platform === 'linux' || process.env.CI) {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
@@ -28,13 +39,15 @@ test('choose button sets the context folder path', async () => {
   try {
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
+    await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()
+    await expect(window.getByRole('tab', { name: 'Permissions' })).toBeVisible()
+    await expect(window.getByRole('tab', { name: 'Install Skill' })).toBeVisible()
     await window.getByRole('tab', { name: 'General' }).click()
 
     await window.locator('#context-folder-choose').click()
     await expect(window.locator('#context-folder-path')).toHaveValue(expectedContextPath)
     await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
-    const settingsPath = path.join(settingsDir, 'settings.json')
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
     expect(stored.contextFolderPath).toBe(expectedContextPath)
   } finally {
