@@ -26,7 +26,7 @@
       wizardStepConnectors = []
     } = elements
 
-    const WIZARD_STEP_COUNT = 4
+    const WIZARD_STEP_COUNT = 3
     let wizardStep = 1
 
     const isWizardStepComplete = (step) => {
@@ -35,13 +35,8 @@
         case 1:
           return Boolean(state.currentContextFolderPath)
         case 2:
-          if (state.currentStillsMarkdownExtractorType === 'apple_vision_ocr') {
-            return true
-          }
-          return Boolean(state.currentLlmProviderName && state.currentLlmApiKey && state.isLlmApiKeySaved)
-        case 3:
           return Boolean(state.currentAlwaysRecordWhenActive)
-        case 4:
+        case 3:
           return Boolean(state.isSkillInstalled)
         default:
           return false

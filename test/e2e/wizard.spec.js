@@ -37,6 +37,7 @@ const completeWizardPermissionsStep = async (window, nextButton) => {
   const recordingToggle = window.locator('#wizard-always-record-when-active')
 
   await expect(checkPermissionsButton).toBeVisible()
+  await expect(nextButton).toBeDisabled()
   await checkPermissionsButton.click()
 
   if ((await checkPermissionsButton.textContent()) !== 'Granted') {
@@ -52,47 +53,17 @@ const completeWizardPermissionsStep = async (window, nextButton) => {
     await window.locator('label[for="wizard-always-record-when-active"]').click({ force: true })
     await expect(recordingToggle).toBeChecked()
   }
+
   await expect(nextButton).toBeEnabled()
   await nextButton.click()
 }
 
-const advanceWizardToInstallSkill = async (window, nextButton) => {
+const installWizardSkill = async (window) => {
   const skillInstallButton = window.locator('#wizard-skill-install')
   const skillStatus = window.locator('#wizard-skill-status')
   const codexHarness = window.locator('input[name="wizard-skill-harness"][value="codex"]')
-  const wizardStep3 = window.locator('[data-wizard-step="3"]')
-  const wizardStep4 = window.locator('[data-wizard-step="4"]')
-  let reachedInstallSkillStep = false
 
-  for (let attempts = 0; attempts < 4; attempts += 1) {
-    if (await wizardStep4.isVisible()) {
-      reachedInstallSkillStep = true
-      break
-    }
-
-    if (await wizardStep3.isVisible()) {
-      await completeWizardPermissionsStep(window, nextButton)
-      continue
-    }
-
-    if (await skillInstallButton.isVisible()) {
-      await codexHarness.check()
-      await expect(skillInstallButton).toBeEnabled()
-      await skillInstallButton.click()
-      await expect(skillStatus).toContainText('Installed')
-      await expect(nextButton).toBeEnabled()
-      await nextButton.click()
-      continue
-    }
-
-    await expect(nextButton).toBeEnabled()
-    await nextButton.click()
-  }
-
-  if (!reachedInstallSkillStep) {
-    await expect(wizardStep4).toBeVisible()
-  }
-
+  await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
   await codexHarness.check()
   await expect(skillInstallButton).toBeEnabled()
   await skillInstallButton.click()
@@ -112,8 +83,10 @@ test('wizard happy flow completes setup and routes to General', async () => {
     await window.waitForLoadState('domcontentloaded')
 
     await expect(window.locator('[data-wizard-step="1"]')).toBeVisible()
+    await expect(window.locator('#wizard-llm-provider')).toHaveCount(0)
 
     const nextButton = window.locator('#wizard-next')
+    const doneButton = window.locator('#wizard-done')
     await expect(nextButton).toBeDisabled()
 
     await window.locator('#wizard-context-folder-choose').click()
@@ -122,25 +95,9 @@ test('wizard happy flow completes setup and routes to General', async () => {
 
     await nextButton.click()
     await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()
+    await completeWizardPermissionsStep(window, nextButton)
 
-    // Default mode is Local (no provider/key required).
-    await expect(nextButton).toBeEnabled()
-
-    // Switch to Cloud and configure provider/key to cover the cloud path.
-    const wizardStep2 = window.locator('[data-wizard-step="2"]')
-    await wizardStep2.locator('[data-processing-engine-mode="llm"]').click()
-    await expect(nextButton).toBeDisabled()
-
-    await window.locator('#wizard-llm-provider').selectOption('gemini')
-    await window.locator('#wizard-llm-api-key').fill('test-key')
-    await window.locator('#wizard-llm-api-key').blur()
-    await expect(window.locator('#wizard-llm-api-key-status')).toHaveText('Saved.')
-
-    await nextButton.click()
-    await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
-
-    const doneButton = window.locator('#wizard-done')
-    await advanceWizardToInstallSkill(window, nextButton)
+    await installWizardSkill(window)
     await expect(doneButton).toBeEnabled()
     await doneButton.click()
 
@@ -149,9 +106,7 @@ test('wizard happy flow completes setup and routes to General', async () => {
     const settingsPath = path.join(settingsDir, 'settings.json')
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
     expect(stored.contextFolderPath).toBe(path.resolve(contextPath))
-    expect(stored.stills_markdown_extractor.type).toBe('llm')
-    expect(stored.stills_markdown_extractor.llm_provider.provider).toBe('gemini')
-    expect(stored.stills_markdown_extractor.llm_provider.api_key).toBe('test-key')
+    expect(stored.stills_markdown_extractor?.type ?? 'apple_vision_ocr').toBe('apple_vision_ocr')
     expect(stored.alwaysRecordWhenActive ?? false).toBe(true)
     expect(stored.wizardCompleted).toBe(true)
     expect(stored.skillInstaller.harness).toBe('codex')
@@ -161,49 +116,7 @@ test('wizard happy flow completes setup and routes to General', async () => {
   }
 })
 
-test('wizard preserves state when navigating back and forth', async () => {
-  const appRoot = path.join(__dirname, '../..')
-  const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
-  const { electronApp } = launchElectron({
-    contextPath,
-    env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
-  })
-
-  try {
-    const window = await (await electronApp).firstWindow()
-    await window.waitForLoadState('domcontentloaded')
-
-    await window.locator('#wizard-context-folder-choose').click()
-    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(path.resolve(contextPath))
-
-    const nextButton = window.locator('#wizard-next')
-    const backButton = window.locator('#wizard-back')
-
-    await nextButton.click()
-    await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()
-
-    const wizardStep2 = window.locator('[data-wizard-step="2"]')
-    await wizardStep2.locator('[data-processing-engine-mode="llm"]').click()
-    await window.locator('#wizard-llm-provider').selectOption('openai')
-    await window.locator('#wizard-llm-api-key').fill('persisted-key')
-    await window.locator('#wizard-llm-api-key').blur()
-    await expect(window.locator('#wizard-llm-api-key-status')).toHaveText('Saved.')
-
-    await backButton.click()
-    await expect(window.locator('[data-wizard-step="1"]')).toBeVisible()
-    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(path.resolve(contextPath))
-
-    await nextButton.click()
-    await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()
-    await expect(window.locator('[data-wizard-step="2"] [data-processing-engine-panel="llm"]')).toBeVisible()
-    await expect(window.locator('#wizard-llm-provider')).toHaveValue('openai')
-    await expect(window.locator('#wizard-llm-api-key')).toHaveValue('persisted-key')
-  } finally {
-    await (await electronApp).close()
-  }
-})
-
-test('wizard recording step requires provider and saved api key', async () => {
+test('wizard permission step requires enabling recording', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const { electronApp } = launchElectron({
@@ -218,27 +131,13 @@ test('wizard recording step requires provider and saved api key', async () => {
     await window.locator('#wizard-context-folder-choose').click()
 
     const nextButton = window.locator('#wizard-next')
-
     await nextButton.click()
-    await expect(window.locator('[data-wizard-step=\"2\"]')).toBeVisible()
+    await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()
 
-    // Default mode is Local, so step 2 is complete by default.
-    await expect(nextButton).toBeEnabled()
-
-    // Cloud mode should require provider + saved key.
-    const wizardStep2 = window.locator('[data-wizard-step="2"]')
-    await wizardStep2.locator('[data-processing-engine-mode="llm"]').click()
     await expect(nextButton).toBeDisabled()
 
-    await window.locator('#wizard-llm-provider').selectOption('gemini')
-    await expect(nextButton).toBeDisabled()
-
-    await window.locator('#wizard-llm-api-key').fill('unsaved-key')
-    await expect(nextButton).toBeDisabled()
-
-    await window.locator('#wizard-llm-api-key').blur()
-    await expect(window.locator('#wizard-llm-api-key-status')).toHaveText('Saved.')
-    await expect(nextButton).toBeEnabled()
+    await completeWizardPermissionsStep(window, nextButton)
+    await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
   } finally {
     await (await electronApp).close()
   }
@@ -258,26 +157,20 @@ test('wizard hides wizard tab after Done', async () => {
 
     await window.locator('#wizard-context-folder-choose').click()
     const nextButton = window.locator('#wizard-next')
-
-    await nextButton.click()
-
-    const wizardStep2 = window.locator('[data-wizard-step="2"]')
-    await wizardStep2.locator('[data-processing-engine-mode="llm"]').click()
-
-    await window.locator('#wizard-llm-provider').selectOption('gemini')
-    await window.locator('#wizard-llm-api-key').fill('test-key')
-    await window.locator('#wizard-llm-api-key').blur()
-    await expect(window.locator('#wizard-llm-api-key-status')).toHaveText('Saved.')
-
-    await nextButton.click()
-    await expect(window.locator('[data-wizard-step=\"3\"]')).toBeVisible()
-
     const doneButton = window.locator('#wizard-done')
-    await advanceWizardToInstallSkill(window, nextButton)
+
+    await nextButton.click()
+    await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()
+
+    await completeWizardPermissionsStep(window, nextButton)
+    await installWizardSkill(window)
+
+    await expect(doneButton).toBeEnabled()
     await doneButton.click()
+
     await expect(window.locator('#section-title')).toHaveText('General Settings')
     await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()
-    await expect(window.locator('[data-wizard-step=\"1\"]')).toBeHidden()
+    await expect(window.locator('[data-wizard-step="1"]')).toBeHidden()
   } finally {
     await (await electronApp).close()
   }

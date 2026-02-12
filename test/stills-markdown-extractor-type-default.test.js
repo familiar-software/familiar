@@ -11,18 +11,18 @@ test('normalizeExtractorType defaults to local when nothing is configured', () =
   assert.equal(normalizeExtractorType({ stills_markdown_extractor: {} }), 'apple_vision_ocr')
 })
 
-test('normalizeExtractorType defaults to cloud when an LLM provider is configured but type is missing', () => {
+test('normalizeExtractorType defaults to local when an LLM provider is configured but type is missing', () => {
   assert.equal(
     normalizeExtractorType({
       stills_markdown_extractor: { llm_provider: { provider: 'openai' } }
     }),
-    'llm'
+    'apple_vision_ocr'
   )
   assert.equal(
     normalizeExtractorType({
       stills_markdown_extractor: { llm_provider: { api_key: 'sk-test' } }
     }),
-    'llm'
+    'apple_vision_ocr'
   )
 })
 

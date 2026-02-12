@@ -25,8 +25,7 @@ function createWizardHarness({ getState }) {
   const wizardStepPanels = [
     { dataset: { wizardStep: '1' }, classList: createNoopClassList() },
     { dataset: { wizardStep: '2' }, classList: createNoopClassList() },
-    { dataset: { wizardStep: '3' }, classList: createNoopClassList() },
-    { dataset: { wizardStep: '4' }, classList: createNoopClassList() }
+    { dataset: { wizardStep: '3' }, classList: createNoopClassList() }
   ]
 
   const wizard = createWizard({
@@ -48,13 +47,43 @@ function createWizardHarness({ getState }) {
   return { wizard, wizardNextButton }
 }
 
-test('wizard step 2 is complete in Local mode without provider/key', () => {
+test('wizard step 1 requires a context folder path', () => {
   const { wizard, wizardNextButton } = createWizardHarness({
     getState: () => ({
-      currentStillsMarkdownExtractorType: 'apple_vision_ocr',
-      currentLlmProviderName: '',
-      currentLlmApiKey: '',
-      isLlmApiKeySaved: false
+      currentContextFolderPath: ''
+    })
+  })
+
+  wizard.setWizardStep(1)
+  assert.equal(wizardNextButton.disabled, true)
+})
+
+test('wizard step 1 is complete when context folder path is set', () => {
+  const { wizard, wizardNextButton } = createWizardHarness({
+    getState: () => ({
+      currentContextFolderPath: '/tmp/context'
+    })
+  })
+
+  wizard.setWizardStep(1)
+  assert.equal(wizardNextButton.disabled, false)
+})
+
+test('wizard step 2 requires recording toggle to be enabled', () => {
+  const { wizard, wizardNextButton } = createWizardHarness({
+    getState: () => ({
+      currentAlwaysRecordWhenActive: false
+    })
+  })
+
+  wizard.setWizardStep(2)
+  assert.equal(wizardNextButton.disabled, true)
+})
+
+test('wizard step 2 is complete when recording toggle is enabled', () => {
+  const { wizard, wizardNextButton } = createWizardHarness({
+    getState: () => ({
+      currentAlwaysRecordWhenActive: true
     })
   })
 
@@ -62,51 +91,10 @@ test('wizard step 2 is complete in Local mode without provider/key', () => {
   assert.equal(wizardNextButton.disabled, false)
 })
 
-test('wizard step 2 requires provider + saved API key in Cloud mode', () => {
-  {
-    const { wizard, wizardNextButton } = createWizardHarness({
-      getState: () => ({
-        currentStillsMarkdownExtractorType: 'llm',
-        currentLlmProviderName: '',
-        currentLlmApiKey: '',
-        isLlmApiKeySaved: false
-      })
-    })
-    wizard.setWizardStep(2)
-    assert.equal(wizardNextButton.disabled, true)
-  }
-
-  {
-    const { wizard, wizardNextButton } = createWizardHarness({
-      getState: () => ({
-        currentStillsMarkdownExtractorType: 'llm',
-        currentLlmProviderName: 'openai',
-        currentLlmApiKey: 'sk-test',
-        isLlmApiKeySaved: false
-      })
-    })
-    wizard.setWizardStep(2)
-    assert.equal(wizardNextButton.disabled, true)
-  }
-
-  {
-    const { wizard, wizardNextButton } = createWizardHarness({
-      getState: () => ({
-        currentStillsMarkdownExtractorType: 'llm',
-        currentLlmProviderName: 'openai',
-        currentLlmApiKey: 'sk-test',
-        isLlmApiKeySaved: true
-      })
-    })
-    wizard.setWizardStep(2)
-    assert.equal(wizardNextButton.disabled, false)
-  }
-})
-
-test('wizard step 3 requires recording toggle to be enabled', () => {
+test('wizard step 3 requires skill installation', () => {
   const { wizard, wizardNextButton } = createWizardHarness({
     getState: () => ({
-      currentAlwaysRecordWhenActive: false
+      isSkillInstalled: false
     })
   })
 
@@ -114,10 +102,10 @@ test('wizard step 3 requires recording toggle to be enabled', () => {
   assert.equal(wizardNextButton.disabled, true)
 })
 
-test('wizard step 3 is complete when recording toggle is enabled', () => {
+test('wizard step 3 is complete when skill is installed', () => {
   const { wizard, wizardNextButton } = createWizardHarness({
     getState: () => ({
-      currentAlwaysRecordWhenActive: true
+      isSkillInstalled: true
     })
   })
 

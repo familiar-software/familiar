@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const SECTION_META = {
     wizard: {
       title: 'Setup Wizard',
-      subtitle: 'Guided setup in four steps.'
+      subtitle: 'Guided setup in three steps.'
     },
     general: {
       title: 'General Settings',

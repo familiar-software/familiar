@@ -33,14 +33,6 @@ const normalizeExtractorType = (settings) => {
     return 'llm'
   }
 
-  // If the user configured a provider but never set the extractor type, assume cloud.
-  const llmProvider = settings?.stills_markdown_extractor?.llm_provider || {}
-  const provider = llmProvider?.provider || ''
-  const apiKey = llmProvider?.api_key || ''
-  if (provider || apiKey) {
-    return 'llm'
-  }
-
   // Default to local when nothing is configured yet.
   return 'apple_vision_ocr'
 }

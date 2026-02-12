@@ -738,7 +738,7 @@ test('completed wizard can navigate to Permissions and Install Skill sections', 
   }
 })
 
-test('wizard step 3 re-checks permissions even when recording is already enabled', async () => {
+test('wizard step 2 re-checks permissions even when recording is already enabled', async () => {
   let checkCalls = 0
   const familiar = createFamiliar({
     getSettings: async () => ({
@@ -769,8 +769,6 @@ test('wizard step 3 re-checks permissions even when recording is already enabled
 
     assert.equal(checkCalls, 0)
 
-    await elements['wizard-next'].click()
-    await flushPromises()
     await elements['wizard-next'].click()
     await flushPromises()
 

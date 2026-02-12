@@ -39,10 +39,6 @@ function handleGetSettings() {
             if (typeof type === 'string' && type.trim()) {
                 return type;
             }
-            // If the user configured a provider but never set the extractor type, assume cloud.
-            if (llmProviderName || llmProviderApiKey) {
-                return 'llm';
-            }
             return 'apple_vision_ocr';
         })();
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;

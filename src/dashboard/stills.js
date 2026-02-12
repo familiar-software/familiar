@@ -271,7 +271,7 @@
     }
 
     const handleWizardStepChange = (step) => {
-      if (Number(step) !== 3) {
+      if (Number(step) !== 2) {
         return
       }
       void handleCheckPermissions()
