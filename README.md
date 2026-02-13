@@ -4,6 +4,10 @@
 
 <h1 align="center">Familiar</h1>
 
+<p align="center">
+   <img src="./docs/readme/familiar-settings.png" alt="Familiar desktop app screenshot" width="100%" />
+</p>
+
 Familiar is a local-first macOS menu bar app that helps your AI stay up to date with what matters in your work.
 
 It captures high-signal context from your screen activity and clipboard (when enabled), organizes it into local files, and makes that context available to your AI tools.
