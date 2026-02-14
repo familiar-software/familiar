@@ -98,7 +98,7 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.18",
     "electron": "^40.0.0",
-    "electron-builder": "^26.4.0",
+    "electron-builder": "^26.7.0",
     "playwright": "^1.55.0",
     "rimraf": "^6.1.2",
     "tailwindcss": "^4.1.18"
