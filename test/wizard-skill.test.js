@@ -59,8 +59,10 @@ const createHarness = ({ currentSkillHarness = '' } = {}) => {
   const state = { currentSkillHarness }
   const claude = new TestInput('claude')
   const codex = new TestInput('codex')
+  const antigravity = new TestInput('antigravity')
   const cursor = new TestInput('cursor')
   const settingsCodex = new TestInput('codex')
+  const settingsAntigravity = new TestInput('antigravity')
   const settingsCursor = new TestInput('cursor')
   const wizardSkillCursorRestartNote = { classList: new ClassList() }
   const settingsSkillCursorRestartNote = { classList: new ClassList() }
@@ -73,7 +75,15 @@ const createHarness = ({ currentSkillHarness = '' } = {}) => {
   const registry = loadWizardSkillModule()
   registry.createWizardSkill({
     elements: {
-      skillHarnessInputs: [claude, codex, cursor, settingsCodex, settingsCursor],
+      skillHarnessInputs: [
+        claude,
+        codex,
+        antigravity,
+        cursor,
+        settingsCodex,
+        settingsAntigravity,
+        settingsCursor
+      ],
       skillInstallButtons: [
         { disabled: false, addEventListener: () => {} },
         { disabled: false, addEventListener: () => {} }
@@ -97,6 +107,7 @@ const createHarness = ({ currentSkillHarness = '' } = {}) => {
   return {
     claude,
     codex,
+    antigravity,
     cursor,
     settingsCodex,
     settingsCursor,
@@ -128,6 +139,11 @@ test('wizard skill shows cursor restart note only for cursor harness selection',
     assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
     assert.equal(codex.checked, true)
     assert.equal(settingsCodex.checked, true)
+
+    await antigravity.triggerChange()
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
+    assert.equal(antigravity.checked, true)
 
     await cursor.triggerChange()
     assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), false)

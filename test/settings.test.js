@@ -49,6 +49,17 @@ test('saveSettings persists skillInstaller harness + installPath', () => {
   assert.equal(loaded.skillInstaller?.installPath, '/tmp/.codex/skills/familiar')
 })
 
+test('saveSettings persists antigravity skillInstaller harness + installPath', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+
+  saveSettings({ skillInstaller: { harness: 'antigravity', installPath: '/tmp/.gemini/antigravity/skills/familiar' } }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.skillInstaller?.harness, 'antigravity')
+  assert.equal(loaded.skillInstaller?.installPath, '/tmp/.gemini/antigravity/skills/familiar')
+})
+
 test('saveSettings preserves skillInstaller when updating other settings', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

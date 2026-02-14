@@ -28,6 +28,10 @@ test('skill installer', async (t) => {
       resolveHarnessSkillPath('cursor', { homeDir }),
       path.join(homeDir, '.cursor', 'skills', 'familiar')
     )
+    assert.equal(
+      resolveHarnessSkillPath('antigravity', { homeDir }),
+      path.join(homeDir, '.gemini', 'antigravity', 'skills', 'familiar')
+    )
   })
 
   await t.test('installSkill copies and overwrites the destination', async () => {

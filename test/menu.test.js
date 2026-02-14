@@ -101,3 +101,15 @@ test('buildTrayMenuTemplate uses resume label when paused', () => {
 
     assert.ok(recordingItem);
 });
+
+test('buildTrayMenuTemplate includes status icon when provided', () => {
+    const recordingStatusIcon = { id: 'dot' };
+    const template = buildTrayMenuTemplate({
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        recordingStatusIcon
+    });
+
+    assert.equal(template[0].icon, recordingStatusIcon);
+});

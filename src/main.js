@@ -146,18 +146,33 @@ const handleRecordingToggleAction = async () => {
     return startScreenStills();
 };
 
-const getScreenStillsStatusPayload = () => {
-    const state = screenStillsController?.getState?.() || { state: 'disabled', manualPaused: false };
-    const isRecording = state.state === 'recording' || state.state === 'idleGrace';
+const getCurrentScreenStillsState = () => {
+    const baseState = screenStillsController?.getState?.() || {
+        enabled: false,
+        contextFolderPath: '',
+        state: 'disabled',
+        manualPaused: false
+    };
     const permissionStatus = getScreenRecordingPermissionStatus();
+    return {
+        ...baseState,
+        permissionStatus,
+        permissionGranted: permissionStatus === 'granted'
+    };
+};
+
+const getScreenStillsStatusPayload = () => {
+    const state = getCurrentScreenStillsState();
+    const isRecording = state.state === 'recording' || state.state === 'idleGrace';
 
     return {
         ok: true,
         state: state.state,
         isRecording,
+        enabled: state.enabled === true,
         manualPaused: state.manualPaused,
-        permissionStatus,
-        permissionGranted: permissionStatus === 'granted'
+        permissionStatus: state.permissionStatus,
+        permissionGranted: state.permissionGranted
     };
 };
 
@@ -247,7 +262,7 @@ function createTray() {
     trayMenuController = createTrayMenuController({
         tray,
         trayHandlers,
-        getRecordingState: () => screenStillsController?.getState?.(),
+        getRecordingState: getCurrentScreenStillsState,
     });
 
     trayMenuController.refreshTrayMenuFromSettings();
@@ -261,13 +276,14 @@ registerIpcHandlers({ onSettingsSaved: updateScreenCaptureFromSettings });
 
 ipcMain.handle('screenStills:getStatus', () => {
     if (!screenStillsController) {
-        const permissionStatus = getScreenRecordingPermissionStatus();
+        const state = getCurrentScreenStillsState();
         return {
             ok: false,
             state: 'disabled',
             isRecording: false,
-            permissionStatus,
-            permissionGranted: permissionStatus === 'granted'
+            enabled: state.enabled === true,
+            permissionStatus: state.permissionStatus,
+            permissionGranted: state.permissionGranted
         };
     }
     return getScreenStillsStatusPayload();

@@ -25,7 +25,8 @@ function createWizardHarness({ getState }) {
   const wizardStepPanels = [
     { dataset: { wizardStep: '1' }, classList: createNoopClassList() },
     { dataset: { wizardStep: '2' }, classList: createNoopClassList() },
-    { dataset: { wizardStep: '3' }, classList: createNoopClassList() }
+    { dataset: { wizardStep: '3' }, classList: createNoopClassList() },
+    { dataset: { wizardStep: '4' }, classList: createNoopClassList() }
   ]
 
   const wizard = createWizard({
@@ -44,7 +45,7 @@ function createWizardHarness({ getState }) {
     onDone: () => {}
   })
 
-  return { wizard, wizardNextButton }
+  return { wizard, wizardNextButton, wizardDoneButton }
 }
 
 test('wizard step 1 requires a context folder path', () => {
@@ -111,4 +112,26 @@ test('wizard step 3 is complete when skill is installed', () => {
 
   wizard.setWizardStep(3)
   assert.equal(wizardNextButton.disabled, false)
+})
+
+test('wizard step 4 requires skill installation', () => {
+  const { wizard, wizardDoneButton } = createWizardHarness({
+    getState: () => ({
+      isSkillInstalled: false
+    })
+  })
+
+  wizard.setWizardStep(4)
+  assert.equal(wizardDoneButton.disabled, true)
+})
+
+test('wizard step 4 is complete after skill is installed', () => {
+  const { wizard, wizardDoneButton } = createWizardHarness({
+    getState: () => ({
+      isSkillInstalled: true
+    })
+  })
+
+  wizard.setWizardStep(4)
+  assert.equal(wizardDoneButton.disabled, false)
 })

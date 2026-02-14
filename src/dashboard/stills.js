@@ -3,6 +3,13 @@
     const elements = options.elements || {}
     const familiar = options.familiar || {}
     const getState = typeof options.getState === 'function' ? options.getState : () => ({})
+    const recordingStatusIndicator = global.FamiliarRecordingStatusIndicator
+      || (typeof require === 'function' ? require('../recording-status-indicator') : null)
+    const getRecordingIndicatorVisuals = (
+      recordingStatusIndicator && typeof recordingStatusIndicator.getRecordingIndicatorVisuals === 'function'
+    )
+      ? recordingStatusIndicator.getRecordingIndicatorVisuals
+      : () => ({ status: 'off', label: 'Off', dotClass: 'bg-zinc-400' })
 
     const {
       sidebarRecordingDot,
@@ -58,37 +65,21 @@
     const buildStillsPath = (contextFolderPath) =>
       contextFolderPath ? `${contextFolderPath}/familiar/stills` : ''
 
-    const shouldShowPermissionIssue = () =>
-      currentScreenStillsState !== 'recording' &&
-      currentScreenStillsState !== 'idleGrace' &&
-      (!currentScreenStillsPermissionGranted ||
-        (currentScreenStillsPermissionStatus !== 'granted' &&
-          currentScreenStillsPermissionStatus !== 'unavailable'))
-
     const updateSidebarStatus = (alwaysEnabled) => {
       if (!sidebarRecordingStatus && !sidebarRecordingDot) {
         return
       }
 
-      let label = 'Off'
-      let dotClass = 'bg-zinc-400'
+      const indicator = getRecordingIndicatorVisuals({
+        enabled: alwaysEnabled,
+        state: currentScreenStillsState,
+        manualPaused: currentScreenStillsPaused,
+        permissionGranted: currentScreenStillsPermissionGranted,
+        permissionStatus: currentScreenStillsPermissionStatus
+      })
+      const label = indicator.label
+      const dotClass = indicator.dotClass
       const togglePausedClass = '!bg-amber-500'
-
-      if (alwaysEnabled) {
-        if (currentScreenStillsPaused) {
-          label = 'Paused'
-          dotClass = 'bg-amber-500'
-        } else if (shouldShowPermissionIssue()) {
-          label = 'Permission needed'
-          dotClass = 'bg-red-500'
-        } else if (isCaptureActive()) {
-          label = 'Recording'
-          dotClass = 'bg-emerald-500'
-        } else {
-          label = 'Idle'
-          dotClass = 'bg-zinc-400'
-        }
-      }
 
       if (sidebarRecordingStatus) {
         sidebarRecordingStatus.textContent = label

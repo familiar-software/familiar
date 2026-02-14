@@ -6,6 +6,7 @@ const HARNESS_SKILL_DIRS = {
     claude: path.join('.claude', 'skills'),
     codex: path.join('.codex', 'skills'),
     cursor: path.join('.cursor', 'skills'),
+    antigravity: path.join('.gemini', 'antigravity', 'skills'),
 };
 
 const SKILL_NAME = 'familiar';

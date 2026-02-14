@@ -159,7 +159,12 @@ function handleSaveSettings(_event, payload) {
         if (!harness) {
             return { ok: false, message: 'Harness is required.' };
         }
-        if (harness !== 'claude' && harness !== 'codex' && harness !== 'cursor') {
+        if (
+            harness !== 'claude' &&
+            harness !== 'codex' &&
+            harness !== 'cursor' &&
+            harness !== 'antigravity'
+        ) {
             return { ok: false, message: 'Invalid harness.' };
         }
 
