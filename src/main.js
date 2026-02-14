@@ -158,7 +158,9 @@ function createSettingsWindow() {
         // Keep the content area width stable while matching the sidebar width from the new design.
         width: 674,
         height: 528,
-        resizable: false,
+        minWidth: 560,
+        minHeight: 460,
+        resizable: true,
         fullscreenable: false,
         minimizable: false,
         show: false,
@@ -291,9 +293,7 @@ app.whenReady().then(() => {
     }
 
     if (process.platform === 'darwin') {
-        if (app.dock) {
-            app.dock.hide();
-        }
+        app.dock?.show();
         app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
 
         createTray();
@@ -326,7 +326,7 @@ app.whenReady().then(() => {
     }
 
     app.on('activate', () => {
-        // Keep background-only behavior; open Settings only from the tray menu.
+        showSettingsWindow({ reason: 'activate' });
     });
 });
 
