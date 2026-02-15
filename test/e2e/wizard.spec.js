@@ -40,13 +40,8 @@ const completeWizardPermissionsStep = async (window, nextButton) => {
   await expect(nextButton).toBeDisabled()
   await checkPermissionsButton.click()
 
-  if ((await checkPermissionsButton.textContent()) !== 'Granted') {
-    const permission = await window.evaluate(() => window.familiar.checkScreenRecordingPermission())
-    test.skip(
-      true,
-      `Screen Recording permission not granted for wizard flow (status: ${permission?.permissionStatus || 'unknown'}).`
-    )
-  }
+  const permission = await window.evaluate(() => window.familiar.checkScreenRecordingPermission())
+  expect(permission?.permissionStatus).toBe('granted')
 
   await expect(window.locator('#wizard-recording-toggle-section')).toBeVisible()
   if (!(await recordingToggle.isChecked())) {

@@ -1,6 +1,10 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { loadSettings, saveSettings, validateContextFolderPath } = require('../settings');
-const { getScreenRecordingPermissionStatus, openScreenRecordingSettings } = require('../screen-capture/permissions');
+const {
+  getScreenRecordingPermissionStatus,
+  requestScreenRecordingPermission,
+  openScreenRecordingSettings
+} = require('../screen-capture/permissions');
 const { resolveHarnessSkillPath } = require('../skills/installer');
 
 let onSettingsSaved = null;
@@ -23,6 +27,7 @@ function registerSettingsHandlers(options = {}) {
     ipcMain.handle('settings:save', handleSaveSettings);
     ipcMain.handle('settings:pickContextFolder', handlePickContextFolder);
     ipcMain.handle('settings:checkScreenRecordingPermission', handleCheckScreenRecordingPermission);
+    ipcMain.handle('settings:requestScreenRecordingPermission', handleRequestScreenRecordingPermission);
     ipcMain.handle('settings:openScreenRecordingSettings', handleOpenScreenRecordingSettings);
     console.log('Settings IPC handlers registered');
 }
@@ -249,6 +254,21 @@ function handleCheckScreenRecordingPermission() {
         permissionStatus,
         granted
     };
+}
+
+async function handleRequestScreenRecordingPermission() {
+    const result = await requestScreenRecordingPermission();
+    if (result?.ok === true) {
+        const permissionStatus = result.permissionStatus;
+        const granted = result.granted === true;
+        console.log('Screen Recording permission requested', { permissionStatus, granted });
+    } else {
+        console.warn('Failed to request Screen Recording permissions', {
+            message: result?.message || 'unknown-error',
+            permissionStatus: result?.permissionStatus
+        });
+    }
+    return result;
 }
 
 async function handleOpenScreenRecordingSettings() {

@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('familiar', {
   nodeVersion: process.versions.node,
   getSettings: () => ipcRenderer.invoke('settings:get'),
   checkScreenRecordingPermission: () => ipcRenderer.invoke('settings:checkScreenRecordingPermission'),
+  requestScreenRecordingPermission: () => ipcRenderer.invoke('settings:requestScreenRecordingPermission'),
   openScreenRecordingSettings: () => ipcRenderer.invoke('settings:openScreenRecordingSettings'),
   pickContextFolder: () => ipcRenderer.invoke('settings:pickContextFolder'),
   saveSettings: (payload) => {

@@ -255,6 +255,35 @@
     }
 
     const handleCheckPermissions = async () => {
+      if ((!familiar.requestScreenRecordingPermission && !familiar.checkScreenRecordingPermission) || isCheckingPermission) {
+        return
+      }
+      isCheckingPermission = true
+      updateStillsUI()
+      try {
+        let result = null
+        if (familiar.requestScreenRecordingPermission) {
+          result = await familiar.requestScreenRecordingPermission()
+        } else {
+          result = await familiar.checkScreenRecordingPermission()
+        }
+        if (result?.permissionStatus) {
+          wizardPermissionState = result.permissionStatus === 'granted' ? 'granted' : 'denied'
+          return
+        }
+        const checkResult = await familiar.checkScreenRecordingPermission()
+        wizardPermissionState = checkResult?.permissionStatus === 'granted' ? 'granted' : 'denied'
+      } catch (error) {
+        console.error('Failed to request Screen Recording permission', error)
+        wizardPermissionState = 'denied'
+      } finally {
+        isCheckingPermission = false
+        await refreshStatus()
+        updateStillsUI()
+      }
+    }
+
+    const handleCheckPermissionsState = async () => {
       if (!familiar.checkScreenRecordingPermission || isCheckingPermission) {
         return
       }
@@ -290,7 +319,7 @@
       if (Number(step) !== 2) {
         return
       }
-      void handleCheckPermissions()
+      void handleCheckPermissionsState()
     }
 
     const startStatusPoller = () => {

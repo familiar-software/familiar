@@ -636,6 +636,44 @@ test('wizard permission check granted state reveals recording toggle', async () 
   }
 })
 
+test('wizard permission check prefers request permissions API when available', async () => {
+  let checkCalls = 0
+  let requestCalls = 0
+  const familiar = createFamiliar({
+    checkScreenRecordingPermission: async () => {
+      checkCalls += 1
+      return { ok: true, permissionStatus: 'granted', granted: true }
+    },
+    requestScreenRecordingPermission: async () => {
+      requestCalls += 1
+      return { ok: true, permissionStatus: 'granted', granted: true }
+    }
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['wizard-check-permissions'].click()
+    await flushPromises()
+
+    assert.equal(requestCalls, 1)
+    assert.equal(checkCalls, 0)
+    assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), false)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
 test('cannot navigate away from wizard while wizard is incomplete', async () => {
   const familiar = createFamiliar({
     getSettings: async () => ({

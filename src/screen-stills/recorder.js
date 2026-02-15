@@ -1,5 +1,6 @@
 const { BrowserWindow, desktopCapturer, ipcMain, screen, app } = require('electron');
 const { randomUUID } = require('node:crypto');
+const fs = require('node:fs');
 const path = require('node:path');
 
 const { isScreenRecordingPermissionGranted } = require('../screen-capture/permissions');
@@ -14,6 +15,12 @@ const CAPTURE_CONFIG = Object.freeze({
 
 const START_TIMEOUT_MS = 10000;
 const STOP_TIMEOUT_MS = 10000;
+const IS_E2E = process.env.FAMILIAR_E2E === '1';
+const IS_E2E_FAKE_CAPTURE = IS_E2E && process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE !== '0';
+
+function createFakeCaptureFile(filePath) {
+  fs.writeFileSync(filePath, Buffer.from('familiar-e2e-screen-capture-placeholder', 'utf-8'));
+}
 
 function ensureEven(value) {
   const rounded = Math.max(2, Math.round(value));
@@ -447,21 +454,26 @@ function createRecorder(options = {}) {
     const nextCapture = sessionStore.nextCaptureFile(capturedAt);
     const filePath = path.join(sessionStore.sessionDir, nextCapture.fileName);
 
-    const requestId = randomUUID();
     try {
-      const activeSourceDetails = await ensureCaptureSource('capture-tick');
-      const window = await ensureWindowReady();
-      window.webContents.send('screen-stills:capture', {
-        requestId,
-        filePath,
-        format: CAPTURE_CONFIG.format
-      });
-      await waitForStatus(requestId, STOP_TIMEOUT_MS, ['captured']);
+      if (!IS_E2E_FAKE_CAPTURE) {
+        const requestId = randomUUID();
+        const activeSourceDetails = await ensureCaptureSource('capture-tick');
+        const window = await ensureWindowReady();
+        window.webContents.send('screen-stills:capture', {
+          requestId,
+          filePath,
+          format: CAPTURE_CONFIG.format
+        });
+        await waitForStatus(requestId, STOP_TIMEOUT_MS, ['captured']);
+        sourceDetails = activeSourceDetails || sourceDetails;
+      } else {
+        createFakeCaptureFile(filePath);
+      }
       if (sessionStore) {
         sessionStore.addCapture({
           fileName: nextCapture.fileName,
           capturedAt: nextCapture.capturedAt,
-          displayId: activeSourceDetails?.sourceDisplay?.id
+          displayId: sourceDetails?.sourceDisplay?.id
         });
         if (queueStore) {
           try {
@@ -503,8 +515,20 @@ function createRecorder(options = {}) {
       }
 
       async function startOnce() {
-        const initialDisplayContext = resolveDisplayForCursor();
-        const initialSourceDetails = await resolveCaptureSourceForDisplay(initialDisplayContext);
+        const initialSourceDetails = IS_E2E_FAKE_CAPTURE
+          ? {
+              sourceId: 'e2e-fake-source',
+              captureWidth: 640,
+              captureHeight: 360,
+              sourceDisplay: {
+                id: 'e2e-fake-display',
+                bounds: { width: 640, height: 360, x: 0, y: 0 },
+                scaleFactor: 1,
+                workArea: { width: 640, height: 360, x: 0, y: 0 },
+                size: { width: 640, height: 360 }
+              }
+            }
+          : await resolveCaptureSourceForDisplay(resolveDisplayForCursor());
         recoverIncompleteSessions(contextFolderPath, logger);
 
         const appVersion = typeof app?.getVersion === 'function' ? app.getVersion() : null;
@@ -522,7 +546,9 @@ function createRecorder(options = {}) {
         logger.log('Recording session started', { sessionDir: sessionStore.sessionDir });
 
         try {
-          await startRendererCapture(initialSourceDetails, 'session-start');
+          if (!IS_E2E_FAKE_CAPTURE) {
+            await startRendererCapture(initialSourceDetails, 'session-start');
+          }
           sourceDetails = initialSourceDetails;
         } catch (error) {
           sessionStore.finalize('start_failed');

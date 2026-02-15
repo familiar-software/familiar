@@ -42,17 +42,8 @@ const launchApp = async ({ contextPath, settingsDir, env = {} }) => {
 }
 
 const ensureRecordingPrereqs = async (window) => {
-  if (process.platform !== 'darwin') {
-    test.skip(true, 'Screen capture is only supported on macOS.')
-  }
-
   const permission = await window.evaluate(() => window.familiar.checkScreenRecordingPermission())
-  if (permission?.permissionStatus !== 'granted') {
-    test.skip(
-      true,
-      'Screen Recording permission not granted. Enable it in System Settings -> Privacy & Security -> Screen Recording.'
-    )
-  }
+  expect(permission?.permissionStatus).toBe('granted')
 }
 
 const setContextFolder = async (window) => {

@@ -8,8 +8,6 @@ const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME, STILLS_MARKDOWN_DI
 
 test.describe('clipboard mirroring', () => {
   test('mirrors clipboard text into the current stills-markdown session while recording', async () => {
-    test.skip(process.platform !== 'darwin', 'Clipboard mirroring is tied to recording (macOS-only in E2E).')
-
     const appRoot = path.join(__dirname, '../..')
     const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-clipboard-'))
     const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
@@ -52,14 +50,10 @@ test.describe('clipboard mirroring', () => {
 
       // Enable recording while active (required for manual start).
       const enableResult = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: true }))
-      if (!enableResult || enableResult.ok !== true) {
-        test.skip(true, enableResult?.message || 'Unable to enable recording while active in this environment.')
-      }
+      expect(enableResult?.ok).toBe(true)
 
       const startResult = await window.evaluate(() => window.familiar.startScreenStills())
-      if (!startResult || startResult.ok !== true) {
-        test.skip(true, startResult?.message || 'Unable to start recording in this environment.')
-      }
+      expect(startResult?.ok).toBe(true)
 
       const stillsRoot = path.join(contextPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME)
       await expect.poll(() => {
