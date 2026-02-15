@@ -124,6 +124,7 @@ test('wizard skill shows cursor restart note only for cursor harness selection',
     const {
       claude,
       codex,
+      antigravity,
       cursor,
       settingsCodex,
       settingsCursor,
