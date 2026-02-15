@@ -89,7 +89,7 @@
     }
   },
   "author": "Familiar",
-  "license": "AGPL-3.0-only",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "better-sqlite3": "^12.6.2",
     "electron-log": "^5.3.4",

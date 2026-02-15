@@ -1,12 +1,12 @@
 # Commercial Licensing (Draft Framework)
 
-This repository is open source under `AGPL-3.0-only` (see `LICENSE`).
+This repository is open source under `GPL-3.0-only` (see `LICENSE`).
 
-Familiar may also be offered under separate commercial terms for organizations that need rights beyond AGPL, including but not limited to:
+Familiar may also be offered under separate commercial terms for organizations that need rights beyond GPL, including but not limited to:
 
 - Use of official Familiar binaries for commercial/internal business deployments.
 - Enterprise support, SLAs, and long-term support releases.
-- Commercial add-ons and integrations distributed outside the AGPL core.
+- Commercial add-ons and integrations distributed outside the GPL core.
 - OEM, redistribution, or white-label arrangements.
 
 ## Important
