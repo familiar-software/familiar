@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, nativeImage, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, nativeImage, ipcMain, nativeTheme } = require('electron');
 const path = require('node:path');
 
 const { registerIpcHandlers } = require('./ipc');
@@ -14,8 +14,10 @@ const { initializeAutoUpdater, scheduleDailyUpdateCheck } = require('./updates')
 const { createScreenStillsController } = require('./screen-stills');
 const { createPresenceMonitor } = require('./screen-capture/presence');
 const { getScreenRecordingPermissionStatus } = require('./screen-capture/permissions');
+const { getTrayIconPathForMenuBar } = require('./tray/icon');
 
 const trayIconPath = path.join(__dirname, 'icon.png');
+const trayIconWhiteModePath = path.join(__dirname, 'icon_white_mode.png');
 
 let tray = null;
 let trayHandlers = null;
@@ -241,15 +243,52 @@ function quitApp() {
 }
 
 function createTray() {
-    const trayIconBase = nativeImage.createFromPath(trayIconPath);
-    if (trayIconBase.isEmpty()) {
-        console.error(`Tray icon failed to load from ${trayIconPath}`);
-    }
+    const getTrayIcon = () => {
+        const preferredPath = getTrayIconPathForMenuBar({
+            platform: process.platform,
+            shouldUseDarkColors: nativeTheme.shouldUseDarkColors,
+            defaultIconPath: trayIconPath,
+            whiteModeIconPath: trayIconWhiteModePath,
+        });
 
-    const trayIcon = trayIconBase.resize({ width: 16, height: 16 });
+        const trayIconBase = nativeImage.createFromPath(preferredPath);
+        if (!trayIconBase.isEmpty()) {
+            return trayIconBase.resize({ width: 16, height: 16 });
+        }
+
+        if (preferredPath !== trayIconPath) {
+            console.warn(`Tray icon failed to load from ${preferredPath}; falling back to ${trayIconPath}`);
+            const fallbackTrayIcon = nativeImage.createFromPath(trayIconPath);
+            if (!fallbackTrayIcon.isEmpty()) {
+                return fallbackTrayIcon.resize({ width: 16, height: 16 });
+            }
+        } else {
+            console.error(`Tray icon failed to load from ${trayIconPath}`);
+        }
+
+        return nativeImage.createEmpty();
+    };
+
+    const updateTrayIcon = () => {
+        const trayIcon = getTrayIcon();
+        if (trayIcon.isEmpty()) {
+            console.error('Failed to resolve any tray icon image');
+            return;
+        }
+        if (tray) {
+            tray.setImage(trayIcon);
+        }
+    };
+
+    const trayIcon = getTrayIcon();
+    if (trayIcon.isEmpty()) {
+        console.error('Failed to initialize tray due to missing icon assets');
+        return;
+    }
 
     tray = new Tray(trayIcon);
     tray.setToolTip('Familiar');
+    nativeTheme.on('updated', updateTrayIcon);
 
     trayHandlers = {
         onRecordingPause: () => {
@@ -267,6 +306,7 @@ function createTray() {
 
     trayMenuController.refreshTrayMenuFromSettings();
     trayMenuController.registerTrayRefreshHandlers();
+    updateTrayIcon();
 
     console.log('Tray created');
 }
