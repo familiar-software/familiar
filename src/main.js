@@ -21,11 +21,9 @@ const { initializeAutoUpdater, scheduleDailyUpdateCheck } = require('./updates')
 const { createScreenStillsController } = require('./screen-stills');
 const { createPresenceMonitor } = require('./screen-capture/presence');
 const { getScreenRecordingPermissionStatus } = require('./screen-capture/permissions');
-const { getReduceTransparencyEnabled } = require('./tray/appearance');
 const { getTrayIconPathForMenuBar } = require('./tray/icon');
 
 const trayIconPath = path.join(__dirname, 'icon_white_owl.png');
-const trayIconBlackOwlPath = path.join(__dirname, 'icon_black_owl.png');
 
 let tray = null;
 let trayHandlers = null;
@@ -253,19 +251,16 @@ function quitApp() {
 function createTray() {
     const getTrayIcon = () => {
         const preferredPath = getTrayIconPathForMenuBar({
-            platform: process.platform,
-            shouldUseDarkColors: nativeTheme.shouldUseDarkColors,
-            reduceTransparencyEnabled: getReduceTransparencyEnabled({
-                platform: process.platform,
-                nativeTheme
-            }),
-            defaultIconPath: trayIconPath,
-            reduceTransparencyIconPath: trayIconBlackOwlPath,
+            defaultIconPath: trayIconPath
         });
 
         const trayIconBase = nativeImage.createFromPath(preferredPath);
         if (!trayIconBase.isEmpty()) {
-            return trayIconBase.resize({ width: 16, height: 16 });
+            const trayIcon = trayIconBase.resize({ width: 16, height: 16 });
+            if (process.platform === 'darwin') {
+                trayIcon.setTemplateImage(true);
+            }
+            return trayIcon;
         }
 
         if (preferredPath !== trayIconPath) {

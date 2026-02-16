@@ -1,6 +1,6 @@
 {
   "name": "familiar-desktopapp",
-  "version": "0.0.34",
+  "version": "0.0.35",
   "description": "Familiar menu bar app shell (macOS)",
   "main": "src/main.js",
   "scripts": {
