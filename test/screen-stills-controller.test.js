@@ -57,6 +57,16 @@ const createScheduler = () => {
   }
 }
 
+const createClock = (initialMs = 0) => {
+  let now = initialMs
+  return {
+    now: () => now,
+    advance: (ms) => {
+      now += ms
+    }
+  }
+}
+
 const flushPromises = () => new Promise((resolve) => setImmediate(resolve))
 const silentLogger = { log: () => {}, warn: () => {}, error: () => {} }
 
@@ -229,6 +239,56 @@ test('stills manual resume cancels the pause timer', async () => {
 
   scheduler.advanceBy(5000)
   await flushPromises()
+  assert.equal(calls.start.length, 2)
+})
+
+test('stills manual pause reports countdown remaining based on clock', async () => {
+  const contextFolderPath = makeTempContext()
+  const presence = createPresenceMonitor()
+  const scheduler = createScheduler()
+  const clock = createClock(0)
+  const calls = { start: [], stop: [] }
+  const recorder = {
+    start: async (payload) => {
+      calls.start.push(payload)
+    },
+    stop: async (payload) => {
+      calls.stop.push(payload)
+    }
+  }
+  const markdownWorker = { start: () => {}, stop: () => {} }
+
+  const controller = createScreenStillsController({
+    presenceMonitor: presence,
+    recorder,
+    markdownWorker,
+    scheduler,
+    clock,
+    pauseDurationMs: 5000,
+    logger: silentLogger
+  })
+
+  controller.start()
+  controller.updateSettings({ enabled: true, contextFolderPath })
+
+  presence.emit('active')
+  await flushPromises()
+  assert.equal(calls.start.length, 1)
+
+  await controller.manualPause()
+  await flushPromises()
+  const pausedState = controller.getState()
+  assert.equal(pausedState.manualPaused, true)
+  assert.equal(pausedState.pauseRemainingMs, 5000)
+
+  clock.advance(1200)
+  const laterPausedState = controller.getState()
+  assert.equal(laterPausedState.pauseRemainingMs, 3800)
+
+  await controller.manualStart()
+  await flushPromises()
+  assert.equal(controller.getState().manualPaused, false)
+  assert.equal(controller.getState().pauseRemainingMs, 0)
   assert.equal(calls.start.length, 2)
 })
 

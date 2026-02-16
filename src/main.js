@@ -11,7 +11,8 @@ const path = require('node:path');
 const { registerIpcHandlers } = require('./ipc');
 const { showWindow } = require('./utils/window');
 const { ensureHomebrewPath } = require('./utils/path');
-const { loadSettings } = require('./settings');
+const { loadSettings, saveSettings } = require('./settings');
+const { buildTrayMenuTemplate } = require('./menu');
 const { initLogging } = require('./logger');
 const { showToast } = require('./toast');
 const {
@@ -134,6 +135,12 @@ const pauseScreenStills = async () => {
     }
 };
 
+const refreshTrayMenu = () => {
+    if (trayMenuController && typeof trayMenuController.refreshTrayMenuFromSettings === 'function') {
+        trayMenuController.refreshTrayMenuFromSettings();
+    }
+};
+
 const handleRecordingToggleAction = async () => {
     if (!screenStillsController) {
         console.warn('Recording toggle action ignored: controller unavailable');
@@ -144,14 +151,35 @@ const handleRecordingToggleAction = async () => {
     const isPaused = state.manualPaused === true;
 
     if (isPaused) {
-        return startScreenStills();
+        const result = await startScreenStills();
+        refreshTrayMenu();
+        return result;
     }
 
     if (isRecording) {
-        return pauseScreenStills();
+        const result = await pauseScreenStills();
+        refreshTrayMenu();
+        return result;
     }
 
-    return startScreenStills();
+    if (state.enabled !== true) {
+        try {
+            saveSettings({ alwaysRecordWhenActive: true });
+            updateScreenCaptureFromSettings();
+            if (settingsWindow && !settingsWindow.isDestroyed()) {
+                settingsWindow.webContents.send('settings:alwaysRecordWhenActiveChanged', {
+                    enabled: true
+                });
+            }
+        } catch (error) {
+            console.error('Failed to enable recording from tray action', error);
+            return { ok: false, message: 'Failed to enable recording.' };
+        }
+    }
+
+    const result = await startScreenStills();
+    refreshTrayMenu();
+    return result;
 };
 
 const getCurrentScreenStillsState = () => {
@@ -182,6 +210,27 @@ const getScreenStillsStatusPayload = () => {
         permissionStatus: state.permissionStatus,
         permissionGranted: state.permissionGranted
     };
+};
+
+const getTrayRecordingActionLabel = () => {
+    if (!trayHandlers) {
+        return '';
+    }
+    const recordingState = getCurrentScreenStillsState();
+    const template = buildTrayMenuTemplate({
+        ...trayHandlers,
+        recordingPaused: recordingState.manualPaused === true,
+        recordingState,
+    });
+    return template && template[0] && typeof template[0].label === 'string'
+        ? template[0].label
+        : '';
+};
+
+const runCaptureActionAndRefreshTray = async (action) => {
+    const result = await action();
+    refreshTrayMenu();
+    return result;
 };
 
 if (process.platform === 'linux' && (isE2E || isCI)) {
@@ -337,7 +386,7 @@ ipcMain.handle('screenStills:getStatus', () => {
 });
 
 ipcMain.handle('screenStills:start', async () => {
-    const result = await startScreenStills();
+    const result = await runCaptureActionAndRefreshTray(startScreenStills);
     return {
         ...result,
         ...getScreenStillsStatusPayload()
@@ -345,7 +394,7 @@ ipcMain.handle('screenStills:start', async () => {
 });
 
 ipcMain.handle('screenStills:pause', async () => {
-    const result = await pauseScreenStills();
+    const result = await runCaptureActionAndRefreshTray(pauseScreenStills);
     return {
         ...result,
         ...getScreenStillsStatusPayload()
@@ -354,7 +403,7 @@ ipcMain.handle('screenStills:pause', async () => {
 
 ipcMain.handle('screenStills:stop', async () => {
     console.warn('screenStills:stop called; treating as pause');
-    const result = await pauseScreenStills();
+    const result = await runCaptureActionAndRefreshTray(pauseScreenStills);
     return {
         ...result,
         ...getScreenStillsStatusPayload()
@@ -370,6 +419,29 @@ ipcMain.handle('screenStills:simulateIdle', (_event, payload = {}) => {
         screenStillsController.simulateIdle(idleSeconds);
     }
     return { ok: true };
+});
+
+ipcMain.handle('e2e:tray:getRecordingLabel', () => {
+    if (!isE2E) {
+        return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
+    }
+    return {
+        ok: true,
+        label: getTrayRecordingActionLabel()
+    };
+});
+
+ipcMain.handle('e2e:tray:clickRecordingAction', async () => {
+    if (!isE2E) {
+        return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
+    }
+    const actionResult = await handleRecordingToggleAction();
+    return {
+        ok: true,
+        actionResult,
+        label: getTrayRecordingActionLabel(),
+        status: getScreenStillsStatusPayload()
+    };
 });
 
 app.whenReady().then(() => {

@@ -3,6 +3,9 @@
     const elements = options.elements || {}
     const familiar = options.familiar || {}
     const getState = typeof options.getState === 'function' ? options.getState : () => ({})
+    const setAlwaysRecordWhenActiveValue = typeof options.setAlwaysRecordWhenActiveValue === 'function'
+      ? options.setAlwaysRecordWhenActiveValue
+      : () => {}
     const recordingStatusIndicator = global.FamiliarRecordingStatusIndicator
       || (typeof require === 'function' ? require('../recording-status-indicator') : null)
     const getRecordingIndicatorVisuals = (
@@ -51,6 +54,7 @@
 
     let currentScreenStillsState = 'disabled'
     let currentScreenStillsPaused = false
+    let currentScreenStillsEnabled = false
     let currentScreenStillsPermissionGranted = true
     let currentScreenStillsPermissionStatus = 'granted'
     let statusPoller = null
@@ -164,6 +168,10 @@
         if (result && result.ok) {
           currentScreenStillsState = result.state || 'disabled'
           currentScreenStillsPaused = Boolean(result.manualPaused)
+          if (typeof result.enabled === 'boolean') {
+            currentScreenStillsEnabled = result.enabled
+            setAlwaysRecordWhenActiveValue(currentScreenStillsEnabled)
+          }
           currentScreenStillsPermissionStatus = typeof result.permissionStatus === 'string'
             ? result.permissionStatus
             : currentScreenStillsPermissionStatus
@@ -173,6 +181,7 @@
         } else {
           currentScreenStillsState = 'disabled'
           currentScreenStillsPaused = false
+          currentScreenStillsEnabled = false
           currentScreenStillsPermissionStatus = 'granted'
           currentScreenStillsPermissionGranted = true
         }

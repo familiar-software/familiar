@@ -1,5 +1,11 @@
 const { isCaptureActiveState } = require('./recording-status-indicator')
 
+function formatPauseRemainingMinutes(remainingMs = 0) {
+  const normalizedMs = Number.isFinite(remainingMs) ? Math.max(0, Math.floor(remainingMs)) : 0
+  const minutes = Math.ceil(normalizedMs / 60000)
+  return `${Math.max(1, minutes)}m`
+}
+
 function buildTrayMenuTemplate ({
   onRecordingPause,
   onOpenSettings,
@@ -10,10 +16,14 @@ function buildTrayMenuTemplate ({
 }) {
   const stillsState = recordingState && typeof recordingState === 'object' ? recordingState.state : ''
   const isRecording = isCaptureActiveState(stillsState)
-  const recordingLabel = recordingPaused
-    ? 'Resume Recording'
+  const isPaused = Boolean(recordingPaused || (recordingState && recordingState.manualPaused))
+  const pauseRemainingMs = recordingState && typeof recordingState.pauseRemainingMs === 'number'
+    ? recordingState.pauseRemainingMs
+    : 0
+  const recordingLabel = isPaused
+    ? `Paused for ${formatPauseRemainingMinutes(pauseRemainingMs)} (click to resume)`
     : isRecording
-      ? 'Pause Recording (10 min)'
+      ? 'Recording (click to pause)'
       : 'Start Recording'
   const recordingItem = { label: recordingLabel, click: onRecordingPause }
   if (recordingStatusIcon) {

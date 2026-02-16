@@ -27,6 +27,7 @@ function createScreenStillsController(options = {}) {
       ? options.pauseDurationMs
       : DEFAULT_PAUSE_DURATION_MS;
   const scheduler = options.scheduler || { setTimeout, clearTimeout };
+  const clock = options.clock || { now: () => Date.now() };
   const presenceMonitor = options.presenceMonitor ||
     createPresenceMonitor({ idleThresholdSeconds, logger });
   const recorder = options.recorder || createRecorder({ logger });
@@ -46,6 +47,7 @@ function createScreenStillsController(options = {}) {
   let presenceRunning = false;
   let pendingStart = false;
   let manualPaused = false;
+  let manualPauseStartedAt = null;
   let pauseTimer = null;
   let activeSessionId = null;
   let lastPresenceState = null;
@@ -115,6 +117,20 @@ function createScreenStillsController(options = {}) {
     }
     scheduler.clearTimeout(pauseTimer);
     pauseTimer = null;
+  }
+
+  function clearManualPauseState() {
+    manualPaused = false;
+    manualPauseStartedAt = null;
+    clearPauseTimer();
+  }
+
+  function getPauseRemainingMs() {
+    if (!manualPaused || !manualPauseStartedAt) {
+      return 0;
+    }
+    const elapsedMs = Math.max(0, clock.now() - manualPauseStartedAt);
+    return Math.max(0, pauseDurationMs - elapsedMs);
   }
 
   function clearStartRetryTimer() {
@@ -201,7 +217,7 @@ function createScreenStillsController(options = {}) {
       if (!manualPaused) {
         return;
       }
-      manualPaused = false;
+      clearManualPauseState();
       logger.log('Recording pause window elapsed', { durationMs: pauseDurationMs });
       syncPresenceState('pause-elapsed');
     }, pauseDurationMs);
@@ -349,6 +365,7 @@ function createScreenStillsController(options = {}) {
     if (!settings.enabled) {
       resetStartRetry();
       manualPaused = false;
+      manualPauseStartedAt = null;
       clearPauseTimer();
       stopPresence();
       markdownWorker.stop();
@@ -367,6 +384,9 @@ function createScreenStillsController(options = {}) {
       resetStartRetry();
       stopPresence();
       markdownWorker.stop();
+      manualPaused = false;
+      manualPauseStartedAt = null;
+      clearPauseTimer();
       if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
         clipboardMirror.stop('invalid-context');
       }
@@ -386,11 +406,24 @@ function createScreenStillsController(options = {}) {
   }
 
   async function manualStart() {
+    const validation = validateContext();
+    if (!validation.ok) {
+      return { ok: false, message: validation.message };
+    }
+
     if (!settings.enabled) {
-      return { ok: false, message: 'Recording is disabled.' };
+      settings = {
+        ...settings,
+        enabled: true
+      };
+      resetStartRetry();
+      setState(STATES.ARMED, { reason: 'manual-enabled' });
+      ensurePresenceRunning();
+      logger.log('Recording enabled from manual start');
     }
     const wasPaused = manualPaused;
     manualPaused = false;
+    manualPauseStartedAt = null;
     clearPauseTimer();
     if (wasPaused) {
       logger.log('Recording resumed manually');
@@ -405,6 +438,7 @@ function createScreenStillsController(options = {}) {
     }
     resetStartRetry();
     if (manualPaused) {
+      manualPauseStartedAt = clock.now();
       schedulePauseResume();
       logger.log('Recording pause extended', { durationMs: pauseDurationMs });
       return { ok: true, alreadyPaused: true };
@@ -413,6 +447,7 @@ function createScreenStillsController(options = {}) {
       return { ok: false, message: 'Recording is not active.' };
     }
     manualPaused = true;
+    manualPauseStartedAt = clock.now();
     pendingStart = false;
     schedulePauseResume();
     logger.log('Recording paused manually', { durationMs: pauseDurationMs });
@@ -441,6 +476,7 @@ function createScreenStillsController(options = {}) {
     stopPresence();
     resetStartRetry();
     manualPaused = false;
+    manualPauseStartedAt = null;
     clearPauseTimer();
     pendingStart = false;
     if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
@@ -458,6 +494,7 @@ function createScreenStillsController(options = {}) {
     stopPresence();
     resetStartRetry();
     manualPaused = false;
+    manualPauseStartedAt = null;
     clearPauseTimer();
     markdownWorker.stop();
     if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
@@ -473,7 +510,13 @@ function createScreenStillsController(options = {}) {
   }
 
   function getState() {
-    return { ...settings, state, manualPaused, activeSessionId };
+    return {
+      ...settings,
+      state,
+      manualPaused,
+      activeSessionId,
+      pauseRemainingMs: getPauseRemainingMs()
+    };
   }
 
   return {

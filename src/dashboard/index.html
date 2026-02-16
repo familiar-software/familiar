@@ -21,7 +21,10 @@
           <div class="px-3 mb-4">
             <div class="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
               <div class="flex items-center justify-between gap-2 mb-1">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</span>
+                <div class="flex items-center gap-2">
+                  <span id="sidebar-recording-dot" class="w-2 h-2 rounded-full bg-zinc-400"></span>
+                  <span id="sidebar-recording-status" class="text-xs font-medium text-zinc-700 dark:text-zinc-200">Off</span>
+                </div>
                 <label for="always-record-when-active" class="relative inline-flex items-center cursor-pointer" aria-label="Toggle recording">
                   <input
                     id="always-record-when-active"
@@ -32,10 +35,6 @@
                   <div id="sidebar-recording-toggle-track" class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
                   <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5"></div>
                 </label>
-              </div>
-              <div class="flex items-center gap-2 mb-2">
-                <span id="sidebar-recording-dot" class="w-2 h-2 rounded-full bg-zinc-400"></span>
-                <span id="sidebar-recording-status" class="text-xs font-medium text-zinc-700 dark:text-zinc-200">Off</span>
               </div>
               <button
                 id="sidebar-recording-action"
@@ -490,7 +489,7 @@
                     <div class="space-y-2">
                       <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
                         <input type="radio" name="wizard-skill-harness" value="claude" data-skill-harness>
-                        Claude Code/Cowork
+                        Claude Code
                       </label>
                       <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
                         <input type="radio" name="wizard-skill-harness" value="codex" data-skill-harness>

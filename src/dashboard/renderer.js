@@ -222,6 +222,15 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     apis
   })
 
+  if (typeof familiar.onAlwaysRecordWhenActiveChanged === 'function') {
+    familiar.onAlwaysRecordWhenActiveChanged((payload) => {
+      if (!payload || typeof payload.enabled !== 'boolean') {
+        return
+      }
+      state.setAlwaysRecordWhenActiveValue(payload.enabled)
+    })
+  }
+
   const SECTION_META = {
     wizard: {
       title: 'Setup Wizard',
@@ -448,7 +457,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       permissionRecordingToggleSections
     },
     familiar,
-    getState: state.getRecordingState
+    getState: state.getRecordingState,
+    setAlwaysRecordWhenActiveValue: state.setAlwaysRecordWhenActiveValue
   })
 
   apis.processingEngineApi = runBootstrapProcessingEngine({

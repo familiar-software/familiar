@@ -21,6 +21,13 @@ contextBridge.exposeInMainWorld('familiar', {
   pauseScreenStills: () => ipcRenderer.invoke('screenStills:pause'),
   stopScreenStills: () => ipcRenderer.invoke('screenStills:stop'),
   simulateStillsIdle: (payload) => ipcRenderer.invoke('screenStills:simulateIdle', payload),
+  getTrayRecordingLabelForE2E: () => ipcRenderer.invoke('e2e:tray:getRecordingLabel'),
+  clickTrayRecordingActionForE2E: () => ipcRenderer.invoke('e2e:tray:clickRecordingAction'),
+  onAlwaysRecordWhenActiveChanged: (handler) => {
+    const listener = (_event, payload) => handler(payload)
+    ipcRenderer.on('settings:alwaysRecordWhenActiveChanged', listener)
+    return () => ipcRenderer.removeListener('settings:alwaysRecordWhenActiveChanged', listener)
+  },
   openStillsFolder: () => ipcRenderer.invoke('stills:openFolder'),
   copyCurrentLogToClipboard: () => ipcRenderer.invoke('logs:copyCurrentLogToClipboard'),
   onUpdateDownloadProgress: (handler) => {

@@ -20,6 +20,20 @@ test('buildTrayMenuTemplate returns the expected items', () => {
     assert.equal(template[2].type, 'separator');
 });
 
+test('buildTrayMenuTemplate uses recording label while active', () => {
+    const recordingState = { state: 'recording', manualPaused: false };
+    const template = buildTrayMenuTemplate({
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        recordingState
+    });
+
+    const recordingItem = template.find((item) => item.label === 'Recording (click to pause)');
+
+    assert.ok(recordingItem);
+});
+
 test('settings click does not trigger quit', () => {
     let openSettingsCalls = 0;
     let quitCalls = 0;
@@ -89,15 +103,36 @@ test('recording item click does not trigger settings', () => {
     assert.equal(openSettingsCalls, 0);
 });
 
-test('buildTrayMenuTemplate uses resume label when paused', () => {
+test('buildTrayMenuTemplate uses minute pause label while paused', () => {
     const template = buildTrayMenuTemplate({
         onRecordingPause: () => {},
         onOpenSettings: () => {},
         onQuit: () => {},
         recordingPaused: true,
+        recordingState: {
+            manualPaused: true,
+            pauseRemainingMs: 61000
+        }
     });
 
-    const recordingItem = template.find((item) => item.label === 'Resume Recording');
+    const recordingItem = template.find((item) => item.label === 'Paused for 1m (click to resume)');
+
+    assert.ok(recordingItem);
+});
+
+test('buildTrayMenuTemplate keeps paused label at 1m when remaining time is below one minute', () => {
+    const template = buildTrayMenuTemplate({
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        recordingPaused: true,
+        recordingState: {
+            manualPaused: true,
+            pauseRemainingMs: 0
+        }
+    });
+
+    const recordingItem = template.find((item) => item.label === 'Paused for 1m (click to resume)');
 
     assert.ok(recordingItem);
 });

@@ -89,6 +89,7 @@ function createTrayMenuController({
             logger.warn('Tray menu update skipped: handlers not ready');
             return;
         }
+
         const isPaused =
             typeof recordingPaused === 'boolean' ? recordingPaused : resolveRecordingPaused();
         const recordingState = resolveRecordingState();
@@ -106,6 +107,10 @@ function createTrayMenuController({
         );
 
         tray.setContextMenu(trayMenu);
+        if (typeof tray.setToolTip === 'function') {
+            tray.setToolTip('Familiar');
+        }
+
         logger.log('Tray menu updated', {
             recordingPaused: isPaused,
             recordingIndicatorStatus: recordingIndicator.status
