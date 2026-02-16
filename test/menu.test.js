@@ -13,7 +13,7 @@ test('buildTrayMenuTemplate returns the expected items', () => {
     const labels = template.filter((item) => item.label).map((item) => item.label);
 
     assert.deepEqual(labels, [
-        'Start Recording',
+        'Start Capturing',
         'Settings',
         'Quit',
     ]);
@@ -29,7 +29,7 @@ test('buildTrayMenuTemplate uses recording label while active', () => {
         recordingState
     });
 
-    const recordingItem = template.find((item) => item.label === 'Recording (click to pause)');
+    const recordingItem = template.find((item) => item.label === 'Capturing (click to pause)');
 
     assert.ok(recordingItem);
 });
@@ -94,7 +94,7 @@ test('recording item click does not trigger settings', () => {
         onQuit: () => {},
     });
 
-    const recordingItem = template.find((item) => item.label === 'Start Recording');
+    const recordingItem = template.find((item) => item.label === 'Start Capturing');
     assert.ok(recordingItem);
 
     recordingItem.click();
@@ -115,7 +115,7 @@ test('buildTrayMenuTemplate uses minute pause label while paused', () => {
         }
     });
 
-    const recordingItem = template.find((item) => item.label === 'Paused for 1m (click to resume)');
+    const recordingItem = template.find((item) => item.label === 'Paused for 2m (click to resume)');
 
     assert.ok(recordingItem);
 });

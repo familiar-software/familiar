@@ -40,7 +40,7 @@ test('choose button sets the context folder path', async () => {
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
     await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()
-    await expect(window.getByRole('tab', { name: 'Recording' })).toBeVisible()
+    await expect(window.getByRole('tab', { name: 'Capturing' })).toBeVisible()
     await expect(window.getByRole('tab', { name: 'Install Skill' })).toBeVisible()
     await window.getByRole('tab', { name: 'General' }).click()
 

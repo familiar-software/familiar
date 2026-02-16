@@ -36,7 +36,7 @@ It captures high-signal context from your screen activity and clipboard (when en
 
 1. Click the Familiar menu bar icon or Dock icon to open Settings.
 2. Choose your **Context Folder Path** (must be an existing folder).
-3. In **Recording**, enable **Record while active** and grant macOS Screen Recording permission.
+3. In **Capturing**, enable **Capture while active** and grant macOS Screen Recording permission.
 4. Optional: add an LLM provider/API key for richer processing. Local OCR mode is available without an API key.
 
 ## Where Familiar writes data

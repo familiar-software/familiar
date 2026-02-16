@@ -209,7 +209,7 @@ test('stills save captures to the stills folder', async () => {
     await expect(recordingAction).toBeEnabled()
 
     await recordingAction.click()
-    await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+    await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
     await expect(recordingAction).toHaveText('Pause (10 min)')
 
     const stillsRoot = getStillsRoot(contextPath)
@@ -256,7 +256,7 @@ if (process.platform === 'darwin') {
       const recordingAction = window.locator('#sidebar-recording-action')
       await expect(recordingAction).toBeEnabled()
       await recordingAction.click()
-      await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+      await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
 
       const stillsRoot = getStillsRoot(contextPath)
       const manifestPath = await waitForManifestPath(stillsRoot)
@@ -348,7 +348,7 @@ test('stills start while recording is active', async () => {
     const recordingAction = window.locator('#sidebar-recording-action')
     await expect(recordingAction).toBeEnabled()
 
-    await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+    await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
     await expect(recordingAction).toHaveText('Pause (10 min)')
 
     const stillsRoot = getStillsRoot(contextPath)
@@ -399,7 +399,7 @@ test('stills capture repeatedly based on the interval', async () => {
     await expect(recordingAction).toBeEnabled()
 
     await recordingAction.click()
-    await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+    await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
     await expect(recordingAction).toHaveText('Pause (10 min)')
 
     const stillsRoot = getStillsRoot(contextPath)
@@ -441,7 +441,7 @@ test('stills stop and save the manifest when the user goes idle', async () => {
     await expect(recordingAction).toBeEnabled()
 
     await recordingAction.click()
-    await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+    await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
 
     const stillsRoot = getStillsRoot(contextPath)
     const manifestPath = await waitForManifestPath(stillsRoot)
@@ -484,7 +484,7 @@ test('stills resume automatically after the pause window', async () => {
     await expect(recordingAction).toBeEnabled()
 
     await recordingAction.click()
-    await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+    await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
 
     await recordingAction.click()
     await expect(window.locator('#sidebar-recording-status')).toHaveText('Paused')
@@ -495,7 +495,7 @@ test('stills resume automatically after the pause window', async () => {
         const status = await window.locator('#sidebar-recording-status').textContent()
         return status
       })
-      .toBe('Recording')
+      .toBe('Capturing')
     await expect(recordingAction).toHaveText('Pause (10 min)')
   } finally {
     await electronApp.close()
@@ -519,12 +519,12 @@ test('tray recording action pauses and resumes while settings window reflects st
 
     const recordingAction = window.locator('#sidebar-recording-action')
     await expect(recordingAction).toBeEnabled()
-    await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+    await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
     await expect(recordingAction).toHaveText('Pause (10 min)')
 
     const initialTrayLabel = await window.evaluate(() => window.familiar.getTrayRecordingLabelForE2E())
     expect(initialTrayLabel.ok).toBe(true)
-    expect(initialTrayLabel.label).toBe('Recording (click to pause)')
+    expect(initialTrayLabel.label).toBe('Capturing (click to pause)')
 
     const pausedTray = await window.evaluate(() => window.familiar.clickTrayRecordingActionForE2E())
     expect(pausedTray.ok).toBe(true)
@@ -535,16 +535,16 @@ test('tray recording action pauses and resumes while settings window reflects st
 
     const resumedTray = await window.evaluate(() => window.familiar.clickTrayRecordingActionForE2E())
     expect(resumedTray.ok).toBe(true)
-    expect(resumedTray.label).toBe('Recording (click to pause)')
+    expect(resumedTray.label).toBe('Capturing (click to pause)')
 
-    await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+    await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
     await expect(recordingAction).toHaveText('Pause (10 min)')
   } finally {
     await electronApp.close()
   }
 })
 
-test('tray start recording turns recording toggle on and sets status to recording', async () => {
+test('tray start capturing turns capture toggle on and sets status to capturing', async () => {
   const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-stills-'))
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
 
@@ -566,13 +566,13 @@ test('tray start recording turns recording toggle on and sets status to recordin
 
     const trayLabelBeforeStart = await window.evaluate(() => window.familiar.getTrayRecordingLabelForE2E())
     expect(trayLabelBeforeStart.ok).toBe(true)
-    expect(trayLabelBeforeStart.label).toBe('Start Recording')
+    expect(trayLabelBeforeStart.label).toBe('Start Capturing')
 
     const trayStart = await window.evaluate(() => window.familiar.clickTrayRecordingActionForE2E())
     expect(trayStart.ok).toBe(true)
 
     await expect(window.locator('#always-record-when-active')).toBeChecked()
-    await expect(window.locator('#sidebar-recording-status')).toHaveText('Recording')
+    await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
   } finally {
     await electronApp.close()
   }

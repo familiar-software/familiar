@@ -23,8 +23,8 @@ function buildTrayMenuTemplate ({
   const recordingLabel = isPaused
     ? `Paused for ${formatPauseRemainingMinutes(pauseRemainingMs)} (click to resume)`
     : isRecording
-      ? 'Recording (click to pause)'
-      : 'Start Recording'
+      ? 'Capturing (click to pause)'
+      : 'Start Capturing'
   const recordingItem = { label: recordingLabel, click: onRecordingPause }
   if (recordingStatusIcon) {
     recordingItem.icon = recordingStatusIcon

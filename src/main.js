@@ -86,13 +86,13 @@ const handleStillsError = ({ message, willRetry, retryDelayMs, attempt } = {}) =
 
     // If the controller is automatically retrying, only toast once to avoid spam.
     if (willRetry === true && Number.isFinite(attempt) && attempt > 1) {
-        console.warn('Recording issue (retrying)', { message, retryDelayMs, attempt });
+        console.warn('Capturing issue (retrying)', { message, retryDelayMs, attempt });
         return;
     }
 
-    console.warn('Recording issue', { message });
+    console.warn('Capturing issue', { message });
     showToast({
-        title: 'Recording issue',
+        title: 'Capturing issue',
         body: willRetry === true && Number.isFinite(retryDelayMs)
             ? `${message}\nRetrying in ${Math.round(retryDelayMs / 1000)}s...`
             : message,
@@ -108,13 +108,13 @@ const startScreenStills = async () => {
     try {
         const result = await screenStillsController.manualStart();
         if (result && result.ok === false) {
-            handleStillsError({ message: result.message || 'Failed to start recording.' });
+            handleStillsError({ message: result.message || 'Failed to start capturing.' });
         }
         return result;
     } catch (error) {
-        console.error('Failed to start recording', error);
-        handleStillsError({ message: 'Failed to start recording.' });
-        return { ok: false, message: 'Failed to start recording.' };
+        console.error('Failed to start capturing', error);
+        handleStillsError({ message: 'Failed to start capturing.' });
+        return { ok: false, message: 'Failed to start capturing.' };
     }
 };
 
@@ -125,13 +125,13 @@ const pauseScreenStills = async () => {
     try {
         const result = await screenStillsController.manualPause();
         if (result && result.ok === false) {
-            handleStillsError({ message: result.message || 'Failed to pause recording.' });
+            handleStillsError({ message: result.message || 'Failed to pause capturing.' });
         }
         return result;
     } catch (error) {
-        console.error('Failed to pause recording', error);
-        handleStillsError({ message: 'Failed to pause recording.' });
-        return { ok: false, message: 'Failed to pause recording.' };
+        console.error('Failed to pause capturing', error);
+        handleStillsError({ message: 'Failed to pause capturing.' });
+        return { ok: false, message: 'Failed to pause capturing.' };
     }
 };
 
@@ -172,8 +172,8 @@ const handleRecordingToggleAction = async () => {
                 });
             }
         } catch (error) {
-            console.error('Failed to enable recording from tray action', error);
-            return { ok: false, message: 'Failed to enable recording.' };
+            console.error('Failed to enable capturing from tray action', error);
+            return { ok: false, message: 'Failed to enable capturing.' };
         }
     }
 

@@ -27,7 +27,7 @@
       trayColorHex: '#ef4444'
     }),
     [INDICATOR_STATUSES.RECORDING]: Object.freeze({
-      label: 'Recording',
+      label: 'Capturing',
       dotClass: 'bg-emerald-500',
       trayColorHex: '#10b981'
     }),

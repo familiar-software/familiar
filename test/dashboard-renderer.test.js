@@ -906,7 +906,7 @@ test('stills action button pauses and resumes when paused', async () => {
     await elements['recording-nav'].click()
     await flushPromises()
 
-    assert.equal(elements['sidebar-recording-status'].textContent, 'Recording')
+    assert.equal(elements['sidebar-recording-status'].textContent, 'Capturing')
     assert.equal(elements['sidebar-recording-action'].textContent, 'Pause (10 min)')
 
     await elements['sidebar-recording-action'].click()
@@ -920,7 +920,7 @@ test('stills action button pauses and resumes when paused', async () => {
     await flushPromises()
 
     assert.equal(startCalls.length, 1)
-    assert.equal(elements['sidebar-recording-status'].textContent, 'Recording')
+    assert.equal(elements['sidebar-recording-status'].textContent, 'Capturing')
     assert.equal(elements['sidebar-recording-action'].textContent, 'Pause (10 min)')
   } finally {
     global.document = priorDocument

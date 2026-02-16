@@ -17,7 +17,7 @@
             <span id="app-version" class="text-xs font-medium text-zinc-500 dark:text-zinc-400" aria-label="App version"></span>
           </div>
 
-          <!-- Status (Recording Toggle + Live State) -->
+          <!-- Status (Capture Toggle + Live State) -->
           <div class="px-3 mb-4">
             <div class="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
               <div class="flex items-center justify-between gap-2 mb-1">
@@ -25,7 +25,7 @@
                   <span id="sidebar-recording-dot" class="w-2 h-2 rounded-full bg-zinc-400"></span>
                   <span id="sidebar-recording-status" class="text-xs font-medium text-zinc-700 dark:text-zinc-200">Off</span>
                 </div>
-                <label for="always-record-when-active" class="relative inline-flex items-center cursor-pointer" aria-label="Toggle recording">
+                <label for="always-record-when-active" class="relative inline-flex items-center cursor-pointer" aria-label="Toggle capturing">
                   <input
                     id="always-record-when-active"
                     data-setting="always-record-when-active"
@@ -40,7 +40,7 @@
                 id="sidebar-recording-action"
                 type="button"
                 class="w-full flex items-center justify-center gap-2 h-7 rounded-md bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Pause or resume recording"
+                aria-label="Pause or resume capturing"
               >
                 <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                   <path d="M12 8v4l2 2" />
@@ -113,7 +113,7 @@
                 <rect x="3" y="7" width="13" height="10" rx="2" />
                 <path d="M16 9.5 21 7v10l-5-2.5" />
               </svg>
-              Recording
+              Capturing
             </button>
             <button
               class="sidebar-item"
@@ -231,7 +231,7 @@
               </div>
 		            </section>
 
-		            <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Recording settings" class="space-y-6 hidden">
+		            <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Capturing settings" class="space-y-6 hidden">
 	              <section class="space-y-2" data-processing-engine>
                   <div class="flex items-center justify-between">
                     <span id="stills-markdown-extractor-status" data-setting-status="stills-markdown-extractor-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
@@ -333,13 +333,13 @@
                         type="button"
                         class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden"
                       >Enable Familiar In Screen Recording</button>
-                      <p id="recording-open-screen-recording-settings-note" data-open-screen-recording-settings-note class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden">After enabling recording, restart familiar</p>
+                      <p id="recording-open-screen-recording-settings-note" data-open-screen-recording-settings-note class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden">After enabling capturing, restart Familiar</p>
                     </div>
                   </section>
                   <section id="recording-recording-toggle-section" data-role="permission-recording-toggle-section" class="space-y-2 hidden">
                     <div class="flex items-start justify-between gap-4">
                       <div class="space-y-1">
-                        <label for="recording-always-record-when-active" class="section-label">Record While Active</label>
+                        <label for="recording-always-record-when-active" class="section-label">Capture While Active</label>
                       </div>
                       <label class="relative inline-flex items-center cursor-pointer">
                         <input
@@ -436,7 +436,7 @@
 
               <div data-wizard-step="2" class="max-w-[360px] mx-auto space-y-5 hidden">
                 <div class="text-center space-y-1">
-                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enable recording</h3>
+                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enable capturing</h3>
                   <p class="text-xs text-zinc-500 dark:text-zinc-400">Captures a still while you are active, and stops when idle. Requires Screen Recording permission.</p>
                 </div>
                 <div data-component-source="permissions" class="space-y-5">
@@ -453,14 +453,14 @@
                         data-action="open-screen-recording-settings"
                         type="button"
                         class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden"
-                      >Enable Familiar In Screen Reording</button>
-                      <p id="wizard-open-screen-recording-settings-note" class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden">After enabling recording, restart familiar</p>
+                      >Enable Familiar In Screen Recording</button>
+                      <p id="wizard-open-screen-recording-settings-note" class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden">After enabling capturing, restart Familiar</p>
                     </div>
                   </section>
                   <section id="wizard-recording-toggle-section" data-role="permission-recording-toggle-section" class="space-y-2 hidden">
                     <div class="flex items-start justify-between gap-4">
                       <div class="space-y-1">
-                        <label for="wizard-always-record-when-active" class="section-label">Record While Active</label>
+                        <label for="wizard-always-record-when-active" class="section-label">Capture While Active</label>
                       </div>
                       <label class="relative inline-flex items-center cursor-pointer">
                         <input
@@ -518,7 +518,7 @@
               <div data-wizard-step="4" class="max-w-[360px] mx-auto space-y-5 hidden">
                 <div class="text-center space-y-2">
                   <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">You're all set</h3>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Your context folder and recording preferences are configured, and the skill install completed.</p>
+                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Your context folder and capturing preferences are configured, and the skill install completed.</p>
                 </div>
               </div>
             </div>

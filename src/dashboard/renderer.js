@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       subtitle: 'Check for new versions and download when available.'
     },
     recording: {
-      title: 'Recording',
+      title: 'Capturing',
       subtitle: 'Choose whether processing runs in the cloud or locally.'
     },
     'install-skill': {
