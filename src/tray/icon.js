@@ -1,14 +1,19 @@
 const getTrayIconPathForMenuBar = ({
     platform,
     shouldUseDarkColors,
+    reduceTransparencyEnabled = true,
     defaultIconPath,
-    whiteModeIconPath,
+    reduceTransparencyIconPath,
 }) => {
-    if (platform === 'darwin' && shouldUseDarkColors === false) {
-        return whiteModeIconPath;
+    if (platform !== 'darwin') {
+        return defaultIconPath;
     }
 
-    return defaultIconPath;
+    const isDarkTheme = shouldUseDarkColors === true;
+    const isReduceTransparencyEnabled = reduceTransparencyEnabled === true;
+    const shouldUseReduceTransparencyIcon = !isDarkTheme && isReduceTransparencyEnabled;
+
+    return shouldUseReduceTransparencyIcon ? reduceTransparencyIconPath : defaultIconPath;
 };
 
 module.exports = {

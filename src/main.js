@@ -1,4 +1,11 @@
-const { app, BrowserWindow, Tray, nativeImage, ipcMain, nativeTheme } = require('electron');
+const {
+    app,
+    BrowserWindow,
+    Tray,
+    nativeImage,
+    ipcMain,
+    nativeTheme
+} = require('electron');
 const path = require('node:path');
 
 const { registerIpcHandlers } = require('./ipc');
@@ -14,10 +21,11 @@ const { initializeAutoUpdater, scheduleDailyUpdateCheck } = require('./updates')
 const { createScreenStillsController } = require('./screen-stills');
 const { createPresenceMonitor } = require('./screen-capture/presence');
 const { getScreenRecordingPermissionStatus } = require('./screen-capture/permissions');
+const { getReduceTransparencyEnabled } = require('./tray/appearance');
 const { getTrayIconPathForMenuBar } = require('./tray/icon');
 
 const trayIconPath = path.join(__dirname, 'icon.png');
-const trayIconWhiteModePath = path.join(__dirname, 'icon_white_mode.png');
+const trayIconNoWhiteBackgroundPath = path.join(__dirname, 'icon_no_white_background.png');
 
 let tray = null;
 let trayHandlers = null;
@@ -247,8 +255,12 @@ function createTray() {
         const preferredPath = getTrayIconPathForMenuBar({
             platform: process.platform,
             shouldUseDarkColors: nativeTheme.shouldUseDarkColors,
+            reduceTransparencyEnabled: getReduceTransparencyEnabled({
+                platform: process.platform,
+                nativeTheme
+            }),
             defaultIconPath: trayIconPath,
-            whiteModeIconPath: trayIconWhiteModePath,
+            reduceTransparencyIconPath: trayIconNoWhiteBackgroundPath,
         });
 
         const trayIconBase = nativeImage.createFromPath(preferredPath);
