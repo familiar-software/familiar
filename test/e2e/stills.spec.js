@@ -47,13 +47,12 @@ const ensureRecordingPrereqs = async (window) => {
 }
 
 const setContextFolder = async (window) => {
-  await window.getByRole('tab', { name: 'General' }).click()
+  await window.getByRole('tab', { name: 'Storage' }).click()
   await window.locator('#context-folder-choose').click()
   await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 }
 
 const enableRecordingToggle = async (window) => {
-  await window.getByRole('tab', { name: 'General' }).click()
   await window.locator('label[for="always-record-when-active"]').click({ force: true })
   await expect(window.locator('#always-record-when-active')).toBeChecked()
   await expect(window.locator('#always-record-when-active-status')).toHaveText('Saved.')
@@ -559,7 +558,6 @@ test('tray start capturing turns capture toggle on and sets status to capturing'
     await setContextFolder(window)
     await enableRecordingToggle(window)
 
-    await window.getByRole('tab', { name: 'General' }).click()
     await window.locator('label[for="always-record-when-active"]').click({ force: true })
     await expect(window.locator('#always-record-when-active')).not.toBeChecked()
     await expect(window.locator('#always-record-when-active-status')).toHaveText('Saved.')

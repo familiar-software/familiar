@@ -70,23 +70,6 @@
           </svg>
           Wizard
         </button>
-        <button class="sidebar-item" data-section-target="general" data-active="true" role="tab"
-          aria-controls="section-general" aria-selected="true" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
-            <path
-              d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.2a1 1 0 0 0-.9.6Z" />
-          </svg>
-          General
-        </button>
-        <button class="sidebar-item" data-section-target="recording" data-active="false" role="tab"
-          aria-controls="section-recording" aria-selected="false" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <rect x="3" y="7" width="13" height="10" rx="2" />
-            <path d="M16 9.5 21 7v10l-5-2.5" />
-          </svg>
-          Capturing
-        </button>
         <button class="sidebar-item" data-section-target="storage" data-active="false" role="tab"
           aria-controls="section-storage" aria-selected="false" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -95,6 +78,14 @@
             <path d="M4 7c0 1.7 3.6 3 8 3s8-1.3 8-3" />
           </svg>
           Storage
+        </button>
+        <button class="sidebar-item" data-section-target="recording" data-active="false" role="tab"
+          aria-controls="section-recording" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <rect x="3" y="7" width="13" height="10" rx="2" />
+            <path d="M16 9.5 21 7v10l-5-2.5" />
+          </svg>
+          Capturing
         </button>
         <button class="sidebar-item" data-section-target="install-skill" data-active="false" role="tab"
           aria-controls="section-install-skill" aria-selected="false" type="button">
@@ -109,8 +100,21 @@
       </nav>
 
       <div class="px-3 mt-auto">
-        <p class="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">Open this window anytime from the menu bar
-          icon or Dock icon.</p>
+        <button id="updates-check" data-action="updates-check" type="button"
+          class="w-full px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+          Check for Updates
+        </button>
+        <span id="updates-status" data-setting-status="updates-status"
+          class="mt-2 block text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+        <div id="updates-progress" class="mt-2 space-y-2 hidden" aria-live="polite">
+          <div class="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+            <div id="updates-progress-bar" class="h-full bg-emerald-500 transition-[width] duration-200"
+              style="width: 0%"></div>
+          </div>
+          <span id="updates-progress-label" class="text-xs text-zinc-500 dark:text-zinc-400 hidden"></span>
+        </div>
+        <p id="updates-error" data-setting-error="updates-error"
+          class="mt-2 text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
       </div>
     </aside>
 
@@ -119,94 +123,14 @@
       <div id="settings-header"
         class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
         <div>
-          <h2 id="section-title" class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">General
-            Settings</h2>
-          <p id="section-subtitle" class="text-xs text-zinc-500 dark:text-zinc-400">Core app configuration.</p>
+          <h2 id="section-title" class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Storage
+          </h2>
+          <p id="section-subtitle" class="text-xs text-zinc-500 dark:text-zinc-400">Review and manage local Familiar
+            storage.</p>
         </div>
       </div>
 
       <div id="settings-content" class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-slim">
-        <!-- General -->
-        <section id="section-general" data-section-pane="general" role="tabpanel" aria-label="General settings"
-          class="flex flex-col h-full">
-          <div class="space-y-6 flex-1">
-            <section class="space-y-2">
-              <div class="flex items-center justify-between">
-                <label for="context-folder-path" class="section-label">Context Folder</label>
-                <span id="context-folder-status" data-setting-status="context-folder-status"
-                  class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-              </div>
-              <div
-                class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
-                <div
-                  class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
-                  <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
-                    aria-hidden="true">
-                    <path
-                      d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
-                  </svg>
-                </div>
-                <input id="context-folder-path" data-setting="context-folder-path" type="text"
-                  placeholder="No folder selected" readonly
-                  class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none">
-                <button id="context-folder-choose" data-action="context-folder-choose" type="button"
-                  class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Change</button>
-              </div>
-              <p id="context-folder-error" data-setting-error="context-folder-error"
-                class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-              <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                Choose where Familiar stores local captures.
-              </p>
-            </section>
-
-            <section id="recording-details" class="space-y-3 hidden">
-              <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                  Saved to <span id="recording-path" class="font-mono text-zinc-700 dark:text-zinc-200"></span>
-                </p>
-                <button id="recording-open-folder" type="button"
-                  class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden">Open
-                  in Finder</button>
-              </div>
-            </section>
-          </div>
-
-          <div class="mt-auto pt-4">
-            <div class="flex items-end justify-between gap-4">
-              <div class="max-w-[60%]">
-                <div class="flex items-center flex-wrap gap-2">
-                  <button id="updates-check" data-action="updates-check" type="button"
-                    class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Check
-                    for Updates</button>
-                  <span id="updates-status" data-setting-status="updates-status"
-                    class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                </div>
-                <div id="updates-progress" class="space-y-2 hidden" aria-live="polite">
-                  <div class="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                    <div id="updates-progress-bar" class="h-full bg-emerald-500 transition-[width] duration-200"
-                      style="width: 0%"></div>
-                  </div>
-                  <span id="updates-progress-label" class="text-xs text-zinc-500 dark:text-zinc-400 hidden"></span>
-                </div>
-                <p id="updates-error" data-setting-error="updates-error"
-                  class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-              </div>
-
-              <div class="flex items-center justify-end gap-3">
-                <div class="flex flex-col items-end gap-1">
-                  <span id="copy-log-status" data-setting-status="copy-log-status"
-                    class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                  <span id="copy-log-error" data-setting-error="copy-log-error"
-                    class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></span>
-                </div>
-                <button id="copy-debug-log" data-action="copy-debug-log" type="button"
-                  class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Copies ~/.familiar/logs/familiar.log to your clipboard">Copy Debug Log</button>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Capturing settings"
           class="space-y-6 hidden">
           <section class="space-y-2" data-processing-engine>
@@ -338,22 +262,51 @@
         </section>
 
         <section id="section-storage" data-section-pane="storage" role="tabpanel" aria-label="Storage settings"
-          class="space-y-6 hidden">
-          <section class="space-y-4 max-w-[520px]">
-            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Danger Zone</h3>
+          class="flex flex-col h-full hidden">
+          <section class="space-y-4 max-w-[520px] flex flex-col flex-1">
+            <section class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="context-folder-path" class="section-label">Context Folder</label>
+                <span id="context-folder-status" data-setting-status="context-folder-status"
+                  class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+              </div>
+              <div
+                class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                <div
+                  class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
+                  <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
+                    aria-hidden="true">
+                    <path
+                      d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
+                  </svg>
+                </div>
+                <input id="context-folder-path" data-setting="context-folder-path" type="text"
+                  placeholder="No folder selected" readonly
+                  class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none">
+                <button id="context-folder-choose" data-action="context-folder-choose" type="button"
+                  class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Change</button>
+                <button id="recording-open-folder" type="button"
+                  class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hidden">Open
+                  in Finder</button>
+              </div>
+              <p id="context-folder-error" data-setting-error="context-folder-error"
+                class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+            </section>
+
+            <h3 class="section-label">Danger Zone</h3>
             <div
-              class="border border-red-300 dark:border-red-900/50 rounded-lg overflow-hidden divide-y divide-red-100 dark:divide-red-900/40">
-              <div class="p-4 bg-white dark:bg-transparent space-y-3">
+              class="bg-zinc-50 dark:bg-zinc-900 border border-red-300 dark:border-red-900/50 rounded-lg overflow-hidden">
+              <div class="p-4 space-y-3">
                 <div class="space-y-1">
                   <h4 class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Delete recent files</h4>
                   <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                    Permanently deletes all captured files and their markdown representations from the selected time window.
+                    Permanently deletes all collected context in the selected time window
                   </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                   <div class="relative">
                     <select id="storage-delete-window" data-setting="storage-delete-window"
-                      class="appearance-none bg-zinc-50 dark:bg-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-300 text-xs font-medium rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer transition-all">
+                      class="appearance-none bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-medium rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-zinc-400/20 cursor-pointer transition-all">
                       <option value="15m">15 minutes</option>
                       <option value="1h">1 hour</option>
                       <option value="1d">1 day</option>
@@ -367,7 +320,7 @@
                     </svg>
                   </div>
                   <button id="storage-delete-files" data-action="storage-delete-files" type="button"
-                    class="px-3 py-2 text-[11px] font-medium border border-zinc-200 dark:border-white/10 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-800 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="px-3 py-2 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-800 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                     Delete files
                   </button>
                 </div>
@@ -379,6 +332,17 @@
             </div>
             <p id="storage-delete-files-error" data-setting-error="storage-delete-files-error"
               class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+            <div class="flex items-center justify-end gap-3 mt-auto pt-4">
+              <div class="flex flex-col items-end gap-1">
+                <span id="copy-log-status" data-setting-status="copy-log-status"
+                  class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                <span id="copy-log-error" data-setting-error="copy-log-error"
+                  class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></span>
+              </div>
+              <button id="copy-debug-log" data-action="copy-debug-log" type="button"
+                class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Copies ~/.familiar/logs/familiar.log to your clipboard">Copy Debug Log</button>
+            </div>
           </section>
         </section>
 

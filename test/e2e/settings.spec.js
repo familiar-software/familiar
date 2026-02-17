@@ -43,7 +43,7 @@ test('choose button sets the context folder path', async () => {
     await expect(window.getByRole('tab', { name: 'Capturing' })).toBeVisible()
     await expect(window.getByRole('tab', { name: 'Storage' })).toBeVisible()
     await expect(window.getByRole('tab', { name: 'Install Skill' })).toBeVisible()
-    await window.getByRole('tab', { name: 'General' }).click()
+    await window.getByRole('tab', { name: 'Storage' }).click()
 
     await window.locator('#context-folder-choose').click()
     await expect(window.locator('#context-folder-path')).toHaveValue(expectedContextPath)

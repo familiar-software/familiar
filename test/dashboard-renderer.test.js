@@ -232,13 +232,11 @@ const createElements = () => {
     'settings-content': new TestElement(),
     'section-title': new TestElement(),
     'section-subtitle': new TestElement(),
-    'section-general': new TestElement(),
     'section-wizard': new TestElement(),
     'section-updates': new TestElement(),
     'section-recording': new TestElement(),
     'section-storage': new TestElement(),
     'section-install-skill': new TestElement(),
-    'general-nav': new TestElement(),
     'wizard-nav': new TestElement(),
     'updates-nav': new TestElement(),
     'recording-nav': new TestElement(),
@@ -314,8 +312,6 @@ const createElements = () => {
   elements['wizard-next'].dataset.action = 'wizard-next'
   elements['wizard-done'].dataset.action = 'wizard-done'
 
-  elements['section-general'].dataset.sectionPane = 'general'
-  elements['general-nav'].dataset.sectionTarget = 'general'
   elements['section-wizard'].dataset.sectionPane = 'wizard'
   elements['wizard-nav'].dataset.sectionTarget = 'wizard'
   elements['section-updates'].dataset.sectionPane = 'updates'
@@ -395,7 +391,7 @@ test('defaults to wizard when wizardCompleted is missing', async () => {
   }
 })
 
-test('defaults to general when wizardCompleted is true', async () => {
+test('defaults to storage when wizardCompleted is true', async () => {
   const familiar = createFamiliar({
     getSettings: async () => ({
       contextFolderPath: '',
@@ -420,7 +416,7 @@ test('defaults to general when wizardCompleted is true', async () => {
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    assert.equal(elements['section-title'].textContent, 'General Settings')
+    assert.equal(elements['section-title'].textContent, 'Storage')
     assert.equal(elements['settings-sidebar'].classList.contains('hidden'), false)
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
     assert.equal(elements['settings-header'].classList.contains('hidden'), false)
@@ -467,7 +463,7 @@ test('wizard done saves wizardCompleted flag', async () => {
     assert.deepEqual(saveCalls[0], { wizardCompleted: true })
     assert.equal(elements['settings-sidebar'].classList.contains('hidden'), false)
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
-    assert.equal(elements['section-title'].textContent, 'General Settings')
+    assert.equal(elements['section-title'].textContent, 'Storage')
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -713,7 +709,7 @@ test('cannot navigate away from wizard while wizard is incomplete', async () => 
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    await elements['general-nav'].click()
+    await elements['recording-nav'].click()
     await flushPromises()
 
     assert.equal(elements['section-title'].textContent, 'Setup Wizard')
@@ -752,7 +748,7 @@ test('cannot navigate back to wizard after wizard completion', async () => {
     await elements['wizard-nav'].click()
     await flushPromises()
 
-    assert.equal(elements['section-title'].textContent, 'General Settings')
+    assert.equal(elements['section-title'].textContent, 'Storage')
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
   } finally {
     global.document = priorDocument

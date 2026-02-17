@@ -247,10 +247,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       title: 'Setup Wizard',
       subtitle: 'Guided setup in four steps.'
     },
-    general: {
-      title: 'General Settings',
-      subtitle: 'Core app configuration.'
-    },
     updates: {
       title: 'Updates',
       subtitle: 'Check for new versions and download when available.'
@@ -367,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
           console.error('Failed to save wizard completion', error)
         })
     }
-    setActiveSection('general')
+    setActiveSection('storage')
   }
 
   const runBootstrapWizard = typeof bootstrapWizard === 'function' ? bootstrapWizard : () => null
@@ -552,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     if (harnessesForStatus.length > 0 && apis.wizardSkillApi && typeof apis.wizardSkillApi.checkInstallStatus === 'function') {
       await apis.wizardSkillApi.checkInstallStatus(harnessesForStatus)
     }
-    const defaultSection = isWizardCompleted ? 'general' : 'wizard'
+    const defaultSection = isWizardCompleted ? 'storage' : 'wizard'
     setActiveSection(defaultSection)
     state.updateWizardUI()
   }

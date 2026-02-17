@@ -90,7 +90,7 @@ const goToFinalWizardStep = async (window, nextButton) => {
   await expect(window.locator('[data-wizard-step="4"]')).toBeVisible()
 }
 
-test('wizard happy flow completes setup and routes to General', async () => {
+test('wizard happy flow completes setup and routes to Storage', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const { electronApp, settingsDir, skillHomeDir } = launchElectron({
@@ -122,7 +122,7 @@ test('wizard happy flow completes setup and routes to General', async () => {
     await expect(doneButton).toBeEnabled()
     await doneButton.click()
 
-    await expect(window.locator('#section-title')).toHaveText('General Settings')
+    await expect(window.locator('#section-title')).toHaveText('Storage')
 
     const settingsPath = path.join(settingsDir, 'settings.json')
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
@@ -224,7 +224,7 @@ test('wizard hides wizard tab after Done', async () => {
     await expect(doneButton).toBeEnabled()
     await doneButton.click()
 
-    await expect(window.locator('#section-title')).toHaveText('General Settings')
+    await expect(window.locator('#section-title')).toHaveText('Storage')
     await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()
     await expect(window.locator('[data-wizard-step="1"]')).toBeHidden()
   } finally {
