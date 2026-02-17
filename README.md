@@ -19,7 +19,6 @@ How did Opus 4.6 know so much about us? Sure, it's a smart cookie that has [con
 **Using Familiar, AI now watches our computer screens. All. The. Time.**
 
 ![](https://substackcdn.com/image/fetch/$s_!NbgA!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F451b1438-633b-4935-977d-6b4bc5942a15_1179x689.png)
-(https://substackcdn.com/image/fetch/$s_!NbgA!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F451b1438-633b-4935-977d-6b4bc5942a15_1179x689.png)
 
 ## What is Familiar? 
 
@@ -32,7 +31,6 @@ Familiar runs in the background from the moment you start your Mac.
 You install it, and your AI just gets smarter. It runs quietly in the background from the moment you start your Mac. No habits to build, no interface to learn.
 
 ![](https://substackcdn.com/image/fetch/$s_!d1NR!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F0cdf9e5d-57e3-495d-91ac-ad64c81b0876_866x762.png)
-(https://substackcdn.com/image/fetch/$s_!d1NR!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F0cdf9e5d-57e3-495d-91ac-ad64c81b0876_866x762.png)
 
 ## What can I do with it?
 
@@ -63,7 +61,6 @@ The answers are good, and they get better with every passing minute.
 That's it. We kept it simple. Just a menu bar icon, so you can pause or quit anytime.
 
 ![](https://substackcdn.com/image/fetch/$s_!Ndzy!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6516e2f0-95fe-42a4-a5db-fdb5d72380a0_871x121.png)
-(https://substackcdn.com/image/fetch/$s_!Ndzy!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6516e2f0-95fe-42a4-a5db-fdb5d72380a0_871x121.png)
 
 As you use your AI thinking partner, it can use that context to help you. (To make that smooth, Familiar can auto-add a *Skill*, a text file that tells your AI when and how to use your new folder.)
 
@@ -90,7 +87,6 @@ The models are good enough.
 The latest AI models are resourceful. You can give them a directory full of files, and watch them glide across stupidly large amounts of messy text with the simplest of tools. They're increasingly proactive in [managing their own context](https://www.talraviv.co/p/i-had-claude-code-stockpile-my-transcripts) with tactics like context editing and subagents. As a result, Familiar doesn't need to capture everything perfectly; it's just the starting clues for an agent.
 
 ![](https://substackcdn.com/image/fetch/$s_!zhBM!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F15bc0aa5-6611-43f5-9135-eb4f7f0942c6_1671x752.png)
-(https://substackcdn.com/image/fetch/$s_!zhBM!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F15bc0aa5-6611-43f5-9135-eb4f7f0942c6_1671x752.png)
 
 Something about AI has changed in recent weeks. When we watch our AI agents at work, we feel more like biologists than engineers. We spend more time humbled by complexity-bigger-than-our-brains, less time inspecting the gears of a clock.
 
@@ -163,7 +159,6 @@ We believe in [positive-sum games](https://youtu.be/tq6vdDJQXvs?si=qUkm64_yNoNs
 [Book 10 min with Maxim](https://calendar.app.google/pwXUTTDFx4n8XSxRA)
 
 ![](https://substackcdn.com/image/fetch/$s_!fnJg!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa9b8ea15-fc07-403c-8cd4-d0a491e19608_4032x3024.jpeg)
-(https://substackcdn.com/image/fetch/$s_!fnJg!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa9b8ea15-fc07-403c-8cd4-d0a491e19608_4032x3024.jpeg)
 
 You can't see it from this angle, but Maxim has a "WWPSD" neck tattoo.
 
@@ -187,7 +182,7 @@ With Familiar, AI can.
 ## Predict
 
 > Predict what is going to happen next week and tell me how to make it 10x more impactful.
-_Credit: Juraj Mojik_
+_Credit: Juraj Frank_
 
 ### Discover
 
