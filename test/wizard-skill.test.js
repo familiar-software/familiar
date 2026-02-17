@@ -322,3 +322,50 @@ test('wizard skill installs for all selected harnesses on install click', async 
     global.window = priorWindow
   }
 })
+
+test('wizard skill clears persisted harness list when all options are deselected', async () => {
+  const priorWindow = global.window
+  global.window = {}
+
+  try {
+    const { codex, cursor, settingsCodex, settingsCursor, saveCalls } = createHarness({
+      currentSkillHarnesses: ['codex', 'cursor']
+    })
+
+    await codex.triggerChange(false)
+    await cursor.triggerChange(false)
+
+    assert.equal(settingsCodex.checked, false)
+    assert.equal(settingsCursor.checked, false)
+    assert.equal(saveCalls.length > 0, true)
+    const lastSave = saveCalls[saveCalls.length - 1]
+    assert.deepEqual(lastSave.skillInstaller.harness, [])
+    assert.deepEqual(lastSave.skillInstaller.installPath, [])
+  } finally {
+    global.window = priorWindow
+  }
+})
+
+test('wizard skill clears all duplicate picker inputs and persists empty list when deselecting last selected harness', async () => {
+  const priorWindow = global.window
+  global.window = {}
+
+  try {
+    const { codex, settingsCodex, saveCalls } = createHarness({
+      currentSkillHarnesses: ['codex']
+    })
+
+    codex.checked = true
+    settingsCodex.checked = true
+
+    await codex.triggerChange(false)
+
+    assert.equal(codex.checked, false)
+    assert.equal(settingsCodex.checked, false)
+    const lastSave = saveCalls[saveCalls.length - 1]
+    assert.deepEqual(lastSave.skillInstaller.harness, [])
+    assert.deepEqual(lastSave.skillInstaller.installPath, [])
+  } finally {
+    global.window = priorWindow
+  }
+})

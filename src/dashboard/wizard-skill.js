@@ -108,21 +108,16 @@
       }
     }
 
-    const getCheckedHarnesses = (eventTarget) => {
-      const selectedByHarness = new Map()
-      skillHarnessInputs.forEach((input) => {
-        if (!input || typeof input.value !== 'string' || input.value.length === 0) {
-          return
-        }
-        const currentlySelected = selectedByHarness.get(input.value) === true
-        selectedByHarness.set(input.value, currentlySelected || Boolean(input.checked))
-      })
+    const getNextHarnesses = (eventTarget) => {
+      const nextHarnesses = new Set(getCurrentHarnesses())
       if (eventTarget && typeof eventTarget.value === 'string' && eventTarget.value.length > 0) {
-        selectedByHarness.set(eventTarget.value, Boolean(eventTarget.checked))
+        if (Boolean(eventTarget.checked)) {
+          nextHarnesses.add(eventTarget.value)
+        } else {
+          nextHarnesses.delete(eventTarget.value)
+        }
       }
-      return Array.from(selectedByHarness.entries())
-        .filter(([, isSelected]) => isSelected)
-        .map(([harness]) => harness)
+      return Array.from(nextHarnesses).filter((value) => value.length > 0)
     }
 
     const syncHarnessSelection = (harnesses) => {
@@ -134,7 +129,7 @@
 
     const persistSkillInstaller = async ({ harnesses, installPaths } = {}) => {
       const selectedHarnesses = normalizeHarnesses(harnesses)
-      if (!canPersist || selectedHarnesses.length === 0) {
+      if (!canPersist) {
         return
       }
       const pathMap = installPaths && typeof installPaths === 'object' ? installPaths : {}
@@ -251,7 +246,7 @@
       if (event?.target) {
         event.target.checked = Boolean(event.target.checked)
       }
-      const selectedHarnesses = getCheckedHarnesses(event?.target)
+      const selectedHarnesses = getNextHarnesses(event?.target)
       setCursorRestartNoteVisibility(selectedHarnesses)
       clearMessages()
       clearInstallPath()
@@ -261,18 +256,20 @@
       } else {
         setSkillHarness('')
       }
+      syncHarnessSelection(selectedHarnesses)
       updateInstallButtonState()
       if (!isReady) {
         setError('Skill installer unavailable. Restart the app.')
         return
       }
-      if (selectedHarnesses.length === 0) {
-        return
-      }
-      console.log('Wizard skill harnesses selected', { harnesses: selectedHarnesses })
-      const status = await checkInstallStatus(selectedHarnesses)
-      if (status && status.ok) {
-        await persistSkillInstaller({ harnesses: selectedHarnesses, installPaths: status.installPaths || {} })
+      if (selectedHarnesses.length > 0) {
+        console.log('Wizard skill harnesses selected', { harnesses: selectedHarnesses })
+        const status = await checkInstallStatus(selectedHarnesses)
+        if (status && status.ok) {
+          await persistSkillInstaller({ harnesses: selectedHarnesses, installPaths: status.installPaths || {} })
+        }
+      } else {
+        await persistSkillInstaller({ harnesses: [] })
       }
     }
 

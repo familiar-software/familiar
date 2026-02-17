@@ -95,19 +95,23 @@
   }
 
   .skill-picker-icon {
-    @apply h-4 w-4 text-zinc-400 dark:text-zinc-500 transition-colors;
+    @apply inline-flex h-4 w-4 shrink-0 items-center justify-center box-border opacity-85 transition-opacity;
   }
 
-  .skill-picker-icon svg {
-    @apply h-4 w-4;
+  .skill-picker-icon img {
+    @apply block h-full w-full object-contain;
+  }
+
+  .skill-picker-icon--light-chip {
+    @apply rounded-sm bg-white p-0.5 shadow-sm;
   }
 
   .skill-picker-option:hover .skill-picker-icon {
-    @apply text-indigo-600 dark:text-indigo-400;
+    @apply opacity-100;
   }
 
   .skill-picker-option input:checked + .skill-picker-option-card .skill-picker-icon {
-    @apply text-indigo-600 dark:text-indigo-400;
+    @apply opacity-100;
   }
 
   .skill-picker-label {
