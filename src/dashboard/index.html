@@ -1,582 +1,620 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
-    <link href="./styles.css" rel="stylesheet">
-    <title>Familiar Settings</title>
-  </head>
-  <body class="bg-white dark:bg-[#111] text-zinc-800 dark:text-zinc-200 font-sans h-screen overflow-hidden">
-    <div class="relative h-full w-full flex">
-      <!-- Sidebar -->
-      <aside id="settings-sidebar" class="w-[190px] flex-none bg-zinc-50/90 dark:bg-zinc-900/60 border-r border-zinc-200 dark:border-zinc-800 flex flex-col pt-3 pb-3">
-          <div class="px-4 mb-4 flex items-center gap-2">
-            <img src="../icon.png" alt="" class="w-5 h-5 rounded-md object-cover shadow-sm">
-            <span class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Familiar</span>
-            <span id="app-version" class="text-xs font-medium text-zinc-500 dark:text-zinc-400" aria-label="App version"></span>
-          </div>
 
-          <!-- Status (Capture Toggle + Live State) -->
-          <div class="px-3 mb-4">
-            <div class="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-              <div class="flex items-center justify-between gap-2 mb-1">
-                <div class="flex items-center gap-2">
-                  <span id="sidebar-recording-dot" class="w-2 h-2 rounded-full bg-zinc-400"></span>
-                  <span id="sidebar-recording-status" class="text-xs font-medium text-zinc-700 dark:text-zinc-200">Off</span>
-                </div>
-                <label for="always-record-when-active" class="relative inline-flex items-center cursor-pointer" aria-label="Toggle capturing">
-                  <input
-                    id="always-record-when-active"
-                    data-setting="always-record-when-active"
-                    type="checkbox"
-                    class="sr-only peer"
-                  >
-                  <div id="sidebar-recording-toggle-track" class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
-                  <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-              <button
-                id="sidebar-recording-action"
-                type="button"
-                class="w-full flex items-center justify-center gap-2 h-7 rounded-md bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Pause or resume capturing"
-              >
-                <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                  <path d="M12 8v4l2 2" />
-                  <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
-                Pause (10 min)
-              </button>
-              <p
-                id="sidebar-recording-permission"
-                class="text-xs text-red-600 dark:text-red-400 hidden pt-2"
-                role="alert"
-                aria-live="polite"
-              ></p>
-              <p
-                id="always-record-when-active-error"
-                data-setting-error="always-record-when-active-error"
-                class="text-xs text-red-600 dark:text-red-400 hidden pt-1"
-                role="alert"
-                aria-live="polite"
-              ></p>
-              <span
-                id="always-record-when-active-status"
-                data-setting-status="always-record-when-active-status"
-                class="sr-only hidden"
-                aria-live="polite"
-              ></span>
+<head>
+  <meta charset="UTF-8">
+  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <link href="./styles.css" rel="stylesheet">
+  <title>Familiar Settings</title>
+</head>
+
+<body class="bg-white dark:bg-[#111] text-zinc-800 dark:text-zinc-200 font-sans h-screen overflow-hidden">
+  <div class="relative h-full w-full flex">
+    <!-- Sidebar -->
+    <aside id="settings-sidebar"
+      class="w-[190px] flex-none bg-zinc-50/90 dark:bg-zinc-900/60 border-r border-zinc-200 dark:border-zinc-800 flex flex-col pt-3 pb-3">
+      <div class="px-4 mb-4 flex items-center gap-2">
+        <img src="../icon.png" alt="" class="w-5 h-5 rounded-md object-cover shadow-sm">
+        <span class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Familiar</span>
+        <span id="app-version" class="text-xs font-medium text-zinc-500 dark:text-zinc-400"
+          aria-label="App version"></span>
+      </div>
+
+      <!-- Status (Capture Toggle + Live State) -->
+      <div class="px-3 mb-4">
+        <div class="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <div class="flex items-center gap-2">
+              <span id="sidebar-recording-dot" class="w-2 h-2 rounded-full bg-zinc-400"></span>
+              <span id="sidebar-recording-status"
+                class="text-xs font-medium text-zinc-700 dark:text-zinc-200">Off</span>
             </div>
-          </div>
-
-          <nav class="flex-1 px-2 space-y-1" role="tablist" aria-label="Settings Sections">
-            <button
-              class="sidebar-item"
-              data-section-target="wizard"
-              data-active="false"
-              role="tab"
-              aria-controls="section-wizard"
-              aria-selected="false"
-              type="button"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.1-7.1-2.1 2.1M9 15l-2.1 2.1m10.2 0L15 15M9 9 6.9 6.9" />
-              </svg>
-              Wizard
-            </button>
-            <button
-              class="sidebar-item"
-              data-section-target="general"
-              data-active="true"
-              role="tab"
-              aria-controls="section-general"
-              aria-selected="true"
-              type="button"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
-                <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.2a1 1 0 0 0-.9.6Z" />
-              </svg>
-              General
-            </button>
-            <button
-              class="sidebar-item"
-              data-section-target="recording"
-              data-active="false"
-              role="tab"
-              aria-controls="section-recording"
-              aria-selected="false"
-              type="button"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <rect x="3" y="7" width="13" height="10" rx="2" />
-                <path d="M16 9.5 21 7v10l-5-2.5" />
-              </svg>
-              Capturing
-            </button>
-            <button
-              class="sidebar-item"
-              data-section-target="install-skill"
-              data-active="false"
-              role="tab"
-              aria-controls="section-install-skill"
-              aria-selected="false"
-              type="button"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path d="M12 3v6" />
-                <path d="m9 6 3-3 3 3" />
-                <path d="M5 13v6h14v-6" />
-                <path d="M8 13h8" />
-              </svg>
-              Install Skill
-            </button>
-          </nav>
-
-          <div class="px-3 mt-auto">
-            <p class="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">Open this window anytime from the menu bar icon or Dock icon.</p>
-          </div>
-        </aside>
-
-      <!-- Content Area -->
-      <main class="flex-1 flex flex-col h-full bg-white dark:bg-[#111]">
-          <div id="settings-header" class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
-            <div>
-	              <h2 id="section-title" class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">General Settings</h2>
-	              <p id="section-subtitle" class="text-xs text-zinc-500 dark:text-zinc-400">Core app configuration.</p>
-	            </div>
-	          </div>
-
-          <div id="settings-content" class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-slim">
-            <!-- General -->
-            <section id="section-general" data-section-pane="general" role="tabpanel" aria-label="General settings" class="flex flex-col h-full">
-              <div class="space-y-6 flex-1">
-                <section class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <label for="context-folder-path" class="section-label">Context Folder</label>
-                  <span id="context-folder-status" data-setting-status="context-folder-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                </div>
-                <div class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
-                  <div class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
-                    <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
-                    </svg>
-                  </div>
-                  <input
-                    id="context-folder-path"
-                    data-setting="context-folder-path"
-                    type="text"
-                    placeholder="No folder selected"
-                    readonly
-                    class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
-                  >
-                  <button id="context-folder-choose" data-action="context-folder-choose" type="button" class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Change</button>
-                </div>
-                <p id="context-folder-error" data-setting-error="context-folder-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                  Choose where Familiar stores local captures.
-                </p>
-		              </section>
-
-                <section id="recording-details" class="space-y-3 hidden">
-                  <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                      Saved to <span id="recording-path" class="font-mono text-zinc-700 dark:text-zinc-200"></span>
-                    </p>
-                    <button
-                      id="recording-open-folder"
-                      type="button"
-                      class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden"
-                    >Open in Finder</button>
-                  </div>
-                </section>
+            <label for="always-record-when-active" class="relative inline-flex items-center cursor-pointer"
+              aria-label="Toggle capturing">
+              <input id="always-record-when-active" data-setting="always-record-when-active" type="checkbox"
+                class="sr-only peer">
+              <div id="sidebar-recording-toggle-track"
+                class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
               </div>
-
-              <div class="mt-auto pt-4">
-                <div class="flex items-end justify-between gap-4">
-                  <div class="max-w-[60%]">
-                    <div class="flex items-center flex-wrap gap-2">
-                      <button
-                        id="updates-check"
-                        data-action="updates-check"
-                        type="button"
-                        class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >Check for Updates</button>
-                      <span id="updates-status" data-setting-status="updates-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                    </div>
-                    <div id="updates-progress" class="space-y-2 hidden" aria-live="polite">
-                      <div class="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                        <div id="updates-progress-bar" class="h-full bg-emerald-500 transition-[width] duration-200" style="width: 0%"></div>
-                      </div>
-                      <span id="updates-progress-label" class="text-xs text-zinc-500 dark:text-zinc-400 hidden"></span>
-                    </div>
-                    <p id="updates-error" data-setting-error="updates-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                  </div>
-
-                  <div class="flex items-center justify-end gap-3">
-                    <div class="flex flex-col items-end gap-1">
-                      <span id="copy-log-status" data-setting-status="copy-log-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                      <span id="copy-log-error" data-setting-error="copy-log-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></span>
-                    </div>
-                    <button
-                      id="copy-debug-log"
-                      data-action="copy-debug-log"
-                      type="button"
-                      class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Copies ~/.familiar/logs/familiar.log to your clipboard"
-                    >Copy Debug Log</button>
-                  </div>
-                </div>
+              <div
+                class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5">
               </div>
-		            </section>
+            </label>
+          </div>
+          <button id="sidebar-recording-action" type="button"
+            class="w-full flex items-center justify-center gap-2 h-7 rounded-md bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Pause or resume capturing">
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
+              aria-hidden="true">
+              <path d="M12 8v4l2 2" />
+              <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            Pause (10 min)
+          </button>
+          <p id="sidebar-recording-permission" class="text-xs text-red-600 dark:text-red-400 hidden pt-2" role="alert"
+            aria-live="polite"></p>
+          <p id="always-record-when-active-error" data-setting-error="always-record-when-active-error"
+            class="text-xs text-red-600 dark:text-red-400 hidden pt-1" role="alert" aria-live="polite"></p>
+          <span id="always-record-when-active-status" data-setting-status="always-record-when-active-status"
+            class="sr-only hidden" aria-live="polite"></span>
+        </div>
+      </div>
 
-		            <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Capturing settings" class="space-y-6 hidden">
-	              <section class="space-y-2" data-processing-engine>
-                  <div class="flex items-center justify-between">
-                    <span id="stills-markdown-extractor-status" data-setting-status="stills-markdown-extractor-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                  </div>
+      <nav class="flex-1 px-2 space-y-1" role="tablist" aria-label="Settings Sections">
+        <button class="sidebar-item" data-section-target="wizard" data-active="false" role="tab"
+          aria-controls="section-wizard" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.1-7.1-2.1 2.1M9 15l-2.1 2.1m10.2 0L15 15M9 9 6.9 6.9" />
+          </svg>
+          Wizard
+        </button>
+        <button class="sidebar-item" data-section-target="general" data-active="true" role="tab"
+          aria-controls="section-general" aria-selected="true" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+            <path
+              d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.2a1 1 0 0 0-.9.6Z" />
+          </svg>
+          General
+        </button>
+        <button class="sidebar-item" data-section-target="recording" data-active="false" role="tab"
+          aria-controls="section-recording" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <rect x="3" y="7" width="13" height="10" rx="2" />
+            <path d="M16 9.5 21 7v10l-5-2.5" />
+          </svg>
+          Capturing
+        </button>
+        <button class="sidebar-item" data-section-target="storage" data-active="false" role="tab"
+          aria-controls="section-storage" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 4c-4.4 0-8 1.3-8 3v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7c0-1.7-3.6-3-8-3Z" />
+            <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+            <path d="M4 7c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+          </svg>
+          Storage
+        </button>
+        <button class="sidebar-item" data-section-target="install-skill" data-active="false" role="tab"
+          aria-controls="section-install-skill" aria-selected="false" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 3v6" />
+            <path d="m9 6 3-3 3 3" />
+            <path d="M5 13v6h14v-6" />
+            <path d="M8 13h8" />
+          </svg>
+          Install Skill
+        </button>
+      </nav>
 
-                  <!-- Hidden select: persisted setting; UI is the segmented control below -->
-                  <select id="stills-markdown-extractor" data-setting="stills-markdown-extractor" class="hidden">
-                    <option value="apple_vision_ocr" selected>Local</option>
-                    <option value="llm">Cloud</option>
-                  </select>
-                  <p id="stills-markdown-extractor-error" data-setting-error="stills-markdown-extractor-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+      <div class="px-3 mt-auto">
+        <p class="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">Open this window anytime from the menu bar
+          icon or Dock icon.</p>
+      </div>
+    </aside>
 
-                  <div class="grid grid-cols-2 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                    <button
-                      type="button"
-                      data-processing-engine-mode="apple_vision_ocr"
-                      class="processing-engine-segment py-1.5 text-xs font-medium rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <rect x="6" y="11" width="12" height="10" rx="2" />
-                        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-                      </svg>
-                      Local
-                    </button>
-                    <button
-                      type="button"
-                      data-processing-engine-mode="llm"
-                      class="processing-engine-segment py-1.5 text-xs font-medium rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path d="M20 17.5a4.5 4.5 0 0 0-3.2-4.3A6 6 0 0 0 5 14a3.5 3.5 0 0 0 .5 7H18a3 3 0 0 0 2-3.5Z" />
-                      </svg>
-                      Cloud
-                    </button>
-                  </div>
+    <!-- Content Area -->
+    <main class="flex-1 flex flex-col h-full bg-white dark:bg-[#111]">
+      <div id="settings-header"
+        class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
+        <div>
+          <h2 id="section-title" class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">General
+            Settings</h2>
+          <p id="section-subtitle" class="text-xs text-zinc-500 dark:text-zinc-400">Core app configuration.</p>
+        </div>
+      </div>
 
-                  <div class="space-y-3 pt-1" data-processing-engine-panel="llm">
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                      Sends still images directly from your Mac to your configured provider for extraction.
-                    </p>
-
-                    <div class="space-y-2">
-                      <label class="section-label">AI Provider</label>
-                      <div class="space-y-2">
-                        <select id="llm-provider" data-setting="llm-provider" class="input-ring w-full appearance-none bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2 px-3 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer">
-                          <option value="">Select provider...</option>
-                          <option value="gemini">Gemini</option>
-                          <option value="openai">OpenAI</option>
-                          <option value="anthropic">Anthropic</option>
-                        </select>
-                        <p id="llm-provider-error" data-setting-error="llm-provider-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                      </div>
-
-                      <div class="space-y-2">
-                        <label for="llm-api-key" class="section-label">API Key</label>
-                        <div class="input-ring relative w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
-                            <svg viewBox="0 0 24 24" class="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                              <path d="M14.5 10.5a3.5 3.5 0 1 0-7 0 3.5 3.5 0 0 0 7 0Z" />
-                              <path d="M12 14v3m0 0h6m-6 0l2 2m-2-2l2-2" />
-                            </svg>
-                            <input
-                              id="llm-api-key"
-                              data-setting="llm-api-key"
-                              type="password"
-                              placeholder="Not set"
-                              autocomplete="off"
-                              class="w-full bg-transparent text-xs text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none py-2 pl-8 pr-3"
-                            >
-                        </div>
-                        <p id="llm-api-key-error" data-setting-error="llm-api-key-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                        <span id="llm-api-key-status" data-setting-status="llm-api-key-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="space-y-2 pt-1 hidden" data-processing-engine-panel="apple_vision_ocr">
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                      Apple's OCR. Local only. No API key required.
-                    </p>
-                  </div>
-	              </section>
-
-                <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-5">
-                  <div class="space-y-1">
-                    <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Permissions</h3>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Capturing stills while active requires Screen Recording permission.</p>
-                  </div>
-                  <section class="space-y-2">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <button
-                        id="recording-check-permissions"
-                        data-action="check-permissions"
-                        type="button"
-                        class="px-3 py-2 text-xs font-semibold bg-transparent border border-indigo-600 hover:border-indigo-700 rounded-lg text-indigo-600 hover:text-indigo-700 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >Check Permissions</button>
-                      <button
-                        id="recording-open-screen-recording-settings"
-                        data-action="open-screen-recording-settings"
-                        type="button"
-                        class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden"
-                      >Enable Familiar In Screen Recording</button>
-                      <p id="recording-open-screen-recording-settings-note" data-open-screen-recording-settings-note class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden">After enabling capturing, restart Familiar</p>
-                    </div>
-                  </section>
-                  <section id="recording-recording-toggle-section" data-role="permission-recording-toggle-section" class="space-y-2 hidden">
-                    <div class="flex items-start justify-between gap-4">
-                      <div class="space-y-1">
-                        <label for="recording-always-record-when-active" class="section-label">Capture While Active</label>
-                      </div>
-                      <label class="relative inline-flex items-center cursor-pointer">
-                        <input
-                          id="recording-always-record-when-active"
-                          data-setting="always-record-when-active"
-                          type="checkbox"
-                          class="sr-only peer"
-                        >
-                        <div class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
-                        <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                      </label>
-                    </div>
-                    <p id="recording-always-record-when-active-error" data-setting-error="always-record-when-active-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                    <span id="recording-always-record-when-active-status" data-setting-status="always-record-when-active-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                  </section>
+      <div id="settings-content" class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-slim">
+        <!-- General -->
+        <section id="section-general" data-section-pane="general" role="tabpanel" aria-label="General settings"
+          class="flex flex-col h-full">
+          <div class="space-y-6 flex-1">
+            <section class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="context-folder-path" class="section-label">Context Folder</label>
+                <span id="context-folder-status" data-setting-status="context-folder-status"
+                  class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+              </div>
+              <div
+                class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                <div
+                  class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
+                  <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
+                    aria-hidden="true">
+                    <path
+                      d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
+                  </svg>
                 </div>
-	            </section>
-
-            <section id="section-install-skill" data-section-pane="install-skill" role="tabpanel" aria-label="Install skill settings" class="space-y-6 hidden">
-              <div data-component-mount="install-skill" class="max-w-[360px] space-y-5"></div>
+                <input id="context-folder-path" data-setting="context-folder-path" type="text"
+                  placeholder="No folder selected" readonly
+                  class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none">
+                <button id="context-folder-choose" data-action="context-folder-choose" type="button"
+                  class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Change</button>
+              </div>
+              <p id="context-folder-error" data-setting-error="context-folder-error"
+                class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                Choose where Familiar stores local captures.
+              </p>
             </section>
 
+            <section id="recording-details" class="space-y-3 hidden">
+              <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                  Saved to <span id="recording-path" class="font-mono text-zinc-700 dark:text-zinc-200"></span>
+                </p>
+                <button id="recording-open-folder" type="button"
+                  class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden">Open
+                  in Finder</button>
+              </div>
+            </section>
           </div>
 
-          <section id="section-wizard" data-section-pane="wizard" role="tabpanel" aria-label="Setup wizard" class="hidden flex-1 flex flex-col min-h-0">
-            <div class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
-              <div>
-                <h2 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Setup Wizard</h2>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400">Guided setup in four steps.</p>
+          <div class="mt-auto pt-4">
+            <div class="flex items-end justify-between gap-4">
+              <div class="max-w-[60%]">
+                <div class="flex items-center flex-wrap gap-2">
+                  <button id="updates-check" data-action="updates-check" type="button"
+                    class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Check
+                    for Updates</button>
+                  <span id="updates-status" data-setting-status="updates-status"
+                    class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                </div>
+                <div id="updates-progress" class="space-y-2 hidden" aria-live="polite">
+                  <div class="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                    <div id="updates-progress-bar" class="h-full bg-emerald-500 transition-[width] duration-200"
+                      style="width: 0%"></div>
+                  </div>
+                  <span id="updates-progress-label" class="text-xs text-zinc-500 dark:text-zinc-400 hidden"></span>
+                </div>
+                <p id="updates-error" data-setting-error="updates-error"
+                  class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
               </div>
-              <span id="wizard-complete-status" class="text-xs font-medium text-emerald-600 dark:text-emerald-400 hidden">Setup complete</span>
-            </div>
 
-            <div class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/40">
-              <div class="flex items-center justify-between relative">
-                <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="1">
-                  <div class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center" data-wizard-step-circle="1">1</div>
-                  <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="1">Context</span>
+              <div class="flex items-center justify-end gap-3">
+                <div class="flex flex-col items-end gap-1">
+                  <span id="copy-log-status" data-setting-status="copy-log-status"
+                    class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                  <span id="copy-log-error" data-setting-error="copy-log-error"
+                    class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></span>
                 </div>
-                <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
-                  <div class="absolute inset-y-0 left-0 bg-indigo-600 w-0 transition-all" data-wizard-step-connector="1"></div>
-                </div>
-                <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="2">
-                  <div class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center" data-wizard-step-circle="2">2</div>
-                  <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="2">Permissions</span>
-                </div>
-                <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
-                  <div class="absolute inset-y-0 left-0 bg-indigo-600 w-0 transition-all" data-wizard-step-connector="2"></div>
-                </div>
-                <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="3">
-                  <div class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center" data-wizard-step-circle="3">3</div>
-                  <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="3">Install Skill</span>
-                </div>
-                <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
-                  <div class="absolute inset-y-0 left-0 bg-indigo-600 w-0 transition-all" data-wizard-step-connector="3"></div>
-                </div>
-                <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="4">
-                  <div class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center" data-wizard-step-circle="4">4</div>
-                  <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="4">Complete</span>
-                </div>
+                <button id="copy-debug-log" data-action="copy-debug-log" type="button"
+                  class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Copies ~/.familiar/logs/familiar.log to your clipboard">Copy Debug Log</button>
               </div>
             </div>
+          </div>
+        </section>
 
-            <div class="flex-1 min-h-0 overflow-y-auto px-6 py-6 scrollbar-slim">
-              <div data-wizard-step="1" class="max-w-[360px] mx-auto space-y-5">
-                <div class="text-center space-y-1">
-                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Choose your context folder</h3>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Familiar stores everything inside <span class="font-mono text-zinc-700 dark:text-zinc-200">&lt;Context Folder&gt;/familiar/</span>.</p>
-                </div>
-                <section class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <label for="wizard-context-folder-path" class="section-label">Context Folder</label>
-                    <span id="wizard-context-folder-status" data-setting-status="context-folder-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                  </div>
-                  <div class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
-                    <div class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
-                      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
-                      </svg>
-                    </div>
-                    <input
-                      id="wizard-context-folder-path"
-                      data-setting="context-folder-path"
-                      type="text"
-                      placeholder="No folder selected"
-                      readonly
-                      class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
-                    >
-                    <button id="wizard-context-folder-choose" data-action="context-folder-choose" type="button" class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Change</button>
-                  </div>
-                  <p id="wizard-context-folder-error" data-setting-error="context-folder-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                </section>
-              </div>
-
-              <div data-wizard-step="2" class="max-w-[360px] mx-auto space-y-5 hidden">
-                <div class="text-center space-y-1">
-                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enable capturing</h3>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Captures a still while you are active, and stops when idle. Requires Screen Recording permission.</p>
-                </div>
-                <div data-component-source="permissions" class="space-y-5">
-                  <section class="space-y-2">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <button
-                        id="wizard-check-permissions"
-                        data-action="check-permissions"
-                        type="button"
-                        class="px-3 py-2 text-xs font-semibold bg-transparent border border-indigo-600 hover:border-indigo-700 rounded-lg text-indigo-600 hover:text-indigo-700 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >Check Permissions</button>
-                      <button
-                        id="wizard-open-screen-recording-settings"
-                        data-action="open-screen-recording-settings"
-                        type="button"
-                        class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden"
-                      >Enable Familiar In Screen Recording</button>
-                      <p id="wizard-open-screen-recording-settings-note" class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden">After enabling capturing, restart Familiar</p>
-                    </div>
-                  </section>
-                  <section id="wizard-recording-toggle-section" data-role="permission-recording-toggle-section" class="space-y-2 hidden">
-                    <div class="flex items-start justify-between gap-4">
-                      <div class="space-y-1">
-                        <label for="wizard-always-record-when-active" class="section-label">Capture While Active</label>
-                      </div>
-                      <label class="relative inline-flex items-center cursor-pointer">
-                        <input
-                          id="wizard-always-record-when-active"
-                          data-setting="always-record-when-active"
-                          type="checkbox"
-                          class="sr-only peer"
-                        >
-                    <div class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
-                    <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5"></div>
-                  </label>
-                </div>
-                    <p id="wizard-always-record-when-active-error" data-setting-error="always-record-when-active-error" class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                    <span id="wizard-always-record-when-active-status" data-setting-status="always-record-when-active-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                  </section>
-                </div>
-              </div>
-
-              <div data-wizard-step="3" class="max-w-[360px] mx-auto space-y-5 hidden">
-                <div class="text-center space-y-1">
-                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Install the Familiar skill</h3>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Pick the harness and install Familiar into your skills folder.</p>
-                </div>
-                <div data-component-source="install-skill" class="space-y-5">
-                  <section class="space-y-2">
-                    <div class="skill-picker-options">
-                      <label class="skill-picker-option">
-                        <input type="checkbox" name="wizard-skill-harness" value="claude" data-skill-harness class="sr-only">
-                        <span class="skill-picker-option-card">
-                          <span class="skill-picker-radio" aria-hidden="true"><span class="skill-picker-radio-dot"></span></span>
-                          <span class="skill-picker-icon" aria-hidden="true">
-                            <img src="./assets/skill-icons/claude-code.svg" alt="">
-                          </span>
-                          <span class="skill-picker-label">Claude Code</span>
-                        </span>
-                      </label>
-                      <label class="skill-picker-option">
-                        <input type="checkbox" name="wizard-skill-harness" value="codex" data-skill-harness class="sr-only">
-                        <span class="skill-picker-option-card">
-                          <span class="skill-picker-radio" aria-hidden="true"><span class="skill-picker-radio-dot"></span></span>
-                          <span class="skill-picker-icon skill-picker-icon--light-chip" aria-hidden="true">
-                            <img src="./assets/skill-icons/codex.svg" alt="">
-                          </span>
-                          <span class="skill-picker-label">Codex</span>
-                        </span>
-                      </label>
-                      <label class="skill-picker-option">
-                        <input type="checkbox" name="wizard-skill-harness" value="antigravity" data-skill-harness class="sr-only">
-                        <span class="skill-picker-option-card">
-                          <span class="skill-picker-radio" aria-hidden="true"><span class="skill-picker-radio-dot"></span></span>
-                          <span class="skill-picker-icon" aria-hidden="true">
-                            <img src="./assets/skill-icons/antigravity.svg" alt="">
-                          </span>
-                          <span class="skill-picker-label">Antigravity</span>
-                        </span>
-                      </label>
-                      <label class="skill-picker-option">
-                        <input type="checkbox" name="wizard-skill-harness" value="cursor" data-skill-harness class="sr-only">
-                        <span class="skill-picker-option-card">
-                          <span class="skill-picker-radio" aria-hidden="true"><span class="skill-picker-radio-dot"></span></span>
-                          <span class="skill-picker-icon skill-picker-icon--light-chip" aria-hidden="true">
-                            <img src="./assets/skill-icons/cursor.svg" alt="">
-                          </span>
-                          <span class="skill-picker-label">Cursor</span>
-                        </span>
-                        <span id="wizard-skill-cursor-restart-note" data-skill-cursor-restart-note class="skill-picker-note hidden">Restart Cursor for the skill to take effect.</span>
-                      </label>
-                    </div>
-                  </section>
-                  <p id="wizard-skill-path" data-skill-install-path class="text-xs text-zinc-500 dark:text-zinc-400 whitespace-pre-line hidden"></p>
-                  <p id="wizard-skill-status" data-skill-install-status class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></p>
-                  <div class="flex flex-wrap items-center gap-2">
-                    <button id="wizard-skill-install" data-action="skill-install" type="button" class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Install Skill</button>
-                  </div>
-                  <p id="wizard-skill-error" data-skill-install-error class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                </div>
-              </div>
-
-              <div data-wizard-step="4" class="max-w-[360px] mx-auto space-y-5 hidden">
-                <div class="text-center space-y-2">
-                  <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">You're all set</h3>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400">Your context folder and capturing preferences are configured, and the skill install completed.</p>
-                </div>
-              </div>
+        <section id="section-recording" data-section-pane="recording" role="tabpanel" aria-label="Capturing settings"
+          class="space-y-6 hidden">
+          <section class="space-y-2" data-processing-engine>
+            <div class="flex items-center justify-between">
+              <span id="stills-markdown-extractor-status" data-setting-status="stills-markdown-extractor-status"
+                class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
             </div>
 
-            <div class="flex-none px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/70 dark:bg-zinc-900/60">
-              <button id="wizard-back" data-action="wizard-back" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                Back
+            <!-- Hidden select: persisted setting; UI is the segmented control below -->
+            <select id="stills-markdown-extractor" data-setting="stills-markdown-extractor" class="hidden">
+              <option value="apple_vision_ocr" selected>Local</option>
+              <option value="llm">Cloud</option>
+            </select>
+            <p id="stills-markdown-extractor-error" data-setting-error="stills-markdown-extractor-error"
+              class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+
+            <div
+              class="grid grid-cols-2 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <button type="button" data-processing-engine-mode="apple_vision_ocr"
+                class="processing-engine-segment py-1.5 text-xs font-medium rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center justify-center gap-2 transition-colors">
+                <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
+                  aria-hidden="true">
+                  <rect x="6" y="11" width="12" height="10" rx="2" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                </svg>
+                Local
               </button>
-              <div class="flex items-center gap-2">
-                <span id="wizard-step-status" class="text-xs text-zinc-400 hidden"></span>
-                <button id="wizard-next" data-action="wizard-next" type="button" class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-medium text-white shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow-md hover:shadow-indigo-500/20 active:translate-y-px transition-all disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
-                <button id="wizard-done" data-action="wizard-done" type="button" class="hidden flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-medium text-white shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow-md hover:shadow-indigo-500/20 active:translate-y-px transition-all">Done</button>
+              <button type="button" data-processing-engine-mode="llm"
+                class="processing-engine-segment py-1.5 text-xs font-medium rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center justify-center gap-2 transition-colors">
+                <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
+                  aria-hidden="true">
+                  <path d="M20 17.5a4.5 4.5 0 0 0-3.2-4.3A6 6 0 0 0 5 14a3.5 3.5 0 0 0 .5 7H18a3 3 0 0 0 2-3.5Z" />
+                </svg>
+                Cloud
+              </button>
+            </div>
+
+            <div class="space-y-3 pt-1" data-processing-engine-panel="llm">
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                Sends still images directly from your Mac to your configured provider for extraction.
+              </p>
+
+              <div class="space-y-2">
+                <label class="section-label">AI Provider</label>
+                <div class="space-y-2">
+                  <select id="llm-provider" data-setting="llm-provider"
+                    class="input-ring w-full appearance-none bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2 px-3 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none cursor-pointer">
+                    <option value="">Select provider...</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                  </select>
+                  <p id="llm-provider-error" data-setting-error="llm-provider-error"
+                    class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                </div>
+
+                <div class="space-y-2">
+                  <label for="llm-api-key" class="section-label">API Key</label>
+                  <div
+                    class="input-ring relative w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                    <svg viewBox="0 0 24 24" class="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-400" fill="none"
+                      stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <path d="M14.5 10.5a3.5 3.5 0 1 0-7 0 3.5 3.5 0 0 0 7 0Z" />
+                      <path d="M12 14v3m0 0h6m-6 0l2 2m-2-2l2-2" />
+                    </svg>
+                    <input id="llm-api-key" data-setting="llm-api-key" type="password" placeholder="Not set"
+                      autocomplete="off"
+                      class="w-full bg-transparent text-xs text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none py-2 pl-8 pr-3">
+                  </div>
+                  <p id="llm-api-key-error" data-setting-error="llm-api-key-error"
+                    class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                  <span id="llm-api-key-status" data-setting-status="llm-api-key-status"
+                    class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+                </div>
               </div>
+            </div>
+
+            <div class="space-y-2 pt-1 hidden" data-processing-engine-panel="apple_vision_ocr">
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                Apple's OCR. Local only. No API key required.
+              </p>
             </div>
           </section>
-      </main>
-    </div>
 
-    <script src="./wizard.js"></script>
-    <script src="./wizard-skill.js"></script>
-    <script src="./list-utils.js"></script>
-    <script src="./updates.js"></script>
-    <script src="../recording-status-indicator.js"></script>
-    <script src="./stills.js"></script>
-    <script src="./settings.js"></script>
-    <script src="./processing-engine.js"></script>
-    <script src="./module-loader.js"></script>
-    <script src="./state.js"></script>
-    <script src="./bootstrap/wizard.js"></script>
-    <script src="./bootstrap/wizard-skill.js"></script>
-    <script src="./bootstrap/updates.js"></script>
-    <script src="./bootstrap/stills.js"></script>
-    <script src="./bootstrap/settings.js"></script>
-    <script src="./bootstrap/processing-engine.js"></script>
-    <script src="./renderer.js"></script>
-  </body>
+          <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-5">
+            <div class="space-y-1">
+              <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Permissions</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">Capturing stills while active requires Screen
+                Recording permission.</p>
+            </div>
+            <section class="space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="recording-check-permissions" data-action="check-permissions" type="button"
+                  class="px-3 py-2 text-xs font-semibold bg-transparent border border-indigo-600 hover:border-indigo-700 rounded-lg text-indigo-600 hover:text-indigo-700 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Check
+                  Permissions</button>
+                <button id="recording-open-screen-recording-settings" data-action="open-screen-recording-settings"
+                  type="button"
+                  class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden">Enable
+                  Familiar In Screen Recording</button>
+                <p id="recording-open-screen-recording-settings-note" data-open-screen-recording-settings-note
+                  class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden">After enabling capturing,
+                  restart Familiar</p>
+              </div>
+            </section>
+            <section id="recording-recording-toggle-section" data-role="permission-recording-toggle-section"
+              class="space-y-2 hidden">
+              <div class="flex items-start justify-between gap-4">
+                <div class="space-y-1">
+                  <label for="recording-always-record-when-active" class="section-label">Capture While Active</label>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input id="recording-always-record-when-active" data-setting="always-record-when-active"
+                    type="checkbox" class="sr-only peer">
+                  <div
+                    class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                  </div>
+                  <div
+                    class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5">
+                  </div>
+                </label>
+              </div>
+              <p id="recording-always-record-when-active-error" data-setting-error="always-record-when-active-error"
+                class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+              <span id="recording-always-record-when-active-status"
+                data-setting-status="always-record-when-active-status"
+                class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+            </section>
+          </div>
+        </section>
+
+        <section id="section-storage" data-section-pane="storage" role="tabpanel" aria-label="Storage settings"
+          class="space-y-6 hidden">
+          <section class="space-y-3 max-w-[420px]">
+            <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Delete recent captures</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">
+              Permanently deletes stills and stills-markdown files from the last 30 minutes.
+            </p>
+            <div class="flex items-center gap-3">
+              <button id="storage-delete-last-30-min" data-action="storage-delete-last-30-min" type="button"
+                class="px-3 py-2 text-xs font-semibold bg-red-600 hover:bg-red-700 border border-red-600 hover:border-red-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Delete
+                Last 30 Minutes</button>
+              <span id="storage-delete-last-30-min-status" data-setting-status="storage-delete-last-30-min-status"
+                class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+            </div>
+            <p id="storage-delete-last-30-min-error" data-setting-error="storage-delete-last-30-min-error"
+              class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+          </section>
+        </section>
+
+        <section id="section-install-skill" data-section-pane="install-skill" role="tabpanel"
+          aria-label="Install skill settings" class="space-y-6 hidden">
+          <div data-component-mount="install-skill" class="max-w-[360px] space-y-5"></div>
+        </section>
+
+      </div>
+
+      <section id="section-wizard" data-section-pane="wizard" role="tabpanel" aria-label="Setup wizard"
+        class="hidden flex-1 flex flex-col min-h-0">
+        <div
+          class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
+          <div>
+            <h2 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Setup Wizard</h2>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Guided setup in four steps.</p>
+          </div>
+          <span id="wizard-complete-status"
+            class="text-xs font-medium text-emerald-600 dark:text-emerald-400 hidden">Setup complete</span>
+        </div>
+
+        <div class="flex-none px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/40">
+          <div class="flex items-center justify-between relative">
+            <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="1">
+              <div
+                class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center"
+                data-wizard-step-circle="1">1</div>
+              <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="1">Context</span>
+            </div>
+            <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
+              <div class="absolute inset-y-0 left-0 bg-indigo-600 w-0 transition-all" data-wizard-step-connector="1">
+              </div>
+            </div>
+            <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="2">
+              <div
+                class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center"
+                data-wizard-step-circle="2">2</div>
+              <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="2">Permissions</span>
+            </div>
+            <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
+              <div class="absolute inset-y-0 left-0 bg-indigo-600 w-0 transition-all" data-wizard-step-connector="2">
+              </div>
+            </div>
+            <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="3">
+              <div
+                class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center"
+                data-wizard-step-circle="3">3</div>
+              <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="3">Install Skill</span>
+            </div>
+            <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
+              <div class="absolute inset-y-0 left-0 bg-indigo-600 w-0 transition-all" data-wizard-step-connector="3">
+              </div>
+            </div>
+            <div class="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="4">
+              <div
+                class="w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 flex items-center justify-center"
+                data-wizard-step-circle="4">4</div>
+              <span class="text-xs font-medium text-zinc-500" data-wizard-step-label="4">Complete</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 min-h-0 overflow-y-auto px-6 py-6 scrollbar-slim">
+          <div data-wizard-step="1" class="max-w-[360px] mx-auto space-y-5">
+            <div class="text-center space-y-1">
+              <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Choose your context folder</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">Familiar stores everything inside <span
+                  class="font-mono text-zinc-700 dark:text-zinc-200">&lt;Context Folder&gt;/familiar/</span>.</p>
+            </div>
+            <section class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="wizard-context-folder-path" class="section-label">Context Folder</label>
+                <span id="wizard-context-folder-status" data-setting-status="context-folder-status"
+                  class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+              </div>
+              <div
+                class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                <div
+                  class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
+                  <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
+                    aria-hidden="true">
+                    <path
+                      d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
+                  </svg>
+                </div>
+                <input id="wizard-context-folder-path" data-setting="context-folder-path" type="text"
+                  placeholder="No folder selected" readonly
+                  class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none">
+                <button id="wizard-context-folder-choose" data-action="context-folder-choose" type="button"
+                  class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Change</button>
+              </div>
+              <p id="wizard-context-folder-error" data-setting-error="context-folder-error"
+                class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+            </section>
+          </div>
+
+          <div data-wizard-step="2" class="max-w-[360px] mx-auto space-y-5 hidden">
+            <div class="text-center space-y-1">
+              <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enable capturing</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">Captures a still while you are active, and stops when
+                idle. Requires Screen Recording permission.</p>
+            </div>
+            <div data-component-source="permissions" class="space-y-5">
+              <section class="space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <button id="wizard-check-permissions" data-action="check-permissions" type="button"
+                    class="px-3 py-2 text-xs font-semibold bg-transparent border border-indigo-600 hover:border-indigo-700 rounded-lg text-indigo-600 hover:text-indigo-700 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Check
+                    Permissions</button>
+                  <button id="wizard-open-screen-recording-settings" data-action="open-screen-recording-settings"
+                    type="button"
+                    class="px-3 py-2 text-xs font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden">Enable
+                    Familiar In Screen Recording</button>
+                  <p id="wizard-open-screen-recording-settings-note"
+                    class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden">After enabling capturing,
+                    restart Familiar</p>
+                </div>
+              </section>
+              <section id="wizard-recording-toggle-section" data-role="permission-recording-toggle-section"
+                class="space-y-2 hidden">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="space-y-1">
+                    <label for="wizard-always-record-when-active" class="section-label">Capture While Active</label>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input id="wizard-always-record-when-active" data-setting="always-record-when-active"
+                      type="checkbox" class="sr-only peer">
+                    <div
+                      class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                    </div>
+                    <div
+                      class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5">
+                    </div>
+                  </label>
+                </div>
+                <p id="wizard-always-record-when-active-error" data-setting-error="always-record-when-active-error"
+                  class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                <span id="wizard-always-record-when-active-status"
+                  data-setting-status="always-record-when-active-status"
+                  class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+              </section>
+            </div>
+          </div>
+
+          <div data-wizard-step="3" class="max-w-[360px] mx-auto space-y-5 hidden">
+            <div class="text-center space-y-1">
+              <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Install the Familiar skill</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">Pick the harness and install Familiar into your skills
+                folder.</p>
+            </div>
+            <div data-component-source="install-skill" class="space-y-5">
+              <section class="space-y-2">
+                <div class="skill-picker-options">
+                  <label class="skill-picker-option">
+                    <input type="checkbox" name="wizard-skill-harness" value="claude" data-skill-harness
+                      class="sr-only">
+                    <span class="skill-picker-option-card">
+                      <span class="skill-picker-radio" aria-hidden="true"><span
+                          class="skill-picker-radio-dot"></span></span>
+                      <span class="skill-picker-icon" aria-hidden="true">
+                        <img src="./assets/skill-icons/claude-code.svg" alt="">
+                      </span>
+                      <span class="skill-picker-label">Claude Code</span>
+                    </span>
+                  </label>
+                  <label class="skill-picker-option">
+                    <input type="checkbox" name="wizard-skill-harness" value="codex" data-skill-harness class="sr-only">
+                    <span class="skill-picker-option-card">
+                      <span class="skill-picker-radio" aria-hidden="true"><span
+                          class="skill-picker-radio-dot"></span></span>
+                      <span class="skill-picker-icon skill-picker-icon--light-chip" aria-hidden="true">
+                        <img src="./assets/skill-icons/codex.svg" alt="">
+                      </span>
+                      <span class="skill-picker-label">Codex</span>
+                    </span>
+                  </label>
+                  <label class="skill-picker-option">
+                    <input type="checkbox" name="wizard-skill-harness" value="antigravity" data-skill-harness
+                      class="sr-only">
+                    <span class="skill-picker-option-card">
+                      <span class="skill-picker-radio" aria-hidden="true"><span
+                          class="skill-picker-radio-dot"></span></span>
+                      <span class="skill-picker-icon" aria-hidden="true">
+                        <img src="./assets/skill-icons/antigravity.svg" alt="">
+                      </span>
+                      <span class="skill-picker-label">Antigravity</span>
+                    </span>
+                  </label>
+                  <label class="skill-picker-option">
+                    <input type="checkbox" name="wizard-skill-harness" value="cursor" data-skill-harness
+                      class="sr-only">
+                    <span class="skill-picker-option-card">
+                      <span class="skill-picker-radio" aria-hidden="true"><span
+                          class="skill-picker-radio-dot"></span></span>
+                      <span class="skill-picker-icon skill-picker-icon--light-chip" aria-hidden="true">
+                        <img src="./assets/skill-icons/cursor.svg" alt="">
+                      </span>
+                      <span class="skill-picker-label">Cursor</span>
+                    </span>
+                    <span id="wizard-skill-cursor-restart-note" data-skill-cursor-restart-note
+                      class="skill-picker-note hidden">Restart Cursor for the skill to take effect.</span>
+                  </label>
+                </div>
+              </section>
+              <p id="wizard-skill-path" data-skill-install-path
+                class="text-xs text-zinc-500 dark:text-zinc-400 whitespace-pre-line hidden"></p>
+              <p id="wizard-skill-status" data-skill-install-status
+                class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></p>
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="wizard-skill-install" data-action="skill-install" type="button"
+                  class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Install
+                  Skill</button>
+              </div>
+              <p id="wizard-skill-error" data-skill-install-error class="text-xs text-red-600 dark:text-red-400 hidden"
+                role="alert" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div data-wizard-step="4" class="max-w-[360px] mx-auto space-y-5 hidden">
+            <div class="text-center space-y-2">
+              <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">You're all set</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">Your context folder and capturing preferences are
+                configured, and the skill install completed.</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="flex-none px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/70 dark:bg-zinc-900/60">
+          <button id="wizard-back" data-action="wizard-back" type="button"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            Back
+          </button>
+          <div class="flex items-center gap-2">
+            <span id="wizard-step-status" class="text-xs text-zinc-400 hidden"></span>
+            <button id="wizard-next" data-action="wizard-next" type="button"
+              class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-medium text-white shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow-md hover:shadow-indigo-500/20 active:translate-y-px transition-all disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+            <button id="wizard-done" data-action="wizard-done" type="button"
+              class="hidden flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-medium text-white shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow-md hover:shadow-indigo-500/20 active:translate-y-px transition-all">Done</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./wizard.js"></script>
+  <script src="./wizard-skill.js"></script>
+  <script src="./list-utils.js"></script>
+  <script src="./updates.js"></script>
+  <script src="../recording-status-indicator.js"></script>
+  <script src="./stills.js"></script>
+  <script src="./settings.js"></script>
+  <script src="./processing-engine.js"></script>
+  <script src="./module-loader.js"></script>
+  <script src="./state.js"></script>
+  <script src="./bootstrap/wizard.js"></script>
+  <script src="./bootstrap/wizard-skill.js"></script>
+  <script src="./bootstrap/updates.js"></script>
+  <script src="./bootstrap/stills.js"></script>
+  <script src="./bootstrap/settings.js"></script>
+  <script src="./bootstrap/processing-engine.js"></script>
+  <script src="./renderer.js"></script>
+</body>
+
 </html>

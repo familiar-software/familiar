@@ -23,7 +23,7 @@ test('tray menu shows recording and paused labels without auto-refresh loop', ()
 
     controller.updateTrayMenu()
     assert.equal(menuCalls.length, 1)
-    assert.equal(menuCalls[0][0].label, 'Capturing (click to pause)')
+    assert.equal(menuCalls[0][0].label, 'Capturing (click for 10m pause)')
 
     recordingState = { manualPaused: true, state: 'armed', pauseRemainingMs: 61000 }
     controller.updateTrayMenu()

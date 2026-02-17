@@ -29,7 +29,7 @@ test('buildTrayMenuTemplate uses recording label while active', () => {
         recordingState
     });
 
-    const recordingItem = template.find((item) => item.label === 'Capturing (click to pause)');
+    const recordingItem = template.find((item) => item.label === 'Capturing (click for 10m pause)');
 
     assert.ok(recordingItem);
 });

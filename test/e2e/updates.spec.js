@@ -19,7 +19,7 @@ test('check for updates shows disabled message in e2e mode', async () => {
     )
   )
   const launchArgs = ['.']
-  if (process.platform === 'linux' || process.env.CI) {
+  if (process.platform === 'linux') {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
   }
 

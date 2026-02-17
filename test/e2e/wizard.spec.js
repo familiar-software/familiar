@@ -9,7 +9,7 @@ const launchElectron = (options = {}) => {
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
   const skillHomeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-skill-home-e2e-'))
   const launchArgs = ['.']
-  if (process.platform === 'linux' || process.env.CI) {
+  if (process.platform === 'linux') {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
   }
 

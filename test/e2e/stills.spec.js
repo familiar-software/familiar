@@ -10,7 +10,7 @@ const {
 
 const buildLaunchArgs = () => {
   const launchArgs = ['.']
-  if (process.platform === 'linux' || process.env.CI) {
+  if (process.platform === 'linux') {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
   }
   return launchArgs
@@ -524,7 +524,7 @@ test('tray recording action pauses and resumes while settings window reflects st
 
     const initialTrayLabel = await window.evaluate(() => window.familiar.getTrayRecordingLabelForE2E())
     expect(initialTrayLabel.ok).toBe(true)
-    expect(initialTrayLabel.label).toBe('Capturing (click to pause)')
+    expect(initialTrayLabel.label).toBe('Capturing (click for 10m pause)')
 
     const pausedTray = await window.evaluate(() => window.familiar.clickTrayRecordingActionForE2E())
     expect(pausedTray.ok).toBe(true)
@@ -535,7 +535,7 @@ test('tray recording action pauses and resumes while settings window reflects st
 
     const resumedTray = await window.evaluate(() => window.familiar.clickTrayRecordingActionForE2E())
     expect(resumedTray.ok).toBe(true)
-    expect(resumedTray.label).toBe('Capturing (click to pause)')
+    expect(resumedTray.label).toBe('Capturing (click for 10m pause)')
 
     await expect(window.locator('#sidebar-recording-status')).toHaveText('Capturing')
     await expect(recordingAction).toHaveText('Pause (10 min)')

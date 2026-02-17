@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('familiar', {
     return () => ipcRenderer.removeListener('settings:alwaysRecordWhenActiveChanged', listener)
   },
   openStillsFolder: () => ipcRenderer.invoke('stills:openFolder'),
+  deleteLast30MinutesAt: (requestedAtMs) =>
+    ipcRenderer.invoke('storage:deleteLast30Minutes', { requestedAtMs }),
   copyCurrentLogToClipboard: () => ipcRenderer.invoke('logs:copyCurrentLogToClipboard'),
   onUpdateDownloadProgress: (handler) => {
     const listener = (_event, payload) => handler(payload)

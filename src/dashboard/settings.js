@@ -43,6 +43,9 @@
       copyLogButtons = [],
       copyLogErrors = [],
       copyLogStatuses = [],
+      deleteLast30MinutesButtons = [],
+      deleteLast30MinutesErrors = [],
+      deleteLast30MinutesStatuses = [],
       llmProviderSelects = [],
       llmProviderErrors = [],
       llmKeyInputs = [],
@@ -58,6 +61,7 @@
 
     const isReady = Boolean(familiar.pickContextFolder && familiar.saveSettings && familiar.getSettings)
     const canCopyLog = typeof familiar.copyCurrentLogToClipboard === 'function'
+    const canDeleteLast30Minutes = typeof familiar.deleteLast30MinutesAt === 'function'
 
     const saveContextFolderPath = async (contextFolderPath) => {
       if (!isReady) {
@@ -83,6 +87,14 @@
       }
 
       return false
+    }
+
+    const updateDeleteLast30MinutesButtonState = () => {
+      const { currentContextFolderPath } = getState()
+      const isEnabled = Boolean(currentContextFolderPath)
+      deleteLast30MinutesButtons.forEach((button) => {
+        button.disabled = !isEnabled
+      })
     }
 
     const saveLlmApiKey = async (apiKey) => {
@@ -247,6 +259,7 @@
         if (appVersionLabel) {
           appVersionLabel.textContent = result.appVersion || ''
         }
+        updateDeleteLast30MinutesButtonState()
         return result
       } catch (error) {
         console.error('Failed to load settings', error)
@@ -266,7 +279,11 @@
       setMessage(stillsMarkdownExtractorErrors, message)
       setMessage(alwaysRecordWhenActiveErrors, message)
       setMessage(copyLogErrors, message)
+      setMessage(deleteLast30MinutesErrors, message)
       copyLogButtons.forEach((button) => {
+        button.disabled = true
+      })
+      deleteLast30MinutesButtons.forEach((button) => {
         button.disabled = true
       })
       return {
@@ -287,6 +304,7 @@
               setMessage(contextFolderStatuses, '')
               const saved = await saveContextFolderPath(result.path)
               if (saved) {
+                updateDeleteLast30MinutesButtonState()
               }
             } else if (result && result.error) {
               setMessage(contextFolderStatuses, '')
@@ -329,6 +347,39 @@
               setMessage(copyLogErrors, 'Failed to copy log file.')
             } finally {
               button.disabled = false
+            }
+          })
+        })
+      }
+    }
+
+    if (deleteLast30MinutesButtons.length > 0) {
+      if (!canDeleteLast30Minutes) {
+        setMessage(deleteLast30MinutesErrors, 'Storage cleanup unavailable. Restart the app.')
+        deleteLast30MinutesButtons.forEach((button) => {
+          button.disabled = true
+        })
+      } else {
+        updateDeleteLast30MinutesButtonState()
+        deleteLast30MinutesButtons.forEach((button) => {
+          button.addEventListener('click', async () => {
+            button.disabled = true
+            setMessage(deleteLast30MinutesStatuses, '')
+            setMessage(deleteLast30MinutesErrors, '')
+            try {
+              const requestTimeMs = Date.now()
+              const result = await familiar.deleteLast30MinutesAt(requestTimeMs)
+              if (result?.ok) {
+                setMessage(deleteLast30MinutesStatuses, result.message || 'Deleted files from the last 30 minutes')
+                console.log('Storage cleanup completed', { requestedAtMs: requestTimeMs })
+              } else if (!result?.canceled) {
+                setMessage(deleteLast30MinutesErrors, result?.message || 'Failed to delete files.')
+              }
+            } catch (error) {
+              console.error('Failed to delete recent files', error)
+              setMessage(deleteLast30MinutesErrors, 'Failed to delete files.')
+            } finally {
+              updateDeleteLast30MinutesButtonState()
             }
           })
         })

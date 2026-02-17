@@ -15,10 +15,20 @@ const {
 } = require('../src/const')
 
 test('buildClipboardMirrorFilename uses a stable timestamp format with clipboard suffix', () => {
-  const date = new Date(2026, 0, 2, 3, 4, 5, 6)
+  const date = new Date(Date.UTC(2026, 0, 2, 3, 4, 5, 6))
   const filename = buildClipboardMirrorFilename(date)
 
-  assert.equal(filename, '2026-01-02_03-04-05-006.clipboard.txt')
+  assert.equal(filename, '2026-01-02T03-04-05-006Z.clipboard.txt')
+})
+
+test('clipboard filename timestamp prefix matches markdown filename timestamp prefix', () => {
+  const date = new Date(Date.UTC(2026, 1, 17, 12, 34, 56, 789))
+  const timestampPrefix = date.toISOString().replace(/[:.]/g, '-')
+  const clipboardFilename = buildClipboardMirrorFilename(date)
+  const markdownFilename = `${timestampPrefix}.md`
+
+  assert.equal(clipboardFilename, `${timestampPrefix}.clipboard.txt`)
+  assert.equal(clipboardFilename.split('.clipboard.txt')[0], markdownFilename.replace(/\.md$/, ''))
 })
 
 test('getClipboardMirrorDirectory returns a path under the context folder and session', () => {
