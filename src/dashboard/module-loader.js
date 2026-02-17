@@ -1,5 +1,6 @@
 (function registerModuleLoader(global) {
   const MODULE_SPECS = [
+    { globalKey: 'FamiliarDashboardListUtils', modulePath: './list-utils.js', factory: 'normalizeStringArray' },
     { globalKey: 'FamiliarWizard', modulePath: './wizard.js', factory: 'createWizard' },
     { globalKey: 'FamiliarWizardSkill', modulePath: './wizard-skill.js', factory: 'createWizardSkill' },
     { globalKey: 'FamiliarUpdates', modulePath: './updates.js', factory: 'createUpdates' },

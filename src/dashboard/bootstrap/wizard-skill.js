@@ -10,6 +10,7 @@
       familiar: options.familiar,
       getState: options.getState,
       setSkillHarness: options.setSkillHarness,
+      setSkillHarnesses: options.setSkillHarnesses,
       setSkillInstalled: options.setSkillInstalled,
       setMessage: options.setMessage,
       updateWizardUI: options.updateWizardUI

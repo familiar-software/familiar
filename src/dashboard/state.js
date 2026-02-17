@@ -18,6 +18,7 @@
       currentAlwaysRecordWhenActive: false,
       isLlmApiKeySaved: false,
       currentSkillHarness: '',
+      currentSkillHarnesses: [],
       isSkillInstalled: false
     }
 
@@ -99,9 +100,32 @@
       updateWizardUI()
     }
 
-    function setSkillHarness(value) {
-      state.currentSkillHarness = value || ''
+    function setSkillHarnesses(values) {
+      const nextValues = Array.isArray(values)
+        ? values.filter((value) => typeof value === 'string' && value.trim().length > 0)
+        : []
+      state.currentSkillHarnesses = Array.from(new Set(nextValues))
+      state.currentSkillHarness = state.currentSkillHarnesses[0] || ''
       updateWizardUI()
+    }
+
+    function setSkillHarness(value) {
+      const nextValue = value || ''
+      setSkillHarnesses(nextValue ? [nextValue] : [])
+    }
+
+    function getSelectedSkillHarnesses() {
+      if (Array.isArray(state.currentSkillHarnesses) && state.currentSkillHarnesses.length > 0) {
+        return state.currentSkillHarnesses
+      }
+      if (state.currentSkillHarness) {
+        return [state.currentSkillHarness]
+      }
+      return []
+    }
+
+    function hasSelectedSkillHarnesses() {
+      return getSelectedSkillHarnesses().length > 0
     }
 
     function setSkillInstalled(value) {
@@ -110,6 +134,7 @@
     }
 
     function getWizardState() {
+      const selectedSkillHarnesses = getSelectedSkillHarnesses()
       return {
         currentContextFolderPath: state.currentContextFolderPath,
         currentLlmProviderName: state.currentLlmProviderName,
@@ -117,6 +142,8 @@
         isLlmApiKeySaved: state.isLlmApiKeySaved,
         currentStillsMarkdownExtractorType: state.currentStillsMarkdownExtractorType,
         currentSkillHarness: state.currentSkillHarness,
+        currentSkillHarnesses: selectedSkillHarnesses,
+        hasSelectedSkillHarnesses: selectedSkillHarnesses.length > 0,
         isSkillInstalled: state.isSkillInstalled,
         currentAlwaysRecordWhenActive: state.currentAlwaysRecordWhenActive
       }
@@ -150,6 +177,7 @@
       setLlmApiKeySaved,
       setStillsMarkdownExtractorType,
       setAlwaysRecordWhenActiveValue,
+      setSkillHarnesses,
       setSkillHarness,
       setSkillInstalled,
       getWizardState,

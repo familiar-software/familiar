@@ -26,6 +26,13 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     return {}
   }
 
+  const listUtilsModule = resolveModule('FamiliarDashboardListUtils', './list-utils')
+  const normalizeStringArray = listUtilsModule?.normalizeStringArray
+  if (typeof normalizeStringArray !== 'function') {
+    console.error('Dashboard list utils unavailable.')
+    return
+  }
+
   const familiar = window.familiar || {}
   const moduleLoader = resolveModule('FamiliarDashboardModuleLoader', './module-loader')
   const stateModule = resolveModule('FamiliarDashboardState', './state')
@@ -421,6 +428,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     familiar,
     getState: state.getWizardState,
     setSkillHarness: state.setSkillHarness,
+    setSkillHarnesses: state.setSkillHarnesses,
     setSkillInstalled: state.setSkillInstalled,
     setMessage,
     updateWizardUI: state.updateWizardUI
@@ -494,6 +502,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     getState: state.getSettingsState,
     setContextFolderValue: state.setContextFolderValue,
     setSkillHarness: state.setSkillHarness,
+    setSkillHarnesses: state.setSkillHarnesses,
     setLlmProviderValue: state.setLlmProviderValue,
     setLlmApiKeyPending: state.setLlmApiKeyPending,
     setLlmApiKeySaved: state.setLlmApiKeySaved,
@@ -519,9 +528,17 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     const settingsResult = await apis.settingsApi.loadSettings()
     setWizardCompletionState(settingsResult?.wizardCompleted === true)
     callIfAvailable(apis.recordingApi, 'updateStillsUI')
-    const savedHarness = settingsResult?.skillInstaller?.harness || ''
-    if (savedHarness && apis.wizardSkillApi && typeof apis.wizardSkillApi.checkInstallStatus === 'function') {
-      await apis.wizardSkillApi.checkInstallStatus(savedHarness)
+    const rawHarnessValue = settingsResult?.skillInstaller?.harness
+    const legacyHarnesses = settingsResult?.skillInstaller?.harnesses
+    const savedHarnesses = normalizeStringArray([
+      ...(Array.isArray(rawHarnessValue) ? rawHarnessValue : [rawHarnessValue]),
+      ...(Array.isArray(legacyHarnesses) ? legacyHarnesses : [])
+    ])
+    const harnessesForStatus = savedHarnesses.length > 0
+      ? savedHarnesses
+      : []
+    if (harnessesForStatus.length > 0 && apis.wizardSkillApi && typeof apis.wizardSkillApi.checkInstallStatus === 'function') {
+      await apis.wizardSkillApi.checkInstallStatus(harnessesForStatus)
     }
     const defaultSection = isWizardCompleted ? 'general' : 'wizard'
     setActiveSection(defaultSection)

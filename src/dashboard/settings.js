@@ -1,4 +1,9 @@
 (function (global) {
+  const normalizeStringArray = global?.FamiliarDashboardListUtils?.normalizeStringArray
+  if (typeof normalizeStringArray !== 'function') {
+    throw new Error('FamiliarDashboardListUtils.normalizeStringArray is unavailable')
+  }
+
   const createSettings = (options = {}) => {
     const elements = options.elements || {}
     const familiar = options.familiar || {}
@@ -8,6 +13,9 @@
       : () => {}
     const setSkillHarness = typeof options.setSkillHarness === 'function'
       ? options.setSkillHarness
+      : () => {}
+    const setSkillHarnesses = typeof options.setSkillHarnesses === 'function'
+      ? options.setSkillHarnesses
       : () => {}
     const setLlmProviderValue = typeof options.setLlmProviderValue === 'function'
       ? options.setLlmProviderValue
@@ -214,7 +222,17 @@
         setLlmApiKeySaved(result.llmProviderApiKey || '')
         setStillsMarkdownExtractorType(result.stillsMarkdownExtractorType || 'apple_vision_ocr')
         setAlwaysRecordWhenActiveValue(result.alwaysRecordWhenActive === true)
-        setSkillHarness(result?.skillInstaller?.harness || '')
+        const rawHarnessValue = result?.skillInstaller?.harness
+        const legacyHarnesses = result?.skillInstaller?.harnesses
+        const savedHarnesses = normalizeStringArray([
+          ...(Array.isArray(rawHarnessValue) ? rawHarnessValue : [rawHarnessValue]),
+          ...(Array.isArray(legacyHarnesses) ? legacyHarnesses : [])
+        ])
+        if (savedHarnesses.length > 0) {
+          setSkillHarnesses(savedHarnesses)
+        } else {
+          setSkillHarness('')
+        }
         setMessage(contextFolderErrors, result.validationMessage || '')
         setMessage(contextFolderStatuses, '')
         setMessage(llmProviderErrors, '')

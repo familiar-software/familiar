@@ -41,9 +41,27 @@ class TestInput {
     this._listeners[event] = handler
   }
 
-  async triggerChange() {
+  async triggerChange(checked = this.checked) {
+    this.checked = checked
     if (typeof this._listeners.change === 'function') {
       await this._listeners.change({ target: this })
+    }
+  }
+}
+
+class TestButton {
+  constructor() {
+    this.disabled = false
+    this._listeners = {}
+  }
+
+  addEventListener(event, handler) {
+    this._listeners[event] = handler
+  }
+
+  async click() {
+    if (typeof this._listeners.click === 'function') {
+      await this._listeners.click()
     }
   }
 }
@@ -67,8 +85,17 @@ const loadWizardSkillModule = () => {
   return require(modulePath)
 }
 
-const createHarness = ({ currentSkillHarness = '', getStatus, installResult } = {}) => {
-  const state = { currentSkillHarness }
+const createHarness = ({
+  currentSkillHarness = '',
+  currentSkillHarnesses = [],
+  getStatus,
+  installSkill,
+  saveSettings
+} = {}) => {
+  const state = {
+    currentSkillHarness,
+    currentSkillHarnesses: Array.isArray(currentSkillHarnesses) ? [...currentSkillHarnesses] : []
+  }
   const claude = new TestInput('claude')
   const codex = new TestInput('codex')
   const antigravity = new TestInput('antigravity')
@@ -82,19 +109,33 @@ const createHarness = ({ currentSkillHarness = '', getStatus, installResult } = 
   const settingsSkillPath = { classList: new ClassList(), textContent: '' }
   const wizardSkillStatus = { classList: new ClassList(), textContent: '' }
   const settingsSkillStatus = { classList: new ClassList(), textContent: '' }
+  const wizardSkillInstallButton = new TestButton()
+  const settingsSkillInstallButton = new TestButton()
+  const installCalls = []
+  const statusCalls = []
+  const saveCalls = []
 
   const familiar = {
-    getSkillInstallStatus: async () => {
+    getSkillInstallStatus: async ({ harness }) => {
+      statusCalls.push(harness)
       if (typeof getStatus === 'function') {
-        return getStatus()
+        return getStatus({ harness })
       }
       return { ok: true, installed: false, path: '' }
     },
-    installSkill: async () => {
-      if (installResult) {
-        return installResult
+    installSkill: async ({ harness }) => {
+      installCalls.push(harness)
+      if (typeof installSkill === 'function') {
+        return installSkill({ harness })
       }
-      return { ok: true, path: '/tmp/skills/familiar' }
+      return { ok: true, path: `/tmp/.${harness}/skills/familiar` }
+    },
+    saveSettings: async (payload) => {
+      saveCalls.push(payload)
+      if (typeof saveSettings === 'function') {
+        return saveSettings(payload)
+      }
+      return { ok: true }
     }
   }
 
@@ -110,24 +151,23 @@ const createHarness = ({ currentSkillHarness = '', getStatus, installResult } = 
         settingsAntigravity,
         settingsCursor
       ],
-      skillInstallButtons: [
-        { disabled: false, addEventListener: () => {} },
-        { disabled: false, addEventListener: () => {} }
-      ],
-      skillInstallPaths: [
-        wizardSkillPath,
-        settingsSkillPath
-      ],
-      skillInstallStatuses: [
-        wizardSkillStatus,
-        settingsSkillStatus
-      ],
+      skillInstallButtons: [wizardSkillInstallButton, settingsSkillInstallButton],
+      skillInstallPaths: [wizardSkillPath, settingsSkillPath],
+      skillInstallStatuses: [wizardSkillStatus, settingsSkillStatus],
       skillCursorRestartNotes: [wizardSkillCursorRestartNote, settingsSkillCursorRestartNote]
     },
     familiar,
-    getState: () => ({ currentSkillHarness: state.currentSkillHarness }),
+    getState: () => ({
+      currentSkillHarness: state.currentSkillHarness,
+      currentSkillHarnesses: state.currentSkillHarnesses
+    }),
     setSkillHarness: (harness) => {
       state.currentSkillHarness = harness
+      state.currentSkillHarnesses = harness ? [harness] : []
+    },
+    setSkillHarnesses: (harnesses) => {
+      state.currentSkillHarnesses = [...harnesses]
+      state.currentSkillHarness = harnesses[0] || ''
     },
     setSkillInstalled: () => {},
     setMessage,
@@ -140,6 +180,7 @@ const createHarness = ({ currentSkillHarness = '', getStatus, installResult } = 
     antigravity,
     cursor,
     settingsCodex,
+    settingsAntigravity,
     settingsCursor,
     wizardSkillCursorRestartNote,
     settingsSkillCursorRestartNote,
@@ -147,21 +188,26 @@ const createHarness = ({ currentSkillHarness = '', getStatus, installResult } = 
     settingsSkillPath,
     wizardSkillStatus,
     settingsSkillStatus,
+    wizardSkillInstallButton,
+    settingsSkillInstallButton,
+    installCalls,
+    statusCalls,
+    saveCalls,
     api
   }
 }
 
-test('wizard skill shows cursor restart note only for cursor harness selection', async () => {
+test('wizard skill supports multi-select and shows cursor restart note when cursor is included', async () => {
   const priorWindow = global.window
   global.window = {}
 
   try {
     const {
-      claude,
       codex,
       antigravity,
       cursor,
       settingsCodex,
+      settingsAntigravity,
       settingsCursor,
       wizardSkillCursorRestartNote,
       settingsSkillCursorRestartNote
@@ -170,39 +216,43 @@ test('wizard skill shows cursor restart note only for cursor harness selection',
     assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
     assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
 
-    await codex.triggerChange()
+    await codex.triggerChange(true)
+    assert.equal(codex.checked, true)
+    assert.equal(settingsCodex.checked, true)
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
+
+    await antigravity.triggerChange(true)
+    assert.equal(antigravity.checked, true)
+    assert.equal(settingsAntigravity.checked, true)
+    assert.equal(codex.checked, true)
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
+
+    await cursor.triggerChange(true)
+    assert.equal(cursor.checked, true)
+    assert.equal(settingsCursor.checked, true)
+    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), false)
+    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), false)
+
+    await cursor.triggerChange(false)
+    assert.equal(cursor.checked, false)
+    assert.equal(settingsCursor.checked, false)
     assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
     assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
     assert.equal(codex.checked, true)
-    assert.equal(settingsCodex.checked, true)
-
-    await antigravity.triggerChange()
-    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
-    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
     assert.equal(antigravity.checked, true)
-
-    await cursor.triggerChange()
-    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), false)
-    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), false)
-    assert.equal(codex.checked, false)
-    assert.equal(settingsCodex.checked, false)
-    assert.equal(cursor.checked, true)
-    assert.equal(settingsCursor.checked, true)
-
-    await claude.triggerChange()
-    assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), true)
-    assert.equal(settingsSkillCursorRestartNote.classList.contains('hidden'), true)
   } finally {
     global.window = priorWindow
   }
 })
 
-test('wizard skill shows cursor restart note on init when cursor is already selected', async () => {
+test('wizard skill shows cursor restart note on init when cursor is in selected harnesses', async () => {
   const priorWindow = global.window
   global.window = {}
 
   try {
-    const { wizardSkillCursorRestartNote, settingsSkillCursorRestartNote } = createHarness({ currentSkillHarness: 'cursor' })
+    const { wizardSkillCursorRestartNote, settingsSkillCursorRestartNote } = createHarness({
+      currentSkillHarnesses: ['codex', 'cursor']
+    })
     await new Promise((resolve) => setImmediate(resolve))
 
     assert.equal(wizardSkillCursorRestartNote.classList.contains('hidden'), false)
@@ -212,30 +262,62 @@ test('wizard skill shows cursor restart note on init when cursor is already sele
   }
 })
 
-test('wizard skill shows install path until installed, then shows installed path sentence', async () => {
+test('wizard skill shows missing install paths and then a multi-installed status', async () => {
   const priorWindow = global.window
   global.window = {}
-  let statusResult = { ok: true, installed: false, path: '/tmp/.codex/skills/familiar' }
+  const statusByHarness = {
+    codex: { ok: true, installed: false, path: '/tmp/.codex/skills/familiar' },
+    cursor: { ok: true, installed: false, path: '/tmp/.cursor/skills/familiar' }
+  }
 
   try {
-    const { codex, wizardSkillPath, wizardSkillStatus, api } = createHarness({
-      getStatus: () => statusResult
+    const { codex, cursor, wizardSkillPath, wizardSkillStatus, api } = createHarness({
+      getStatus: ({ harness }) => statusByHarness[harness]
     })
 
-    await codex.triggerChange()
-
-    assert.equal(wizardSkillPath.textContent, 'Install path: /tmp/.codex/skills/familiar')
-    assert.equal(wizardSkillPath.classList.contains('hidden'), false)
+    await codex.triggerChange(true)
+    await cursor.triggerChange(true)
+    assert.match(wizardSkillPath.textContent, /Install paths:/)
+    assert.match(wizardSkillPath.textContent, /Codex: \/tmp\/\.codex\/skills\/familiar/)
+    assert.match(wizardSkillPath.textContent, /Cursor: \/tmp\/\.cursor\/skills\/familiar/)
     assert.equal(wizardSkillStatus.textContent, '')
-    assert.equal(wizardSkillStatus.classList.contains('hidden'), true)
 
-    statusResult = { ok: true, installed: true, path: '/tmp/.codex/skills/familiar' }
-    await api.checkInstallStatus('codex')
+    statusByHarness.codex = { ok: true, installed: true, path: '/tmp/.codex/skills/familiar' }
+    statusByHarness.cursor = { ok: true, installed: true, path: '/tmp/.cursor/skills/familiar' }
+    await api.checkInstallStatus(['codex', 'cursor'])
 
     assert.equal(wizardSkillPath.textContent, '')
-    assert.equal(wizardSkillPath.classList.contains('hidden'), true)
-    assert.equal(wizardSkillStatus.textContent, 'Installed at /tmp/.codex/skills/familiar')
+    assert.equal(wizardSkillStatus.textContent, 'Installed for Codex, Cursor.')
     assert.equal(wizardSkillStatus.classList.contains('hidden'), false)
+  } finally {
+    global.window = priorWindow
+  }
+})
+
+test('wizard skill installs for all selected harnesses on install click', async () => {
+  const priorWindow = global.window
+  global.window = {}
+
+  try {
+    const { codex, cursor, wizardSkillInstallButton, installCalls, saveCalls, wizardSkillStatus } = createHarness({
+      getStatus: ({ harness }) => ({ ok: true, installed: false, path: `/tmp/.${harness}/skills/familiar` }),
+      installSkill: async ({ harness }) => ({ ok: true, path: `/tmp/.${harness}/skills/familiar` })
+    })
+
+    await codex.triggerChange(true)
+    await cursor.triggerChange(true)
+    await wizardSkillInstallButton.click()
+    await new Promise((resolve) => setImmediate(resolve))
+
+    assert.deepEqual(installCalls, ['codex', 'cursor'])
+    assert.equal(wizardSkillStatus.textContent, 'Installed for Codex, Cursor.')
+    assert.equal(saveCalls.length > 0, true)
+    const latestSave = saveCalls[saveCalls.length - 1]
+    assert.deepEqual(latestSave.skillInstaller.harness, ['codex', 'cursor'])
+    assert.deepEqual(
+      latestSave.skillInstaller.installPath,
+      ['/tmp/.codex/skills/familiar', '/tmp/.cursor/skills/familiar']
+    )
   } finally {
     global.window = priorWindow
   }

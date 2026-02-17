@@ -31,13 +31,18 @@
 
     const isWizardStepComplete = (step) => {
       const state = getState()
+      const selectedSkillHarnesses = Array.isArray(state.currentSkillHarnesses)
+        ? state.currentSkillHarnesses
+        : state.currentSkillHarness
+          ? [state.currentSkillHarness]
+          : []
       switch (step) {
         case 1:
           return Boolean(state.currentContextFolderPath)
         case 2:
           return Boolean(state.currentAlwaysRecordWhenActive)
         case 3:
-          return Boolean(state.isSkillInstalled)
+          return selectedSkillHarnesses.length > 0 && Boolean(state.isSkillInstalled)
         case 4:
           return Boolean(state.isSkillInstalled)
         default:

@@ -486,27 +486,60 @@
                 </div>
                 <div data-component-source="install-skill" class="space-y-5">
                   <section class="space-y-2">
-                    <div class="space-y-2">
-                      <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                        <input type="radio" name="wizard-skill-harness" value="claude" data-skill-harness>
-                        Claude Code
+                    <div class="skill-picker-options">
+                      <label class="skill-picker-option">
+                        <input type="checkbox" name="wizard-skill-harness" value="claude" data-skill-harness class="sr-only">
+                        <span class="skill-picker-option-card">
+                          <span class="skill-picker-radio" aria-hidden="true"><span class="skill-picker-radio-dot"></span></span>
+                          <span class="skill-picker-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                              <rect x="4" y="7" width="16" height="11" rx="3" />
+                              <path d="M9.5 10.5h5M9.5 13.5h5" />
+                            </svg>
+                          </span>
+                          <span class="skill-picker-label">Claude Code</span>
+                        </span>
                       </label>
-                      <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                        <input type="radio" name="wizard-skill-harness" value="codex" data-skill-harness>
-                        Codex
+                      <label class="skill-picker-option">
+                        <input type="checkbox" name="wizard-skill-harness" value="codex" data-skill-harness class="sr-only">
+                        <span class="skill-picker-option-card">
+                          <span class="skill-picker-radio" aria-hidden="true"><span class="skill-picker-radio-dot"></span></span>
+                          <span class="skill-picker-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                              <path d="M8 9 5 12l3 3M16 9l3 3-3 3M14 5l-4 14" />
+                            </svg>
+                          </span>
+                          <span class="skill-picker-label">Codex</span>
+                        </span>
                       </label>
-                      <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                        <input type="radio" name="wizard-skill-harness" value="antigravity" data-skill-harness>
-                        Antigravity
+                      <label class="skill-picker-option">
+                        <input type="checkbox" name="wizard-skill-harness" value="antigravity" data-skill-harness class="sr-only">
+                        <span class="skill-picker-option-card">
+                          <span class="skill-picker-radio" aria-hidden="true"><span class="skill-picker-radio-dot"></span></span>
+                          <span class="skill-picker-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                              <path d="M4 13h7l-1 7 10-12h-7l1-4Z" />
+                            </svg>
+                          </span>
+                          <span class="skill-picker-label">Antigravity</span>
+                        </span>
                       </label>
-                      <label class="flex items-center gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-200">
-                        <input type="radio" name="wizard-skill-harness" value="cursor" data-skill-harness>
-                        Cursor
-                        <span id="wizard-skill-cursor-restart-note" data-skill-cursor-restart-note class="font-semibold text-zinc-700 dark:text-zinc-200 hidden">(Restart Cursor for the skill to take effect)</span>
+                      <label class="skill-picker-option">
+                        <input type="checkbox" name="wizard-skill-harness" value="cursor" data-skill-harness class="sr-only">
+                        <span class="skill-picker-option-card">
+                          <span class="skill-picker-radio" aria-hidden="true"><span class="skill-picker-radio-dot"></span></span>
+                          <span class="skill-picker-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                              <path d="m7 4 9 8-5 1 1 5-5-14Z" />
+                            </svg>
+                          </span>
+                          <span class="skill-picker-label">Cursor</span>
+                        </span>
+                        <span id="wizard-skill-cursor-restart-note" data-skill-cursor-restart-note class="skill-picker-note hidden">Restart Cursor for the skill to take effect.</span>
                       </label>
                     </div>
                   </section>
-                  <p id="wizard-skill-path" data-skill-install-path class="text-xs text-zinc-500 dark:text-zinc-400 hidden"></p>
+                  <p id="wizard-skill-path" data-skill-install-path class="text-xs text-zinc-500 dark:text-zinc-400 whitespace-pre-line hidden"></p>
                   <p id="wizard-skill-status" data-skill-install-status class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></p>
                   <div class="flex flex-wrap items-center gap-2">
                     <button id="wizard-skill-install" data-action="skill-install" type="button" class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Install Skill</button>
@@ -539,6 +572,7 @@
 
     <script src="./wizard.js"></script>
     <script src="./wizard-skill.js"></script>
+    <script src="./list-utils.js"></script>
     <script src="./updates.js"></script>
     <script src="../recording-status-indicator.js"></script>
     <script src="./stills.js"></script>

@@ -38,26 +38,48 @@ test('saveSettings persists stills_markdown_extractor.llm_provider api_key/provi
   assert.equal(loaded.stills_markdown_extractor?.llm_provider?.api_key, 'test-key')
 })
 
-test('saveSettings persists skillInstaller harness + installPath', () => {
+test('saveSettings normalizes single skillInstaller harness + installPath into arrays', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')
 
   saveSettings({ skillInstaller: { harness: 'codex', installPath: '/tmp/.codex/skills/familiar' } }, { settingsDir })
 
   const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.skillInstaller?.harness, 'codex')
-  assert.equal(loaded.skillInstaller?.installPath, '/tmp/.codex/skills/familiar')
+  assert.deepEqual(loaded.skillInstaller?.harness, ['codex'])
+  assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.codex/skills/familiar'])
 })
 
-test('saveSettings persists antigravity skillInstaller harness + installPath', () => {
+test('saveSettings normalizes antigravity single skillInstaller values into arrays', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')
 
   saveSettings({ skillInstaller: { harness: 'antigravity', installPath: '/tmp/.gemini/antigravity/skills/familiar' } }, { settingsDir })
 
   const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.skillInstaller?.harness, 'antigravity')
-  assert.equal(loaded.skillInstaller?.installPath, '/tmp/.gemini/antigravity/skills/familiar')
+  assert.deepEqual(loaded.skillInstaller?.harness, ['antigravity'])
+  assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.gemini/antigravity/skills/familiar'])
+})
+
+test('saveSettings persists skillInstaller arrays from legacy harnesses/installPaths fields', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+
+  saveSettings({
+    skillInstaller: {
+      harnesses: ['codex', 'cursor'],
+      installPaths: {
+        codex: '/tmp/.codex/skills/familiar',
+        cursor: '/tmp/.cursor/skills/familiar'
+      }
+    }
+  }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.deepEqual(loaded.skillInstaller?.harness, ['codex', 'cursor'])
+  assert.deepEqual(
+    loaded.skillInstaller?.installPath,
+    ['/tmp/.codex/skills/familiar', '/tmp/.cursor/skills/familiar']
+  )
 })
 
 test('saveSettings preserves skillInstaller when updating other settings', () => {
@@ -71,8 +93,38 @@ test('saveSettings preserves skillInstaller when updating other settings', () =>
 
   const loaded = loadSettings({ settingsDir })
   assert.equal(loaded.contextFolderPath, contextDir)
-  assert.equal(loaded.skillInstaller?.harness, 'cursor')
-  assert.equal(loaded.skillInstaller?.installPath, '/tmp/.cursor/skills/familiar')
+  assert.deepEqual(loaded.skillInstaller?.harness, ['cursor'])
+  assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.cursor/skills/familiar'])
+})
+
+test('saveSettings migrates legacy on-disk single skillInstaller values to arrays on next save', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+  fs.mkdirSync(settingsDir, { recursive: true })
+  const settingsPath = path.join(settingsDir, SETTINGS_FILE_NAME)
+
+  fs.writeFileSync(
+    settingsPath,
+    JSON.stringify(
+      {
+        contextFolderPath: '',
+        skillInstaller: {
+          harness: 'codex',
+          installPath: '/tmp/.codex/skills/familiar'
+        }
+      },
+      null,
+      2
+    ),
+    'utf-8'
+  )
+
+  saveSettings({ wizardCompleted: true }, { settingsDir })
+  const loaded = loadSettings({ settingsDir })
+
+  assert.equal(loaded.wizardCompleted, true)
+  assert.deepEqual(loaded.skillInstaller?.harness, ['codex'])
+  assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.codex/skills/familiar'])
 })
 
 test('saveSettings preserves stills_markdown_extractor.llm_provider api_key/provider when updating context path', () => {

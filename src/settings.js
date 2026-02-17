@@ -3,11 +3,39 @@ const path = require('node:path');
 const os = require('node:os');
 
 const { SETTINGS_DIR_NAME, SETTINGS_FILE_NAME } = require('./const');
+const { normalizeStringArray } = require('./utils/list');
 
 const resolveSettingsDir = (settingsDir) =>
     settingsDir || process.env.FAMILIAR_SETTINGS_DIR || path.join(os.homedir(), SETTINGS_DIR_NAME);
 
 const resolveSettingsPath = (options = {}) => path.join(resolveSettingsDir(options.settingsDir), SETTINGS_FILE_NAME);
+
+const normalizeSkillInstallerHarnessList = (raw = {}) => {
+    const legacyHarnesses = Array.isArray(raw.harnesses) ? raw.harnesses : [];
+    const directHarnesses = Array.isArray(raw.harness) ? raw.harness : [raw.harness];
+    return normalizeStringArray([...directHarnesses, ...legacyHarnesses], {
+        lowerCase: true
+    });
+};
+
+const normalizeSkillInstallerPathList = (raw = {}, harnesses = []) => {
+    const directPaths = [];
+    if (Array.isArray(raw.installPath)) {
+        directPaths.push(...raw.installPath);
+    } else if (typeof raw.installPath === 'string') {
+        directPaths.push(raw.installPath);
+    }
+
+    const byHarness = raw && typeof raw.installPaths === 'object' ? raw.installPaths : {};
+    const normalized = [];
+    harnesses.forEach((harness, index) => {
+        const direct = typeof directPaths[index] === 'string' ? directPaths[index] : '';
+        const mapped = typeof byHarness[harness] === 'string' ? byHarness[harness] : '';
+        const value = (direct || mapped || '').trim();
+        normalized.push(value);
+    });
+    return normalized;
+};
 
 const loadSettings = (options = {}) => {
     const settingsPath = resolveSettingsPath(options);
@@ -148,12 +176,16 @@ const saveSettings = (settings, options = {}) => {
 
     if (hasSkillInstaller) {
         const raw = settings && typeof settings.skillInstaller === 'object' ? settings.skillInstaller : {};
+        const harnesses = normalizeSkillInstallerHarnessList(raw);
+        const installPaths = normalizeSkillInstallerPathList(raw, harnesses);
         payload.skillInstaller = {
-            harness: typeof raw.harness === 'string' ? raw.harness : '',
-            installPath: typeof raw.installPath === 'string' ? raw.installPath : '',
+            harness: harnesses,
+            installPath: installPaths,
         };
     } else if (Object.keys(existingSkillInstaller).length > 0) {
-        payload.skillInstaller = { ...existingSkillInstaller };
+        const harnesses = normalizeSkillInstallerHarnessList(existingSkillInstaller);
+        const installPaths = normalizeSkillInstallerPathList(existingSkillInstaller, harnesses);
+        payload.skillInstaller = { harness: harnesses, installPath: installPaths };
     }
 
     fs.writeFileSync(settingsPath, JSON.stringify(payload, null, 2), 'utf-8');

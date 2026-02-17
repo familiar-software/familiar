@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { loadSettings, saveSettings, validateContextFolderPath } = require('../settings');
+const { normalizeStringArray } = require('../utils/list');
 const {
   getScreenRecordingPermissionStatus,
   openScreenRecordingSettings
@@ -14,6 +15,33 @@ let onSettingsSaved = null;
 const PROBE_RECORDER_WINDOW_NAME = 'familiar-permission-probe-';
 const PERMISSION_PROBE_TIMEOUT_MS = 12_000;
 let permissionProbeRecorder = null;
+
+const VALID_SKILL_HARNESSES = new Set(['claude', 'codex', 'cursor', 'antigravity']);
+
+const normalizeSkillInstallerHarnesses = (raw = {}) => {
+    const directHarnesses = Array.isArray(raw?.harness) ? raw.harness : [raw?.harness];
+    const legacyHarnesses = Array.isArray(raw?.harnesses) ? raw.harnesses : [];
+    return normalizeStringArray([...directHarnesses, ...legacyHarnesses], { lowerCase: true })
+        .filter((value) => VALID_SKILL_HARNESSES.has(value));
+};
+
+const normalizeSkillInstallerPaths = (raw = {}, harnesses = []) => {
+    const list = [];
+    if (Array.isArray(raw?.installPath)) {
+        list.push(...raw.installPath);
+    } else if (typeof raw?.installPath === 'string') {
+        list.push(raw.installPath);
+    }
+    const map = raw && typeof raw.installPaths === 'object' ? raw.installPaths : {};
+    const normalized = [];
+    harnesses.forEach((harness, index) => {
+        const direct = typeof list[index] === 'string' ? list[index].trim() : '';
+        const mapped = typeof map[harness] === 'string' ? map[harness].trim() : '';
+        const value = direct || mapped;
+        normalized.push(value);
+    });
+    return normalized;
+};
 
 const readPermissionProbeRecorder = () => {
   if (!permissionProbeRecorder) {
@@ -134,9 +162,8 @@ function handleGetSettings() {
         })();
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
         const wizardCompleted = settings.wizardCompleted === true;
-        const skillInstallerHarness = typeof settings?.skillInstaller?.harness === 'string' ? settings.skillInstaller.harness : '';
-        const skillInstallerInstallPath =
-            typeof settings?.skillInstaller?.installPath === 'string' ? settings.skillInstaller.installPath : '';
+        const skillInstallerHarness = normalizeSkillInstallerHarnesses(settings?.skillInstaller || {});
+        const skillInstallerInstallPath = normalizeSkillInstallerPaths(settings?.skillInstaller || {}, skillInstallerHarness);
         let validationMessage = '';
 
         if (contextFolderPath) {
@@ -174,7 +201,7 @@ function handleGetSettings() {
             stillsMarkdownExtractorType: 'apple_vision_ocr',
             alwaysRecordWhenActive: false,
             wizardCompleted: false,
-            skillInstaller: { harness: '', installPath: '' },
+            skillInstaller: { harness: [], installPath: [] },
             appVersion
         };
     }
@@ -246,23 +273,15 @@ function handleSaveSettings(_event, payload) {
 
     if (hasSkillInstaller) {
         const raw = payload?.skillInstaller;
-        const harness = typeof raw?.harness === 'string' ? raw.harness.trim().toLowerCase() : '';
-        if (!harness) {
-            return { ok: false, message: 'Harness is required.' };
-        }
-        if (
-            harness !== 'claude' &&
-            harness !== 'codex' &&
-            harness !== 'cursor' &&
-            harness !== 'antigravity'
-        ) {
-            return { ok: false, message: 'Invalid harness.' };
+        const harnesses = normalizeSkillInstallerHarnesses(raw || {});
+        if (harnesses.length === 0) {
+            return { ok: false, message: 'At least one harness is required.' };
         }
 
-        // Canonical install path is derived from the harness.
+        // Canonical install paths are derived from selected harnesses.
         settingsPayload.skillInstaller = {
-            harness,
-            installPath: resolveHarnessSkillPath(harness),
+            harness: harnesses,
+            installPath: harnesses.map((harness) => resolveHarnessSkillPath(harness)),
         };
     }
 

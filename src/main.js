@@ -16,6 +16,10 @@ const { buildTrayMenuTemplate } = require('./menu');
 const { initLogging } = require('./logger');
 const { showToast } = require('./toast');
 const {
+    createRecordingOffReminder,
+    DEFAULT_RECORDING_OFF_REMINDER_DELAY_MS
+} = require('./recording-off-reminder');
+const {
     createTrayMenuController,
 } = require('./tray/refresh');
 const { initializeAutoUpdater, scheduleDailyUpdateCheck } = require('./updates');
@@ -34,6 +38,50 @@ let isQuitting = false;
 let screenStillsController = null;
 let presenceMonitor = null;
 let recordingShutdownInProgress = false;
+let recordingOffReminder = null;
+const e2eToastEvents = [];
+const E2E_TOAST_EVENT_LIMIT = 20;
+
+const parsePositiveInteger = (value) => {
+    if (typeof value !== 'string' || value.trim() === '') {
+        return null;
+    }
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
+    }
+    return Math.floor(parsed);
+};
+
+const recordE2EToastEvent = (payload = {}) => {
+    if (!isE2E) {
+        return;
+    }
+
+    e2eToastEvents.push({
+        title: typeof payload.title === 'string' ? payload.title : '',
+        body: typeof payload.body === 'string' ? payload.body : '',
+        type: typeof payload.type === 'string' ? payload.type : 'info',
+        size: typeof payload.size === 'string' ? payload.size : 'compact',
+        duration: Number.isFinite(payload.duration) && payload.duration > 0
+            ? Math.floor(payload.duration)
+            : null,
+        at: Date.now()
+    });
+
+    if (e2eToastEvents.length > E2E_TOAST_EVENT_LIMIT) {
+        e2eToastEvents.splice(0, e2eToastEvents.length - E2E_TOAST_EVENT_LIMIT);
+    }
+};
+
+const maybeE2EToast = (payload = {}) => {
+    if (!payload || typeof payload !== 'object') {
+        showToast(payload);
+        return;
+    }
+    recordE2EToastEvent(payload);
+    showToast(payload);
+};
 
 const isE2E = process.env.FAMILIAR_E2E === '1';
 const isCI = process.env.CI === 'true' || process.env.CI === '1';
@@ -50,6 +98,19 @@ const pauseDurationOverrideMs = (() => {
     };
     return parsePauseOverride(process.env.FAMILIAR_E2E_PAUSE_MS)
       ?? parsePauseOverride(process.env.FAMILIAR_RECORDING_PAUSE_MS);
+    })();
+
+const recordingOffReminderDelayMs = (() => {
+    const override = parsePositiveInteger(process.env.FAMILIAR_RECORDING_OFF_REMINDER_DELAY_MS);
+    if (override !== null) {
+        console.log('Recording-off reminder delay override enabled', {
+            delayMs: override,
+            reason: 'FAMILIAR_RECORDING_OFF_REMINDER_DELAY_MS'
+        });
+        return override;
+    }
+
+    return DEFAULT_RECORDING_OFF_REMINDER_DELAY_MS;
 })();
 
 initLogging();
@@ -99,6 +160,20 @@ const handleStillsError = ({ message, willRetry, retryDelayMs, attempt } = {}) =
         type: 'warning',
         size: 'large'
     });
+};
+
+const handleRecordingOffReminderTransition = (transition) => {
+    if (!recordingOffReminder || typeof recordingOffReminder.handleStateTransition !== 'function') {
+        return;
+    }
+    recordingOffReminder.handleStateTransition(transition);
+};
+
+const syncRecordingOffReminderState = () => {
+    if (!recordingOffReminder || typeof recordingOffReminder.syncWithCurrentState !== 'function') {
+        return;
+    }
+    recordingOffReminder.syncWithCurrentState(getCurrentScreenStillsState());
 };
 
 const startScreenStills = async () => {
@@ -421,6 +496,20 @@ ipcMain.handle('screenStills:simulateIdle', (_event, payload = {}) => {
     return { ok: true };
 });
 
+ipcMain.handle('e2e:toast:events', (_event, options = {}) => {
+    if (!isE2E) {
+        return { ok: false, message: 'Toast E2E API is only available in E2E mode.' };
+    }
+
+    const clear = options?.clear === true;
+    const events = [...e2eToastEvents];
+    if (clear) {
+        e2eToastEvents.length = 0;
+    }
+
+    return { ok: true, events };
+});
+
 ipcMain.handle('e2e:tray:getRecordingLabel', () => {
     if (!isE2E) {
         return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
@@ -451,11 +540,8 @@ app.whenReady().then(() => {
         return;
     }
 
-    if (process.platform === 'darwin') {
-        app.dock?.show();
-        app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
-
-        createTray();
+    const shouldInitializeRecording = process.platform === 'darwin' || isE2E;
+    if (shouldInitializeRecording) {
         presenceMonitor = createPresenceMonitor({ logger: console });
         if (pauseDurationOverrideMs) {
             console.log('Screen capture pause duration override enabled', {
@@ -465,12 +551,24 @@ app.whenReady().then(() => {
         screenStillsController = createScreenStillsController({
             logger: console,
             onError: handleStillsError,
+            onStateTransition: handleRecordingOffReminderTransition,
             presenceMonitor,
             ...(pauseDurationOverrideMs ? { pauseDurationMs: pauseDurationOverrideMs } : {})
         });
+        recordingOffReminder = createRecordingOffReminder({
+            delayMs: recordingOffReminderDelayMs,
+            showToast: maybeE2EToast
+        });
         screenStillsController.start();
+        syncRecordingOffReminderState();
         updateScreenCaptureFromSettings();
+    }
 
+    if (process.platform === 'darwin') {
+        app.dock?.show();
+        app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
+
+        createTray();
         const updateState = initializeAutoUpdater({ isE2E, isCI });
         if (updateState.enabled) {
             scheduleDailyUpdateCheck();
@@ -490,6 +588,9 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', (event) => {
+    if (recordingOffReminder && typeof recordingOffReminder.stopReminder === 'function') {
+        recordingOffReminder.stopReminder();
+    }
     isQuitting = true;
     if (screenStillsController) {
         const stillsState = screenStillsController?.getState?.().state;

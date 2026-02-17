@@ -416,3 +416,45 @@ test('stills controller does not retry start when presence becomes idle before c
   await flushPromises()
   assert.equal(calls.start.length, 1)
 })
+
+test('stills controller emits transition reasons including user-toggle-off', async () => {
+  const transitions = []
+  const contextFolderPath = makeTempContext()
+  const presence = createPresenceMonitor()
+  const calls = { start: [], stop: [] }
+  const recorder = {
+    start: async (payload) => {
+      calls.start.push(payload)
+    },
+    stop: async (payload) => {
+      calls.stop.push(payload)
+    }
+  }
+  const markdownWorker = { start: () => {}, stop: () => {} }
+
+  const controller = createScreenStillsController({
+    presenceMonitor: presence,
+    recorder,
+    markdownWorker,
+    onStateTransition: (transition) => transitions.push(transition),
+    logger: silentLogger
+  })
+
+  controller.start()
+  controller.updateSettings({ enabled: true, contextFolderPath })
+  presence.emit('active')
+  await flushPromises()
+
+  assert.equal(controller.getState().state, 'recording')
+
+  controller.updateSettings({ enabled: false, contextFolderPath })
+  await flushPromises()
+
+  const userOffTransition = transitions.find((transition) =>
+    transition.reason === 'user-toggle-off'
+      && transition.toState === 'disabled'
+  )
+  assert.equal(Boolean(userOffTransition), true)
+  assert.equal(controller.getState().state, 'disabled')
+  assert.equal(calls.stop.length >= 1, true)
+})

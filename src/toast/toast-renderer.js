@@ -57,8 +57,8 @@ ipcRenderer.on('toast-data', (_event, { title, body, type = 'info', size = 'comp
   } else {
     toastEl.classList.remove('max-w-[420px]')
     toastEl.classList.add('max-w-[320px]')
-    bodyEl.classList.remove('whitespace-pre-line', 'break-all', 'leading-relaxed')
-    bodyEl.classList.add('truncate')
+    bodyEl.classList.remove('whitespace-pre-line', 'leading-relaxed', 'truncate')
+    bodyEl.classList.add('break-words')
     closeBtn.classList.add('hidden')
   }
 

@@ -20,6 +20,9 @@ function noop() {}
 function createScreenStillsController(options = {}) {
   const logger = options.logger || console;
   const onError = typeof options.onError === 'function' ? options.onError : noop;
+  const onStateTransition = typeof options.onStateTransition === 'function'
+    ? options.onStateTransition
+    : noop;
   const idleThresholdSeconds =
     typeof options.idleThresholdSeconds === 'number' ? options.idleThresholdSeconds : 60;
   const pauseDurationMs =
@@ -55,6 +58,8 @@ function createScreenStillsController(options = {}) {
   let startRetryAttempt = 0;
 
   function setState(nextState, details = {}) {
+    const resolvedReason = typeof details.reason === 'string' ? details.reason : null;
+
     if (state === nextState) {
       return;
     }
@@ -71,6 +76,13 @@ function createScreenStillsController(options = {}) {
       ...details
     });
     state = nextState;
+    onStateTransition({
+      fromState: prevState,
+      toState: nextState,
+      reason: resolvedReason,
+      enabled: settings.enabled,
+      manualPaused
+    });
   }
 
   function validateContext() {
@@ -267,12 +279,13 @@ function createScreenStillsController(options = {}) {
   }
 
   async function stopRecording(reason) {
+    const stopReason = typeof reason === 'string' && reason.trim() ? reason : 'manual-stop';
     if (state !== STATES.RECORDING && state !== STATES.IDLE_GRACE) {
       return;
     }
-    setState(STATES.STOPPING, { reason });
+    setState(STATES.STOPPING, { reason: stopReason });
     try {
-      await recorder.stop({ reason });
+      await recorder.stop({ reason: stopReason });
     } catch (error) {
       logger.error('Failed to stop recording', error);
       onError({ message: error?.message || 'Failed to stop recording.', reason: 'stop-failed' });
@@ -289,11 +302,13 @@ function createScreenStillsController(options = {}) {
         await startRecording('resume');
         return;
       }
-      setState(STATES.ARMED, { reason: 'stopped' });
+      setState(STATES.ARMED, { reason: stopReason === 'user-toggle-off' ? 'user-toggle-off' : 'stopped' });
       return;
     }
 
-    setState(STATES.DISABLED, { reason: 'disabled' });
+    setState(STATES.DISABLED, {
+      reason: stopReason === 'user-toggle-off' ? 'user-toggle-off' : 'disabled'
+    });
   }
 
   function handleActive() {
@@ -357,12 +372,14 @@ function createScreenStillsController(options = {}) {
   }
 
   function updateSettings({ enabled, contextFolderPath } = {}) {
+    const wasEnabled = settings.enabled;
     settings = {
       enabled: enabled === true,
       contextFolderPath: typeof contextFolderPath === 'string' ? contextFolderPath : ''
     };
 
     if (!settings.enabled) {
+      const disableReason = wasEnabled === true ? 'user-toggle-off' : 'disabled';
       resetStartRetry();
       manualPaused = false;
       manualPauseStartedAt = null;
@@ -374,9 +391,9 @@ function createScreenStillsController(options = {}) {
       }
       activeSessionId = null;
       if (state === STATES.RECORDING || state === STATES.IDLE_GRACE) {
-        void stopRecording('disabled');
+        void stopRecording(disableReason);
       }
-      setState(STATES.DISABLED, { reason: 'disabled' });
+      setState(STATES.DISABLED, { reason: disableReason });
       return;
     }
 

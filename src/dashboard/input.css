@@ -52,6 +52,71 @@
     border-color: #6366f1;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   }
+
+  .skill-picker-options {
+    @apply space-y-1;
+  }
+
+  .skill-picker-option {
+    @apply block cursor-pointer;
+  }
+
+  .skill-picker-option-card {
+    @apply flex items-center gap-2.5 rounded-lg px-2 py-2 border border-transparent text-xs font-medium text-zinc-600 dark:text-zinc-400 transition-colors;
+  }
+
+  .skill-picker-option:hover .skill-picker-option-card {
+    @apply bg-zinc-100 dark:bg-zinc-800/60 text-zinc-900 dark:text-zinc-200;
+  }
+
+  .skill-picker-option input:focus-visible + .skill-picker-option-card {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+
+  .skill-picker-option input:checked + .skill-picker-option-card {
+    @apply bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100;
+  }
+
+  .skill-picker-radio {
+    @apply h-4 w-4 rounded-full border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 flex items-center justify-center;
+  }
+
+  .skill-picker-radio-dot {
+    @apply h-1.5 w-1.5 rounded-full bg-white scale-0 transition-transform;
+  }
+
+  .skill-picker-option input:checked + .skill-picker-option-card .skill-picker-radio {
+    @apply border-indigo-600 bg-indigo-600;
+  }
+
+  .skill-picker-option input:checked + .skill-picker-option-card .skill-picker-radio-dot {
+    @apply scale-100;
+  }
+
+  .skill-picker-icon {
+    @apply h-4 w-4 text-zinc-400 dark:text-zinc-500 transition-colors;
+  }
+
+  .skill-picker-icon svg {
+    @apply h-4 w-4;
+  }
+
+  .skill-picker-option:hover .skill-picker-icon {
+    @apply text-indigo-600 dark:text-indigo-400;
+  }
+
+  .skill-picker-option input:checked + .skill-picker-option-card .skill-picker-icon {
+    @apply text-indigo-600 dark:text-indigo-400;
+  }
+
+  .skill-picker-label {
+    @apply text-xs font-medium;
+  }
+
+  .skill-picker-note {
+    @apply block pt-1 pl-8 text-xs font-semibold text-zinc-500 dark:text-zinc-400;
+  }
 }
 
 @layer utilities {

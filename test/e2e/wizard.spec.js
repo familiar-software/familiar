@@ -56,20 +56,28 @@ const completeWizardPermissionsStep = async (window, nextButton) => {
 const installWizardSkill = async (window) => {
   const skillInstallButton = window.locator('#wizard-skill-install')
   const skillStatus = window.locator('#wizard-skill-status')
-  const codexHarness = window.locator('input[name="wizard-skill-harness"][value="codex"]')
+  const wizardStepThree = window.locator('[data-wizard-step="3"]')
+  const codexHarnessOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Codex' })
+  const codexHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="codex"]')
 
-  await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
-  await codexHarness.check()
+  await expect(wizardStepThree).toBeVisible()
+  if (!(await codexHarness.isChecked())) {
+    await codexHarnessOption.click()
+  }
   await expect(skillInstallButton).toBeEnabled()
   await skillInstallButton.click()
   await expect(skillStatus).toContainText('Installed')
 }
 
 const expectInstallRequiredToAdvance = async (window, nextButton) => {
-  const codexHarness = window.locator('input[name="wizard-skill-harness"][value="codex"]')
+  const wizardStepThree = window.locator('[data-wizard-step="3"]')
+  const codexHarnessOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Codex' })
+  const codexHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="codex"]')
 
-  await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
-  await codexHarness.check()
+  await expect(wizardStepThree).toBeVisible()
+  if (!(await codexHarness.isChecked())) {
+    await codexHarnessOption.click()
+  }
 
   await expect(nextButton).toBeDisabled()
   await expect(window.locator('#wizard-skill-status')).not.toContainText('Installed')
@@ -122,8 +130,8 @@ test('wizard happy flow completes setup and routes to General', async () => {
     expect(stored.stills_markdown_extractor?.type ?? 'apple_vision_ocr').toBe('apple_vision_ocr')
     expect(stored.alwaysRecordWhenActive ?? false).toBe(true)
     expect(stored.wizardCompleted).toBe(true)
-    expect(stored.skillInstaller.harness).toBe('codex')
-    expect(stored.skillInstaller.installPath).toBe(path.join(skillHomeDir, '.codex', 'skills', 'familiar'))
+    expect(stored.skillInstaller.harness).toEqual(['codex'])
+    expect(stored.skillInstaller.installPath).toEqual([path.join(skillHomeDir, '.codex', 'skills', 'familiar')])
   } finally {
     await (await electronApp).close()
   }
