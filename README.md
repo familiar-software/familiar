@@ -152,9 +152,9 @@ We believe in [positive-sum games](https://youtu.be/tq6vdDJQXvs?si=qUkm64_yNoNs
 
 ## How can I get involved?
 
-#### We're onboarding 30 alpha testers over the coming week
+#### We're onboarding alpha testers right now
 
-[It's up on GitHub](https://github.com/familiar-software/familiar), though we'd love 10 minutes to onboard you.
+You can download it, but we'd really really really love 10 minutes to onboard you. It's our main way of getting feedback (no product analytics :)
 
 [Book 10 min with Maxim](https://calendar.app.google/pwXUTTDFx4n8XSxRA)
 
@@ -163,10 +163,6 @@ We believe in [positive-sum games](https://youtu.be/tq6vdDJQXvs?si=qUkm64_yNoNs
 You can't see it from this angle, but Maxim has a "WWPSD" neck tattoo.
 
 Email us at `maxvovshin at gmail.com` and `talsraviv at gmail.com` Tell us you're interested, tell us we're nuts, tell us you want Windows, whatever's on your mind.
-
-#### Join our open-source community
-
-[The repository is here](https://github.com/familiar-software/familiar). Nothing makes nerds like us happier than a ⭐️ on Github.
 
 ## We can't imagine working without AI sitting over our shoulders, watching everything
 
@@ -179,7 +175,17 @@ With Familiar, AI can.
 
 ## Community-inspired use cases
 
-## Predict
+### Pairs well with
+
+- Granola MCP
+
+- Glean MCP
+
+- Jira/Confluence MCP
+
+- Existing local file system
+
+### Predict
 
 > Predict what is going to happen next week and tell me how to make it 10x more impactful.
 _Credit: Juraj Frank_
