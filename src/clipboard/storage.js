@@ -4,15 +4,7 @@ const fs = require('node:fs/promises')
 const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_MARKDOWN_DIR_NAME } = require('../const')
 
 function buildTimestamp (date = new Date()) {
-  const pad = (value, size = 2) => String(value).padStart(size, '0')
-  const year = date.getFullYear()
-  const month = pad(date.getMonth() + 1)
-  const day = pad(date.getDate())
-  const hour = pad(date.getHours())
-  const minute = pad(date.getMinutes())
-  const second = pad(date.getSeconds())
-  const ms = pad(date.getMilliseconds(), 3)
-  return `${year}-${month}-${day}_${hour}-${minute}-${second}-${ms}`
+  return date.toISOString().replace(/[:.]/g, '-')
 }
 
 function buildClipboardMirrorFilename (date = new Date()) {

@@ -44,7 +44,7 @@ test.describe('clipboard mirroring', () => {
       await window.waitForLoadState('domcontentloaded')
 
       // Configure context folder.
-      await window.getByRole('tab', { name: 'General' }).click()
+      await window.getByRole('tab', { name: 'Storage' }).click()
       await window.locator('#context-folder-choose').click()
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 

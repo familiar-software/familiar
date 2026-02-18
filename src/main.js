@@ -319,7 +319,7 @@ if (process.platform === 'linux' && (isE2E || isCI)) {
 function createSettingsWindow() {
     const window = new BrowserWindow({
         // Keep the content area width stable while matching the sidebar width from the new design.
-        width: 674,
+        width: 774,
         height: 528,
         minWidth: 560,
         minHeight: 460,

@@ -21,7 +21,7 @@ test('choose button sets the context folder path', async () => {
     )
   )
   const launchArgs = ['.']
-  if (process.platform === 'linux' || process.env.CI) {
+  if (process.platform === 'linux') {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
   }
 
@@ -41,8 +41,9 @@ test('choose button sets the context folder path', async () => {
     await window.waitForLoadState('domcontentloaded')
     await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()
     await expect(window.getByRole('tab', { name: 'Capturing' })).toBeVisible()
+    await expect(window.getByRole('tab', { name: 'Storage' })).toBeVisible()
     await expect(window.getByRole('tab', { name: 'Install Skill' })).toBeVisible()
-    await window.getByRole('tab', { name: 'General' }).click()
+    await window.getByRole('tab', { name: 'Storage' }).click()
 
     await window.locator('#context-folder-choose').click()
     await expect(window.locator('#context-folder-path')).toHaveValue(expectedContextPath)
@@ -70,7 +71,7 @@ test('activate event reopens settings window and settings window is resizable', 
     )
   )
   const launchArgs = ['.']
-  if (process.platform === 'linux' || process.env.CI) {
+  if (process.platform === 'linux') {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
   }
 

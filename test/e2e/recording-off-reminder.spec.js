@@ -8,7 +8,7 @@ const REMINDER_DELAY_MS = 500
 
 const buildLaunchArgs = () => {
   const launchArgs = ['.']
-  if (process.platform === 'linux' || process.env.CI) {
+  if (process.platform === 'linux') {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
   }
   return launchArgs
@@ -56,20 +56,18 @@ const ensureRecordingPrereqs = async (window) => {
 }
 
 const setContextFolder = async (window) => {
-  await window.getByRole('tab', { name: 'General' }).click()
+  await window.getByRole('tab', { name: 'Storage' }).click()
   await window.locator('#context-folder-choose').click()
   await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 }
 
 const enableRecordingToggle = async (window) => {
-  await window.getByRole('tab', { name: 'General' }).click()
   await window.locator('label[for="always-record-when-active"]').click({ force: true })
   await expect(window.locator('#always-record-when-active')).toBeChecked()
   await expect(window.locator('#always-record-when-active-status')).toHaveText('Saved.')
 }
 
 const disableRecordingToggle = async (window) => {
-  await window.getByRole('tab', { name: 'General' }).click()
   const toggle = window.locator('#always-record-when-active')
   await expect(toggle).toBeChecked()
   await window.locator('label[for="always-record-when-active"]').click({ force: true })

@@ -23,7 +23,7 @@ function createRecordingOffReminder({
   const showReminder = () => {
     notify({
       title: 'Recording is off',
-      body: 'Turn recording back on to keep capturing context.',
+      body: 'Recording is off for more than an hour. Turn recording back on to keep capturing context.',
       type: 'warning',
       size: 'compact',
       duration: 7000

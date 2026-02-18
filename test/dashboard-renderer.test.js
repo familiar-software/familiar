@@ -118,7 +118,12 @@ class TestDocument {
 
 const flushPromises = () => new Promise((resolve) => setImmediate(resolve))
 
+const storageDeleteWindow = require('../src/storage/delete-window')
+
 const loadRenderer = () => {
+  if (global.window && !global.window.FamiliarStorageDeleteWindow) {
+    global.window.FamiliarStorageDeleteWindow = storageDeleteWindow
+  }
   const rendererPath = path.join(__dirname, '..', 'src', 'dashboard', 'renderer.js')
   const resolvedRendererPath = require.resolve(rendererPath)
   delete require.cache[resolvedRendererPath]
@@ -151,6 +156,7 @@ const createFamiliar = (overrides = {}) => ({
   pauseScreenStills: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: true }),
   stopScreenStills: async () => ({ ok: true, state: 'armed', isRecording: false, manualPaused: false }),
   checkForUpdates: async () => ({ ok: true, updateInfo: null }),
+  deleteFilesAt: async () => ({ ok: true, message: 'Deleted files from 15 minutes' }),
   ...overrides
 })
 
@@ -213,6 +219,10 @@ const createElements = () => {
     'updates-progress': new TestElement(),
     'updates-progress-bar': new TestElement(),
     'updates-progress-label': new TestElement(),
+    'storage-delete-files': new TestElement(),
+    'storage-delete-window': new TestElement(),
+    'storage-delete-files-status': new TestElement(),
+    'storage-delete-files-error': new TestElement(),
     'wizard-back': new TestElement(),
     'wizard-next': new TestElement(),
     'wizard-done': new TestElement(),
@@ -222,15 +232,15 @@ const createElements = () => {
     'settings-content': new TestElement(),
     'section-title': new TestElement(),
     'section-subtitle': new TestElement(),
-    'section-general': new TestElement(),
     'section-wizard': new TestElement(),
     'section-updates': new TestElement(),
     'section-recording': new TestElement(),
+    'section-storage': new TestElement(),
     'section-install-skill': new TestElement(),
-    'general-nav': new TestElement(),
     'wizard-nav': new TestElement(),
     'updates-nav': new TestElement(),
     'recording-nav': new TestElement(),
+    'storage-nav': new TestElement(),
     'install-skill-nav': new TestElement()
   }
 
@@ -292,19 +302,24 @@ const createElements = () => {
   elements['updates-check'].dataset.action = 'updates-check'
   elements['updates-status'].dataset.settingStatus = 'updates-status'
   elements['updates-error'].dataset.settingError = 'updates-error'
+  elements['storage-delete-files'].dataset.action = 'storage-delete-files'
+  elements['storage-delete-window'].dataset.setting = 'storage-delete-window'
+  elements['storage-delete-files-status'].dataset.settingStatus = 'storage-delete-files-status'
+  elements['storage-delete-files-error'].dataset.settingError = 'storage-delete-files-error'
+  elements['storage-delete-window'].value = '15m'
 
   elements['wizard-back'].dataset.action = 'wizard-back'
   elements['wizard-next'].dataset.action = 'wizard-next'
   elements['wizard-done'].dataset.action = 'wizard-done'
 
-  elements['section-general'].dataset.sectionPane = 'general'
-  elements['general-nav'].dataset.sectionTarget = 'general'
   elements['section-wizard'].dataset.sectionPane = 'wizard'
   elements['wizard-nav'].dataset.sectionTarget = 'wizard'
   elements['section-updates'].dataset.sectionPane = 'updates'
   elements['updates-nav'].dataset.sectionTarget = 'updates'
   elements['section-recording'].dataset.sectionPane = 'recording'
   elements['recording-nav'].dataset.sectionTarget = 'recording'
+  elements['section-storage'].dataset.sectionPane = 'storage'
+  elements['storage-nav'].dataset.sectionTarget = 'storage'
   elements['section-install-skill'].dataset.sectionPane = 'install-skill'
   elements['install-skill-nav'].dataset.sectionTarget = 'install-skill'
 
@@ -376,7 +391,7 @@ test('defaults to wizard when wizardCompleted is missing', async () => {
   }
 })
 
-test('defaults to general when wizardCompleted is true', async () => {
+test('defaults to storage when wizardCompleted is true', async () => {
   const familiar = createFamiliar({
     getSettings: async () => ({
       contextFolderPath: '',
@@ -401,7 +416,7 @@ test('defaults to general when wizardCompleted is true', async () => {
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    assert.equal(elements['section-title'].textContent, 'General Settings')
+    assert.equal(elements['section-title'].textContent, 'Storage')
     assert.equal(elements['settings-sidebar'].classList.contains('hidden'), false)
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
     assert.equal(elements['settings-header'].classList.contains('hidden'), false)
@@ -448,7 +463,7 @@ test('wizard done saves wizardCompleted flag', async () => {
     assert.deepEqual(saveCalls[0], { wizardCompleted: true })
     assert.equal(elements['settings-sidebar'].classList.contains('hidden'), false)
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
-    assert.equal(elements['section-title'].textContent, 'General Settings')
+    assert.equal(elements['section-title'].textContent, 'Storage')
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -694,7 +709,7 @@ test('cannot navigate away from wizard while wizard is incomplete', async () => 
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    await elements['general-nav'].click()
+    await elements['recording-nav'].click()
     await flushPromises()
 
     assert.equal(elements['section-title'].textContent, 'Setup Wizard')
@@ -733,7 +748,7 @@ test('cannot navigate back to wizard after wizard completion', async () => {
     await elements['wizard-nav'].click()
     await flushPromises()
 
-    assert.equal(elements['section-title'].textContent, 'General Settings')
+    assert.equal(elements['section-title'].textContent, 'Storage')
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
   } finally {
     global.document = priorDocument
@@ -769,6 +784,107 @@ test('completed wizard can navigate to Install Skill section', async () => {
     await elements['install-skill-nav'].click()
     await flushPromises()
     assert.equal(elements['section-title'].textContent, 'Install Skill')
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('completed wizard can navigate to Storage section', async () => {
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '',
+      llmProviderName: 'gemini',
+      llmProviderApiKey: '',
+      stillsMarkdownExtractorType: 'llm',
+      alwaysRecordWhenActive: false,
+      wizardCompleted: true,
+      appVersion: '9.8.7'
+    })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['storage-nav'].click()
+    await flushPromises()
+    assert.equal(elements['section-title'].textContent, 'Storage')
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('storage delete button is disabled when context folder is empty', async () => {
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '',
+      wizardCompleted: true
+    })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+    assert.equal(elements['storage-delete-files'].disabled, true)
+    assert.equal(elements['storage-delete-window'].disabled, true)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('storage delete button triggers cleanup and shows success message', async () => {
+  const calls = []
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '/tmp/context',
+      wizardCompleted: true
+    }),
+    deleteFilesAt: async ({ requestedAtMs, deleteWindow }) => {
+      calls.push({ requestedAtMs, deleteWindow })
+      return { ok: true, message: 'Deleted files from 1 hour' }
+    }
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    elements['storage-delete-window'].value = '1h'
+    await elements['storage-delete-files'].click()
+    await flushPromises()
+
+    assert.equal(calls.length, 1)
+    assert.equal(typeof calls[0].requestedAtMs, 'number')
+    assert.equal(calls[0].deleteWindow, '1h')
+    assert.equal(elements['storage-delete-files-status'].textContent, 'Deleted files from 1 hour')
+    assert.equal(elements['storage-delete-files-error'].textContent, '')
   } finally {
     global.document = priorDocument
     global.window = priorWindow

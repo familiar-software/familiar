@@ -1,5 +1,16 @@
 (function (global) {
   const normalizeStringArray = global?.FamiliarDashboardListUtils?.normalizeStringArray
+  const storageDeleteWindow = global?.FamiliarStorageDeleteWindow
+  const {
+    STORAGE_DELETE_WINDOW_PRESETS,
+    DEFAULT_STORAGE_DELETE_WINDOW
+  } = storageDeleteWindow
+  const isAllowedDeleteWindow = (windowValue) => {
+    if (typeof windowValue !== 'string' || windowValue.length === 0) {
+      return false
+    }
+    return Object.prototype.hasOwnProperty.call(STORAGE_DELETE_WINDOW_PRESETS, windowValue)
+  }
   if (typeof normalizeStringArray !== 'function') {
     throw new Error('FamiliarDashboardListUtils.normalizeStringArray is unavailable')
   }
@@ -43,6 +54,10 @@
       copyLogButtons = [],
       copyLogErrors = [],
       copyLogStatuses = [],
+      deleteFilesButtons = [],
+      deleteFilesWindowSelects = [],
+      deleteFilesErrors = [],
+      deleteFilesStatuses = [],
       llmProviderSelects = [],
       llmProviderErrors = [],
       llmKeyInputs = [],
@@ -58,6 +73,7 @@
 
     const isReady = Boolean(familiar.pickContextFolder && familiar.saveSettings && familiar.getSettings)
     const canCopyLog = typeof familiar.copyCurrentLogToClipboard === 'function'
+    const canDeleteFiles = typeof familiar.deleteFilesAt === 'function'
 
     const saveContextFolderPath = async (contextFolderPath) => {
       if (!isReady) {
@@ -83,6 +99,17 @@
       }
 
       return false
+    }
+
+    const updateDeleteFilesButtonState = () => {
+      const { currentContextFolderPath } = getState()
+      const isEnabled = Boolean(currentContextFolderPath)
+      deleteFilesButtons.forEach((button) => {
+        button.disabled = !isEnabled
+      })
+      deleteFilesWindowSelects.forEach((select) => {
+        select.disabled = !isEnabled
+      })
     }
 
     const saveLlmApiKey = async (apiKey) => {
@@ -247,6 +274,7 @@
         if (appVersionLabel) {
           appVersionLabel.textContent = result.appVersion || ''
         }
+        updateDeleteFilesButtonState()
         return result
       } catch (error) {
         console.error('Failed to load settings', error)
@@ -266,13 +294,28 @@
       setMessage(stillsMarkdownExtractorErrors, message)
       setMessage(alwaysRecordWhenActiveErrors, message)
       setMessage(copyLogErrors, message)
+      setMessage(deleteFilesErrors, message)
       copyLogButtons.forEach((button) => {
         button.disabled = true
+      })
+      deleteFilesButtons.forEach((button) => {
+        button.disabled = true
+      })
+      deleteFilesWindowSelects.forEach((select) => {
+        select.disabled = true
       })
       return {
         isReady,
         loadSettings
       }
+    }
+
+    if (deleteFilesWindowSelects.length > 0) {
+      deleteFilesWindowSelects.forEach((select) => {
+        if (!isAllowedDeleteWindow(select.value)) {
+          select.value = DEFAULT_STORAGE_DELETE_WINDOW
+        }
+      })
     }
 
     if (contextFolderChooseButtons.length > 0) {
@@ -287,6 +330,7 @@
               setMessage(contextFolderStatuses, '')
               const saved = await saveContextFolderPath(result.path)
               if (saved) {
+                updateDeleteFilesButtonState()
               }
             } else if (result && result.error) {
               setMessage(contextFolderStatuses, '')
@@ -329,6 +373,49 @@
               setMessage(copyLogErrors, 'Failed to copy log file.')
             } finally {
               button.disabled = false
+            }
+          })
+        })
+      }
+    }
+
+    if (deleteFilesButtons.length > 0) {
+      if (!canDeleteFiles) {
+        setMessage(deleteFilesErrors, 'Storage cleanup unavailable. Restart the app.')
+        deleteFilesButtons.forEach((button) => {
+          button.disabled = true
+        })
+        deleteFilesWindowSelects.forEach((select) => {
+          select.disabled = true
+        })
+      } else {
+        updateDeleteFilesButtonState()
+        deleteFilesButtons.forEach((button) => {
+          button.addEventListener('click', async () => {
+            button.disabled = true
+            setMessage(deleteFilesStatuses, '')
+            setMessage(deleteFilesErrors, '')
+            try {
+              const requestTimeMs = Date.now()
+              const selectedWindow = deleteFilesWindowSelects[0]?.value
+              const deleteWindow = isAllowedDeleteWindow(selectedWindow)
+                ? selectedWindow
+                : DEFAULT_STORAGE_DELETE_WINDOW
+              const result = await familiar.deleteFilesAt({
+                requestedAtMs: requestTimeMs,
+                deleteWindow
+              })
+              if (result?.ok) {
+                setMessage(deleteFilesStatuses, result.message || 'Deleted files.')
+                console.log('Storage cleanup completed', { requestedAtMs: requestTimeMs, deleteWindow })
+              } else if (!result?.canceled) {
+                setMessage(deleteFilesErrors, result?.message || 'Failed to delete files.')
+              }
+            } catch (error) {
+              console.error('Failed to delete recent files', error)
+              setMessage(deleteFilesErrors, 'Failed to delete files.')
+            } finally {
+              updateDeleteFilesButtonState()
             }
           })
         })

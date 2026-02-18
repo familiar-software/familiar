@@ -167,6 +167,10 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const copyLogButtons = selectAll('[data-action="copy-debug-log"]')
   const copyLogErrors = selectAll('[data-setting-error="copy-log-error"]')
   const copyLogStatuses = selectAll('[data-setting-status="copy-log-status"]')
+  const deleteFilesButtons = selectAll('[data-action="storage-delete-files"]')
+  const deleteFilesWindowSelects = selectAll('[data-setting="storage-delete-window"]')
+  const deleteFilesErrors = selectAll('[data-setting-error="storage-delete-files-error"]')
+  const deleteFilesStatuses = selectAll('[data-setting-status="storage-delete-files-status"]')
 
   const llmProviderSelects = selectAll('[data-setting="llm-provider"]')
   const llmProviderErrors = selectAll('[data-setting-error="llm-provider-error"]')
@@ -243,10 +247,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       title: 'Setup Wizard',
       subtitle: 'Guided setup in four steps.'
     },
-    general: {
-      title: 'General Settings',
-      subtitle: 'Core app configuration.'
-    },
     updates: {
       title: 'Updates',
       subtitle: 'Check for new versions and download when available.'
@@ -254,6 +254,10 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     recording: {
       title: 'Capturing',
       subtitle: 'Choose whether processing runs in the cloud or locally.'
+    },
+    storage: {
+      title: 'Storage',
+      subtitle: 'Review and manage local Familiar storage.'
     },
     'install-skill': {
       title: 'Install Skill',
@@ -359,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
           console.error('Failed to save wizard completion', error)
         })
     }
-    setActiveSection('general')
+    setActiveSection('storage')
   }
 
   const runBootstrapWizard = typeof bootstrapWizard === 'function' ? bootstrapWizard : () => null
@@ -486,6 +490,10 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       copyLogButtons,
       copyLogErrors,
       copyLogStatuses,
+      deleteFilesButtons,
+      deleteFilesWindowSelects,
+      deleteFilesErrors,
+      deleteFilesStatuses,
       llmProviderSelects,
       llmProviderErrors,
       llmKeyInputs,
@@ -540,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     if (harnessesForStatus.length > 0 && apis.wizardSkillApi && typeof apis.wizardSkillApi.checkInstallStatus === 'function') {
       await apis.wizardSkillApi.checkInstallStatus(harnessesForStatus)
     }
-    const defaultSection = isWizardCompleted ? 'general' : 'wizard'
+    const defaultSection = isWizardCompleted ? 'storage' : 'wizard'
     setActiveSection(defaultSection)
     state.updateWizardUI()
   }

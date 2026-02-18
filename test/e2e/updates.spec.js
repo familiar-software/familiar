@@ -19,7 +19,7 @@ test('check for updates shows disabled message in e2e mode', async () => {
     )
   )
   const launchArgs = ['.']
-  if (process.platform === 'linux' || process.env.CI) {
+  if (process.platform === 'linux') {
     launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
   }
 
@@ -37,7 +37,6 @@ test('check for updates shows disabled message in e2e mode', async () => {
   try {
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
-    await window.getByRole('tab', { name: 'General' }).click()
 
     await window.locator('#updates-check').click()
 
