@@ -295,7 +295,9 @@ _Credit: Sumant Subrahmanya_
 
 - Settings: `~/.familiar/settings.json`
 - Captured still images: `<contextFolderPath>/familiar/stills/`
-- Extracted markdown and mirrored clipboard context: `<contextFolderPath>/familiar/stills-markdown/`
+- Clipboard image mirrors while recording: `<contextFolderPath>/familiar/stills/<sessionId>/<timestamp>.clipboard.<ext>`
+- Extracted markdown (including OCR output for clipboard images): `<contextFolderPath>/familiar/stills-markdown/`
+- Clipboard text mirrors while recording: `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.clipboard.txt`
 
 ## Build locally (advanced)
 

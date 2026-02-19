@@ -3,7 +3,8 @@ const assert = require('node:assert/strict')
 
 const {
   parseBatchResponse,
-  createStillsMarkdownWorker
+  createStillsMarkdownWorker,
+  resolveMarkdownPath
 } = require('../src/screen-stills/stills-markdown-worker')
 const { RetryableError } = require('../src/utils/retry')
 
@@ -35,6 +36,17 @@ test('parseBatchResponse splits markdown blocks by separator', () => {
 test('parseBatchResponse returns empty map when no blocks', () => {
   const map = parseBatchResponse('', ['1'])
   assert.equal(map.size, 0)
+})
+
+test('resolveMarkdownPath preserves .clipboard suffix from source still image', () => {
+  const contextFolderPath = '/tmp/context'
+  const imagePath = '/tmp/context/familiar/stills/session-123/2026-02-20T14-22-33-123Z.clipboard.png'
+  const markdownPath = resolveMarkdownPath(contextFolderPath, imagePath)
+
+  assert.equal(
+    markdownPath,
+    '/tmp/context/familiar/stills-markdown/session-123/2026-02-20T14-22-33-123Z.clipboard.md'
+  )
 })
 
 test('stills markdown worker does nothing on empty queue', async () => {
