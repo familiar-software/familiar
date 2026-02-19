@@ -96,7 +96,7 @@
     "electron-updater": "^6.6.2"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.1.18",
+    "@tailwindcss/cli": "^4.2.0",
     "electron": "^40.0.0",
     "electron-builder": "^26.4.0",
     "playwright": "^1.55.0",
