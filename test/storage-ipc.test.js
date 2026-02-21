@@ -76,6 +76,52 @@ test('collectFilesWithinWindow aborts when root is outside familiar folder', asy
   })
 })
 
+test('handleDeleteFiles does not delete files when familiar storage root is a symlink', async () => {
+  await withStorageModule(async ({ storageModule }) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-storage-symlink-root-'))
+    const contextFolderPath = path.join(root, 'context')
+    const familiarRoot = path.join(contextFolderPath, 'familiar')
+    const outsideRoot = path.join(root, 'outside-storage')
+    const outsideStillsRoot = path.join(outsideRoot, 'stills')
+    const outsideStillsSessionDir = path.join(
+      outsideStillsRoot,
+      'session-2026-02-17T12-00-00-000Z'
+    )
+    const stillsRootSymlink = path.join(familiarRoot, 'stills')
+    const markdownRoot = path.join(familiarRoot, 'stills-markdown')
+
+    fs.mkdirSync(familiarRoot, { recursive: true })
+    fs.mkdirSync(outsideStillsSessionDir, { recursive: true })
+    fs.mkdirSync(markdownRoot, { recursive: true })
+    fs.symlinkSync(outsideStillsRoot, stillsRootSymlink)
+
+    const outsideStillFile = path.join(outsideStillsSessionDir, '2026-02-17T12-20-00-000Z.webp')
+    fs.writeFileSync(outsideStillFile, 'outside', 'utf-8')
+
+    let deleteCalls = 0
+    const result = await storageModule.handleDeleteFiles(
+      {},
+      {
+        requestedAtMs: Date.parse('2026-02-17T12:30:00.000Z'),
+        deleteWindow: '15m'
+      },
+      {
+        showMessageBox: async () => ({ response: 1 }),
+        settingsLoader: () => ({ contextFolderPath }),
+        deleteFile: async () => {
+          deleteCalls += 1
+        }
+      }
+    )
+
+    assert.equal(result.ok, true)
+    assert.equal(deleteCalls, 0)
+    assert.equal(fs.existsSync(outsideStillFile), true)
+
+    fs.rmSync(root, { recursive: true, force: true })
+  })
+})
+
 test('resolveDeleteWindow falls back to 15m for unsupported values', async () => {
   await withStorageModule(async ({ storageModule }) => {
     const resolved = storageModule.resolveDeleteWindow('unknown-window')

@@ -39,8 +39,22 @@ function toRealPathSafe(targetPath) {
   }
 }
 
+function isSymbolicLinkPathSafe(targetPath) {
+  if (typeof targetPath !== 'string' || targetPath.trim().length === 0) {
+    return false
+  }
+  try {
+    return fs.lstatSync(targetPath).isSymbolicLink()
+  } catch (_error) {
+    return false
+  }
+}
+
 function normalizeAllowedRoots(allowedRoots = []) {
-  return allowedRoots.map((root) => toRealPathSafe(root)).filter(Boolean)
+  return allowedRoots
+    .filter((root) => !isSymbolicLinkPathSafe(root))
+    .map((root) => toRealPathSafe(root))
+    .filter(Boolean)
 }
 
 function isWithinAnyAllowedRoot(realPath, realAllowedRoots = []) {
@@ -91,8 +105,18 @@ function collectFilesWithinWindow(
   if (!rootPath || !fs.existsSync(rootPath)) {
     return []
   }
+  if (isSymbolicLinkPathSafe(rootPath)) {
+    logger.warn('Refusing to scan symlink storage root', { rootPath })
+    return []
+  }
 
   const realAllowedRoots = normalizeAllowedRoots(allowedRoots)
+  if (allowedRoots.length > 0 && realAllowedRoots.length === 0) {
+    logger.warn('Refusing to scan storage root because no valid allowed roots were provided', {
+      rootPath
+    })
+    return []
+  }
   const realRootPath = toRealPathSafe(rootPath)
   if (!realRootPath) {
     return []
@@ -578,6 +602,7 @@ module.exports = {
   registerStorageHandlers,
   handleDeleteFiles,
   toRealPathSafe,
+  isSymbolicLinkPathSafe,
   normalizeAllowedRoots,
   isWithinAnyAllowedRoot,
   parseLeadingTimestampMs,

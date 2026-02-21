@@ -202,6 +202,48 @@ test('runAutoSessionCleanup updates last run timestamp after attempt', async () 
   fs.rmSync(root, { recursive: true, force: true })
 })
 
+test('runAutoSessionCleanup does not delete sessions when familiar stills root is a symlink', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-auto-cleanup-symlink-root-'))
+  const contextPath = path.join(root, 'context')
+  const familiarRoot = path.join(contextPath, 'familiar')
+  const outsideRoot = path.join(root, 'outside-stills-root')
+  const stillsSymlink = path.join(familiarRoot, 'stills')
+  const runAtMs = Date.parse('2026-02-20T00:00:00.000Z')
+  const oldSessionDir = path.join(
+    outsideRoot,
+    createSessionId(new Date(runAtMs - 8 * 24 * 60 * 60 * 1000))
+  )
+
+  fs.mkdirSync(familiarRoot, { recursive: true })
+  fs.mkdirSync(outsideRoot, { recursive: true })
+  fs.symlinkSync(outsideRoot, stillsSymlink)
+  fs.mkdirSync(oldSessionDir, { recursive: true })
+
+  const savedPayloads = []
+  const result = await runAutoSessionCleanup({
+    trigger: 'startup',
+    nowMs: runAtMs,
+    settingsLoader: () => ({
+      contextFolderPath: contextPath,
+      storageAutoCleanupRetentionDays: 2
+    }),
+    settingsSaver: (payload) => {
+      savedPayloads.push(payload)
+    },
+    logger: createTestLogger(),
+    deleteDirectory: async (targetPath) => {
+      fs.rmSync(targetPath, { recursive: true, force: false })
+    }
+  })
+
+  assert.equal(result.ok, true)
+  assert.equal(result.summary.deletedSessionCount, 0)
+  assert.equal(fs.existsSync(oldSessionDir), true)
+  assert.equal(savedPayloads.length, 1)
+  assert.equal(savedPayloads[0].storageAutoCleanupLastRunAt, runAtMs)
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
 test('createAutoSessionCleanupScheduler runs startup and gates daily runs', async () => {
   let nowMs = Date.parse('2026-02-20T00:00:00.000Z')
   const settings = {}
