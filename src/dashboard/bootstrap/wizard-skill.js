@@ -12,6 +12,7 @@
       setSkillHarness: options.setSkillHarness,
       setSkillHarnesses: options.setSkillHarnesses,
       setSkillInstalled: options.setSkillInstalled,
+      cloudCoWorkGuide: options.cloudCoWorkGuide,
       setMessage: options.setMessage,
       updateWizardUI: options.updateWizardUI
     })

@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
         ...require('./bootstrap/settings'),
         ...require('./bootstrap/updates'),
         ...require('./bootstrap/wizard'),
-        ...require('./bootstrap/wizard-skill')
+        ...require('./bootstrap/wizard-skill'),
+        ...require('./bootstrap/cloud-cowork-guide')
       }
     }
     return {}
@@ -45,7 +46,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     bootstrapSettings,
     bootstrapUpdates,
     bootstrapWizard,
-    bootstrapWizardSkill
+    bootstrapWizardSkill,
+    bootstrapCloudCoWorkGuide
   } = bootstrap
 
   if (typeof createDashboardState !== 'function') {
@@ -159,6 +161,13 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const skillInstallErrors = selectAll('[data-skill-install-error]')
   const skillInstallPaths = selectAll('[data-skill-install-path]')
   const skillCursorRestartNotes = selectAll('[data-skill-cursor-restart-note]')
+  const cloudCoWorkGuideContainers = selectAll('[data-cloud-cowork-guide]')
+  const cloudCoWorkGuideCloseButtons = selectAll(
+    '[data-action="cloud-cowork-guide-close"], [data-action="cloud-cowork-guide-done"]'
+  )
+  const cloudCoWorkGuideCopyLinkButtons = selectAll('[data-action="cloud-cowork-copy-link"]')
+  const cloudCoWorkGuideStatuses = selectAll('[data-cloud-cowork-guide-status]')
+  const cloudCoWorkGuideErrors = selectAll('[data-cloud-cowork-guide-error]')
 
   const contextFolderInputs = selectAll('[data-setting="context-folder-path"]')
   const contextFolderChooseButtons = selectAll('[data-action="context-folder-choose"]')
@@ -234,6 +243,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const apis = {
     wizardApi: null,
     wizardSkillApi: null,
+    cloudCoWorkGuideApi: null,
     updatesApi: null,
     settingsApi: null,
     recordingApi: null,
@@ -387,6 +397,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
 
   const runBootstrapWizard = typeof bootstrapWizard === 'function' ? bootstrapWizard : () => null
   const runBootstrapWizardSkill = typeof bootstrapWizardSkill === 'function' ? bootstrapWizardSkill : () => null
+  const runBootstrapCloudCoWorkGuide =
+    typeof bootstrapCloudCoWorkGuide === 'function' ? bootstrapCloudCoWorkGuide : () => null
   const runBootstrapUpdates = typeof bootstrapUpdates === 'function' ? bootstrapUpdates : () => null
   const runBootstrapStills = typeof bootstrapStills === 'function' ? bootstrapStills : () => null
   const runBootstrapSettings = typeof bootstrapSettings === 'function' ? bootstrapSettings : () => null
@@ -438,6 +450,18 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     }
   }
 
+  apis.cloudCoWorkGuideApi = runBootstrapCloudCoWorkGuide({
+    window,
+    elements: {
+      guideContainers: cloudCoWorkGuideContainers,
+      closeButtons: cloudCoWorkGuideCloseButtons,
+      copyLinkButtons: cloudCoWorkGuideCopyLinkButtons,
+      statusElements: cloudCoWorkGuideStatuses,
+      errorElements: cloudCoWorkGuideErrors
+    },
+    setMessage
+  })
+
   apis.wizardSkillApi = runBootstrapWizardSkill({
     window,
     elements: {
@@ -453,6 +477,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     setSkillHarness: state.setSkillHarness,
     setSkillHarnesses: state.setSkillHarnesses,
     setSkillInstalled: state.setSkillInstalled,
+    cloudCoWorkGuide: apis.cloudCoWorkGuideApi,
     setMessage,
     updateWizardUI: state.updateWizardUI
   })

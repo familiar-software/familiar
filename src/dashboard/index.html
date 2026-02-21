@@ -672,8 +672,7 @@
           <div data-wizard-step="3" class="max-w-[360px] mx-auto space-y-5 hidden">
             <div class="text-center space-y-1">
               <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Install the Familiar skill</h3>
-              <p class="text-xs text-zinc-500 dark:text-zinc-400">Pick the harness and install Familiar into your skills
-                folder.</p>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">Pick where to install Familiar's skill</p>
             </div>
             <div data-component-source="install-skill" class="space-y-5">
               <section class="space-y-2">
@@ -688,6 +687,18 @@
                         <img src="./assets/skill-icons/claude-code.svg" alt="">
                       </span>
                       <span class="skill-picker-label">Claude Code</span>
+                    </span>
+                  </label>
+                  <label class="skill-picker-option">
+                    <input type="checkbox" name="wizard-skill-harness" value="cloud-cowork" data-skill-harness
+                      class="sr-only">
+                    <span class="skill-picker-option-card">
+                      <span class="skill-picker-radio" aria-hidden="true"><span
+                          class="skill-picker-radio-dot"></span></span>
+                      <span class="skill-picker-icon" aria-hidden="true">
+                        <img src="./assets/skill-icons/claude-code.svg" alt="">
+                      </span>
+                      <span class="skill-picker-label">Cloud Cowork</span>
                     </span>
                   </label>
                   <label class="skill-picker-option">
@@ -740,6 +751,42 @@
               </div>
               <p id="wizard-skill-error" data-skill-install-error class="text-xs text-red-600 dark:text-red-400 hidden"
                 role="alert" aria-live="polite"></p>
+              <div id="wizard-cloud-cowork-guide" data-cloud-cowork-guide
+                class="hidden z-10 bg-zinc-900/50 p-4 flex items-center justify-center" role="dialog" aria-modal="true"
+                style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+                <div
+                  class="w-full max-w-[520px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3 shadow-lg">
+                  <div class="space-y-1">
+                    <h4 class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Cloud Cowork install guide</h4>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Use marketplace installation in Cowork.</p>
+                  </div>
+                  <ol class="text-xs text-zinc-600 dark:text-zinc-300 space-y-1 list-decimal pl-4">
+                    <li>In Cowork, click on <span class="font-semibold">+</span> -> <span class="font-semibold">Plugins</span> -> <span
+                        class="font-semibold">Add Plugin</span>.</li>
+                    <li>Go to <span class="font-semibold">Personal</span> tab.</li>
+                    <li>Choose <span class="font-semibold">Add marketplace from Github</span>.</li>
+                    <li>Paste <code
+                        class="font-mono text-[11px] bg-zinc-100 dark:bg-zinc-800 px-1 rounded">https://github.com/familiar-software/familiar-claude-cowork-skill</code>.
+                    </li>
+                    <li>Go into the marketplace installed.</li>
+                    <li>Install the <span class="font-semibold">Familiar</span> skill.</li>
+                  </ol>
+                  <div class="flex flex-wrap items-center justify-end gap-2">
+                    <button id="wizard-cloud-cowork-copy-link" data-action="cloud-cowork-copy-link" type="button"
+                      class="px-3 py-1.5 text-xs font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer">
+                      Copy Link
+                    </button>
+                    <button id="wizard-cloud-cowork-done" data-action="cloud-cowork-guide-done" type="button"
+                      class="px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-md text-white transition-colors cursor-pointer">
+                      Done
+                    </button>
+                  </div>
+                  <p id="wizard-cloud-cowork-guide-status" data-cloud-cowork-guide-status
+                    class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></p>
+                  <p id="wizard-cloud-cowork-guide-error" data-cloud-cowork-guide-error
+                    class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -772,6 +819,7 @@
 
   <script src="./wizard.js"></script>
   <script src="./wizard-skill.js"></script>
+  <script src="./skill-install/cloud-cowork-guide.js"></script>
   <script src="./list-utils.js"></script>
   <script src="./updates.js"></script>
   <script src="./storage-usage.js"></script>
@@ -785,6 +833,7 @@
   <script src="./state.js"></script>
   <script src="./bootstrap/wizard.js"></script>
   <script src="./bootstrap/wizard-skill.js"></script>
+  <script src="./bootstrap/cloud-cowork-guide.js"></script>
   <script src="./bootstrap/updates.js"></script>
   <script src="./bootstrap/stills.js"></script>
   <script src="./bootstrap/settings.js"></script>

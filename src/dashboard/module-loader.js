@@ -3,6 +3,7 @@
     { globalKey: 'FamiliarDashboardListUtils', modulePath: './list-utils.js', factory: 'normalizeStringArray' },
     { globalKey: 'FamiliarWizard', modulePath: './wizard.js', factory: 'createWizard' },
     { globalKey: 'FamiliarWizardSkill', modulePath: './wizard-skill.js', factory: 'createWizardSkill' },
+    { globalKey: 'FamiliarCloudCoWorkGuide', modulePath: './skill-install/cloud-cowork-guide.js', factory: 'createCloudCoWorkGuide' },
     { globalKey: 'FamiliarUpdates', modulePath: './updates.js', factory: 'createUpdates' },
     { globalKey: 'FamiliarStorageUsage', modulePath: './storage-usage.js', factory: 'createStorageUsage' },
     { globalKey: 'FamiliarSettings', modulePath: './settings.js', factory: 'createSettings' },

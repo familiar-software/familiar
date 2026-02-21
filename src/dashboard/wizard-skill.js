@@ -1,4 +1,6 @@
 (function (global) {
+  const MANUAL_GUIDE_HARNESSES = new Set(['cloud-cowork'])
+
   const createWizardSkill = (options = {}) => {
     const elements = options.elements || {}
     const familiar = options.familiar || {}
@@ -6,6 +8,7 @@
     const setSkillHarness = typeof options.setSkillHarness === 'function' ? options.setSkillHarness : () => {}
     const setSkillHarnesses = typeof options.setSkillHarnesses === 'function' ? options.setSkillHarnesses : () => {}
     const setSkillInstalled = typeof options.setSkillInstalled === 'function' ? options.setSkillInstalled : () => {}
+    const cloudCoWorkGuide = options.cloudCoWorkGuide || null
     const setMessage = typeof options.setMessage === 'function' ? options.setMessage : () => {}
     const updateWizardUI = typeof options.updateWizardUI === 'function' ? options.updateWizardUI : () => {}
 
@@ -51,7 +54,10 @@
       ...toArray(skillCursorRestartNote)
     ]
 
-    const isReady = Boolean(familiar.installSkill && familiar.getSkillInstallStatus)
+    const hasInstallerApi = Boolean(familiar.installSkill && familiar.getSkillInstallStatus)
+    const hasCloudCoWorkGuide = Boolean(
+      cloudCoWorkGuide && typeof cloudCoWorkGuide.openGuide === 'function'
+    )
     const canPersist = typeof familiar.saveSettings === 'function'
 
     const getCurrentHarnesses = () => {
@@ -90,6 +96,9 @@
       if (harness === 'cursor') {
         return 'Cursor'
       }
+      if (harness === 'cloud-cowork') {
+        return 'Cloud Cowork'
+      }
       return harness
     }
     const formatHarnessList = (harnesses) => harnesses.map((harness) => formatHarnessName(harness)).join(', ')
@@ -101,6 +110,10 @@
       }
     }
     const clearInstallPath = () => setInstallPath('')
+    const getInstallableHarnesses = (harnessesInput) =>
+      normalizeHarnesses(harnessesInput).filter((harness) => !MANUAL_GUIDE_HARNESSES.has(harness))
+    const getManualGuideHarnesses = (harnessesInput) =>
+      normalizeHarnesses(harnessesInput).filter((harness) => MANUAL_GUIDE_HARNESSES.has(harness))
     const setCursorRestartNoteVisibility = (harnesses) => {
       const shouldShow = normalizeHarnesses(harnesses).includes('cursor')
       for (const note of allSkillInstallCursorRestartNotes) {
@@ -128,7 +141,7 @@
     }
 
     const persistSkillInstaller = async ({ harnesses, installPaths } = {}) => {
-      const selectedHarnesses = normalizeHarnesses(harnesses)
+      const selectedHarnesses = getInstallableHarnesses(harnesses)
       if (!canPersist) {
         return
       }
@@ -154,26 +167,48 @@
 
     const updateInstallButtonState = () => {
       const selectedHarnesses = getCurrentHarnesses()
+      const installableHarnesses = getInstallableHarnesses(selectedHarnesses)
+      const manualHarnesses = getManualGuideHarnesses(selectedHarnesses)
+      const canInstall =
+        selectedHarnesses.length > 0 &&
+        ((installableHarnesses.length > 0 && hasInstallerApi) ||
+          (manualHarnesses.length > 0 && hasCloudCoWorkGuide))
       for (const button of allSkillInstallButtons) {
-        button.disabled = !isReady || selectedHarnesses.length === 0
+        button.disabled = !canInstall
       }
     }
 
     const checkInstallStatus = async (harnessesInput) => {
       const selectedHarnesses = normalizeHarnesses(harnessesInput)
+      const installableHarnesses = getInstallableHarnesses(selectedHarnesses)
       setCursorRestartNoteVisibility(selectedHarnesses)
-      if (!isReady || selectedHarnesses.length === 0) {
+      syncHarnessSelection(selectedHarnesses)
+      if (selectedHarnesses.length === 0) {
         clearInstallPath()
+        clearMessages()
         setSkillInstalled(false)
+        updateInstallButtonState()
+        updateWizardUI()
+        return { ok: true, installed: false, installPaths: {} }
+      }
+      if (installableHarnesses.length === 0) {
+        clearInstallPath()
+        clearMessages()
+        setSkillInstalled(false)
+        updateInstallButtonState()
+        updateWizardUI()
+        return { ok: true, installed: false, installPaths: {} }
+      }
+      if (!hasInstallerApi) {
+        setError('Skill installer unavailable. Restart the app.')
         updateInstallButtonState()
         updateWizardUI()
         return { ok: false }
       }
 
-      syncHarnessSelection(selectedHarnesses)
       try {
         const results = await Promise.all(
-          selectedHarnesses.map(async (harness) => {
+          installableHarnesses.map(async (harness) => {
             const result = await familiar.getSkillInstallStatus({ harness })
             return { harness, result }
           })
@@ -205,8 +240,8 @@
         if (missing.length === 0) {
           clearInstallPath()
           setSkillInstalled(true)
-          if (selectedHarnesses.length === 1) {
-            const singleHarness = selectedHarnesses[0]
+          if (installableHarnesses.length === 1) {
+            const singleHarness = installableHarnesses[0]
             const installedPath = installPaths[singleHarness]
             if (installedPath) {
               setStatus(`Installed at ${installedPath}`)
@@ -214,7 +249,7 @@
               setStatus('Installed.')
             }
           } else {
-            setStatus(`Installed for ${formatHarnessList(selectedHarnesses)}.`)
+            setStatus(`Installed for ${formatHarnessList(installableHarnesses)}.`)
           }
         } else {
           const missingLines = missing
@@ -258,7 +293,7 @@
       }
       syncHarnessSelection(selectedHarnesses)
       updateInstallButtonState()
-      if (!isReady) {
+      if (!hasInstallerApi && getInstallableHarnesses(selectedHarnesses).length > 0) {
         setError('Skill installer unavailable. Restart the app.')
         return
       }
@@ -274,29 +309,52 @@
     }
 
     const handleInstallClick = async () => {
-      if (!isReady) {
+      const selectedHarnesses = getCurrentHarnesses()
+      const installableHarnesses = getInstallableHarnesses(selectedHarnesses)
+      const manualHarnesses = getManualGuideHarnesses(selectedHarnesses)
+      if (selectedHarnesses.length === 0) {
+        setError('Choose at least one harness first.')
+        return
+      }
+      if (installableHarnesses.length > 0 && !hasInstallerApi) {
         setError('Skill installer unavailable. Restart the app.')
         return
       }
-      const selectedHarnesses = getCurrentHarnesses()
-      if (selectedHarnesses.length === 0) {
-        setError('Choose at least one harness first.')
+      if (manualHarnesses.length > 0 && !hasCloudCoWorkGuide) {
+        setError('Cloud Cowork guide unavailable. Restart the app.')
         return
       }
 
       clearMessages()
       clearInstallPath()
-      setStatus('Installing...')
       setSkillInstalled(false)
       updateInstallButtonState()
 
       try {
-        const installResults = await Promise.all(
-          selectedHarnesses.map(async (harness) => {
-            const result = await familiar.installSkill({ harness })
-            return { harness, result }
-          })
-        )
+        const installResults = []
+        let cloudCoWorkGuideOpened = false
+        let cloudCoWorkGuideErrorMessage = ''
+        if (manualHarnesses.length > 0) {
+          try {
+            const guideResult = cloudCoWorkGuide.openGuide()
+            cloudCoWorkGuideOpened = Boolean(guideResult && guideResult.ok)
+          } catch (error) {
+            console.error('Failed to open Cloud Cowork guide', error)
+            cloudCoWorkGuideOpened = false
+            cloudCoWorkGuideErrorMessage = 'Failed to open Cloud Cowork guide.'
+          }
+        }
+        if (installableHarnesses.length > 0) {
+          setStatus('Installing...')
+          const installableResults = await Promise.all(
+            installableHarnesses.map(async (harness) => {
+              const result = await familiar.installSkill({ harness })
+              return { harness, result }
+            })
+          )
+          installResults.push(...installableResults)
+        }
+
         const failed = installResults.filter((entry) => !entry.result || !entry.result.ok)
         const succeeded = installResults.filter((entry) => entry.result && entry.result.ok)
         const installPaths = {}
@@ -306,29 +364,45 @@
           }
         })
 
-        if (failed.length === 0) {
-          setSkillInstalled(true)
-          if (selectedHarnesses.length === 1) {
-            const singleHarness = selectedHarnesses[0]
+        if (failed.length === 0 && (manualHarnesses.length === 0 || cloudCoWorkGuideOpened)) {
+          setSkillInstalled(installableHarnesses.length > 0 || cloudCoWorkGuideOpened)
+          if (installableHarnesses.length === 0 && manualHarnesses.length > 0) {
+            setStatus('Opened Cloud Cowork guide.')
+            await persistSkillInstaller({ harnesses: [] })
+            return
+          }
+          let installedStatusMessage = ''
+          if (installableHarnesses.length === 1) {
+            const singleHarness = installableHarnesses[0]
             const singlePath = installPaths[singleHarness]
             if (singlePath) {
-              setStatus(`Installed at ${singlePath}`)
+              installedStatusMessage = `Installed at ${singlePath}`
             } else {
-              setStatus('Installed.')
+              installedStatusMessage = 'Installed.'
             }
           } else {
-            setStatus(`Installed for ${formatHarnessList(selectedHarnesses)}.`)
+            installedStatusMessage = `Installed for ${formatHarnessList(installableHarnesses)}.`
           }
-          console.log('Skills installed', { harnesses: selectedHarnesses, installPaths })
-          await persistSkillInstaller({ harnesses: selectedHarnesses, installPaths })
+          if (manualHarnesses.length > 0) {
+            setStatus(`${installedStatusMessage} Opened Cloud Cowork guide.`.trim())
+          } else {
+            setStatus(installedStatusMessage)
+          }
+          console.log('Skills installed', { harnesses: installableHarnesses, installPaths })
+          await persistSkillInstaller({ harnesses: installableHarnesses, installPaths })
           return
         }
         setSkillInstalled(false)
         setStatus('')
         const failedHarnessNames = failed.map((entry) => formatHarnessName(entry.harness))
-        const failedMessage = failed[0]?.result?.message || 'Failed to install skill.'
-        if (succeeded.length > 0) {
+        let failedMessage = failed[0]?.result?.message || 'Failed to install skill.'
+        if (manualHarnesses.length > 0 && !cloudCoWorkGuideOpened) {
+          failedMessage = cloudCoWorkGuideErrorMessage || 'Failed to open Cloud Cowork guide.'
+        }
+        if (succeeded.length > 0 && failedHarnessNames.length > 0) {
           setError(`Installed for ${formatHarnessList(succeeded.map((entry) => entry.harness))}. Failed for ${failedHarnessNames.join(', ')}: ${failedMessage}`)
+        } else if (succeeded.length > 0 && manualHarnesses.length > 0 && !cloudCoWorkGuideOpened) {
+          setError(`Installed for ${formatHarnessList(succeeded.map((entry) => entry.harness))}. ${failedMessage}`)
         } else {
           setError(failedMessage)
         }
@@ -343,7 +417,7 @@
       }
     }
 
-    if (!isReady) {
+    if (!hasInstallerApi && !hasCloudCoWorkGuide) {
       setError('Skill installer unavailable. Restart the app.')
     }
 

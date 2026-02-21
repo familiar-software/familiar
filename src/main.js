@@ -364,7 +364,7 @@ function createSettingsWindow() {
     const window = new BrowserWindow({
         // Keep the content area width stable while matching the sidebar width from the new design.
         width: 774,
-        height: 528,
+        height: 578,
         minWidth: 560,
         minHeight: 460,
         resizable: true,

@@ -90,7 +90,8 @@ const createHarness = ({
   currentSkillHarnesses = [],
   getStatus,
   installSkill,
-  saveSettings
+  saveSettings,
+  openCloudCoWorkGuide
 } = {}) => {
   const state = {
     currentSkillHarness,
@@ -100,9 +101,11 @@ const createHarness = ({
   const codex = new TestInput('codex')
   const antigravity = new TestInput('antigravity')
   const cursor = new TestInput('cursor')
+  const cloudCoWork = new TestInput('cloud-cowork')
   const settingsCodex = new TestInput('codex')
   const settingsAntigravity = new TestInput('antigravity')
   const settingsCursor = new TestInput('cursor')
+  const settingsCloudCoWork = new TestInput('cloud-cowork')
   const wizardSkillCursorRestartNote = { classList: new ClassList() }
   const settingsSkillCursorRestartNote = { classList: new ClassList() }
   const wizardSkillPath = { classList: new ClassList(), textContent: '' }
@@ -114,6 +117,7 @@ const createHarness = ({
   const installCalls = []
   const statusCalls = []
   const saveCalls = []
+  const openGuideCalls = []
 
   const familiar = {
     getSkillInstallStatus: async ({ harness }) => {
@@ -147,9 +151,11 @@ const createHarness = ({
         codex,
         antigravity,
         cursor,
+        cloudCoWork,
         settingsCodex,
         settingsAntigravity,
-        settingsCursor
+        settingsCursor,
+        settingsCloudCoWork
       ],
       skillInstallButtons: [wizardSkillInstallButton, settingsSkillInstallButton],
       skillInstallPaths: [wizardSkillPath, settingsSkillPath],
@@ -157,6 +163,15 @@ const createHarness = ({
       skillCursorRestartNotes: [wizardSkillCursorRestartNote, settingsSkillCursorRestartNote]
     },
     familiar,
+    cloudCoWorkGuide: {
+      openGuide: () => {
+        openGuideCalls.push(true)
+        if (typeof openCloudCoWorkGuide === 'function') {
+          return openCloudCoWorkGuide()
+        }
+        return { ok: true }
+      }
+    },
     getState: () => ({
       currentSkillHarness: state.currentSkillHarness,
       currentSkillHarnesses: state.currentSkillHarnesses
@@ -179,9 +194,11 @@ const createHarness = ({
     codex,
     antigravity,
     cursor,
+    cloudCoWork,
     settingsCodex,
     settingsAntigravity,
     settingsCursor,
+    settingsCloudCoWork,
     wizardSkillCursorRestartNote,
     settingsSkillCursorRestartNote,
     wizardSkillPath,
@@ -193,6 +210,7 @@ const createHarness = ({
     installCalls,
     statusCalls,
     saveCalls,
+    openGuideCalls,
     api
   }
 }
@@ -318,6 +336,42 @@ test('wizard skill installs for all selected harnesses on install click', async 
       latestSave.skillInstaller.installPath,
       ['/tmp/.codex/skills/familiar', '/tmp/.cursor/skills/familiar']
     )
+  } finally {
+    global.window = priorWindow
+  }
+})
+
+test('wizard skill opens Cloud Cowork guide without calling installer APIs', async () => {
+  const priorWindow = global.window
+  global.window = {}
+
+  try {
+    const {
+      cloudCoWork,
+      settingsCloudCoWork,
+      wizardSkillInstallButton,
+      installCalls,
+      statusCalls,
+      saveCalls,
+      openGuideCalls,
+      wizardSkillStatus
+    } = createHarness()
+
+    await cloudCoWork.triggerChange(true)
+    assert.equal(cloudCoWork.checked, true)
+    assert.equal(settingsCloudCoWork.checked, true)
+    assert.deepEqual(statusCalls, [])
+
+    await wizardSkillInstallButton.click()
+    await new Promise((resolve) => setImmediate(resolve))
+
+    assert.deepEqual(installCalls, [])
+    assert.equal(openGuideCalls.length, 1)
+    assert.equal(wizardSkillStatus.textContent, 'Opened Cloud Cowork guide.')
+    assert.equal(saveCalls.length > 0, true)
+    const latestSave = saveCalls[saveCalls.length - 1]
+    assert.deepEqual(latestSave.skillInstaller.harness, [])
+    assert.deepEqual(latestSave.skillInstaller.installPath, [])
   } finally {
     global.window = priorWindow
   }

@@ -69,6 +69,35 @@ const installWizardSkill = async (window) => {
   await expect(skillStatus).toContainText('Installed')
 }
 
+const openCloudCoWorkGuide = async (window) => {
+  const wizardStepThree = window.locator('[data-wizard-step="3"]')
+  const skillInstallButton = window.locator('#wizard-skill-install')
+  const skillStatus = window.locator('#wizard-skill-status')
+  const cloudCoWorkOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Cloud Cowork' })
+  const cloudCoWorkHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="cloud-cowork"]')
+  const guideContainer = window.locator('#wizard-cloud-cowork-guide')
+  const guideDoneButton = window.locator('#wizard-cloud-cowork-done')
+
+  await expect(wizardStepThree).toBeVisible()
+  if (!(await cloudCoWorkHarness.isChecked())) {
+    await cloudCoWorkOption.click()
+  }
+
+  await expect(skillInstallButton).toBeEnabled()
+  await skillInstallButton.click()
+
+  await expect(guideContainer).toBeVisible()
+  await expect(guideContainer).toContainText('Add marketplace from Github')
+  await expect(guideContainer).toContainText(
+    'https://github.com/familiar-software/familiar-claude-cowork-skill'
+  )
+  await expect(skillStatus).toContainText('Opened Cloud Cowork guide.')
+  await expect(skillStatus).not.toContainText('Installed at')
+  await expect(guideDoneButton).toBeVisible()
+  await guideDoneButton.click()
+  await expect(guideContainer).toBeHidden()
+}
+
 const expectInstallRequiredToAdvance = async (window, nextButton) => {
   const wizardStepThree = window.locator('[data-wizard-step="3"]')
   const codexHarnessOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Codex' })
@@ -227,6 +256,40 @@ test('wizard hides wizard tab after Done', async () => {
     await expect(window.locator('#section-title')).toHaveText('Storage')
     await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()
     await expect(window.locator('[data-wizard-step="1"]')).toBeHidden()
+  } finally {
+    await (await electronApp).close()
+  }
+})
+
+test('wizard cloud co-work path opens marketplace guide and does not use local install path messaging', async () => {
+  const appRoot = path.join(__dirname, '../..')
+  const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const { electronApp, settingsDir } = launchElectron({
+    contextPath,
+    env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
+  })
+
+  try {
+    const window = await (await electronApp).firstWindow()
+    await window.waitForLoadState('domcontentloaded')
+
+    await window.locator('#wizard-context-folder-choose').click()
+    const nextButton = window.locator('#wizard-next')
+
+    await nextButton.click()
+    await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()
+    await completeWizardPermissionsStep(window, nextButton)
+    await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
+
+    await openCloudCoWorkGuide(window)
+    await expect(nextButton).toBeEnabled()
+    await nextButton.click()
+    await expect(window.locator('[data-wizard-step="4"]')).toBeVisible()
+
+    const settingsPath = path.join(settingsDir, 'settings.json')
+    const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+    expect(stored.skillInstaller?.harness ?? []).toEqual([])
+    expect(stored.skillInstaller?.installPath ?? []).toEqual([])
   } finally {
     await (await electronApp).close()
   }
