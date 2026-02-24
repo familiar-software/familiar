@@ -1,4 +1,7 @@
-## New
+## Privacy and Safety
 
-- Added Claude Cowork support in the setup wizard, including in-app guidance for installation.
-- Added a new Storage "Usage Breakdown" section showing total usage and category-level usage for system files, screenshots, and markdown files.
+- Added automatic redaction for sensitive values (for example API keys and passwords) before OCR markdown and mirrored clipboard text are saved.
+
+## Storage UI
+
+- Updated file-deletion microcopy in Storage to make destructive actions clearer.
