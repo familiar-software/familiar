@@ -87,6 +87,55 @@ test('saveClipboardMirrorToDirectory writes text to the target directory', async
   assert.equal(content, text)
 })
 
+test('saveClipboardMirrorToDirectory applies redaction before writing', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'familiar-clipboard-redaction-'))
+  const nestedDir = path.join(tempDir, 'nested')
+  const text = 'api_key=sk-123456789012345678901234'
+
+  const result = await saveClipboardMirrorToDirectory(
+    text,
+    nestedDir,
+    new Date(Date.UTC(2026, 0, 2, 3, 4, 5, 6)),
+    {
+      scanAndRedactContentImpl: async () => ({
+        content: 'api_key=[REDACTED:openai_sk]',
+        findings: 1,
+        ruleCounts: { openai_sk: 1 },
+        redactionBypassed: false
+      })
+    }
+  )
+
+  const content = await fs.readFile(result.path, 'utf-8')
+  assert.equal(content, 'api_key=[REDACTED:openai_sk]')
+})
+
+test('saveClipboardMirrorToDirectory calls warning callback when redaction is bypassed', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'familiar-clipboard-redaction-warning-'))
+  const warnings = []
+
+  await saveClipboardMirrorToDirectory(
+    'token=abc123456789012345678901234567',
+    tempDir,
+    new Date(Date.UTC(2026, 0, 2, 3, 4, 5, 6)),
+    {
+      scanAndRedactContentImpl: async ({ onRedactionWarning }) => {
+        onRedactionWarning({ code: 'rg-redaction-unavailable', message: 'stub warning' })
+        return {
+          content: 'token=abc123456789012345678901234567',
+          findings: 0,
+          ruleCounts: {},
+          redactionBypassed: true
+        }
+      },
+      onRedactionWarning: (warning) => warnings.push(warning)
+    }
+  )
+
+  assert.equal(warnings.length, 1)
+  assert.equal(warnings[0].code, 'rg-redaction-unavailable')
+})
+
 test('saveClipboardMirrorToDirectory stores clipboard under the context stills-markdown session folder', async () => {
   const contextDir = await fs.mkdtemp(path.join(os.tmpdir(), 'familiar-context-clipboard-'))
   const clipboardDir = getClipboardMirrorDirectory(contextDir, 'session-abc')

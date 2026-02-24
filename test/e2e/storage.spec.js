@@ -27,36 +27,24 @@ test('delete files with 15 minute window removes only recent stills and stills-m
   const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-storage-e2e-'))
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-storage-e2e-'))
 
-  const oldStillsSessionDir = path.join(
-    contextPath,
-    'familiar',
-    'stills',
-    'session-2026-02-17T11-00-00-000Z'
-  )
-  const newestStillsSessionDir = path.join(
-    contextPath,
-    'familiar',
-    'stills',
-    'session-2026-02-17T12-00-00-000Z'
-  )
-  const oldMarkdownSessionDir = path.join(
-    contextPath,
-    'familiar',
-    'stills-markdown',
-    'session-2026-02-17T11-00-00-000Z'
-  )
+  const now = new Date()
+  const oldSessionId = toSessionId(new Date(now.getTime() - 2 * 60 * 60 * 1000))
+  const newestSessionId = toSessionId(new Date(now.getTime() - 1 * 60 * 60 * 1000))
+
+  const oldStillsSessionDir = path.join(contextPath, 'familiar', 'stills', oldSessionId)
+  const newestStillsSessionDir = path.join(contextPath, 'familiar', 'stills', newestSessionId)
+  const oldMarkdownSessionDir = path.join(contextPath, 'familiar', 'stills-markdown', oldSessionId)
   const newestMarkdownSessionDir = path.join(
     contextPath,
     'familiar',
     'stills-markdown',
-    'session-2026-02-17T12-00-00-000Z'
+    newestSessionId
   )
   fs.mkdirSync(oldStillsSessionDir, { recursive: true })
   fs.mkdirSync(newestStillsSessionDir, { recursive: true })
   fs.mkdirSync(oldMarkdownSessionDir, { recursive: true })
   fs.mkdirSync(newestMarkdownSessionDir, { recursive: true })
 
-  const now = new Date()
   const oldDate = new Date(now.getTime() - 40 * 60 * 1000)
   const recentDate = new Date(now.getTime() - 10 * 60 * 1000)
 

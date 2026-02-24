@@ -36,7 +36,7 @@ test('normalizeExtractorType respects explicit types', () => {
 test('apple vision ocr extractor caps parallel batches at 2', () => {
   const extractor = createAppleVisionOcrExtractor({
     settings: { stills_markdown_extractor: { type: 'apple_vision_ocr' } },
-    resolveBinaryPathImpl: async () => '/tmp/apple-vision-ocr',
+    resolveBinaryPathImpl: async () => '/tmp/familiar-ocr-helper',
     runAppleVisionOcrBinaryImpl: async () => ({ meta: {}, lines: [] }),
     buildMarkdownLayoutFromOcrImpl: () => 'mock markdown'
   })

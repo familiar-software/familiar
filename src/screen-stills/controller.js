@@ -20,6 +20,9 @@ function noop() {}
 function createScreenStillsController(options = {}) {
   const logger = options.logger || console;
   const onError = typeof options.onError === 'function' ? options.onError : noop;
+  const onRedactionWarning = typeof options.onRedactionWarning === 'function'
+    ? options.onRedactionWarning
+    : noop;
   const onStateTransition = typeof options.onStateTransition === 'function'
     ? options.onStateTransition
     : noop;
@@ -34,10 +37,11 @@ function createScreenStillsController(options = {}) {
   const presenceMonitor = options.presenceMonitor ||
     createPresenceMonitor({ idleThresholdSeconds, logger });
   const recorder = options.recorder || createRecorder({ logger });
-  const markdownWorker = options.markdownWorker || createStillsMarkdownWorker({ logger });
+  const markdownWorker = options.markdownWorker
+    || createStillsMarkdownWorker({ logger, onRedactionWarning });
   const clipboardMirror = options.clipboardMirror
     || ((process.versions && process.versions.electron)
-      ? createClipboardMirror({ logger })
+      ? createClipboardMirror({ logger, onRedactionWarning })
       : null);
   const startRetryIntervalMs =
     Number.isFinite(options.startRetryIntervalMs) && options.startRetryIntervalMs > 0

@@ -24,6 +24,9 @@ function isSingleWordClipboardText(text) {
 
 function createClipboardMirror (options = {}) {
   const logger = options.logger || console
+  const onRedactionWarning = typeof options.onRedactionWarning === 'function'
+    ? options.onRedactionWarning
+    : noop
   const pollIntervalMs = Number.isFinite(options.pollIntervalMs) && options.pollIntervalMs > 0
     ? Math.floor(options.pollIntervalMs)
     : DEFAULT_POLL_INTERVAL_MS
@@ -230,7 +233,9 @@ function createClipboardMirror (options = {}) {
     }
 
     try {
-      const { path: savedPath } = await saveTextImpl(text, directory, new Date())
+      const { path: savedPath } = await saveTextImpl(text, directory, new Date(), {
+        onRedactionWarning
+      })
       lastProcessedText = text
       logger.log('Clipboard mirrored', { path: savedPath, sessionId })
       return { ok: true, path: savedPath }

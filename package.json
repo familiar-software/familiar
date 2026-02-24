@@ -6,21 +6,22 @@
   "scripts": {
     "clean": "rimraf dist",
     "build:apple-vision-ocr": "bash scripts/build-apple-vision-ocr.sh",
-    "prestart": "npm run build:apple-vision-ocr",
-    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && npm run css:build && electron-builder --mac --arm64 --x64",
-    "dist:mac:arm64": "npm run clean && npm run build:apple-vision-ocr && npm run css:build && electron-builder --mac --arm64",
-    "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run css:build && electron-builder --mac --x64",
+    "build:rg-bundle": "bash scripts/build-rg-bundle.sh",
+    "prestart": "npm run build:apple-vision-ocr && npm run build:rg-bundle",
+    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && npm run build:rg-bundle && npm run css:build && electron-builder --mac --arm64 --x64",
+    "dist:mac:arm64": "npm run clean && npm run build:apple-vision-ocr && npm run build:rg-bundle && npm run css:build && electron-builder --mac --arm64",
+    "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run build:rg-bundle && npm run css:build && electron-builder --mac --x64",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
     "css:build": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --minify",
     "start": "npm run rebuild:electron && npm run css:build && electron .",
-    "predev": "npm run build:apple-vision-ocr",
+    "predev": "npm run build:apple-vision-ocr && npm run build:rg-bundle",
     "dev": "npm run rebuild:electron && tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
     "rebuild:node": "npm rebuild better-sqlite3",
     "rebuild:electron": "npm_config_runtime=electron npm_config_target=40.0.0 npm_config_disturl=https://electronjs.org/headers npm rebuild better-sqlite3 --build-from-source",
     "test": "npm run rebuild:node && find test -name \"*.test.js\" -not -path \"*/e2e/*\" -not -path \"*/modelProviderTests/*\" -print0 | xargs -0 node --test",
     "test:unit:timed": "npm run rebuild:node && node scripts/run-unit-tests-with-timeout.js",
     "test:modelProviderTests": "npm run rebuild:node && find test/modelProviderTests -name \"*.test.js\" -print0 | xargs -0 node --test",
-    "test:e2e": "npm run build:apple-vision-ocr && npm run rebuild:electron && playwright test",
+    "test:e2e": "npm run build:apple-vision-ocr && npm run build:rg-bundle && npm run rebuild:electron && playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test && npm run test:modelProviderTests && npm run test:e2e && npm run test:unit:timed"
   },
@@ -52,8 +53,12 @@
     ],
     "extraResources": [
       {
-        "from": "scripts/bin/apple-vision-ocr",
-        "to": "apple-vision-ocr"
+        "from": "scripts/bin/familiar-ocr-helper",
+        "to": "familiar-ocr-helper"
+      },
+      {
+        "from": "scripts/bin/rg",
+        "to": "rg"
       }
     ],
     "mac": {

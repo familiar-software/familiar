@@ -1,5 +1,6 @@
 const path = require('node:path')
 const fs = require('node:fs/promises')
+const { scanAndRedactContent } = require('../security/rg-redaction')
 
 const {
   FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
@@ -35,6 +36,8 @@ function buildClipboardImageMirrorFilename (date = new Date(), extension = 'png'
   return `${buildTimestamp(date)}.clipboard.${normalizedExtension}`
 }
 
+function noop () {}
+
 function getClipboardMirrorDirectory (contextFolderPath, sessionId) {
   if (!contextFolderPath || !sessionId) {
     return null
@@ -59,7 +62,15 @@ function getClipboardImageMirrorDirectory (contextFolderPath, sessionId) {
   )
 }
 
-async function saveClipboardMirrorToDirectory (text, directory, date = new Date()) {
+async function saveClipboardMirrorToDirectory (
+  text,
+  directory,
+  date = new Date(),
+  {
+    onRedactionWarning = noop,
+    scanAndRedactContentImpl = scanAndRedactContent
+  } = {}
+) {
   if (typeof text !== 'string') {
     throw new Error('Clipboard text is missing or invalid.')
   }
@@ -70,7 +81,22 @@ async function saveClipboardMirrorToDirectory (text, directory, date = new Date(
   await fs.mkdir(directory, { recursive: true })
   const filename = buildClipboardMirrorFilename(date)
   const fullPath = path.join(directory, filename)
-  await fs.writeFile(fullPath, text, 'utf-8')
+  const redactionResult = await scanAndRedactContentImpl({
+    content: text,
+    fileType: 'clipboard',
+    fileIdentifier: fullPath,
+    onRedactionWarning
+  })
+  if (redactionResult.redactionBypassed) {
+    console.warn('Saved clipboard mirror without redaction due to scanner issue', { fullPath })
+  } else if (redactionResult.findings > 0) {
+    console.log('Redacted clipboard text before save', {
+      fullPath,
+      findings: redactionResult.findings,
+      ruleCounts: redactionResult.ruleCounts
+    })
+  }
+  await fs.writeFile(fullPath, redactionResult.content, 'utf-8')
   return { path: fullPath, filename }
 }
 

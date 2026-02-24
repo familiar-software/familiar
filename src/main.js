@@ -50,6 +50,7 @@ let recordingShutdownInProgress = false;
 let recordingOffReminder = null;
 let autoSessionCleanupScheduler = null;
 let retentionChangeTrigger = null;
+let redactionWarningShownForCurrentRecordingSession = false;
 const e2eToastEvents = [];
 const E2E_TOAST_EVENT_LIMIT = 20;
 
@@ -207,10 +208,36 @@ const handleStillsError = ({ message, willRetry, retryDelayMs, attempt } = {}) =
 };
 
 const handleRecordingOffReminderTransition = (transition) => {
+    if (transition?.toState === 'recording') {
+        redactionWarningShownForCurrentRecordingSession = false;
+    }
     if (!recordingOffReminder || typeof recordingOffReminder.handleStateTransition !== 'function') {
         return;
     }
     recordingOffReminder.handleStateTransition(transition);
+};
+
+const handleRedactionWarning = ({ message, fileType, fileIdentifier } = {}) => {
+    const warningMessage = typeof message === 'string' && message.trim().length > 0
+        ? message
+        : 'Sensitive-data redaction is currently unavailable.';
+
+    console.warn('Redaction warning', {
+        message: warningMessage,
+        fileType: typeof fileType === 'string' ? fileType : 'unknown',
+        fileIdentifier: typeof fileIdentifier === 'string' ? fileIdentifier : null
+    });
+
+    if (redactionWarningShownForCurrentRecordingSession) {
+        return;
+    }
+    redactionWarningShownForCurrentRecordingSession = true;
+    maybeE2EToast({
+        title: 'Redaction warning',
+        body: `${warningMessage}\nFiles are still being saved.`,
+        type: 'warning',
+        size: 'large'
+    });
 };
 
 const syncRecordingOffReminderState = () => {
@@ -607,6 +634,7 @@ if (isPrimaryInstance) {
             screenStillsController = createScreenStillsController({
                 logger: console,
                 onError: handleStillsError,
+                onRedactionWarning: handleRedactionWarning,
                 onStateTransition: handleRecordingOffReminderTransition,
                 presenceMonitor,
                 ...(pauseDurationOverrideMs ? { pauseDurationMs: pauseDurationOverrideMs } : {})

@@ -2,6 +2,7 @@ const fs = require('node:fs/promises')
 const path = require('node:path')
 
 const { loadSettings } = require('../settings')
+const { scanAndRedactContent } = require('../security/rg-redaction')
 const { RetryableError } = require('../utils/retry')
 const { createStillsQueue } = require('./stills-queue')
 const { createStillsMarkdownExtractor } = require('./stills-markdown-extractor')
@@ -17,6 +18,7 @@ const DEFAULT_BATCH_SIZE = 4
 const DEFAULT_MAX_BATCHES_PER_TICK = 10
 const DEFAULT_POLL_INTERVAL_MS = 1000
 const DEFAULT_REQUEUE_STALE_PROCESSING_AFTER_MS = 60 * 60 * 1000
+const noop = () => {}
 
 const defaultIsOnlineImpl = async () => {
   // Only meaningful when running inside Electron. In plain Node.js, `require('electron')`
@@ -45,14 +47,35 @@ const resolveMarkdownPath = (contextFolderPath, imagePath) => {
   return path.join(markdownRoot, parsed.dir, `${parsed.name}.md`)
 }
 
-const writeMarkdownFile = async ({ contextFolderPath, imagePath, markdown }) => {
+const writeMarkdownFile = async ({
+  contextFolderPath,
+  imagePath,
+  markdown,
+  scanAndRedactContentImpl = scanAndRedactContent,
+  onRedactionWarning = noop
+}) => {
   if (!markdown) {
     throw new Error('Markdown content is required.')
   }
   const outputPath = resolveMarkdownPath(contextFolderPath, imagePath)
   await fs.mkdir(path.dirname(outputPath), { recursive: true })
   const payload = markdown.endsWith('\n') ? markdown : `${markdown}\n`
-  await fs.writeFile(outputPath, payload, 'utf-8')
+  const redactionResult = await scanAndRedactContentImpl({
+    content: payload,
+    fileType: 'stills-markdown',
+    fileIdentifier: outputPath,
+    onRedactionWarning
+  })
+  if (redactionResult.redactionBypassed) {
+    console.warn('Saved still markdown without redaction due to scanner issue', { outputPath })
+  } else if (redactionResult.findings > 0) {
+    console.log('Redacted still markdown before save', {
+      outputPath,
+      findings: redactionResult.findings,
+      ruleCounts: redactionResult.ruleCounts
+    })
+  }
+  await fs.writeFile(outputPath, redactionResult.content, 'utf-8')
   return outputPath
 }
 
@@ -67,6 +90,8 @@ const createStillsMarkdownWorker = ({
   createQueueImpl = createStillsQueue,
   createExtractorImpl = createStillsMarkdownExtractor,
   writeMarkdownFileImpl = writeMarkdownFile,
+  scanAndRedactContentImpl = scanAndRedactContent,
+  onRedactionWarning = noop,
   readImageAsBase64Impl = readImageAsBase64,
   inferMimeTypeImpl = inferMimeType
 } = {}) => {
@@ -147,7 +172,9 @@ const createStillsMarkdownWorker = ({
         const outputPath = await writeMarkdownFileImpl({
           contextFolderPath,
           imagePath: row.image_path,
-          markdown
+          markdown,
+          scanAndRedactContentImpl,
+          onRedactionWarning
         })
         queueStore.markDone({
           id: row.id,

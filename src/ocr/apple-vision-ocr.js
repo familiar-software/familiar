@@ -122,15 +122,15 @@ const resolveAppleVisionOcrBinaryPath = async ({ logger = console } = {}) => {
   // We intentionally keep the expected location simple and configurable via env override.
   const resourcesPath = typeof process.resourcesPath === 'string' ? process.resourcesPath : ''
   if (resourcesPath) {
-    const packagedCandidate = path.join(resourcesPath, 'apple-vision-ocr')
+    const packagedCandidate = path.join(resourcesPath, 'familiar-ocr-helper')
     if (await fileExists(packagedCandidate)) {
       return packagedCandidate
     }
   }
 
-  // Dev fallback: repoRoot/code/desktopapp/scripts/bin/apple-vision-ocr
+  // Dev fallback: repoRoot/code/desktopapp/scripts/bin/familiar-ocr-helper
   const repoRoot = path.resolve(__dirname, '..', '..', '..', '..')
-  const devCandidate = path.join(repoRoot, 'code', 'desktopapp', 'scripts', 'bin', 'apple-vision-ocr')
+  const devCandidate = path.join(repoRoot, 'code', 'desktopapp', 'scripts', 'bin', 'familiar-ocr-helper')
   if (await fileExists(devCandidate)) {
     return devCandidate
   }

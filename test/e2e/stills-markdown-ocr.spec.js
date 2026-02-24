@@ -47,7 +47,7 @@ test('stills markdown worker uses local Apple Vision OCR helper (native binary)'
   const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-stills-md-'))
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
   const appRoot = path.join(__dirname, '../..')
-  const ocrBinaryPath = path.join(appRoot, 'scripts', 'bin', 'apple-vision-ocr')
+  const ocrBinaryPath = path.join(appRoot, 'scripts', 'bin', 'familiar-ocr-helper')
 
   expect(fs.existsSync(ocrBinaryPath)).toBe(true)
 
@@ -184,6 +184,157 @@ test('stills markdown worker uses local Apple Vision OCR helper (native binary)'
     expect(markdown).toContain('# OCR')
     // Stable fallback from buildMarkdownLayoutFromOcr when OCR emits zero lines.
     expect(markdown).toContain('NO_TEXT_DETECTED')
+  } finally {
+    await electronApp.evaluate(() => {
+      const worker = global.__familiarE2EStillsMarkdownWorker
+      if (worker && typeof worker.stop === 'function') {
+        worker.stop()
+      }
+      global.__familiarE2EStillsMarkdownWorker = null
+    })
+    await electronApp.close()
+  }
+})
+
+test('stills markdown worker redacts secrets in mocked LLM output before persisting', async () => {
+  const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-stills-redaction-'))
+  const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-stills-redaction-'))
+  fs.writeFileSync(
+    path.join(settingsDir, 'settings.json'),
+    JSON.stringify(
+      {
+        wizardCompleted: true,
+        contextFolderPath: contextPath,
+        stills_markdown_extractor: {
+          type: 'llm',
+          llm_provider: {
+            provider: 'openai',
+            api_key: 'test'
+          }
+        }
+      },
+      null,
+      2
+    ),
+    'utf-8'
+  )
+
+  const mockText = [
+    'format: familiar-layout-v0',
+    'extractor: llm-mock',
+    '# OCR',
+    'Authorization: Bearer abcdefghijklmnopqrstuvwxyz012345',
+    'api_key = "abcDEF1234567890XYZ_+-/="',
+    'password = "mysecretpass"',
+    'openai=sk-abcdefghijklmnopqrstuvwxyz123456'
+  ].join('\n')
+
+  const sessionId = `session-e2e-redaction-${Date.now()}`
+  const capturedAt = new Date().toISOString()
+  const fileBase = `capture-${Date.now()}`
+  const stillPath = path.join(stillsRootForContext(contextPath), sessionId, `${fileBase}.webp`)
+  const expectedMarkdownPath = path.join(markdownRootForContext(contextPath), sessionId, `${fileBase}.md`)
+
+  const electronApp = await launchApp({
+    contextPath,
+    settingsDir,
+    env: {
+      FAMILIAR_LLM_MOCK: '1',
+      FAMILIAR_LLM_MOCK_TEXT: mockText,
+      FAMILIAR_E2E_OCR_SESSION_ID: sessionId,
+      FAMILIAR_E2E_OCR_CAPTURED_AT: capturedAt,
+      FAMILIAR_E2E_OCR_FILE_BASE: fileBase
+    }
+  })
+
+  try {
+    const window = await electronApp.firstWindow()
+    await window.waitForLoadState('domcontentloaded')
+
+    const base64Webp = await window.evaluate(async () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 64
+      canvas.height = 64
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        throw new Error('Failed to create canvas context')
+      }
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp'))
+      if (!blob) {
+        throw new Error('Failed to encode WebP blob')
+      }
+
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result || ''))
+        reader.onerror = () => reject(new Error('Failed to read WebP data URL'))
+        reader.readAsDataURL(blob)
+      })
+
+      const parts = String(dataUrl).split(',')
+      return parts.length > 1 ? parts[1] : ''
+    })
+    expect(base64Webp).toBeTruthy()
+
+    fs.mkdirSync(path.dirname(stillPath), { recursive: true })
+    fs.writeFileSync(stillPath, Buffer.from(base64Webp, 'base64'))
+
+    await electronApp.evaluate(async () => {
+      const pathLocal = process.mainModule.require('node:path')
+      const { app } = process.mainModule.require('electron')
+      const contextPathLocal = process.env.FAMILIAR_E2E_CONTEXT_PATH
+      const sessionIdLocal = process.env.FAMILIAR_E2E_OCR_SESSION_ID
+      const capturedAtLocal = process.env.FAMILIAR_E2E_OCR_CAPTURED_AT
+      const fileBaseLocal = process.env.FAMILIAR_E2E_OCR_FILE_BASE
+      const resolvedAppRoot = app.getAppPath()
+
+      const resolvedStillPath = pathLocal.join(
+        contextPathLocal,
+        'familiar',
+        'stills',
+        sessionIdLocal,
+        `${fileBaseLocal}.webp`
+      )
+
+      const { createStillsQueue } = process.mainModule.require(
+        pathLocal.join(resolvedAppRoot, 'src', 'screen-stills', 'stills-queue.js')
+      )
+      const { createStillsMarkdownWorker } = process.mainModule.require(
+        pathLocal.join(resolvedAppRoot, 'src', 'screen-stills', 'stills-markdown-worker.js')
+      )
+
+      const queue = createStillsQueue({ contextFolderPath: contextPathLocal, logger: console })
+      queue.enqueueCapture({
+        imagePath: resolvedStillPath,
+        sessionId: sessionIdLocal,
+        capturedAt: capturedAtLocal
+      })
+
+      const worker = createStillsMarkdownWorker({
+        logger: console,
+        pollIntervalMs: 150,
+        maxBatchesPerTick: 1,
+        runImmediately: true
+      })
+
+      global.__familiarE2EStillsMarkdownWorker = worker
+      worker.start({ contextFolderPath: contextPathLocal })
+    })
+
+    await expect.poll(() => fs.existsSync(expectedMarkdownPath), { timeout: 30000 }).toBe(true)
+
+    const markdown = fs.readFileSync(expectedMarkdownPath, 'utf-8')
+    expect(markdown).toContain('[REDACTED:auth_bearer]')
+    expect(markdown).toContain('api_key = "[REDACTED:generic_api_assignment]"')
+    expect(markdown).toContain('password = "[REDACTED:password_assignment]"')
+    expect(markdown).toContain('[REDACTED:openai_sk]')
+    expect(markdown).not.toContain('Bearer abcdefghijklmnopqrstuvwxyz012345')
+    expect(markdown).not.toContain('abcDEF1234567890XYZ_+-/=')
+    expect(markdown).not.toContain('mysecretpass')
+    expect(markdown).not.toContain('sk-abcdefghijklmnopqrstuvwxyz123456')
   } finally {
     await electronApp.evaluate(() => {
       const worker = global.__familiarE2EStillsMarkdownWorker

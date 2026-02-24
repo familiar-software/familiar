@@ -1,5 +1,9 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const fs = require('node:fs/promises')
+const fsSync = require('node:fs')
+const os = require('node:os')
+const path = require('node:path')
 
 const {
   parseBatchResponse,
@@ -47,6 +51,70 @@ test('resolveMarkdownPath preserves .clipboard suffix from source still image', 
     markdownPath,
     '/tmp/context/familiar/stills-markdown/session-123/2026-02-20T14-22-33-123Z.clipboard.md'
   )
+})
+
+test('writeMarkdownFile applies redaction before persisting markdown fixture patterns', async () => {
+  const contextFolderPath = await fs.mkdtemp(path.join(os.tmpdir(), 'familiar-markdown-write-'))
+  const imagePath = path.join(
+    contextFolderPath,
+    'familiar',
+    'stills',
+    'session-123',
+    '2026-02-20T14-22-33-123Z.png'
+  )
+  await fs.mkdir(path.dirname(imagePath), { recursive: true })
+  await fs.writeFile(imagePath, 'fake-image-bytes')
+  const fixtureInputPath = path.join(__dirname, 'stills-markdown-redaction-input.md')
+  const fixtureExpectedPath = path.join(__dirname, 'stills-markdown-redaction-expected.md')
+  const inputMarkdown = await fs.readFile(fixtureInputPath, 'utf-8')
+  const expectedMarkdown = await fs.readFile(fixtureExpectedPath, 'utf-8')
+  const rgStubDir = await fs.mkdtemp(path.join(os.tmpdir(), 'familiar-rg-stub-'))
+  const rgStubPath = path.join(rgStubDir, 'rg-stub.js')
+  const priorRgBinary = process.env.FAMILIAR_RG_BINARY
+
+  fsSync.writeFileSync(
+    rgStubPath,
+    [
+      '#!/usr/bin/env node',
+      'let input = "";',
+      'process.stdin.setEncoding("utf8");',
+      'process.stdin.on("data", (chunk) => { input += chunk; });',
+      'process.stdin.on("end", () => {',
+      '  const lines = input.split(/\\n/);',
+      '  for (let i = 0; i < lines.length; i += 1) {',
+      '    process.stdout.write(JSON.stringify({',
+      '      type: "match",',
+      '      data: {',
+      '        line_number: i + 1,',
+      '        submatches: [{ match: { text: "x" }, start: 0, end: 1 }]',
+      '      }',
+      '    }) + "\\n");',
+      '  }',
+      '  process.exit(0);',
+      '});',
+      ''
+    ].join('\n'),
+    'utf-8'
+  )
+  fsSync.chmodSync(rgStubPath, 0o755)
+  process.env.FAMILIAR_RG_BINARY = rgStubPath
+
+  try {
+    const outputPath = await require('../src/screen-stills/stills-markdown-worker').writeMarkdownFile({
+      contextFolderPath,
+      imagePath,
+      markdown: inputMarkdown
+    })
+
+    const persisted = await fs.readFile(outputPath, 'utf-8')
+    assert.equal(persisted, expectedMarkdown)
+  } finally {
+    if (priorRgBinary === undefined) {
+      delete process.env.FAMILIAR_RG_BINARY
+    } else {
+      process.env.FAMILIAR_RG_BINARY = priorRgBinary
+    }
+  }
 })
 
 test('stills markdown worker does nothing on empty queue', async () => {

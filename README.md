@@ -298,6 +298,7 @@ _Credit: Sumant Subrahmanya_
 - Clipboard image mirrors while recording: `<contextFolderPath>/familiar/stills/<sessionId>/<timestamp>.clipboard.<ext>`
 - Extracted markdown (including OCR output for clipboard images): `<contextFolderPath>/familiar/stills-markdown/`
 - Clipboard text mirrors while recording: `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.clipboard.txt`
+- Before still markdown and clipboard text are written, Familiar runs `rg`-based redaction for password/API-key patterns. If the scanner fails twice, Familiar still saves the file and shows a one-time warning toast per recording session.
 
 ## Build locally (advanced)
 
@@ -315,6 +316,10 @@ Create local macOS build artifacts:
 ```bash
 npm run dist:mac
 ```
+
+`npm run dist:mac*` includes `npm run build:rg-bundle`, which prepares `code/desktopapp/scripts/bin/rg/*` and packages it into Electron resources at `resources/rg/`.
+
+`build-rg-bundle.sh` downloads official ripgrep binaries when missing (or copies from `FAMILIAR_RG_DARWIN_ARM64_SOURCE` / `FAMILIAR_RG_DARWIN_X64_SOURCE` if provided). The binaries are generated locally and are not committed.
 
 ## Contribution
 

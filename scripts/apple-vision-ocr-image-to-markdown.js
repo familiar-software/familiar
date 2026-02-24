@@ -8,7 +8,7 @@ const { writeExtractionFile } = require('../src/utils/extraction-files');
 
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_OCR_BINARY_PATH = path.resolve(__dirname, 'bin', 'apple-vision-ocr');
+const DEFAULT_OCR_BINARY_PATH = path.resolve(__dirname, 'bin', 'familiar-ocr-helper');
 
 const resolveOcrBinaryPath = () => {
     const override = process.env.FAMILIAR_APPLE_VISION_OCR_BINARY;
@@ -25,7 +25,7 @@ const usage = () =>
         '',
         'Notes:',
         '  - Local-only OCR using Apple Vision (macOS). No API key required.',
-        '  - By default, runs the prebuilt helper binary at code/desktopapp/scripts/bin/apple-vision-ocr.',
+        '  - By default, runs the prebuilt helper binary at code/desktopapp/scripts/bin/familiar-ocr-helper.',
         '  - If the binary is missing, run: ./code/desktopapp/scripts/build-apple-vision-ocr.sh',
         '  - By default, disables OCR observations (bounding boxes) for performance; enable with --observations.',
         '',
