@@ -3,10 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { loadSettings } = require('../settings');
-const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME } = require('../const');
+const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME } = require('../const');
 
-function getStillsFolderPath(contextFolderPath) {
-  return path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME);
+function getFamiliarFolderPath(contextFolderPath) {
+  return path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME);
 }
 
 async function handleOpenStillsFolder() {
@@ -17,26 +17,26 @@ async function handleOpenStillsFolder() {
       return { ok: false, message: 'Context folder is not set.' };
     }
 
-    const stillsPath = getStillsFolderPath(contextFolderPath);
+    const familiarPath = getFamiliarFolderPath(contextFolderPath);
 
     try {
-      fs.mkdirSync(stillsPath, { recursive: true });
+      fs.mkdirSync(familiarPath, { recursive: true });
     } catch (error) {
-      console.error('Failed to ensure stills folder exists', { stillsPath, error });
-      return { ok: false, message: 'Unable to create stills folder.' };
+      console.error('Failed to ensure Familiar folder exists', { familiarPath, error });
+      return { ok: false, message: 'Unable to create Familiar folder.' };
     }
 
-    const openResult = await shell.openPath(stillsPath);
+    const openResult = await shell.openPath(familiarPath);
     if (openResult) {
-      console.error('Failed to open stills folder', { stillsPath, error: openResult });
-      return { ok: false, message: 'Failed to open stills folder.' };
+      console.error('Failed to open Familiar folder', { familiarPath, error: openResult });
+      return { ok: false, message: 'Failed to open Familiar folder.' };
     }
 
-    console.log('Opened stills folder', { stillsPath });
+    console.log('Opened Familiar folder', { familiarPath });
     return { ok: true };
   } catch (error) {
-    console.error('Failed to open stills folder', error);
-    return { ok: false, message: 'Failed to open stills folder.' };
+    console.error('Failed to open Familiar folder', error);
+    return { ok: false, message: 'Failed to open Familiar folder.' };
   }
 }
 
@@ -48,4 +48,3 @@ function registerStillsHandlers() {
 module.exports = {
   registerStillsHandlers,
 };
-
