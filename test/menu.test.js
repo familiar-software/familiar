@@ -29,7 +29,7 @@ test('buildTrayMenuTemplate uses recording label while active', () => {
         recordingState
     });
 
-    const recordingItem = template.find((item) => item.label === 'Capturing (click for 10m pause)');
+    const recordingItem = template.find((item) => item.label === 'Click to pause for 10 min');
 
     assert.ok(recordingItem);
 });
@@ -115,7 +115,7 @@ test('buildTrayMenuTemplate uses minute pause label while paused', () => {
         }
     });
 
-    const recordingItem = template.find((item) => item.label === 'Paused for 2m (click to resume)');
+    const recordingItem = template.find((item) => item.label === 'Paused for 10 min (click to resume)');
 
     assert.ok(recordingItem);
 });
@@ -132,7 +132,7 @@ test('buildTrayMenuTemplate keeps paused label at 1m when remaining time is belo
         }
     });
 
-    const recordingItem = template.find((item) => item.label === 'Paused for 1m (click to resume)');
+    const recordingItem = template.find((item) => item.label === 'Paused for 10 min (click to resume)');
 
     assert.ok(recordingItem);
 });
