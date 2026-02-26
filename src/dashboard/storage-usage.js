@@ -1,4 +1,10 @@
 (function registerStorageUsage(global) {
+  const microcopyModule = global?.FamiliarMicrocopy || (typeof require === 'function' ? require('../microcopy') : null)
+  if (!microcopyModule || !microcopyModule.microcopy) {
+    throw new Error('Familiar microcopy is unavailable')
+  }
+  const { microcopy } = microcopyModule
+
   function formatBytes(bytes) {
     const value = Number.isFinite(bytes) ? Math.max(0, bytes) : 0
     if (value === 0) {
@@ -74,7 +80,7 @@
       const systemBytes = Number.isFinite(usage.systemBytes) ? usage.systemBytes : 0
 
       if (totalLabel) {
-        totalLabel.textContent = `Total: ${formatBytes(totalBytes)}`
+        totalLabel.textContent = `${microcopy.dashboard.storageUsage.totalPrefix} ${formatBytes(totalBytes)}`
       }
       if (screenshotsValueLabel) {
         screenshotsValueLabel.textContent = formatBytes(screenshotsBytes)
@@ -94,7 +100,7 @@
     async function refresh() {
       if (typeof familiar.getStorageUsageBreakdown !== 'function') {
         setLoadingState(false)
-        setMessage(errorElements, 'Storage usage unavailable. Restart the app.')
+        setMessage(errorElements, microcopy.dashboard.storageUsage.errors.unavailableRestart)
         return null
       }
 
@@ -112,12 +118,12 @@
         }
         setLoadingState(false)
         setMessage(statusElements, '')
-        setMessage(errorElements, result?.message || 'Failed to load storage usage.')
+        setMessage(errorElements, result?.message || microcopy.dashboard.storageUsage.errors.failedToLoad)
       } catch (error) {
         console.error('Failed to load storage usage breakdown', error)
         setLoadingState(false)
         setMessage(statusElements, '')
-        setMessage(errorElements, 'Failed to load storage usage.')
+        setMessage(errorElements, microcopy.dashboard.storageUsage.errors.failedToLoad)
       }
 
       return null

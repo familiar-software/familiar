@@ -1,4 +1,11 @@
 (function registerRecordingStatusIndicator(global) {
+  const microcopyModule = global.FamiliarMicrocopy
+    || (typeof require === 'function' ? require('./microcopy') : null)
+  if (!microcopyModule || !microcopyModule.microcopy) {
+    throw new Error('Familiar microcopy is unavailable')
+  }
+  const { microcopy } = microcopyModule
+
   const INDICATOR_STATUSES = Object.freeze({
     OFF: 'off',
     PAUSED: 'paused',
@@ -12,27 +19,27 @@
 
   const STATUS_VISUALS = Object.freeze({
     [INDICATOR_STATUSES.OFF]: Object.freeze({
-      label: 'Off',
+      label: microcopy.recordingIndicator.off,
       dotClass: 'bg-zinc-400',
       trayColorHex: '#9ca3af'
     }),
     [INDICATOR_STATUSES.PAUSED]: Object.freeze({
-      label: 'Paused',
+      label: microcopy.recordingIndicator.paused,
       dotClass: 'bg-amber-500',
       trayColorHex: '#f59e0b'
     }),
     [INDICATOR_STATUSES.PERMISSION_NEEDED]: Object.freeze({
-      label: 'Permission needed',
+      label: microcopy.recordingIndicator.permissionNeeded,
       dotClass: 'bg-red-500',
       trayColorHex: '#ef4444'
     }),
     [INDICATOR_STATUSES.RECORDING]: Object.freeze({
-      label: 'Capturing',
+      label: microcopy.recordingIndicator.capturing,
       dotClass: 'bg-emerald-500',
       trayColorHex: '#10b981'
     }),
     [INDICATOR_STATUSES.IDLE]: Object.freeze({
-      label: 'Idle',
+      label: microcopy.recordingIndicator.idle,
       dotClass: 'bg-zinc-400',
       trayColorHex: '#9ca3af'
     })

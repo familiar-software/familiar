@@ -1,4 +1,9 @@
 (function (global) {
+  const microcopyModule = global?.FamiliarMicrocopy || (typeof require === 'function' ? require('../microcopy') : null)
+  if (!microcopyModule || !microcopyModule.microcopy || !microcopyModule.formatters) {
+    throw new Error('Familiar microcopy is unavailable')
+  }
+  const { microcopy, formatters } = microcopyModule
   const MANUAL_GUIDE_HARNESSES = new Set(['cloud-cowork'])
 
   const createWizardSkill = (options = {}) => {
@@ -85,19 +90,19 @@
     const setError = (message) => setMessage(allSkillInstallErrors, message)
     const formatHarnessName = (harness) => {
       if (harness === 'claude') {
-        return 'Claude Code'
+        return microcopy.dashboard.wizardSkill.harnessNames.claude
       }
       if (harness === 'codex') {
-        return 'Codex'
+        return microcopy.dashboard.wizardSkill.harnessNames.codex
       }
       if (harness === 'antigravity') {
-        return 'Antigravity'
+        return microcopy.dashboard.wizardSkill.harnessNames.antigravity
       }
       if (harness === 'cursor') {
-        return 'Cursor'
+        return microcopy.dashboard.wizardSkill.harnessNames.cursor
       }
       if (harness === 'cloud-cowork') {
-        return 'Cloud Cowork'
+        return microcopy.dashboard.wizardSkill.harnessNames.cloudCowork
       }
       return harness
     }
@@ -200,7 +205,7 @@
         return { ok: true, installed: false, installPaths: {} }
       }
       if (!hasInstallerApi) {
-        setError('Skill installer unavailable. Restart the app.')
+        setError(microcopy.dashboard.wizardSkill.messages.installerUnavailableRestart)
         updateInstallButtonState()
         updateWizardUI()
         return { ok: false }
@@ -218,7 +223,9 @@
           clearInstallPath()
           setSkillInstalled(false)
           setStatus('')
-          setError(failed[0]?.result?.message || 'Failed to check skill installation.')
+          setError(
+            failed[0]?.result?.message || microcopy.dashboard.wizardSkill.messages.failedToCheckSkillInstallation
+          )
           return { ok: false }
         }
 
@@ -244,18 +251,21 @@
             const singleHarness = installableHarnesses[0]
             const installedPath = installPaths[singleHarness]
             if (installedPath) {
-              setStatus(`Installed at ${installedPath}`)
+              setStatus(formatters.wizardSkillInstalledAt(installedPath))
             } else {
-              setStatus('Installed.')
+              setStatus(microcopy.dashboard.wizardSkill.messages.installed)
             }
           } else {
-            setStatus(`Installed for ${formatHarnessList(installableHarnesses)}.`)
+            setStatus(formatters.wizardSkillInstalledFor(formatHarnessList(installableHarnesses)))
           }
         } else {
           const missingLines = missing
-            .map((harness) => `${formatHarnessName(harness)}: ${installPaths[harness] || '(path unavailable)'}`)
+            .map((harness) => {
+              const pathText = installPaths[harness] || microcopy.dashboard.wizardSkill.messages.pathUnavailable
+              return `${formatHarnessName(harness)}: ${pathText}`
+            })
             .join('\n')
-          setInstallPath(`Install paths:\n${missingLines}`)
+          setInstallPath(`${microcopy.dashboard.wizardSkill.messages.installPathsHeader}\n${missingLines}`)
           setStatus('')
           setSkillInstalled(false)
         }
@@ -269,7 +279,7 @@
         clearInstallPath()
         setSkillInstalled(false)
         setStatus('')
-        setError('Failed to check skill installation.')
+        setError(microcopy.dashboard.wizardSkill.messages.failedToCheckSkillInstallation)
         return { ok: false }
       } finally {
         updateInstallButtonState()
@@ -294,7 +304,7 @@
       syncHarnessSelection(selectedHarnesses)
       updateInstallButtonState()
       if (!hasInstallerApi && getInstallableHarnesses(selectedHarnesses).length > 0) {
-        setError('Skill installer unavailable. Restart the app.')
+        setError(microcopy.dashboard.wizardSkill.messages.installerUnavailableRestart)
         return
       }
       if (selectedHarnesses.length > 0) {
@@ -313,15 +323,15 @@
       const installableHarnesses = getInstallableHarnesses(selectedHarnesses)
       const manualHarnesses = getManualGuideHarnesses(selectedHarnesses)
       if (selectedHarnesses.length === 0) {
-        setError('Choose at least one harness first.')
+        setError(microcopy.dashboard.wizardSkill.messages.chooseHarnessFirst)
         return
       }
       if (installableHarnesses.length > 0 && !hasInstallerApi) {
-        setError('Skill installer unavailable. Restart the app.')
+        setError(microcopy.dashboard.wizardSkill.messages.installerUnavailableRestart)
         return
       }
       if (manualHarnesses.length > 0 && !hasCloudCoWorkGuide) {
-        setError('Cloud Cowork guide unavailable. Restart the app.')
+        setError(microcopy.dashboard.wizardSkill.messages.cloudCoworkGuideUnavailableRestart)
         return
       }
 
@@ -341,11 +351,11 @@
           } catch (error) {
             console.error('Failed to open Cloud Cowork guide', error)
             cloudCoWorkGuideOpened = false
-            cloudCoWorkGuideErrorMessage = 'Failed to open Cloud Cowork guide.'
+            cloudCoWorkGuideErrorMessage = microcopy.dashboard.wizardSkill.messages.failedToOpenCloudCoworkGuide
           }
         }
         if (installableHarnesses.length > 0) {
-          setStatus('Installing...')
+          setStatus(microcopy.dashboard.wizardSkill.messages.installing)
           const installableResults = await Promise.all(
             installableHarnesses.map(async (harness) => {
               const result = await familiar.installSkill({ harness })
@@ -367,7 +377,7 @@
         if (failed.length === 0 && (manualHarnesses.length === 0 || cloudCoWorkGuideOpened)) {
           setSkillInstalled(installableHarnesses.length > 0 || cloudCoWorkGuideOpened)
           if (installableHarnesses.length === 0 && manualHarnesses.length > 0) {
-            setStatus('Opened Cloud Cowork guide.')
+            setStatus(microcopy.dashboard.wizardSkill.messages.openedCloudCoworkGuide)
             await persistSkillInstaller({ harnesses: [] })
             return
           }
@@ -376,15 +386,15 @@
             const singleHarness = installableHarnesses[0]
             const singlePath = installPaths[singleHarness]
             if (singlePath) {
-              installedStatusMessage = `Installed at ${singlePath}`
+              installedStatusMessage = formatters.wizardSkillInstalledAt(singlePath)
             } else {
-              installedStatusMessage = 'Installed.'
+              installedStatusMessage = microcopy.dashboard.wizardSkill.messages.installed
             }
           } else {
-            installedStatusMessage = `Installed for ${formatHarnessList(installableHarnesses)}.`
+            installedStatusMessage = formatters.wizardSkillInstalledFor(formatHarnessList(installableHarnesses))
           }
           if (manualHarnesses.length > 0) {
-            setStatus(`${installedStatusMessage} Opened Cloud Cowork guide.`.trim())
+            setStatus(formatters.wizardSkillOpenedCloudCoworkGuideCombined(installedStatusMessage).trim())
           } else {
             setStatus(installedStatusMessage)
           }
@@ -395,14 +405,25 @@
         setSkillInstalled(false)
         setStatus('')
         const failedHarnessNames = failed.map((entry) => formatHarnessName(entry.harness))
-        let failedMessage = failed[0]?.result?.message || 'Failed to install skill.'
+        let failedMessage = failed[0]?.result?.message || microcopy.dashboard.wizardSkill.messages.failedToInstallSkill
         if (manualHarnesses.length > 0 && !cloudCoWorkGuideOpened) {
-          failedMessage = cloudCoWorkGuideErrorMessage || 'Failed to open Cloud Cowork guide.'
+          failedMessage = cloudCoWorkGuideErrorMessage || microcopy.dashboard.wizardSkill.messages.failedToOpenCloudCoworkGuide
         }
         if (succeeded.length > 0 && failedHarnessNames.length > 0) {
-          setError(`Installed for ${formatHarnessList(succeeded.map((entry) => entry.harness))}. Failed for ${failedHarnessNames.join(', ')}: ${failedMessage}`)
+          setError(
+            formatters.wizardSkillInstalledAndFailed({
+              succeededHarnesses: formatHarnessList(succeeded.map((entry) => entry.harness)),
+              failedHarnesses: failedHarnessNames.join(', '),
+              message: failedMessage
+            })
+          )
         } else if (succeeded.length > 0 && manualHarnesses.length > 0 && !cloudCoWorkGuideOpened) {
-          setError(`Installed for ${formatHarnessList(succeeded.map((entry) => entry.harness))}. ${failedMessage}`)
+          setError(
+            formatters.wizardSkillInstalledAndAdditionalFailure({
+              succeededHarnesses: formatHarnessList(succeeded.map((entry) => entry.harness)),
+              message: failedMessage
+            })
+          )
         } else {
           setError(failedMessage)
         }
@@ -410,7 +431,7 @@
         console.error('Failed to install skill', error)
         setSkillInstalled(false)
         setStatus('')
-        setError('Failed to install skill.')
+        setError(microcopy.dashboard.wizardSkill.messages.failedToInstallSkill)
       } finally {
         updateInstallButtonState()
         updateWizardUI()
@@ -418,7 +439,7 @@
     }
 
     if (!hasInstallerApi && !hasCloudCoWorkGuide) {
-      setError('Skill installer unavailable. Restart the app.')
+      setError(microcopy.dashboard.wizardSkill.messages.installerUnavailableRestart)
     }
 
     skillHarnessInputs.forEach((input) => {

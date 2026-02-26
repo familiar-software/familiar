@@ -1,4 +1,10 @@
 (function (global) {
+  const microcopyModule = global?.FamiliarMicrocopy || (typeof require === 'function' ? require('../microcopy') : null)
+  if (!microcopyModule || !microcopyModule.microcopy) {
+    throw new Error('Familiar microcopy is unavailable')
+  }
+  const { microcopy } = microcopyModule
+
   const createStills = (options = {}) => {
     const elements = options.elements || {}
     const familiar = options.familiar || {}
@@ -12,7 +18,11 @@
       recordingStatusIndicator && typeof recordingStatusIndicator.getRecordingIndicatorVisuals === 'function'
     )
       ? recordingStatusIndicator.getRecordingIndicatorVisuals
-      : () => ({ status: 'off', label: 'Off', dotClass: 'bg-zinc-400' })
+      : () => ({
+          status: 'off',
+          label: microcopy.recordingIndicator.off,
+          dotClass: 'bg-zinc-400'
+        })
 
     const {
       sidebarRecordingDot,
@@ -128,7 +138,7 @@
           'hover:border-emerald-700'
         )
         if (isCheckingPermission) {
-          button.textContent = 'Checking...'
+          button.textContent = microcopy.dashboard.stills.checkingPermissions
         } else {
           if (wizardPermissionState === 'granted') {
             button.classList.add(
@@ -137,7 +147,7 @@
               'border-emerald-600',
               'hover:border-emerald-700'
             )
-            button.textContent = 'Granted'
+            button.textContent = microcopy.dashboard.stills.permissionsGranted
           } else {
             button.classList.add(
               'text-indigo-600',
@@ -145,7 +155,7 @@
               'border-indigo-600',
               'hover:border-indigo-700'
             )
-            button.textContent = 'Check Permissions'
+            button.textContent = microcopy.dashboard.stills.checkPermissions
           }
         }
       }
@@ -206,7 +216,7 @@
         if (stillsPath) {
           recordingPath.textContent = stillsPath
         } else {
-          recordingPath.textContent = 'Set a context folder to enable stills.'
+          recordingPath.textContent = microcopy.dashboard.stills.setContextFolderToEnableStills
         }
       }
 
@@ -218,19 +228,21 @@
 
       if (recordingStatus) {
         if (currentScreenStillsPaused) {
-          recordingStatus.textContent = 'Paused'
+          recordingStatus.textContent = microcopy.dashboard.stills.paused
         } else {
-          recordingStatus.textContent = isCaptureActive() ? 'Capturing' : 'Not capturing'
+          recordingStatus.textContent = isCaptureActive()
+            ? microcopy.dashboard.stills.capturing
+            : microcopy.dashboard.stills.notCapturing
         }
       }
 
       if (recordingActionButton) {
         const isActive = isCaptureActive()
-        let label = 'Start capture'
+        let label = microcopy.dashboard.stills.startCapture
         if (currentScreenStillsPaused) {
-          label = 'Resume'
+          label = microcopy.dashboard.stills.resume
         } else if (isActive) {
-          label = 'Pause (10 min)'
+          label = microcopy.dashboard.stills.pauseFor10Min
         }
         recordingActionButton.textContent = label
         recordingActionButton.disabled = !currentAlwaysRecordWhenActive || !currentContextFolderPath
@@ -238,11 +250,11 @@
 
       if (sidebarRecordingActionButton) {
         const isActive = isCaptureActive()
-        let label = 'Start capture'
+        let label = microcopy.dashboard.stills.startCapture
         if (currentScreenStillsPaused) {
-          label = 'Resume'
+          label = microcopy.dashboard.stills.resume
         } else if (isActive) {
-          label = 'Pause (10 min)'
+          label = microcopy.dashboard.stills.pauseFor10Min
         }
         sidebarRecordingActionButton.textContent = label
         sidebarRecordingActionButton.disabled = !currentAlwaysRecordWhenActive || !currentContextFolderPath

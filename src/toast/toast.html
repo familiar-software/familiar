@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
     <link href="../dashboard/styles.css" rel="stylesheet">
-    <title>Toast</title>
+    <title data-copy-key="toast.pageTitle"></title>
     <style>
       html, body {
         margin: 0;
@@ -29,7 +29,7 @@
           <div id="actions" class="hidden flex gap-2">
             <!-- Action buttons inserted by JS -->
           </div>
-          <button id="close-btn" class="hidden w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors" title="Close" aria-label="Close notification">
+          <button id="close-btn" class="hidden w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors" data-copy-title-key="toast.close" data-copy-aria-label-key="toast.closeNotification" title="" aria-label="">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -37,6 +37,36 @@
         </div>
       </div>
     </div>
+    <script src="../microcopy/index.js"></script>
+    <script>
+      (function applyStaticCopy() {
+        var microcopyApi = window.FamiliarMicrocopy;
+        if (!microcopyApi || typeof microcopyApi.getMicrocopyValue !== 'function') {
+          return;
+        }
+
+        document.querySelectorAll('[data-copy-key]').forEach(function (element) {
+          var value = microcopyApi.getMicrocopyValue(element.dataset.copyKey);
+          if (typeof value === 'string') {
+            element.textContent = value;
+          }
+        });
+
+        document.querySelectorAll('[data-copy-title-key]').forEach(function (element) {
+          var value = microcopyApi.getMicrocopyValue(element.dataset.copyTitleKey);
+          if (typeof value === 'string') {
+            element.setAttribute('title', value);
+          }
+        });
+
+        document.querySelectorAll('[data-copy-aria-label-key]').forEach(function (element) {
+          var value = microcopyApi.getMicrocopyValue(element.dataset.copyAriaLabelKey);
+          if (typeof value === 'string') {
+            element.setAttribute('aria-label', value);
+          }
+        });
+      })();
+    </script>
     <script src="./toast-renderer.js"></script>
   </body>
 </html>

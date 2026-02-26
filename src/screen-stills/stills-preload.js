@@ -1,5 +1,11 @@
-const { ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 const fs = require('node:fs');
+const microcopy = ipcRenderer.sendSync('microcopy:get-sync');
+if (microcopy && typeof microcopy === 'object') {
+  contextBridge.exposeInMainWorld('FamiliarMicrocopySource', {
+    microcopy
+  });
+}
 
 let currentCapture = null;
 

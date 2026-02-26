@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { buildTrayMenuTemplate } = require('../src/menu');
+const { microcopy } = require('../src/microcopy');
 
 test('buildTrayMenuTemplate returns the expected items', () => {
     const template = buildTrayMenuTemplate({
@@ -13,9 +14,9 @@ test('buildTrayMenuTemplate returns the expected items', () => {
     const labels = template.filter((item) => item.label).map((item) => item.label);
 
     assert.deepEqual(labels, [
-        'Start Capturing',
-        'Settings',
-        'Quit',
+        microcopy.tray.recording.startCapturing,
+        microcopy.tray.actions.settings,
+        microcopy.tray.actions.quit,
     ]);
     assert.equal(template[2].type, 'separator');
 });
@@ -29,7 +30,7 @@ test('buildTrayMenuTemplate uses recording label while active', () => {
         recordingState
     });
 
-    const recordingItem = template.find((item) => item.label === 'Click to pause for 10 min');
+    const recordingItem = template.find((item) => item.label === microcopy.tray.recording.clickToPauseFor10Min);
 
     assert.ok(recordingItem);
 });
@@ -48,7 +49,7 @@ test('settings click does not trigger quit', () => {
         },
     });
 
-    const settingsItem = template.find((item) => item.label === 'Settings');
+    const settingsItem = template.find((item) => item.label === microcopy.tray.actions.settings);
     assert.ok(settingsItem);
 
     settingsItem.click();
@@ -71,7 +72,7 @@ test('quit click does not trigger open settings', () => {
         },
     });
 
-    const quitItem = template.find((item) => item.label === 'Quit');
+    const quitItem = template.find((item) => item.label === microcopy.tray.actions.quit);
     assert.ok(quitItem);
 
     quitItem.click();
@@ -94,7 +95,7 @@ test('recording item click does not trigger settings', () => {
         onQuit: () => {},
     });
 
-    const recordingItem = template.find((item) => item.label === 'Start Capturing');
+    const recordingItem = template.find((item) => item.label === microcopy.tray.recording.startCapturing);
     assert.ok(recordingItem);
 
     recordingItem.click();
@@ -115,7 +116,9 @@ test('buildTrayMenuTemplate uses minute pause label while paused', () => {
         }
     });
 
-    const recordingItem = template.find((item) => item.label === 'Paused for 10 min (click to resume)');
+    const recordingItem = template.find(
+        (item) => item.label === microcopy.tray.recording.pausedFor10MinClickToResume
+    );
 
     assert.ok(recordingItem);
 });
@@ -132,7 +135,9 @@ test('buildTrayMenuTemplate keeps paused label at 1m when remaining time is belo
         }
     });
 
-    const recordingItem = template.find((item) => item.label === 'Paused for 10 min (click to resume)');
+    const recordingItem = template.find(
+        (item) => item.label === microcopy.tray.recording.pausedFor10MinClickToResume
+    );
 
     assert.ok(recordingItem);
 });

@@ -6,6 +6,7 @@ const {
     resolveRecordingIndicatorStatus,
     getRecordingIndicatorVisuals,
 } = require('../src/recording-status-indicator');
+const { microcopy } = require('../src/microcopy');
 
 test('resolveRecordingIndicatorStatus returns off when disabled', () => {
     const status = resolveRecordingIndicatorStatus({
@@ -78,7 +79,7 @@ test('getRecordingIndicatorVisuals returns tray + dashboard metadata', () => {
 
     assert.deepEqual(visuals, {
         status: INDICATOR_STATUSES.PERMISSION_NEEDED,
-        label: 'Permission needed',
+        label: microcopy.recordingIndicator.permissionNeeded,
         dotClass: 'bg-red-500',
         trayColorHex: '#ef4444'
     });

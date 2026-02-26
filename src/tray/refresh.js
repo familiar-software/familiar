@@ -1,6 +1,7 @@
 const { buildTrayMenuTemplate } = require('../menu');
 const { loadSettings } = require('../settings');
 const { getRecordingIndicatorVisuals } = require('../recording-status-indicator');
+const { microcopy } = require('../microcopy');
 
 const getElectronMenu = () => {
     const electron = require('electron');
@@ -108,7 +109,7 @@ function createTrayMenuController({
 
         tray.setContextMenu(trayMenu);
         if (typeof tray.setToolTip === 'function') {
-            tray.setToolTip('Familiar');
+            tray.setToolTip(microcopy.app.name);
         }
 
         logger.log('Tray menu updated', {

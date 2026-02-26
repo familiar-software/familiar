@@ -1,4 +1,10 @@
 (function (global) {
+  const microcopyModule = global?.FamiliarMicrocopy || (typeof require === 'function' ? require('../microcopy') : null)
+  if (!microcopyModule || !microcopyModule.microcopy || !microcopyModule.formatters) {
+    throw new Error('Familiar microcopy is unavailable')
+  }
+  const { microcopy, formatters } = microcopyModule
+
   const createUpdates = (options = {}) => {
     const elements = options.elements || {}
     const familiar = options.familiar || {}
@@ -69,15 +75,13 @@
       const rounded = Math.round(clamped)
       updateProgressState({
         percent: rounded,
-        label: `Downloading update... ${rounded}%`
+        label: formatters.updateDownloading(rounded)
       })
     }
 
     const handleDownloadComplete = (payload) => {
       const version = payload && payload.version ? String(payload.version) : ''
-      const label = version
-        ? `Download complete. Restart to install ${version}.`
-        : 'Download complete. Restart to install.'
+      const label = formatters.updateDownloadComplete({ version })
       updateProgressState({ percent: 100, label })
     }
 
@@ -119,12 +123,12 @@
 
     const handleCheck = async () => {
       if (!familiar.checkForUpdates) {
-        setMessage(updateErrors, 'Update bridge unavailable. Restart the app.')
+        setMessage(updateErrors, microcopy.dashboard.updates.errors.bridgeUnavailableRestart)
         return
       }
 
       setMessage(updateErrors, '')
-      setMessage(updateStatuses, 'Checking for updates...')
+      setMessage(updateStatuses, microcopy.dashboard.updates.statusCheckingForUpdates)
       setUpdateCheckState(true)
 
       try {
@@ -134,11 +138,11 @@
             ? result.updateInfo.version
             : ''
           const currentVersion = result.currentVersion || ''
-          let message = 'No updates found.'
+          let message = microcopy.dashboard.updates.statusNoUpdatesFound
           if (version && currentVersion) {
             const comparison = compareVersions(version, currentVersion)
             if (comparison === 1) {
-              message = `Update available: ${currentVersion} -> ${version}. You will be prompted to download.`
+              message = formatters.updateAvailable({ currentVersion, version })
               console.log('Update available', { from: currentVersion, to: version })
             } else if (comparison === null) {
               console.warn('Unable to compare update versions', { version, currentVersion })
@@ -147,23 +151,23 @@
             console.warn('Missing current version; unable to compare update version', { version })
           }
           setMessage(updateStatuses, message)
-          if (message === 'No updates found.' && currentProgress === 0) {
+          if (message === microcopy.dashboard.updates.statusNoUpdatesFound && currentProgress === 0) {
             resetProgress()
           }
         } else if (result && result.reason === 'checking') {
-          setMessage(updateStatuses, 'Already checking for updates...')
+          setMessage(updateStatuses, microcopy.dashboard.updates.statusAlreadyCheckingForUpdates)
         } else if (result && result.reason === 'disabled') {
           setMessage(updateStatuses, '')
-          setMessage(updateErrors, 'Auto-updates are disabled in this build.')
+          setMessage(updateErrors, microcopy.dashboard.updates.errors.autoUpdatesDisabled)
           resetProgress()
         } else {
           setMessage(updateStatuses, '')
-          setMessage(updateErrors, result?.message || 'Failed to check for updates.')
+          setMessage(updateErrors, result?.message || microcopy.dashboard.updates.errors.failedToCheckForUpdates)
         }
       } catch (error) {
         console.error('Failed to check for updates', error)
         setMessage(updateStatuses, '')
-        setMessage(updateErrors, 'Failed to check for updates.')
+        setMessage(updateErrors, microcopy.dashboard.updates.errors.failedToCheckForUpdates)
       } finally {
         setUpdateCheckState(false)
       }

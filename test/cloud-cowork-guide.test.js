@@ -1,6 +1,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const path = require('node:path')
+const { microcopy } = require('../src/microcopy')
 
 class ClassList {
   constructor() {
@@ -128,7 +129,7 @@ test('cloud cowork guide copy link handles clipboard success and failure', async
     })
 
     await guide.copyMarketplaceUrl()
-    assert.equal(status.textContent, 'Marketplace link copied.')
+    assert.equal(status.textContent, microcopy.dashboard.cloudCoworkGuide.marketplaceLinkCopied)
     assert.equal(error.textContent, '')
 
     global.window.navigator.clipboard.writeText = async () => {
@@ -136,7 +137,7 @@ test('cloud cowork guide copy link handles clipboard success and failure', async
     }
     await copyButton.click()
     assert.equal(status.textContent, '')
-    assert.equal(error.textContent, 'Failed to copy link.')
+    assert.equal(error.textContent, microcopy.dashboard.cloudCoworkGuide.failedToCopyLink)
   } finally {
     global.window = priorWindow
   }

@@ -1,4 +1,9 @@
 (function registerCloudCoWorkGuide(global) {
+  const microcopyModule = global?.FamiliarMicrocopy || (typeof require === 'function' ? require('../../microcopy') : null)
+  if (!microcopyModule || !microcopyModule.microcopy) {
+    throw new Error('Familiar microcopy is unavailable')
+  }
+  const { microcopy } = microcopyModule
   const MARKETPLACE_REPO_URL = 'https://github.com/familiar-software/familiar-claude-cowork-skill'
 
   function toArray(value) {
@@ -42,14 +47,14 @@
         }
         await global.navigator.clipboard.writeText(MARKETPLACE_REPO_URL)
         setMessage(errorElements, '')
-        setMessage(statusElements, 'Marketplace link copied.')
+        setMessage(statusElements, microcopy.dashboard.cloudCoworkGuide.marketplaceLinkCopied)
         console.log('Cloud Cowork marketplace link copied')
         return { ok: true }
       } catch (error) {
         console.error('Failed to copy Cloud Cowork marketplace link', error)
         setMessage(statusElements, '')
-        setMessage(errorElements, 'Failed to copy link.')
-        return { ok: false, message: 'Failed to copy link.' }
+        setMessage(errorElements, microcopy.dashboard.cloudCoworkGuide.failedToCopyLink)
+        return { ok: false, message: microcopy.dashboard.cloudCoworkGuide.failedToCopyLink }
       }
     }
 

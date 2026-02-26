@@ -323,6 +323,11 @@ npm run dist:mac
 
 ## Contribution
 
+### Microcopy source of truth
+
+- User-facing app microcopy is centralized in `src/microcopy/index.js`.
+- Update copy there instead of editing scattered strings across tray/dashboard modules.
+
 For development contributions:
 
 ```bash

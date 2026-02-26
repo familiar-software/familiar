@@ -120,6 +120,7 @@ const flushPromises = () => new Promise((resolve) => setImmediate(resolve))
 
 const storageDeleteWindow = require('../src/storage/delete-window')
 const autoCleanupRetention = require('../src/storage/auto-cleanup-retention')
+const { microcopy } = require('../src/microcopy')
 
 const loadRenderer = () => {
   if (global.window && !global.window.FamiliarStorageDeleteWindow) {
@@ -440,7 +441,7 @@ test('defaults to wizard when wizardCompleted is missing', async () => {
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    assert.equal(elements['section-title'].textContent, 'Setup Wizard')
+    assert.equal(elements['section-title'].textContent, microcopy.dashboard.sections.wizard.title)
     assert.equal(elements['settings-sidebar'].classList.contains('hidden'), true)
     assert.equal(elements['settings-header'].classList.contains('hidden'), true)
     assert.equal(elements['settings-content'].classList.contains('hidden'), true)
@@ -475,7 +476,7 @@ test('defaults to storage when wizardCompleted is true', async () => {
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    assert.equal(elements['section-title'].textContent, 'Storage')
+    assert.equal(elements['section-title'].textContent, microcopy.dashboard.sections.storage.title)
     assert.equal(elements['settings-sidebar'].classList.contains('hidden'), false)
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
     assert.equal(elements['settings-header'].classList.contains('hidden'), false)
@@ -522,7 +523,7 @@ test('wizard done saves wizardCompleted flag', async () => {
     assert.deepEqual(saveCalls[0], { wizardCompleted: true })
     assert.equal(elements['settings-sidebar'].classList.contains('hidden'), false)
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
-    assert.equal(elements['section-title'].textContent, 'Storage')
+    assert.equal(elements['section-title'].textContent, microcopy.dashboard.sections.storage.title)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -564,7 +565,7 @@ test('llm api key saves on change when provider is set', async () => {
       llmProviderName: 'gemini',
       llmProviderApiKey: 'new-key'
     })
-    assert.equal(elements['llm-api-key-status'].textContent, 'Saved.')
+    assert.equal(elements['llm-api-key-status'].textContent, microcopy.dashboard.settings.statusSaved)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -606,9 +607,9 @@ test('always record toggle saves on change', async () => {
 
     assert.equal(saveCalls.length, 1)
     assert.deepEqual(saveCalls[0], { alwaysRecordWhenActive: true })
-    assert.equal(elements['always-record-when-active-status'].textContent, 'Saved.')
-    assert.equal(elements['wizard-always-record-when-active-status'].textContent, 'Saved.')
-    assert.equal(elements['permissions-always-record-when-active-status'].textContent, 'Saved.')
+    assert.equal(elements['always-record-when-active-status'].textContent, microcopy.dashboard.settings.statusSaved)
+    assert.equal(elements['wizard-always-record-when-active-status'].textContent, microcopy.dashboard.settings.statusSaved)
+    assert.equal(elements['permissions-always-record-when-active-status'].textContent, microcopy.dashboard.settings.statusSaved)
     assert.equal(elements['wizard-always-record-when-active'].checked, true)
     assert.equal(elements['permissions-always-record-when-active'].checked, true)
   } finally {
@@ -650,9 +651,9 @@ test('wizard permission check is click-driven and denied state shows settings sh
     await flushPromises()
 
     assert.equal(checkCalls, 1)
-    assert.equal(elements['wizard-check-permissions'].textContent, 'Check Permissions')
+    assert.equal(elements['wizard-check-permissions'].textContent, microcopy.dashboard.stills.checkPermissions)
     assert.equal(elements['wizard-check-permissions'].classList.contains('border-indigo-600'), true)
-    assert.equal(elements['permissions-check-permissions'].textContent, 'Check Permissions')
+    assert.equal(elements['permissions-check-permissions'].textContent, microcopy.dashboard.stills.checkPermissions)
     assert.equal(
       elements['permissions-check-permissions'].classList.contains('border-indigo-600'),
       true
@@ -798,7 +799,7 @@ test('cannot navigate away from wizard while wizard is incomplete', async () => 
     await elements['recording-nav'].click()
     await flushPromises()
 
-    assert.equal(elements['section-title'].textContent, 'Setup Wizard')
+    assert.equal(elements['section-title'].textContent, microcopy.dashboard.sections.wizard.title)
     assert.equal(elements['settings-sidebar'].classList.contains('hidden'), true)
   } finally {
     global.document = priorDocument
@@ -834,7 +835,7 @@ test('cannot navigate back to wizard after wizard completion', async () => {
     await elements['wizard-nav'].click()
     await flushPromises()
 
-    assert.equal(elements['section-title'].textContent, 'Storage')
+    assert.equal(elements['section-title'].textContent, microcopy.dashboard.sections.storage.title)
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
   } finally {
     global.document = priorDocument
@@ -869,7 +870,7 @@ test('completed wizard can navigate to Install Skill section', async () => {
 
     await elements['install-skill-nav'].click()
     await flushPromises()
-    assert.equal(elements['section-title'].textContent, 'Install Skill')
+    assert.equal(elements['section-title'].textContent, microcopy.dashboard.sections.installSkill.title)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -903,7 +904,7 @@ test('completed wizard can navigate to Storage section', async () => {
 
     await elements['storage-nav'].click()
     await flushPromises()
-    assert.equal(elements['section-title'].textContent, 'Storage')
+    assert.equal(elements['section-title'].textContent, microcopy.dashboard.sections.storage.title)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -1154,9 +1155,9 @@ test('wizard step 2 does not auto-check permissions when recording is already en
     await flushPromises()
 
     assert.equal(checkCalls, 0)
-    assert.equal(elements['wizard-check-permissions'].textContent, 'Check Permissions')
+    assert.equal(elements['wizard-check-permissions'].textContent, microcopy.dashboard.stills.checkPermissions)
     assert.equal(elements['wizard-check-permissions'].classList.contains('border-indigo-600'), true)
-    assert.equal(elements['permissions-check-permissions'].textContent, 'Check Permissions')
+    assert.equal(elements['permissions-check-permissions'].textContent, microcopy.dashboard.stills.checkPermissions)
     assert.equal(
       elements['permissions-check-permissions'].classList.contains('border-indigo-600'),
       true
@@ -1267,22 +1268,22 @@ test('stills action button pauses and resumes when paused', async () => {
     await elements['recording-nav'].click()
     await flushPromises()
 
-    assert.equal(elements['sidebar-recording-status'].textContent, 'Capturing')
-    assert.equal(elements['sidebar-recording-action'].textContent, 'Pause (10 min)')
+    assert.equal(elements['sidebar-recording-status'].textContent, microcopy.dashboard.stills.capturing)
+    assert.equal(elements['sidebar-recording-action'].textContent, microcopy.dashboard.stills.pauseFor10Min)
 
     await elements['sidebar-recording-action'].click()
     await flushPromises()
 
     assert.equal(pauseCalls.length, 1)
-    assert.equal(elements['sidebar-recording-status'].textContent, 'Paused')
+    assert.equal(elements['sidebar-recording-status'].textContent, microcopy.dashboard.stills.paused)
     assert.equal(elements['sidebar-recording-action'].textContent, 'Resume')
 
     await elements['sidebar-recording-action'].click()
     await flushPromises()
 
     assert.equal(startCalls.length, 1)
-    assert.equal(elements['sidebar-recording-status'].textContent, 'Capturing')
-    assert.equal(elements['sidebar-recording-action'].textContent, 'Pause (10 min)')
+    assert.equal(elements['sidebar-recording-status'].textContent, microcopy.dashboard.stills.capturing)
+    assert.equal(elements['sidebar-recording-action'].textContent, microcopy.dashboard.stills.pauseFor10Min)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -1324,7 +1325,7 @@ test('stills sidebar shows permission needed and red status dot', async () => {
     await elements['recording-nav'].click()
     await flushPromises()
 
-    assert.equal(elements['sidebar-recording-status'].textContent, 'Permission needed')
+    assert.equal(elements['sidebar-recording-status'].textContent, microcopy.recordingIndicator.permissionNeeded)
     assert.equal(elements['sidebar-recording-dot'].classList.contains('bg-red-500'), true)
     assert.equal(elements['sidebar-recording-permission'].classList.contains('hidden'), true)
   } finally {
@@ -1436,7 +1437,7 @@ test('check for updates reports no update when latest matches current', async ()
     await flushPromises()
 
     assert.equal(updateCalls.length, 1)
-    assert.equal(elements['updates-status'].textContent, 'No updates found.')
+    assert.equal(elements['updates-status'].textContent, microcopy.dashboard.updates.statusNoUpdatesFound)
   } finally {
     global.document = priorDocument
     global.window = priorWindow

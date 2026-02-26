@@ -1,6 +1,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const path = require('node:path')
+const { microcopy, formatters } = require('../src/microcopy')
 
 class ClassList {
   constructor() {
@@ -305,7 +306,7 @@ test('wizard skill shows missing install paths and then a multi-installed status
     await api.checkInstallStatus(['codex', 'cursor'])
 
     assert.equal(wizardSkillPath.textContent, '')
-    assert.equal(wizardSkillStatus.textContent, 'Installed for Codex, Cursor.')
+    assert.equal(wizardSkillStatus.textContent, formatters.wizardSkillInstalledFor('Codex, Cursor'))
     assert.equal(wizardSkillStatus.classList.contains('hidden'), false)
   } finally {
     global.window = priorWindow
@@ -328,7 +329,7 @@ test('wizard skill installs for all selected harnesses on install click', async 
     await new Promise((resolve) => setImmediate(resolve))
 
     assert.deepEqual(installCalls, ['codex', 'cursor'])
-    assert.equal(wizardSkillStatus.textContent, 'Installed for Codex, Cursor.')
+    assert.equal(wizardSkillStatus.textContent, formatters.wizardSkillInstalledFor('Codex, Cursor'))
     assert.equal(saveCalls.length > 0, true)
     const latestSave = saveCalls[saveCalls.length - 1]
     assert.deepEqual(latestSave.skillInstaller.harness, ['codex', 'cursor'])
@@ -367,7 +368,7 @@ test('wizard skill opens Cloud Cowork guide without calling installer APIs', asy
 
     assert.deepEqual(installCalls, [])
     assert.equal(openGuideCalls.length, 1)
-    assert.equal(wizardSkillStatus.textContent, 'Opened Cloud Cowork guide.')
+    assert.equal(wizardSkillStatus.textContent, microcopy.dashboard.wizardSkill.messages.openedCloudCoworkGuide)
     assert.equal(saveCalls.length > 0, true)
     const latestSave = saveCalls[saveCalls.length - 1]
     assert.deepEqual(latestSave.skillInstaller.harness, [])

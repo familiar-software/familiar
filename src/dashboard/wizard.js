@@ -1,4 +1,10 @@
 (function (global) {
+  const microcopyModule = global?.FamiliarMicrocopy || (typeof require === 'function' ? require('../microcopy') : null)
+  if (!microcopyModule || !microcopyModule.microcopy) {
+    throw new Error('Familiar microcopy is unavailable')
+  }
+  const { microcopy } = microcopyModule
+
   const toggleClasses = (element, classes, isActive) => {
     if (!element) {
       return
@@ -83,7 +89,7 @@
 
       if (wizardStepStatus) {
         const needsAction = !canAdvance
-        wizardStepStatus.textContent = needsAction ? 'Complete this step to continue.' : ''
+        wizardStepStatus.textContent = needsAction ? microcopy.dashboard.wizard.completeStepToContinue : ''
         wizardStepStatus.classList.toggle('hidden', !needsAction)
       }
 

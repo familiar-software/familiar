@@ -50,3 +50,10 @@ contextBridge.exposeInMainWorld('familiar', {
     return () => ipcRenderer.removeListener('updates:downloaded', listener)
   }
 })
+
+const microcopy = ipcRenderer.sendSync('microcopy:get-sync')
+if (microcopy && typeof microcopy === 'object') {
+  contextBridge.exposeInMainWorld('FamiliarMicrocopySource', {
+    microcopy
+  })
+}

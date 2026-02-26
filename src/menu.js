@@ -1,4 +1,5 @@
 const { isCaptureActiveState } = require('./recording-status-indicator')
+const { microcopy } = require('./microcopy')
 
 function buildTrayMenuTemplate ({
   onRecordingPause,
@@ -12,10 +13,10 @@ function buildTrayMenuTemplate ({
   const isRecording = isCaptureActiveState(stillsState)
   const isPaused = Boolean(recordingPaused || (recordingState && recordingState.manualPaused))
   const recordingLabel = isPaused
-    ? 'Paused for 10 min (click to resume)'
+    ? microcopy.tray.recording.pausedFor10MinClickToResume
     : isRecording
-      ? 'Click to pause for 10 min'
-      : 'Start Capturing'
+      ? microcopy.tray.recording.clickToPauseFor10Min
+      : microcopy.tray.recording.startCapturing
   const recordingItem = { label: recordingLabel, click: onRecordingPause }
   if (recordingStatusIcon) {
     recordingItem.icon = recordingStatusIcon
@@ -23,9 +24,9 @@ function buildTrayMenuTemplate ({
 
   return [
     recordingItem,
-    { label: 'Settings', click: onOpenSettings },
+    { label: microcopy.tray.actions.settings, click: onOpenSettings },
     { type: 'separator' },
-    { label: 'Quit', click: onQuit }
+    { label: microcopy.tray.actions.quit, click: onQuit }
   ]
 }
 

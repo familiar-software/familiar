@@ -30,6 +30,7 @@ const { getTrayIconPathForMenuBar } = require('./tray/icon');
 const { shouldOpenSettingsOnReady } = require('./launch-intent');
 const { APP_MODE, setAppMode } = require('./app-mode');
 const { initializeProcessOwnership } = require('./startup/ownership');
+const { microcopy } = require('./microcopy/microcopy');
 const {
     createAutoSessionCleanupScheduler,
     DEFAULT_CHECK_INTERVAL_MS,
@@ -523,6 +524,10 @@ function createTray() {
 
 const registerMainProcessIpc = () => {
     registerIpcHandlers({ onSettingsSaved: handleMainSettingsSaved });
+
+    ipcMain.on('microcopy:get-sync', (event) => {
+        event.returnValue = microcopy;
+    });
 
     ipcMain.handle('screenStills:getStatus', () => {
         if (!screenStillsController) {

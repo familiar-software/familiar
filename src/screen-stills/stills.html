@@ -3,7 +3,25 @@
   <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
-    <title>Familiar Capturing</title>
+    <title data-copy-key="screenStills.pageTitle"></title>
   </head>
-  <body></body>
+  <body>
+    <script src="../microcopy/index.js"></script>
+    <script>
+      (function applyStaticCopy() {
+        var microcopyApi = window.FamiliarMicrocopy;
+        if (!microcopyApi || typeof microcopyApi.getMicrocopyValue !== 'function') {
+          return;
+        }
+        var title = document.querySelector('title[data-copy-key]');
+        if (!title) {
+          return;
+        }
+        var value = microcopyApi.getMicrocopyValue(title.dataset.copyKey);
+        if (typeof value === 'string') {
+          title.textContent = value;
+        }
+      })();
+    </script>
+  </body>
 </html>

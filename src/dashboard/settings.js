@@ -1,4 +1,10 @@
 (function (global) {
+  const microcopyModule = global?.FamiliarMicrocopy || (typeof require === 'function' ? require('../microcopy') : null)
+  if (!microcopyModule || !microcopyModule.microcopy || !microcopyModule.formatters) {
+    throw new Error('Familiar microcopy is unavailable')
+  }
+  const { microcopy, formatters } = microcopyModule
+
   const normalizeStringArray = global?.FamiliarDashboardListUtils?.normalizeStringArray
   const storageDeleteWindow = global?.FamiliarStorageDeleteWindow
   const autoCleanupRetention = global?.FamiliarAutoCleanupRetention
@@ -66,9 +72,7 @@
             if (typeof confirmFn !== 'function') {
               return true
             }
-            return confirmFn(
-              `Change auto cleanup retention to ${retentionDays} days?\n\nThis will run cleanup using the new retention setting.`
-            )
+            return confirmFn(formatters.autoCleanupRetentionConfirm(retentionDays))
           }
 
     const {
@@ -156,22 +160,25 @@
         return false
       }
 
-      setMessage(contextFolderStatuses, 'Saving...')
+      setMessage(contextFolderStatuses, microcopy.dashboard.settings.statusSaving)
       setMessage(contextFolderErrors, '')
 
       try {
         const result = await familiar.saveSettings({ contextFolderPath })
         if (result && result.ok) {
-          setMessage(contextFolderStatuses, 'Saved.')
+          setMessage(contextFolderStatuses, microcopy.dashboard.settings.statusSaved)
           console.log('Context folder saved', contextFolderPath)
           return true
         }
         setMessage(contextFolderStatuses, '')
-        setMessage(contextFolderErrors, result?.message || 'Failed to save settings.')
+        setMessage(
+          contextFolderErrors,
+          result?.message || microcopy.dashboard.settings.errors.failedToSaveSettings
+        )
       } catch (error) {
         console.error('Failed to save settings', error)
         setMessage(contextFolderStatuses, '')
-        setMessage(contextFolderErrors, 'Failed to save settings.')
+        setMessage(contextFolderErrors, microcopy.dashboard.settings.errors.failedToSaveSettings)
       }
 
       return false
@@ -193,7 +200,7 @@
         return false
       }
       const normalizedRetentionDays = resolveAutoCleanupRetentionDays(retentionDays)
-      setMessage(deleteFilesStatuses, 'Saving...')
+      setMessage(deleteFilesStatuses, microcopy.dashboard.settings.statusSaving)
       setMessage(deleteFilesErrors, '')
 
       try {
@@ -201,16 +208,19 @@
           storageAutoCleanupRetentionDays: normalizedRetentionDays
         })
         if (result && result.ok) {
-          setMessage(deleteFilesStatuses, 'Saved.')
+          setMessage(deleteFilesStatuses, microcopy.dashboard.settings.statusSaved)
           setStorageAutoCleanupRetentionDays(normalizedRetentionDays)
           return true
         }
         setMessage(deleteFilesStatuses, '')
-        setMessage(deleteFilesErrors, result?.message || 'Failed to save setting.')
+        setMessage(
+          deleteFilesErrors,
+          result?.message || microcopy.dashboard.settings.errors.failedToSaveSetting
+        )
       } catch (error) {
         console.error('Failed to save auto cleanup retention setting', error)
         setMessage(deleteFilesStatuses, '')
-        setMessage(deleteFilesErrors, 'Failed to save setting.')
+        setMessage(deleteFilesErrors, microcopy.dashboard.settings.errors.failedToSaveSetting)
       }
 
       return false
@@ -221,14 +231,14 @@
         return false
       }
 
-      setMessage(llmKeyStatuses, 'Saving...')
+      setMessage(llmKeyStatuses, microcopy.dashboard.settings.statusSaving)
       setMessage(llmKeyErrors, '')
       setMessage(llmProviderErrors, '')
 
       const { currentLlmProviderName } = getState()
       if (!currentLlmProviderName) {
         setMessage(llmKeyStatuses, '')
-        setMessage(llmProviderErrors, 'Select an LLM provider.')
+        setMessage(llmProviderErrors, microcopy.dashboard.settings.errors.selectLlmProvider)
         return false
       }
 
@@ -238,17 +248,20 @@
           llmProviderApiKey: apiKey
         })
         if (result && result.ok) {
-          setMessage(llmKeyStatuses, 'Saved.')
+          setMessage(llmKeyStatuses, microcopy.dashboard.settings.statusSaved)
           setLlmApiKeySaved(apiKey)
           console.log('LLM API key saved', { provider: currentLlmProviderName, hasKey: Boolean(apiKey) })
           return true
         }
         setMessage(llmKeyStatuses, '')
-        setMessage(llmKeyErrors, result?.message || 'Failed to save LLM key.')
+        setMessage(
+          llmKeyErrors,
+          result?.message || microcopy.dashboard.settings.errors.failedToSaveLlmKey
+        )
       } catch (error) {
         console.error('Failed to save LLM key', error)
         setMessage(llmKeyStatuses, '')
-        setMessage(llmKeyErrors, 'Failed to save LLM key.')
+        setMessage(llmKeyErrors, microcopy.dashboard.settings.errors.failedToSaveLlmKey)
       }
 
       return false
@@ -260,7 +273,7 @@
       }
 
       if (!providerName) {
-        setMessage(llmProviderErrors, 'Select an LLM provider.')
+        setMessage(llmProviderErrors, microcopy.dashboard.settings.errors.selectLlmProvider)
         updateWizardUI()
         return false
       }
@@ -277,10 +290,13 @@
           }
           return true
         }
-        setMessage(llmProviderErrors, result?.message || 'Failed to save LLM provider.')
+        setMessage(
+          llmProviderErrors,
+          result?.message || microcopy.dashboard.settings.errors.failedToSaveLlmProvider
+        )
       } catch (error) {
         console.error('Failed to save LLM provider', error)
-        setMessage(llmProviderErrors, 'Failed to save LLM provider.')
+        setMessage(llmProviderErrors, microcopy.dashboard.settings.errors.failedToSaveLlmProvider)
       }
 
       return false
@@ -291,23 +307,26 @@
         return false
       }
 
-      setMessage(alwaysRecordWhenActiveStatuses, 'Saving...')
+      setMessage(alwaysRecordWhenActiveStatuses, microcopy.dashboard.settings.statusSaving)
       setMessage(alwaysRecordWhenActiveErrors, '')
 
       try {
         const result = await familiar.saveSettings({ alwaysRecordWhenActive: enabled })
         if (result && result.ok) {
-          setMessage(alwaysRecordWhenActiveStatuses, 'Saved.')
+          setMessage(alwaysRecordWhenActiveStatuses, microcopy.dashboard.settings.statusSaved)
           setAlwaysRecordWhenActiveValue(enabled)
           console.log('Always record when active saved', { enabled })
           return true
         }
         setMessage(alwaysRecordWhenActiveStatuses, '')
-        setMessage(alwaysRecordWhenActiveErrors, result?.message || 'Failed to save setting.')
+        setMessage(
+          alwaysRecordWhenActiveErrors,
+          result?.message || microcopy.dashboard.settings.errors.failedToSaveSetting
+        )
       } catch (error) {
         console.error('Failed to save always record setting', error)
         setMessage(alwaysRecordWhenActiveStatuses, '')
-        setMessage(alwaysRecordWhenActiveErrors, 'Failed to save setting.')
+        setMessage(alwaysRecordWhenActiveErrors, microcopy.dashboard.settings.errors.failedToSaveSetting)
       }
 
       return false
@@ -318,24 +337,30 @@
         return false
       }
 
-      setMessage(stillsMarkdownExtractorStatuses, 'Saving...')
+      setMessage(stillsMarkdownExtractorStatuses, microcopy.dashboard.settings.statusSaving)
       setMessage(stillsMarkdownExtractorErrors, '')
 
       const nextValue = extractorType || 'llm'
       try {
         const result = await familiar.saveSettings({ stillsMarkdownExtractorType: nextValue })
         if (result && result.ok) {
-          setMessage(stillsMarkdownExtractorStatuses, 'Saved.')
+          setMessage(stillsMarkdownExtractorStatuses, microcopy.dashboard.settings.statusSaved)
           setStillsMarkdownExtractorType(nextValue)
           console.log('Stills markdown extractor saved', { type: nextValue })
           return true
         }
         setMessage(stillsMarkdownExtractorStatuses, '')
-        setMessage(stillsMarkdownExtractorErrors, result?.message || 'Failed to save setting.')
+        setMessage(
+          stillsMarkdownExtractorErrors,
+          result?.message || microcopy.dashboard.settings.errors.failedToSaveStillsMarkdownExtractor
+        )
       } catch (error) {
         console.error('Failed to save stills markdown extractor', error)
         setMessage(stillsMarkdownExtractorStatuses, '')
-        setMessage(stillsMarkdownExtractorErrors, 'Failed to save setting.')
+        setMessage(
+          stillsMarkdownExtractorErrors,
+          microcopy.dashboard.settings.errors.failedToSaveStillsMarkdownExtractor
+        )
       }
 
       return false
@@ -386,16 +411,16 @@
         return result
       } catch (error) {
         console.error('Failed to load settings', error)
-        setMessage(contextFolderErrors, 'Failed to load settings.')
-        setMessage(llmProviderErrors, 'Failed to load settings.')
-        setMessage(llmKeyErrors, 'Failed to load settings.')
-        setMessage(stillsMarkdownExtractorErrors, 'Failed to load settings.')
+        setMessage(contextFolderErrors, microcopy.dashboard.settings.errors.failedToLoadSettings)
+        setMessage(llmProviderErrors, microcopy.dashboard.settings.errors.failedToLoadSettings)
+        setMessage(llmKeyErrors, microcopy.dashboard.settings.errors.failedToLoadSettings)
+        setMessage(stillsMarkdownExtractorErrors, microcopy.dashboard.settings.errors.failedToLoadSettings)
       }
       return null
     }
 
     if (!isReady) {
-      const message = 'Settings bridge unavailable. Restart the app.'
+      const message = microcopy.dashboard.settings.errors.bridgeUnavailableRestart
       setMessage(contextFolderErrors, message)
       setMessage(llmProviderErrors, message)
       setMessage(llmKeyErrors, message)
@@ -435,7 +460,7 @@
       contextFolderChooseButtons.forEach((button) => {
         button.addEventListener('click', async () => {
           try {
-            setMessage(contextFolderStatuses, 'Opening folder picker...')
+            setMessage(contextFolderStatuses, microcopy.dashboard.settings.statusOpeningFolderPicker)
             const result = await familiar.pickContextFolder()
             if (result && !result.canceled && result.path) {
               setContextFolderValue(result.path)
@@ -455,7 +480,7 @@
           } catch (error) {
             console.error('Failed to pick context folder', error)
             setMessage(contextFolderStatuses, '')
-            setMessage(contextFolderErrors, 'Failed to open folder picker.')
+            setMessage(contextFolderErrors, microcopy.dashboard.settings.errors.failedToOpenFolderPicker)
           }
         })
       })
@@ -463,7 +488,7 @@
 
     if (copyLogButtons.length > 0) {
       if (!canCopyLog) {
-        setMessage(copyLogErrors, 'Log copy unavailable. Restart the app.')
+        setMessage(copyLogErrors, microcopy.dashboard.settings.errors.logCopyUnavailableRestart)
         copyLogButtons.forEach((button) => {
           button.disabled = true
         })
@@ -471,20 +496,23 @@
         copyLogButtons.forEach((button) => {
           button.addEventListener('click', async () => {
             button.disabled = true
-            setMessage(copyLogStatuses, 'Copying...')
+            setMessage(copyLogStatuses, microcopy.dashboard.settings.statusCopying)
             setMessage(copyLogErrors, '')
             try {
               const result = await familiar.copyCurrentLogToClipboard()
               if (result && result.ok) {
-                setMessage(copyLogStatuses, 'Copied.')
+                setMessage(copyLogStatuses, microcopy.dashboard.settings.statusCopied)
               } else {
                 setMessage(copyLogStatuses, '')
-                setMessage(copyLogErrors, result?.message || 'Failed to copy log file.')
+                setMessage(
+                  copyLogErrors,
+                  result?.message || microcopy.dashboard.settings.errors.failedToCopyLogFile
+                )
               }
             } catch (error) {
               console.error('Failed to copy log file', error)
               setMessage(copyLogStatuses, '')
-              setMessage(copyLogErrors, 'Failed to copy log file.')
+              setMessage(copyLogErrors, microcopy.dashboard.settings.errors.failedToCopyLogFile)
             } finally {
               button.disabled = false
             }
@@ -495,7 +523,7 @@
 
     if (deleteFilesButtons.length > 0) {
       if (!canDeleteFiles) {
-        setMessage(deleteFilesErrors, 'Storage cleanup unavailable. Restart the app.')
+        setMessage(deleteFilesErrors, microcopy.dashboard.settings.errors.storageCleanupUnavailableRestart)
         deleteFilesButtons.forEach((button) => {
           button.disabled = true
         })
@@ -520,15 +548,18 @@
                 deleteWindow
               })
               if (result?.ok) {
-                setMessage(deleteFilesStatuses, result.message || 'Deleted files.')
+                setMessage(deleteFilesStatuses, result.message || microcopy.dashboard.settings.deletedFiles)
                 console.log('Storage cleanup completed', { requestedAtMs: requestTimeMs, deleteWindow })
                 await refreshStorageUsage()
               } else if (!result?.canceled) {
-                setMessage(deleteFilesErrors, result?.message || 'Failed to delete files.')
+                setMessage(
+                  deleteFilesErrors,
+                  result?.message || microcopy.dashboard.settings.errors.failedToDeleteFiles
+                )
               }
             } catch (error) {
               console.error('Failed to delete recent files', error)
-              setMessage(deleteFilesErrors, 'Failed to delete files.')
+              setMessage(deleteFilesErrors, microcopy.dashboard.settings.errors.failedToDeleteFiles)
             } finally {
               updateDeleteFilesButtonState()
             }

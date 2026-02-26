@@ -2,6 +2,7 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 
 const { createTrayMenuController } = require('../src/tray/refresh')
+const { microcopy } = require('../src/microcopy')
 
 test('tray menu shows recording and paused labels without auto-refresh loop', () => {
     let recordingState = { manualPaused: false, state: 'recording', pauseRemainingMs: 0 }
@@ -23,12 +24,12 @@ test('tray menu shows recording and paused labels without auto-refresh loop', ()
 
     controller.updateTrayMenu()
     assert.equal(menuCalls.length, 1)
-    assert.equal(menuCalls[0][0].label, 'Click to pause for 10 min')
+    assert.equal(menuCalls[0][0].label, microcopy.tray.recording.clickToPauseFor10Min)
 
     recordingState = { manualPaused: true, state: 'armed', pauseRemainingMs: 61000 }
     controller.updateTrayMenu()
     assert.equal(menuCalls.length, 2)
-    assert.equal(menuCalls[1][0].label, 'Paused for 10 min (click to resume)')
+    assert.equal(menuCalls[1][0].label, microcopy.tray.recording.pausedFor10MinClickToResume)
 })
 
 test('registerTrayRefreshHandlers refreshes tray on click and right-click', () => {

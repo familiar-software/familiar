@@ -35,6 +35,13 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   }
 
   const familiar = window.familiar || {}
+  const microcopyModule = resolveModule('FamiliarMicrocopy', '../microcopy')
+  const microcopy = microcopyModule?.microcopy
+  const getMicrocopyValue = microcopyModule?.getMicrocopyValue
+  if (!microcopy || typeof getMicrocopyValue !== 'function') {
+    console.error('Microcopy module unavailable.')
+    return
+  }
   const moduleLoader = resolveModule('FamiliarDashboardModuleLoader', './module-loader')
   const stateModule = resolveModule('FamiliarDashboardState', './state')
   const bootstrap = resolveBootstrapModules()
@@ -137,11 +144,58 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     }
   }
 
+  function applyStaticMicrocopy() {
+    for (const element of selectAll('[data-copy-title-key]')) {
+      const key = element?.dataset?.copyTitleKey
+      const value = getMicrocopyValue(key)
+      if (typeof value === 'string') {
+        element.setAttribute('title', value)
+      }
+    }
+
+    for (const element of selectAll('[data-copy-placeholder-key]')) {
+      const key = element?.dataset?.copyPlaceholderKey
+      const value = getMicrocopyValue(key)
+      if (typeof value === 'string') {
+        element.setAttribute('placeholder', value)
+      }
+    }
+
+    for (const element of selectAll('[data-copy-aria-label-key]')) {
+      const key = element?.dataset?.copyAriaLabelKey
+      const value = getMicrocopyValue(key)
+      if (typeof value === 'string') {
+        element.setAttribute('aria-label', value)
+      }
+    }
+
+    for (const element of selectAll('[data-copy-key]')) {
+      const key = element?.dataset?.copyKey
+      const value = getMicrocopyValue(key)
+      if (typeof value === 'string') {
+        element.textContent = value
+      }
+    }
+
+    const copyEntries = [
+      ['section-title', microcopy.dashboard.sections.storage.title],
+      ['section-subtitle', microcopy.dashboard.sections.storage.subtitle],
+      ['sidebar-recording-action', microcopy.dashboard.stills.pauseFor10Min]
+    ]
+    for (const [id, value] of copyEntries) {
+      const element = document.getElementById(id)
+      if (element) {
+        element.textContent = value
+      }
+    }
+  }
+
   if (typeof loadDashboardModules === 'function') {
     loadDashboardModules(window)
   }
 
   mountSharedWizardComponents()
+  applyStaticMicrocopy()
 
   const settingsHeader = document.getElementById('settings-header')
   const settingsContent = document.getElementById('settings-content')
@@ -273,24 +327,24 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
 
   const SECTION_META = {
     wizard: {
-      title: 'Setup Wizard',
-      subtitle: 'Guided setup in four steps.'
+      title: microcopy.dashboard.sections.wizard.title,
+      subtitle: microcopy.dashboard.sections.wizard.subtitle
     },
     updates: {
-      title: 'Updates',
-      subtitle: 'Check for new versions and download when available.'
+      title: microcopy.dashboard.sections.updates.title,
+      subtitle: microcopy.dashboard.sections.updates.subtitle
     },
     recording: {
-      title: 'Capturing',
-      subtitle: 'Choose whether processing runs in the cloud or locally.'
+      title: microcopy.dashboard.sections.recording.title,
+      subtitle: microcopy.dashboard.sections.recording.subtitle
     },
     storage: {
-      title: 'Storage',
-      subtitle: 'Review and manage local Familiar storage.'
+      title: microcopy.dashboard.sections.storage.title,
+      subtitle: microcopy.dashboard.sections.storage.subtitle
     },
     'install-skill': {
-      title: 'Install Skill',
-      subtitle: 'Install Familiar into your coding assistant skills folder.'
+      title: microcopy.dashboard.sections.installSkill.title,
+      subtitle: microcopy.dashboard.sections.installSkill.subtitle
     }
   }
 
@@ -580,10 +634,10 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   })
 
   if (!apis.settingsApi) {
-    setMessage(contextFolderErrors, 'Settings module unavailable. Restart the app.')
-    setMessage(llmProviderErrors, 'Settings module unavailable. Restart the app.')
-    setMessage(llmKeyErrors, 'Settings module unavailable. Restart the app.')
-    setMessage(stillsMarkdownExtractorErrors, 'Settings module unavailable. Restart the app.')
+    setMessage(contextFolderErrors, microcopy.dashboard.settings.moduleUnavailableRestart)
+    setMessage(llmProviderErrors, microcopy.dashboard.settings.moduleUnavailableRestart)
+    setMessage(llmKeyErrors, microcopy.dashboard.settings.moduleUnavailableRestart)
+    setMessage(stillsMarkdownExtractorErrors, microcopy.dashboard.settings.moduleUnavailableRestart)
     return
   }
 
