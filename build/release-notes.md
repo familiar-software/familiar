@@ -1,7 +1,5 @@
-## Privacy and Safety
+## Changes
 
-- Added automatic redaction for sensitive values (for example API keys and passwords) before OCR markdown and mirrored clipboard text are saved.
-
-## Storage UI
-
-- Updated file-deletion microcopy in Storage to make destructive actions clearer.
+- Fixed **Open in Finder** so it opens the Familiar root folder (`<context>/familiar`) reliably.
+- Centralized user-facing microcopy 
+- Refactored internal parameter passing 
