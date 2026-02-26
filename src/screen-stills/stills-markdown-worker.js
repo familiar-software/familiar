@@ -35,7 +35,7 @@ const defaultIsOnlineImpl = async () => {
   return true
 }
 
-const resolveMarkdownPath = (contextFolderPath, imagePath) => {
+const resolveMarkdownPath = ({ contextFolderPath, imagePath } = {}) => {
   const stillsRoot = path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME)
   const markdownRoot = path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_MARKDOWN_DIR_NAME)
 
@@ -57,7 +57,7 @@ const writeMarkdownFile = async ({
   if (!markdown) {
     throw new Error('Markdown content is required.')
   }
-  const outputPath = resolveMarkdownPath(contextFolderPath, imagePath)
+  const outputPath = resolveMarkdownPath({ contextFolderPath, imagePath })
   await fs.mkdir(path.dirname(outputPath), { recursive: true })
   const payload = markdown.endsWith('\n') ? markdown : `${markdown}\n`
   const redactionResult = await scanAndRedactContentImpl({

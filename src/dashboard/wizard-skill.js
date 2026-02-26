@@ -349,7 +349,7 @@
             const guideResult = cloudCoWorkGuide.openGuide()
             cloudCoWorkGuideOpened = Boolean(guideResult && guideResult.ok)
           } catch (error) {
-            console.error('Failed to open Cloud Cowork guide', error)
+            console.error('Failed to open Claude Cowork guide', error)
             cloudCoWorkGuideOpened = false
             cloudCoWorkGuideErrorMessage = microcopy.dashboard.wizardSkill.messages.failedToOpenCloudCoworkGuide
           }

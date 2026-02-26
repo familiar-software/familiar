@@ -21,13 +21,16 @@ test('getDuSizeBytes uses du -skA output when available', () => {
   const targetPath = path.join(root, 'example')
   fs.mkdirSync(targetPath, { recursive: true })
   const calls = []
-  const bytes = getDuSizeBytes(targetPath, {
-    execFile: (cmd, args) => {
-      calls.push([cmd, ...args])
-      if (cmd === 'du' && args[0] === '-skA') {
-        return `42\t${targetPath}\n`
+  const bytes = getDuSizeBytes({
+    targetPath,
+    options: {
+      execFile: (cmd, args) => {
+        calls.push([cmd, ...args])
+        if (cmd === 'du' && args[0] === '-skA') {
+          return `42\t${targetPath}\n`
+        }
+        throw new Error('unexpected invocation')
       }
-      throw new Error('unexpected invocation')
     }
   })
 
@@ -42,13 +45,16 @@ test('getDuSizeBytes falls back to du -sk when -A is unavailable', () => {
   const targetPath = path.join(root, 'example')
   fs.mkdirSync(targetPath, { recursive: true })
   const calls = []
-  const bytes = getDuSizeBytes(targetPath, {
-    execFile: (cmd, args) => {
-      calls.push([cmd, ...args])
-      if (cmd === 'du' && args[0] === '-skA') {
-        throw new Error('unknown option -- A')
+  const bytes = getDuSizeBytes({
+    targetPath,
+    options: {
+      execFile: (cmd, args) => {
+        calls.push([cmd, ...args])
+        if (cmd === 'du' && args[0] === '-skA') {
+          throw new Error('unknown option -- A')
+        }
+        return `11\t${targetPath}\n`
       }
-      return `11\t${targetPath}\n`
     }
   })
 

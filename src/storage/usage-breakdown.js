@@ -20,7 +20,10 @@ function parseDuKilobytes(output) {
   return kilobytes
 }
 
-function getDuSizeBytes(targetPath, { logger = console, execFile = execFileSync } = {}) {
+function getDuSizeBytes({
+  targetPath,
+  options: { logger = console, execFile = execFileSync } = {}
+} = {}) {
   if (!targetPath || !fs.existsSync(targetPath)) {
     return 0
   }
@@ -62,9 +65,12 @@ function getStorageUsageBreakdown({ contextFolderPath, logger = console, execFil
   const stillsRoot = path.join(familiarRoot, STILLS_DIR_NAME)
   const stillsMarkdownRoot = path.join(familiarRoot, STILLS_MARKDOWN_DIR_NAME)
 
-  const totalBytes = getDuSizeBytes(familiarRoot, { logger, execFile })
-  const screenshotsBytes = getDuSizeBytes(stillsRoot, { logger, execFile })
-  const steelsMarkdownBytes = getDuSizeBytes(stillsMarkdownRoot, { logger, execFile })
+  const totalBytes = getDuSizeBytes({ targetPath: familiarRoot, options: { logger, execFile } })
+  const screenshotsBytes = getDuSizeBytes({ targetPath: stillsRoot, options: { logger, execFile } })
+  const steelsMarkdownBytes = getDuSizeBytes({
+    targetPath: stillsMarkdownRoot,
+    options: { logger, execFile }
+  })
   const systemBytes = Math.max(0, totalBytes - screenshotsBytes - steelsMarkdownBytes)
 
   logger.log('Calculated storage usage breakdown via du', {

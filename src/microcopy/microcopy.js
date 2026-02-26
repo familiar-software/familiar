@@ -115,13 +115,13 @@ const microcopy = {
       wizardInstallSkillTitle: 'Install the Familiar skill',
       wizardInstallSkillDescription: "Pick where to install Familiar's skill",
       wizardHarnessClaudeCode: 'Claude Code',
-      wizardHarnessCloudCowork: 'Cloud Cowork',
+      wizardHarnessCloudCowork: 'Claude Cowork',
       wizardHarnessCodex: 'Codex',
       wizardHarnessAntigravity: 'Antigravity',
       wizardHarnessCursor: 'Cursor',
       wizardCursorRestartNote: 'Restart Cursor for the skill to take effect.',
       wizardInstallSkillButton: 'Install Skill',
-      wizardCloudCoworkGuideTitle: 'Cloud Cowork install guide',
+      wizardCloudCoworkGuideTitle: 'Claude Cowork install guide',
       wizardCloudCoworkGuideSubtitle: 'Use marketplace installation in Cowork.',
       wizardCloudCoworkGuideStep1: 'In Cowork, click on + -> Plugins -> Add Plugin.',
       wizardCloudCoworkGuideStep2: 'Go to Personal tab.',
@@ -223,7 +223,7 @@ const microcopy = {
         codex: 'Codex',
         antigravity: 'Antigravity',
         cursor: 'Cursor',
-        cloudCowork: 'Cloud Cowork'
+        cloudCowork: 'Claude Cowork'
       },
       messages: {
         installerUnavailableRestart: 'Skill installer unavailable. Restart the app.',
@@ -234,14 +234,14 @@ const microcopy = {
         pathUnavailable: '(path unavailable)',
         installPathsHeader: 'Install paths:',
         chooseHarnessFirst: 'Choose at least one harness first.',
-        cloudCoworkGuideUnavailableRestart: 'Cloud Cowork guide unavailable. Restart the app.',
-        failedToOpenCloudCoworkGuide: 'Failed to open Cloud Cowork guide.',
+        cloudCoworkGuideUnavailableRestart: 'Claude Cowork guide unavailable. Restart the app.',
+        failedToOpenCloudCoworkGuide: 'Failed to open Claude Cowork guide.',
         installing: 'Installing...',
-        openedCloudCoworkGuide: 'Opened Cloud Cowork guide.',
+        openedCloudCoworkGuide: 'Opened Claude Cowork guide.',
         failedToInstallSkill: 'Failed to install skill.',
         installedAndFailedTemplate: 'Installed for {{succeededHarnesses}}. Failed for {{failedHarnesses}}: {{message}}',
         installedAndAdditionalFailureTemplate: 'Installed for {{succeededHarnesses}}. {{message}}',
-        openedCloudCoworkGuideCombinedTemplate: '{{status}} Opened Cloud Cowork guide.'
+        openedCloudCoworkGuideCombinedTemplate: '{{status}} Opened Claude Cowork guide.'
       }
     },
     cloudCoworkGuide: {

@@ -63,7 +63,7 @@ const loadGuideModule = () => {
   return require(modulePath)
 }
 
-test('cloud cowork guide opens, closes, and reports marketplace URL', async () => {
+test('Claude Cowork guide opens, closes, and reports marketplace URL', async () => {
   const priorWindow = global.window
   global.window = {}
 
@@ -101,7 +101,7 @@ test('cloud cowork guide opens, closes, and reports marketplace URL', async () =
   }
 })
 
-test('cloud cowork guide copy link handles clipboard success and failure', async () => {
+test('Claude Cowork guide copy link handles clipboard success and failure', async () => {
   const priorWindow = global.window
   global.window = {
     navigator: {

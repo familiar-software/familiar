@@ -106,14 +106,20 @@ const createLlmVisionExtractor = ({
       }))
     )
 
-    const prompt = buildBatchPrompt(PROMPT_TEMPLATE, images.map((image) => image.id))
+    const prompt = buildBatchPrompt({
+      basePrompt: PROMPT_TEMPLATE,
+      imageIds: images.map((image) => image.id)
+    })
     const clients = createModelProviderClientsImpl({ provider, apiKey, visionModel: model })
     const responseText = await clients.vision.extractBatch({
       prompt,
       images
     })
 
-    const markdownById = parseBatchResponse(responseText, images.map((image) => image.id))
+    const markdownById = parseBatchResponse({
+      responseText,
+      imageIds: images.map((image) => image.id)
+    })
     const providerLabel = clients?.name || provider || 'unknown'
     const modelLabel = clients?.vision?.model || model || 'unknown'
 

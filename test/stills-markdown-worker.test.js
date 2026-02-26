@@ -31,21 +31,21 @@ test('parseBatchResponse splits markdown blocks by separator', () => {
     '- "B"'
   ].join('\n')
 
-  const map = parseBatchResponse(response, ['1', '2'])
+  const map = parseBatchResponse({ responseText: response, imageIds: ['1', '2'] })
   assert.ok(map.get('1').includes('block 1'))
   assert.ok(map.get('2').includes('block 2'))
   assert.ok(!map.get('1').trim().endsWith('---'))
 })
 
 test('parseBatchResponse returns empty map when no blocks', () => {
-  const map = parseBatchResponse('', ['1'])
+  const map = parseBatchResponse({ responseText: '', imageIds: ['1'] })
   assert.equal(map.size, 0)
 })
 
 test('resolveMarkdownPath preserves .clipboard suffix from source still image', () => {
   const contextFolderPath = '/tmp/context'
   const imagePath = '/tmp/context/familiar/stills/session-123/2026-02-20T14-22-33-123Z.clipboard.png'
-  const markdownPath = resolveMarkdownPath(contextFolderPath, imagePath)
+  const markdownPath = resolveMarkdownPath({ contextFolderPath, imagePath })
 
   assert.equal(
     markdownPath,

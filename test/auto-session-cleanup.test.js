@@ -36,17 +36,20 @@ test('parseSessionTimestampMs parses strict session ids', () => {
 
 test('resolveCleanupRetentionDays falls back to 2 for invalid values', () => {
   const logger = createTestLogger()
-  assert.equal(resolveCleanupRetentionDays(2, logger), 2)
-  assert.equal(resolveCleanupRetentionDays(7, logger), 7)
-  assert.equal(resolveCleanupRetentionDays(3, logger), 2)
+  assert.equal(resolveCleanupRetentionDays({ value: 2, logger }), 2)
+  assert.equal(resolveCleanupRetentionDays({ value: 7, logger }), 7)
+  assert.equal(resolveCleanupRetentionDays({ value: 3, logger }), 2)
   assert.ok(logger.entries.some((entry) => entry.level === 'warn'))
 })
 
 test('shouldRunDailyCleanup enforces 24h gate', () => {
   const nowMs = Date.parse('2026-02-20T12:00:00.000Z')
-  assert.equal(shouldRunDailyCleanup(null, nowMs), true)
-  assert.equal(shouldRunDailyCleanup(nowMs - 24 * 60 * 60 * 1000, nowMs), true)
-  assert.equal(shouldRunDailyCleanup(nowMs - 24 * 60 * 60 * 1000 + 1, nowMs), false)
+  assert.equal(shouldRunDailyCleanup({ lastCleanupRunAt: null, nowMs }), true)
+  assert.equal(shouldRunDailyCleanup({ lastCleanupRunAt: nowMs - 24 * 60 * 60 * 1000, nowMs }), true)
+  assert.equal(
+    shouldRunDailyCleanup({ lastCleanupRunAt: nowMs - 24 * 60 * 60 * 1000 + 1, nowMs }),
+    false
+  )
 })
 
 test('resolveAutoCleanupRoots includes stills root only', () => {
@@ -89,14 +92,17 @@ test('cleanupSessionDirectoriesByRetention deletes only old session folders with
 
   const logger = createTestLogger()
   const deleted = []
-  const summary = await cleanupSessionDirectoriesByRetention([stillsRoot, markdownRoot, outsideRoot], {
-    retentionDays: 7,
-    nowMs,
-    allowedRoots: [stillsRoot, markdownRoot],
-    logger,
-    deleteDirectory: async (targetPath) => {
-      deleted.push(targetPath)
-      fs.rmSync(targetPath, { recursive: true, force: false })
+  const summary = await cleanupSessionDirectoriesByRetention({
+    scanRoots: [stillsRoot, markdownRoot, outsideRoot],
+    options: {
+      retentionDays: 7,
+      nowMs,
+      allowedRoots: [stillsRoot, markdownRoot],
+      logger,
+      deleteDirectory: async (targetPath) => {
+        deleted.push(targetPath)
+        fs.rmSync(targetPath, { recursive: true, force: false })
+      }
     }
   })
 
@@ -123,11 +129,14 @@ test('cleanupSessionDirectoriesByRetention refuses deletes when allowedRoots are
   const sessionDir = path.join(stillsRoot, 'session-2026-02-01T00-00-00-000Z')
   fs.mkdirSync(sessionDir, { recursive: true })
 
-  const summary = await cleanupSessionDirectoriesByRetention([stillsRoot], {
-    nowMs: Date.parse('2026-02-20T00:00:00.000Z'),
-    allowedRoots: [],
-    deleteDirectory: async () => {
-      throw new Error('should not be called')
+  const summary = await cleanupSessionDirectoriesByRetention({
+    scanRoots: [stillsRoot],
+    options: {
+      nowMs: Date.parse('2026-02-20T00:00:00.000Z'),
+      allowedRoots: [],
+      deleteDirectory: async () => {
+        throw new Error('should not be called')
+      }
     }
   })
 
@@ -145,15 +154,18 @@ test('cleanupSessionDirectoriesByRetention passes normalized allowedRoots to del
 
   const rawAllowedRoots = [path.join(stillsRoot, '..', 'stills')]
   const calls = []
-  const summary = await cleanupSessionDirectoriesByRetention([stillsRoot], {
-    nowMs: Date.parse('2026-02-20T00:00:00.000Z'),
-    allowedRoots: rawAllowedRoots,
-    deleteDirectoryIfAllowedFn: async (dirPath, options = {}) => {
-      calls.push({ dirPath, allowedRoots: options.allowedRoots || [] })
-      return { ok: true, path: dirPath }
-    },
-    deleteDirectory: async () => {},
-    logger: createTestLogger()
+  const summary = await cleanupSessionDirectoriesByRetention({
+    scanRoots: [stillsRoot],
+    options: {
+      nowMs: Date.parse('2026-02-20T00:00:00.000Z'),
+      allowedRoots: rawAllowedRoots,
+      deleteDirectoryIfAllowedFn: async ({ dirPath, options = {} } = {}) => {
+        calls.push({ dirPath, allowedRoots: options.allowedRoots || [] })
+        return { ok: true, path: dirPath }
+      },
+      deleteDirectory: async () => {},
+      logger: createTestLogger()
+    }
   })
 
   const realStillsRoot = fs.realpathSync(stillsRoot)

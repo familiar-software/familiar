@@ -31,14 +31,14 @@ function normalizeImageExtension (extension = 'png') {
   return withoutDot.replace(/[^a-z0-9]/g, '') || 'png'
 }
 
-function buildClipboardImageMirrorFilename (date = new Date(), extension = 'png') {
+function buildClipboardImageMirrorFilename ({ date = new Date(), extension = 'png' } = {}) {
   const normalizedExtension = normalizeImageExtension(extension)
   return `${buildTimestamp(date)}.clipboard.${normalizedExtension}`
 }
 
 function noop () {}
 
-function getClipboardMirrorDirectory (contextFolderPath, sessionId) {
+function getClipboardMirrorDirectory ({ contextFolderPath, sessionId } = {}) {
   if (!contextFolderPath || !sessionId) {
     return null
   }
@@ -50,7 +50,7 @@ function getClipboardMirrorDirectory (contextFolderPath, sessionId) {
   )
 }
 
-function getClipboardImageMirrorDirectory (contextFolderPath, sessionId) {
+function getClipboardImageMirrorDirectory ({ contextFolderPath, sessionId } = {}) {
   if (!contextFolderPath || !sessionId) {
     return null
   }
@@ -62,15 +62,15 @@ function getClipboardImageMirrorDirectory (contextFolderPath, sessionId) {
   )
 }
 
-async function saveClipboardMirrorToDirectory (
+async function saveClipboardMirrorToDirectory ({
   text,
   directory,
   date = new Date(),
-  {
+  options: {
     onRedactionWarning = noop,
     scanAndRedactContentImpl = scanAndRedactContent
   } = {}
-) {
+} = {}) {
   if (typeof text !== 'string') {
     throw new Error('Clipboard text is missing or invalid.')
   }
@@ -100,11 +100,11 @@ async function saveClipboardMirrorToDirectory (
   return { path: fullPath, filename }
 }
 
-async function saveClipboardImageMirrorToDirectory (
+async function saveClipboardImageMirrorToDirectory ({
   imageBuffer,
   directory,
-  { date = new Date(), extension = 'png' } = {}
-) {
+  options: { date = new Date(), extension = 'png' } = {}
+} = {}) {
   if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
     throw new Error('Clipboard image is missing or invalid.')
   }
@@ -113,7 +113,7 @@ async function saveClipboardImageMirrorToDirectory (
   }
 
   await fs.mkdir(directory, { recursive: true })
-  const filename = buildClipboardImageMirrorFilename(date, extension)
+  const filename = buildClipboardImageMirrorFilename({ date, extension })
   const fullPath = path.join(directory, filename)
   await fs.writeFile(fullPath, imageBuffer)
   return {

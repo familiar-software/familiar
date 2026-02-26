@@ -659,11 +659,13 @@ if (isPrimaryInstance) {
             logger: console,
             checkIntervalMs: autoCleanupCheckIntervalMs
         });
-        const initialRetentionDays = resolveCleanupRetentionDays(
-            loadSettings()?.storageAutoCleanupRetentionDays
-        );
+        const initialRetentionDays = resolveCleanupRetentionDays({
+            value: loadSettings()?.storageAutoCleanupRetentionDays
+        });
+        const resolveRetentionDays = (nextRetentionValue) =>
+            resolveCleanupRetentionDays({ value: nextRetentionValue });
         retentionChangeTrigger = createRetentionChangeTrigger({
-            resolveRetentionDays: resolveCleanupRetentionDays,
+            resolveRetentionDays,
             initialRetentionDays,
             onRetentionChanged: () => {
                 if (autoSessionCleanupScheduler && typeof autoSessionCleanupScheduler.tryRun === 'function') {

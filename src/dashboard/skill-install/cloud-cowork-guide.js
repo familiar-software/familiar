@@ -48,10 +48,10 @@
         await global.navigator.clipboard.writeText(MARKETPLACE_REPO_URL)
         setMessage(errorElements, '')
         setMessage(statusElements, microcopy.dashboard.cloudCoworkGuide.marketplaceLinkCopied)
-        console.log('Cloud Cowork marketplace link copied')
+        console.log('Claude Cowork marketplace link copied')
         return { ok: true }
       } catch (error) {
-        console.error('Failed to copy Cloud Cowork marketplace link', error)
+        console.error('Failed to copy Claude Cowork marketplace link', error)
         setMessage(statusElements, '')
         setMessage(errorElements, microcopy.dashboard.cloudCoworkGuide.failedToCopyLink)
         return { ok: false, message: microcopy.dashboard.cloudCoworkGuide.failedToCopyLink }
@@ -61,14 +61,14 @@
     function openGuide() {
       clearGuideMessages()
       showGuide()
-      console.log('Cloud Cowork guide opened')
+      console.log('Claude Cowork guide opened')
       return { ok: true, url: MARKETPLACE_REPO_URL }
     }
 
     function closeGuide() {
       hideGuide()
       clearGuideMessages()
-      console.log('Cloud Cowork guide closed')
+      console.log('Claude Cowork guide closed')
     }
 
     closeButtons.forEach((button) => {

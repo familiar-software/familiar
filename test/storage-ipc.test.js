@@ -65,10 +65,13 @@ test('collectFilesWithinWindow aborts when root is outside familiar folder', asy
     const outsideFile = path.join(outsideRoot, '2026-02-17T12-20-00-000Z.md')
     fs.writeFileSync(outsideFile, 'outside', 'utf-8')
 
-    const collected = storageModule.collectFilesWithinWindow(outsideRoot, {
-      startMs: Date.parse('2026-02-17T12:00:00.000Z'),
-      endMs: Date.parse('2026-02-17T12:30:00.000Z'),
-      allowedRoots: [familiarRoot]
+    const collected = storageModule.collectFilesWithinWindow({
+      rootPath: outsideRoot,
+      options: {
+        startMs: Date.parse('2026-02-17T12:00:00.000Z'),
+        endMs: Date.parse('2026-02-17T12:30:00.000Z'),
+        allowedRoots: [familiarRoot]
+      }
     })
 
     assert.deepEqual(collected, [])
@@ -305,10 +308,13 @@ test('deleteFileIfAllowed aborts file outside familiar folder', async () => {
     fs.writeFileSync(outsideFile, 'outside', 'utf-8')
 
     let deleteCalls = 0
-    const result = await storageModule.deleteFileIfAllowed(outsideFile, {
-      allowedRoots: [familiarRoot],
-      deleteFile: async () => {
-        deleteCalls += 1
+    const result = await storageModule.deleteFileIfAllowed({
+      filePath: outsideFile,
+      options: {
+        allowedRoots: [familiarRoot],
+        deleteFile: async () => {
+          deleteCalls += 1
+        }
       }
     })
 
@@ -328,8 +334,8 @@ test('handleDeleteFiles calls collectFilesWithinWindow with stills roots', async
     fs.mkdirSync(path.join(contextFolderPath, 'familiar', 'stills-markdown'), { recursive: true })
 
     const calls = []
-    const collectSpy = (scanRoot, scanOptions = {}) => {
-      calls.push({ scanRoot, scanOptions })
+    const collectSpy = ({ rootPath, options = {} } = {}) => {
+      calls.push({ scanRoot: rootPath, scanOptions: options })
       return []
     }
 
@@ -384,7 +390,7 @@ test('handleDeleteFiles passes allowedRoots to deleteFileIfAllowed', async () =>
       {
         showMessageBox: async () => ({ response: 1 }),
         settingsLoader: () => ({ contextFolderPath }),
-        deleteFileIfAllowed: async (filePath, options = {}) => {
+        deleteFileIfAllowed: async ({ filePath, options = {} } = {}) => {
           deleteCalls.push({ filePath, allowedRoots: options.allowedRoots || [] })
           return { ok: true, path: filePath }
         }
@@ -419,7 +425,7 @@ test('handleDeleteFiles passes allowedRoots to deleteEmptySessionDirectories', a
       {
         showMessageBox: async () => ({ response: 1 }),
         settingsLoader: () => ({ contextFolderPath }),
-        deleteEmptySessionDirectories: async (_sessionRoots, options = {}) => {
+        deleteEmptySessionDirectories: async ({ options = {} } = {}) => {
           deleteEmptyCalls.push({ allowedRoots: options.allowedRoots || [] })
           return { deletedSessionDirs: [], failedSessionDirs: [] }
         }
@@ -449,7 +455,8 @@ test('resolveNewestSessionId resolves newest session across roots', async () => 
     fs.mkdirSync(path.join(stillsRoot, 'session-2026-02-17T12-00-00-000Z'), { recursive: true })
     fs.mkdirSync(path.join(markdownRoot, 'session-2026-02-17T12-10-00-000Z'), { recursive: true })
 
-    const newest = storageModule.resolveNewestSessionId([stillsRoot, markdownRoot], {
+    const newest = storageModule.resolveNewestSessionId({
+      sessionRoots: [stillsRoot, markdownRoot],
       allowedRoots: [stillsRoot, markdownRoot]
     })
 
@@ -472,11 +479,14 @@ test('deleteEmptySessionDirectories removes empty old sessions but keeps newest 
     fs.mkdirSync(nonEmptySession, { recursive: true })
     fs.writeFileSync(path.join(nonEmptySession, '2026-02-17T10-00-01-000Z.webp'), 'x', 'utf-8')
 
-    const result = await storageModule.deleteEmptySessionDirectories([stillsRoot, markdownRoot], {
-      allowedRoots: [stillsRoot, markdownRoot],
-      skipSessionId: 'session-2026-02-17T12-00-00-000Z',
-      deleteDirectory: async (dirPath) => {
-        fs.rmdirSync(dirPath)
+    const result = await storageModule.deleteEmptySessionDirectories({
+      sessionRoots: [stillsRoot, markdownRoot],
+      options: {
+        allowedRoots: [stillsRoot, markdownRoot],
+        skipSessionId: 'session-2026-02-17T12-00-00-000Z',
+        deleteDirectory: async (dirPath) => {
+          fs.rmdirSync(dirPath)
+        }
       }
     })
 
@@ -499,10 +509,13 @@ test('deleteDirectoryIfAllowed aborts directory outside familiar folder', async 
     fs.mkdirSync(outsideRoot, { recursive: true })
 
     let deleteCalls = 0
-    const result = await storageModule.deleteDirectoryIfAllowed(outsideRoot, {
-      allowedRoots: [familiarRoot],
-      deleteDirectory: async () => {
-        deleteCalls += 1
+    const result = await storageModule.deleteDirectoryIfAllowed({
+      dirPath: outsideRoot,
+      options: {
+        allowedRoots: [familiarRoot],
+        deleteDirectory: async () => {
+          deleteCalls += 1
+        }
       }
     })
 
@@ -524,10 +537,13 @@ test('deleteEmptySessionDirectories ignores roots outside allowed roots', async 
     fs.mkdirSync(outsideSession, { recursive: true })
 
     const deletedPaths = []
-    await storageModule.deleteEmptySessionDirectories([outsideRoot], {
-      allowedRoots: [allowedRoot],
-      deleteDirectory: async (dirPath) => {
-        deletedPaths.push(dirPath)
+    await storageModule.deleteEmptySessionDirectories({
+      sessionRoots: [outsideRoot],
+      options: {
+        allowedRoots: [allowedRoot],
+        deleteDirectory: async (dirPath) => {
+          deletedPaths.push(dirPath)
+        }
       }
     })
 
@@ -547,11 +563,14 @@ test('deleteEmptySessionDirectories passes allowedRoots to deleteDirectoryIfAllo
 
     const calls = []
     const realStillsRoot = fs.realpathSync(stillsRoot)
-    const result = await storageModule.deleteEmptySessionDirectories([stillsRoot], {
-      allowedRoots: [stillsRoot],
-      deleteDirectoryIfAllowedFn: async (dirPath, options = {}) => {
-        calls.push({ dirPath, allowedRoots: options.allowedRoots || [] })
-        return { ok: true, path: dirPath }
+    const result = await storageModule.deleteEmptySessionDirectories({
+      sessionRoots: [stillsRoot],
+      options: {
+        allowedRoots: [stillsRoot],
+        deleteDirectoryIfAllowedFn: async ({ dirPath, options = {} } = {}) => {
+          calls.push({ dirPath, allowedRoots: options.allowedRoots || [] })
+          return { ok: true, path: dirPath }
+        }
       }
     })
 

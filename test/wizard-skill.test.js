@@ -342,7 +342,7 @@ test('wizard skill installs for all selected harnesses on install click', async 
   }
 })
 
-test('wizard skill opens Cloud Cowork guide without calling installer APIs', async () => {
+test('wizard skill opens Claude Cowork guide without calling installer APIs', async () => {
   const priorWindow = global.window
   global.window = {}
 

@@ -79,7 +79,7 @@ function normalizeDataUrl(dataUrl) {
   return `data:image/${mime};base64,${base64Payload}`;
 }
 
-function resolveIntervalMs(options, logger) {
+function resolveIntervalMs({ options, logger }) {
   if (Number.isFinite(options.intervalSeconds) && options.intervalSeconds > 0) {
     return Math.round(options.intervalSeconds * 1000);
   }
@@ -100,7 +100,7 @@ function resolveIntervalMs(options, logger) {
 
 function createRecorder(options = {}) {
   const logger = options.logger || console;
-  const intervalMs = resolveIntervalMs(options, logger);
+  const intervalMs = resolveIntervalMs({ options, logger });
 
   let captureWindow = null;
   let windowReadyPromise = null;
@@ -238,7 +238,11 @@ function createRecorder(options = {}) {
     const requestId = randomUUID();
     try {
       captureWindow.webContents.send('screen-stills:stop', { requestId });
-      await waitForStatus(requestId, timeoutMs || STOP_TIMEOUT_MS, ['stopped']);
+      await waitForStatus({
+        requestId,
+        timeoutMs: timeoutMs || STOP_TIMEOUT_MS,
+        expectedStatuses: ['stopped']
+      });
       return { ok: true, stopped: true };
     } catch (error) {
       if (typeof error?.message === 'string' && error.message.includes('No active capture.')) {
@@ -267,7 +271,7 @@ function createRecorder(options = {}) {
     return { ok: true, strategy: 'recreate-window' };
   }
 
-  function waitForStatus(requestId, timeoutMs, expectedStatuses = null) {
+  function waitForStatus({ requestId, timeoutMs, expectedStatuses = null } = {}) {
     return new Promise(function (resolve, reject) {
       const timeout = setTimeout(function () {
         pendingRequests.delete(requestId);
@@ -300,7 +304,7 @@ function createRecorder(options = {}) {
     };
   }
 
-  function findDisplayById(displays, displayId) {
+  function findDisplayById({ displays, displayId } = {}) {
     if (!Array.isArray(displays) || displays.length === 0) {
       return null;
     }
@@ -331,7 +335,7 @@ function createRecorder(options = {}) {
     return looksLikePng(parsedBuffer) ? parsedBuffer : null;
   }
 
-  function resolveSourceThumbnailFromPng(thumbnail, source) {
+  function resolveSourceThumbnailFromPng({ thumbnail, source } = {}) {
     try {
       const rawPng = Buffer.from(thumbnail.toPNG?.() || []);
       if (!looksLikePng(rawPng)) {
@@ -359,7 +363,7 @@ function createRecorder(options = {}) {
     }
   }
 
-  function resolveSourceThumbnailFromDataUrl(thumbnail, source) {
+  function resolveSourceThumbnailFromDataUrl({ thumbnail, source } = {}) {
     try {
       const rawDataUrl = normalizeDataUrl(thumbnail.toDataURL?.());
       if (!rawDataUrl) {
@@ -387,8 +391,10 @@ function createRecorder(options = {}) {
       return null;
     }
     return (
-      (typeof thumbnail.toPNG === 'function' && resolveSourceThumbnailFromPng(thumbnail, source)) ||
-      (typeof thumbnail.toDataURL === 'function' && resolveSourceThumbnailFromDataUrl(thumbnail, source)) ||
+      (typeof thumbnail.toPNG === 'function' &&
+        resolveSourceThumbnailFromPng({ thumbnail, source })) ||
+      (typeof thumbnail.toDataURL === 'function' &&
+        resolveSourceThumbnailFromDataUrl({ thumbnail, source })) ||
       null
     );
   }
@@ -466,7 +472,7 @@ function createRecorder(options = {}) {
 
     let source = targetSource || primarySource || sources[0];
     const sourceDisplay =
-      findDisplayById(displays, source.display_id) ||
+      findDisplayById({ displays, displayId: source.display_id }) ||
       (targetSource ? targetDisplay : primaryDisplay) ||
       targetDisplay;
 
@@ -543,7 +549,7 @@ function createRecorder(options = {}) {
     };
   }
 
-  function isSameCaptureSource(currentSource, nextSource) {
+  function isSameCaptureSource({ currentSource, nextSource } = {}) {
     if (!currentSource || !nextSource) {
       return false;
     }
@@ -555,7 +561,7 @@ function createRecorder(options = {}) {
     );
   }
 
-  async function startRendererCapture(nextSourceDetails, reason) {
+  async function startRendererCapture({ nextSourceDetails, reason } = {}) {
     const window = await ensureWindowReady();
     const requestId = randomUUID();
     window.webContents.send('screen-stills:start', {
@@ -565,7 +571,11 @@ function createRecorder(options = {}) {
       captureHeight: nextSourceDetails.captureHeight,
       format: CAPTURE_CONFIG.format
     });
-    await waitForStatus(requestId, START_TIMEOUT_MS, ['started']);
+    await waitForStatus({
+      requestId,
+      timeoutMs: START_TIMEOUT_MS,
+      expectedStatuses: ['started']
+    });
     logger.log('Recording capture source started', {
       reason,
       displayId: nextSourceDetails.sourceDisplay.id,
@@ -577,7 +587,7 @@ function createRecorder(options = {}) {
     const displayContext = resolveDisplayForCursor();
     const nextSourceDetails = await resolveCaptureSourceForDisplay(displayContext);
 
-    if (isSameCaptureSource(sourceDetails, nextSourceDetails)) {
+    if (isSameCaptureSource({ currentSource: sourceDetails, nextSource: nextSourceDetails })) {
       sourceDetails = nextSourceDetails;
       return sourceDetails;
     }
@@ -644,7 +654,11 @@ function createRecorder(options = {}) {
           thumbnailPng: activeSourceDetails.thumbnailPng,
           format: CAPTURE_CONFIG.format
         });
-        await waitForStatus(requestId, STOP_TIMEOUT_MS, ['captured']);
+        await waitForStatus({
+          requestId,
+          timeoutMs: STOP_TIMEOUT_MS,
+          expectedStatuses: ['captured']
+        });
         sourceDetails = activeSourceDetails || sourceDetails;
       } else {
         createFakeCaptureFile(filePath);
@@ -712,7 +726,10 @@ function createRecorder(options = {}) {
 
         try {
           if (!IS_E2E_FAKE_CAPTURE) {
-            await startRendererCapture(initialSourceDetails, 'session-start');
+            await startRendererCapture({
+              nextSourceDetails: initialSourceDetails,
+              reason: 'session-start'
+            });
           }
           sourceDetails = initialSourceDetails;
           await captureNext();

@@ -73,7 +73,7 @@ const openCloudCoWorkGuide = async (window) => {
   const wizardStepThree = window.locator('[data-wizard-step="3"]')
   const skillInstallButton = window.locator('#wizard-skill-install')
   const skillStatus = window.locator('#wizard-skill-status')
-  const cloudCoWorkOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Cloud Cowork' })
+  const cloudCoWorkOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Claude Cowork' })
   const cloudCoWorkHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="cloud-cowork"]')
   const guideContainer = window.locator('#wizard-cloud-cowork-guide')
   const guideDoneButton = window.locator('#wizard-cloud-cowork-done')
@@ -91,7 +91,7 @@ const openCloudCoWorkGuide = async (window) => {
   await expect(guideContainer).toContainText(
     'https://github.com/familiar-software/familiar-claude-cowork-skill'
   )
-  await expect(skillStatus).toContainText('Opened Cloud Cowork guide.')
+  await expect(skillStatus).toContainText('Opened Claude Cowork guide.')
   await expect(skillStatus).not.toContainText('Installed at')
   await expect(guideDoneButton).toBeVisible()
   await guideDoneButton.click()

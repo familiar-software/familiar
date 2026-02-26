@@ -24,7 +24,7 @@ test('clipboard mirror writes on change, skips empty and unchanged text', async 
     },
     readImageImpl: () => null,
     readTextImpl: () => reads[Math.min(readIndex++, reads.length - 1)],
-    saveTextImpl: async (text, directory, _date) => {
+    saveTextImpl: async ({ text, directory }) => {
       saved.push({ text, directory })
       return { path: path.join(directory, 'dummy.clipboard.txt') }
     },
@@ -67,7 +67,7 @@ test('clipboard mirror skips one-word clipboard values and still mirrors multi-w
     },
     readImageImpl: () => null,
     readTextImpl: () => reads[Math.min(readIndex++, reads.length - 1)],
-    saveTextImpl: async (text, directory, _date) => {
+    saveTextImpl: async ({ text, directory }) => {
       saved.push({ text, directory })
       return { path: path.join(directory, 'dummy.clipboard.txt') }
     },
@@ -123,7 +123,7 @@ test('clipboard mirror saves clipboard images into stills session and enqueues c
       readTextCalls += 1
       return 'should-not-be-read'
     },
-    saveImageImpl: async (imageBuffer, directory, { date, extension }) => {
+    saveImageImpl: async ({ imageBuffer, directory, options: { date, extension } = {} } = {}) => {
       savedImages.push({ imageBuffer, directory, extension })
       return {
         path: path.join(directory, 'saved.clipboard.png'),
@@ -162,7 +162,7 @@ test('clipboard mirror skips unchanged clipboard images', async () => {
     scheduler: { setInterval: () => ({ unref: () => {} }), clearInterval: () => {} },
     readImageImpl: () => ({ buffer: Buffer.from('same-image'), extension: 'png' }),
     readTextImpl: () => 'ignored text',
-    saveImageImpl: async (imageBuffer, directory, { date, extension }) => ({
+    saveImageImpl: async ({ imageBuffer, directory, options: { date, extension } = {} } = {}) => ({
       path: path.join(directory, `saved-${imageBuffer.length}.clipboard.${extension}`),
       filename: `saved-${imageBuffer.length}.clipboard.${extension}`,
       capturedAt: date.toISOString()
@@ -192,7 +192,7 @@ test('clipboard mirror falls back to text when clipboard image is empty', async 
     scheduler: { setInterval: () => ({ unref: () => {} }), clearInterval: () => {} },
     readImageImpl: () => ({ isEmpty: () => true }),
     readTextImpl: () => 'hello from text fallback',
-    saveTextImpl: async (text, directory) => {
+    saveTextImpl: async ({ text, directory }) => {
       savedTexts.push({ text, directory })
       return { path: path.join(directory, 'fallback.clipboard.txt') }
     },

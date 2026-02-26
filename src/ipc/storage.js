@@ -60,7 +60,7 @@ function normalizeAllowedRoots(allowedRoots = []) {
     .filter(Boolean)
 }
 
-function isWithinAnyAllowedRoot(realPath, realAllowedRoots = []) {
+function isWithinAnyAllowedRoot({ realPath, realAllowedRoots = [] } = {}) {
   if (!realPath || !Array.isArray(realAllowedRoots) || realAllowedRoots.length === 0) {
     return false
   }
@@ -101,10 +101,10 @@ function parseSessionTimestampMs(sessionId) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function collectFilesWithinWindow(
+function collectFilesWithinWindow({
   rootPath,
-  { startMs, endMs, allowedRoots = [], logger = console }
-) {
+  options: { startMs, endMs, allowedRoots = [], logger = console }
+} = {}) {
   if (!rootPath || !fs.existsSync(rootPath)) {
     return []
   }
@@ -124,7 +124,7 @@ function collectFilesWithinWindow(
   if (!realRootPath) {
     return []
   }
-  if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot(realRootPath, realAllowedRoots)) {
+  if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot({ realPath: realRootPath, realAllowedRoots })) {
     logger.warn('Refusing to scan storage root outside allowed roots', { rootPath })
     return []
   }
@@ -134,7 +134,7 @@ function collectFilesWithinWindow(
 
   while (stack.length > 0) {
     const current = stack.pop()
-    if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot(current, realAllowedRoots)) {
+    if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot({ realPath: current, realAllowedRoots })) {
       logger.warn('Skipping storage directory outside allowed roots', { current })
       continue
     }
@@ -161,7 +161,7 @@ function collectFilesWithinWindow(
         if (!realDirPath) {
           continue
         }
-        if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot(realDirPath, realAllowedRoots)) {
+        if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot({ realPath: realDirPath, realAllowedRoots })) {
           logger.warn('Skipping nested storage directory outside allowed roots', { fullPath })
           continue
         }
@@ -175,7 +175,7 @@ function collectFilesWithinWindow(
       if (!realFilePath) {
         continue
       }
-      if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot(realFilePath, realAllowedRoots)) {
+      if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot({ realPath: realFilePath, realAllowedRoots })) {
         logger.warn('Skipping storage file outside allowed roots', { fullPath })
         continue
       }
@@ -192,10 +192,10 @@ function collectFilesWithinWindow(
   return selected
 }
 
-async function deleteFileIfAllowed(
+async function deleteFileIfAllowed({
   filePath,
-  { allowedRoots = [], deleteFile, logger = console } = {}
-) {
+  options: { allowedRoots = [], deleteFile, logger = console } = {}
+} = {}) {
   const realAllowedRoots = normalizeAllowedRoots(allowedRoots)
   if (realAllowedRoots.length === 0) {
     return { ok: false, message: 'No allowed roots configured for delete operation.' }
@@ -215,7 +215,7 @@ async function deleteFileIfAllowed(
   }
 
   const realFilePath = toRealPathSafe(filePath)
-  if (!realFilePath || !isWithinAnyAllowedRoot(realFilePath, realAllowedRoots)) {
+  if (!realFilePath || !isWithinAnyAllowedRoot({ realPath: realFilePath, realAllowedRoots })) {
     logger.warn('Refusing to delete file outside allowed roots', { filePath })
     return { ok: false, message: 'Refusing to delete file outside Familiar storage roots.' }
   }
@@ -224,10 +224,10 @@ async function deleteFileIfAllowed(
   return { ok: true, path: realFilePath }
 }
 
-async function deleteDirectoryIfAllowed(
+async function deleteDirectoryIfAllowed({
   dirPath,
-  { allowedRoots = [], deleteDirectory, logger = console } = {}
-) {
+  options: { allowedRoots = [], deleteDirectory, logger = console } = {}
+} = {}) {
   const realAllowedRoots = normalizeAllowedRoots(allowedRoots)
   if (realAllowedRoots.length === 0) {
     return { ok: false, message: 'No allowed roots configured for delete operation.' }
@@ -250,7 +250,7 @@ async function deleteDirectoryIfAllowed(
   }
 
   const realDirPath = toRealPathSafe(dirPath)
-  if (!realDirPath || !isWithinAnyAllowedRoot(realDirPath, realAllowedRoots)) {
+  if (!realDirPath || !isWithinAnyAllowedRoot({ realPath: realDirPath, realAllowedRoots })) {
     logger.warn('Refusing to delete directory outside allowed roots', { dirPath })
     return { ok: false, message: 'Refusing to delete directory outside Familiar storage roots.' }
   }
@@ -259,7 +259,7 @@ async function deleteDirectoryIfAllowed(
   return { ok: true, path: realDirPath }
 }
 
-function resolveNewestSessionId(sessionRoots = [], { allowedRoots = [] } = {}) {
+function resolveNewestSessionId({ sessionRoots = [], allowedRoots = [] } = {}) {
   const realAllowedRoots = normalizeAllowedRoots(allowedRoots)
   let newest = null
 
@@ -268,7 +268,7 @@ function resolveNewestSessionId(sessionRoots = [], { allowedRoots = [] } = {}) {
     if (!realRootPath || !fs.existsSync(realRootPath)) {
       continue
     }
-    if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot(realRootPath, realAllowedRoots)) {
+    if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot({ realPath: realRootPath, realAllowedRoots })) {
       continue
     }
 
@@ -296,16 +296,16 @@ function resolveNewestSessionId(sessionRoots = [], { allowedRoots = [] } = {}) {
   return newest ? newest.sessionId : null
 }
 
-async function deleteEmptySessionDirectories(
+async function deleteEmptySessionDirectories({
   sessionRoots = [],
-  {
+  options: {
     allowedRoots = [],
     skipSessionId = null,
     deleteDirectory,
     deleteDirectoryIfAllowedFn,
     logger = console
   } = {}
-) {
+} = {}) {
   const deletedSessionDirs = []
   const failedSessionDirs = []
   const realAllowedRoots = normalizeAllowedRoots(allowedRoots)
@@ -319,7 +319,7 @@ async function deleteEmptySessionDirectories(
     if (!realRootPath || !fs.existsSync(realRootPath)) {
       continue
     }
-    if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot(realRootPath, realAllowedRoots)) {
+    if (realAllowedRoots.length > 0 && !isWithinAnyAllowedRoot({ realPath: realRootPath, realAllowedRoots })) {
       logger.warn('Skipping session cleanup root outside allowed roots', { rootPath })
       continue
     }
@@ -353,7 +353,7 @@ async function deleteEmptySessionDirectories(
       }
       if (
         realAllowedRoots.length > 0 &&
-        !isWithinAnyAllowedRoot(realSessionDirPath, realAllowedRoots)
+        !isWithinAnyAllowedRoot({ realPath: realSessionDirPath, realAllowedRoots })
       ) {
         logger.warn('Skipping session cleanup directory outside allowed roots', { sessionDirPath })
         continue
@@ -375,10 +375,13 @@ async function deleteEmptySessionDirectories(
       }
 
       try {
-        const deleteResult = await guardedDirectoryDelete(realSessionDirPath, {
-          allowedRoots: realAllowedRoots,
-          deleteDirectory,
-          logger
+        const deleteResult = await guardedDirectoryDelete({
+          dirPath: realSessionDirPath,
+          options: {
+            allowedRoots: realAllowedRoots,
+            deleteDirectory,
+            logger
+          }
         })
         if (!deleteResult.ok) {
           failedSessionDirs.push(realSessionDirPath)
@@ -401,7 +404,7 @@ async function deleteEmptySessionDirectories(
   }
 }
 
-function deleteRowsByColumnIn(db, columnName, values) {
+function deleteRowsByColumnIn({ db, columnName, values } = {}) {
   if (!Array.isArray(values) || values.length === 0) {
     return 0
   }
@@ -441,8 +444,16 @@ function pruneQueueRows({
   let db = null
   try {
     db = new Database(dbPath)
-    const removedByImagePath = deleteRowsByColumnIn(db, 'image_path', stillFiles)
-    const removedByMarkdownPath = deleteRowsByColumnIn(db, 'markdown_path', markdownFiles)
+    const removedByImagePath = deleteRowsByColumnIn({
+      db,
+      columnName: 'image_path',
+      values: stillFiles
+    })
+    const removedByMarkdownPath = deleteRowsByColumnIn({
+      db,
+      columnName: 'markdown_path',
+      values: markdownFiles
+    })
     return { removedQueueRows: removedByImagePath + removedByMarkdownPath }
   } catch (error) {
     logger.error('Failed to prune stills queue rows after storage cleanup', {
@@ -513,17 +524,23 @@ async function handleDeleteFiles(event, payload = {}, options = {}) {
   )
   const startMs = deleteWindow.durationMs === null ? 0 : requestedAtMs - deleteWindow.durationMs
   const allowedRoots = [stillsRoot, stillsMarkdownRoot]
-  const stillFiles = collectFiles(stillsRoot, {
-    startMs,
-    endMs: requestedAtMs,
-    allowedRoots,
-    logger
+  const stillFiles = collectFiles({
+    rootPath: stillsRoot,
+    options: {
+      startMs,
+      endMs: requestedAtMs,
+      allowedRoots,
+      logger
+    }
   })
-  const markdownFiles = collectFiles(stillsMarkdownRoot, {
-    startMs,
-    endMs: requestedAtMs,
-    allowedRoots,
-    logger
+  const markdownFiles = collectFiles({
+    rootPath: stillsMarkdownRoot,
+    options: {
+      startMs,
+      endMs: requestedAtMs,
+      allowedRoots,
+      logger
+    }
   })
   const candidateFiles = [...stillFiles, ...markdownFiles]
 
@@ -532,7 +549,10 @@ async function handleDeleteFiles(event, payload = {}, options = {}) {
 
   for (const filePath of candidateFiles) {
     try {
-      const deleteResult = await deleteIfAllowed(filePath, { allowedRoots, deleteFile, logger })
+      const deleteResult = await deleteIfAllowed({
+        filePath,
+        options: { allowedRoots, deleteFile, logger }
+      })
       if (!deleteResult.ok) {
         failedFiles.push(filePath)
         continue
@@ -553,18 +573,19 @@ async function handleDeleteFiles(event, payload = {}, options = {}) {
     markdownFiles,
     logger
   })
-  const newestSessionId = resolveNewestSessionId([stillsRoot, stillsMarkdownRoot], {
+  const newestSessionId = resolveNewestSessionId({
+    sessionRoots: [stillsRoot, stillsMarkdownRoot],
     allowedRoots
   })
-  const { deletedSessionDirs, failedSessionDirs } = await deleteEmptySessions(
-    [stillsRoot, stillsMarkdownRoot],
-    {
+  const { deletedSessionDirs, failedSessionDirs } = await deleteEmptySessions({
+    sessionRoots: [stillsRoot, stillsMarkdownRoot],
+    options: {
       allowedRoots,
       skipSessionId: newestSessionId,
       deleteDirectory,
       logger
     }
-  )
+  })
 
   logger.log('Storage cleanup processed delete window', {
     deleteWindow: deleteWindow.key,

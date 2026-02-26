@@ -24,7 +24,7 @@ const DEFAULT_CHECK_INTERVAL_MS = 60 * 60 * 1000
 const defaultDeleteDirectory = (targetPath) =>
   fs.promises.rm(targetPath, { recursive: true, force: false })
 
-function resolveCleanupRetentionDays(value, logger = console) {
+function resolveCleanupRetentionDays({ value, logger = console } = {}) {
   const numericValue = Number(value)
   const resolved = resolveAutoCleanupRetentionDays(value)
   if (isAllowedAutoCleanupRetentionDays(numericValue)) {
@@ -39,7 +39,7 @@ function resolveCleanupRetentionDays(value, logger = console) {
   return resolved
 }
 
-function shouldRunDailyCleanup(lastCleanupRunAt, nowMs) {
+function shouldRunDailyCleanup({ lastCleanupRunAt, nowMs } = {}) {
   return (
     Number.isFinite(nowMs) &&
     (!Number.isFinite(lastCleanupRunAt) || nowMs - lastCleanupRunAt >= DAILY_INTERVAL_MS)
@@ -54,9 +54,9 @@ function resolveAutoCleanupRoots(contextFolderPath) {
   return [path.join(familiarRoot, STILLS_DIR_NAME)]
 }
 
-async function cleanupSessionDirectoriesByRetention(
+async function cleanupSessionDirectoriesByRetention({
   scanRoots = [],
-  {
+  options: {
     retentionDays = DEFAULT_RETENTION_DAYS,
     nowMs = Date.now(),
     allowedRoots = [],
@@ -64,7 +64,7 @@ async function cleanupSessionDirectoriesByRetention(
     deleteDirectoryIfAllowedFn = deleteDirectoryIfAllowed,
     logger = console
   } = {}
-) {
+} = {}) {
   const realAllowedRoots = normalizeAllowedRoots(allowedRoots)
   const cutoffMs = nowMs - retentionDays * DAILY_INTERVAL_MS
   const summary = {
@@ -90,7 +90,7 @@ async function cleanupSessionDirectoriesByRetention(
     if (!realRootPath) {
       continue
     }
-    if (!isWithinAnyAllowedRoot(realRootPath, realAllowedRoots)) {
+    if (!isWithinAnyAllowedRoot({ realPath: realRootPath, realAllowedRoots })) {
       logger.warn('Skipping auto cleanup root outside allowed roots', { rootPath })
       continue
     }
@@ -119,7 +119,7 @@ async function cleanupSessionDirectoriesByRetention(
       const sessionDirPath = path.join(realRootPath, entry.name)
 
       const realSessionDirPath = toRealPathSafe(sessionDirPath)
-      if (!realSessionDirPath || !isWithinAnyAllowedRoot(realSessionDirPath, realAllowedRoots)) {
+      if (!realSessionDirPath || !isWithinAnyAllowedRoot({ realPath: realSessionDirPath, realAllowedRoots })) {
         logger.warn('Skipping session directory outside allowed roots', { sessionDirPath })
         continue
       }
@@ -150,10 +150,13 @@ async function cleanupSessionDirectoriesByRetention(
 
       summary.eligibleSessionCount += 1
       try {
-        const result = await deleteDirectoryIfAllowedFn(realSessionDirPath, {
-          allowedRoots: realAllowedRoots,
-          deleteDirectory,
-          logger
+        const result = await deleteDirectoryIfAllowedFn({
+          dirPath: realSessionDirPath,
+          options: {
+            allowedRoots: realAllowedRoots,
+            deleteDirectory,
+            logger
+          }
         })
         if (result.ok) {
           summary.deletedSessionCount += 1
@@ -203,10 +206,10 @@ async function runAutoSessionCleanup({
     return { ok: true, skipped: true, reason: 'missing-context-folder', trigger }
   }
 
-  const retentionDays = resolveCleanupRetentionDays(
-    settings.storageAutoCleanupRetentionDays,
+  const retentionDays = resolveCleanupRetentionDays({
+    value: settings.storageAutoCleanupRetentionDays,
     logger
-  )
+  })
   const allowedRoots = resolveAutoCleanupRoots(contextFolderPath)
   logger.log('Starting auto session cleanup', {
     trigger,
@@ -216,12 +219,15 @@ async function runAutoSessionCleanup({
 
   let summary = null
   try {
-    summary = await cleanupSessionDirectoriesByRetentionFn(allowedRoots, {
-      retentionDays,
-      nowMs,
-      allowedRoots,
-      deleteDirectory,
-      logger
+    summary = await cleanupSessionDirectoriesByRetentionFn({
+      scanRoots: allowedRoots,
+      options: {
+        retentionDays,
+        nowMs,
+        allowedRoots,
+        deleteDirectory,
+        logger
+      }
     })
   } finally {
     if (typeof settingsSaver === 'function') {
@@ -281,7 +287,7 @@ function createAutoSessionCleanupScheduler({
     if (trigger === 'daily') {
       const settings = settingsLoader() || {}
       const lastCleanupRunAt = Number(settings.storageAutoCleanupLastRunAt)
-      if (!shouldRunDailyCleanup(lastCleanupRunAt, nowMs)) {
+      if (!shouldRunDailyCleanup({ lastCleanupRunAt, nowMs })) {
         return { ok: true, skipped: true, reason: 'daily-gate', trigger }
       }
     }

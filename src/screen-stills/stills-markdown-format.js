@@ -46,7 +46,7 @@ const splitMarkdownBlocks = (text) => {
   return segments
 }
 
-const buildBatchPrompt = (basePrompt, imageIds) => {
+const buildBatchPrompt = ({ basePrompt, imageIds = [] } = {}) => {
   const idsLine = imageIds.map((id) => `- ${id}`).join('\n')
   return [
     'Return markdown for each image in the same order as provided.',
@@ -62,7 +62,7 @@ const buildBatchPrompt = (basePrompt, imageIds) => {
   ].join('\n')
 }
 
-const parseBatchResponse = (responseText, imageIds = []) => {
+const parseBatchResponse = ({ responseText, imageIds = [] } = {}) => {
   const segments = splitMarkdownBlocks(responseText)
   const map = new Map()
   const limit = Math.min(segments.length, imageIds.length)
@@ -80,4 +80,3 @@ module.exports = {
   buildBatchPrompt,
   parseBatchResponse
 }
-

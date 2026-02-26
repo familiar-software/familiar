@@ -173,7 +173,10 @@ function createClipboardMirror (options = {}) {
         return { ok: true, skipped: true, reason: 'unchanged-image' }
       }
 
-      const imageDirectory = getClipboardImageMirrorDirectory(contextFolderPath, sessionId)
+      const imageDirectory = getClipboardImageMirrorDirectory({
+        contextFolderPath,
+        sessionId
+      })
       if (!imageDirectory) {
         logger.warn('Clipboard mirror image tick skipped: missing directory', { contextFolderPath, sessionId })
         return { ok: false, skipped: true, reason: 'missing-image-directory' }
@@ -184,11 +187,11 @@ function createClipboardMirror (options = {}) {
       }
 
       try {
-        const savedImage = await saveImageImpl(
-          clipboardImage.imageBuffer,
-          imageDirectory,
-          { date: new Date(), extension: clipboardImage.extension || 'png' }
-        )
+        const savedImage = await saveImageImpl({
+          imageBuffer: clipboardImage.imageBuffer,
+          directory: imageDirectory,
+          options: { date: new Date(), extension: clipboardImage.extension || 'png' }
+        })
         queueStore.enqueueCapture({
           imagePath: savedImage.path,
           sessionId,
@@ -226,15 +229,23 @@ function createClipboardMirror (options = {}) {
       return { ok: true, skipped: true, reason: 'single-word' }
     }
 
-    const directory = getClipboardMirrorDirectory(contextFolderPath, sessionId)
+    const directory = getClipboardMirrorDirectory({
+      contextFolderPath,
+      sessionId
+    })
     if (!directory) {
       logger.warn('Clipboard mirror tick skipped: missing directory', { contextFolderPath, sessionId })
       return { ok: false, skipped: true, reason: 'missing-directory' }
     }
 
     try {
-      const { path: savedPath } = await saveTextImpl(text, directory, new Date(), {
-        onRedactionWarning
+      const { path: savedPath } = await saveTextImpl({
+        text,
+        directory,
+        date: new Date(),
+        options: {
+          onRedactionWarning
+        }
       })
       lastProcessedText = text
       logger.log('Clipboard mirrored', { path: savedPath, sessionId })
