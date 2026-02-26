@@ -33,7 +33,15 @@ const closeBtn = document.getElementById('close-btn')
 const actionsEl = document.getElementById('actions')
 const progressBarEl = document.getElementById('toast-progress-bar')
 
-ipcRenderer.on('toast-data', (_event, { title, body, type = 'info', size = 'compact', actions = [], duration = 0 }) => {
+ipcRenderer.on('toast-data', (_event, {
+  title,
+  body,
+  type = 'info',
+  size = 'compact',
+  actions = [],
+  duration = 0,
+  closable = false
+}) => {
   titleEl.textContent = title || ''
   bodyEl.textContent = body || ''
   iconEl.innerHTML = icons[type] || icons.info
@@ -53,12 +61,17 @@ ipcRenderer.on('toast-data', (_event, { title, body, type = 'info', size = 'comp
     toastEl.classList.add('max-w-[420px]')
     bodyEl.classList.remove('truncate')
     bodyEl.classList.add('whitespace-pre-line', 'break-words', 'leading-relaxed')
-    closeBtn.classList.remove('hidden')
   } else {
     toastEl.classList.remove('max-w-[420px]')
     toastEl.classList.add('max-w-[320px]')
     bodyEl.classList.remove('whitespace-pre-line', 'leading-relaxed', 'truncate')
     bodyEl.classList.add('break-words')
+  }
+
+  const shouldShowCloseButton = closable || size === 'large'
+  if (shouldShowCloseButton) {
+    closeBtn.classList.remove('hidden')
+  } else {
     closeBtn.classList.add('hidden')
   }
 
