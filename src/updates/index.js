@@ -2,7 +2,7 @@ const { app, dialog, BrowserWindow } = require('electron');
 const { loadSettings, saveSettings } = require('../settings');
 
 const STARTUP_CHECK_DELAY_MS = 10_000;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 let initialized = false;
 let enabled = false;
@@ -11,8 +11,8 @@ let promptVisible = false;
 let downloadPromptVisible = false;
 let updater = null;
 let updaterLogger = null;
-let dailyTimeoutId = null;
-let dailyIntervalId = null;
+let weeklyTimeoutId = null;
+let weeklyIntervalId = null;
 let downloadedUpdateInfo = null;
 
 const markAppQuittingForUpdate = (reason) => {
@@ -115,11 +115,11 @@ const computeNextCheckDelay = ({ now, lastCheckedAt, delayMs }) => {
   }
 
   const elapsed = now - lastCheckedAt;
-  if (elapsed >= ONE_DAY_MS) {
+  if (elapsed >= ONE_WEEK_MS) {
     return baseDelay;
   }
 
-  return Math.max(ONE_DAY_MS - elapsed, baseDelay);
+  return Math.max(ONE_WEEK_MS - elapsed, baseDelay);
 };
 
 const promptForRestart = async (info) => {
@@ -323,13 +323,13 @@ const installDownloadedUpdate = ({ reason = 'restart' } = {}) => {
   return true;
 };
 
-const scheduleDailyUpdateCheck = ({ delayMs = STARTUP_CHECK_DELAY_MS } = {}) => {
+const scheduleWeeklyUpdateCheck = ({ delayMs = STARTUP_CHECK_DELAY_MS } = {}) => {
   if (!enabled) {
     return { scheduled: false };
   }
 
-  if (dailyTimeoutId || dailyIntervalId) {
-    console.log('Daily update checks already scheduled');
+  if (weeklyTimeoutId || weeklyIntervalId) {
+    console.log('Weekly update checks already scheduled');
     return { scheduled: true };
   }
 
@@ -337,13 +337,13 @@ const scheduleDailyUpdateCheck = ({ delayMs = STARTUP_CHECK_DELAY_MS } = {}) => 
   const now = Date.now();
   const nextDelay = computeNextCheckDelay({ now, lastCheckedAt, delayMs });
 
-  console.log('Scheduling daily update check', { delayMs: nextDelay });
-  dailyTimeoutId = setTimeout(() => {
-    dailyTimeoutId = null;
-    void checkForUpdates({ reason: 'daily' });
-    dailyIntervalId = setInterval(() => {
-      void checkForUpdates({ reason: 'daily' });
-    }, ONE_DAY_MS);
+  console.log('Scheduling weekly update check', { delayMs: nextDelay });
+  weeklyTimeoutId = setTimeout(() => {
+    weeklyTimeoutId = null;
+    void checkForUpdates({ reason: 'weekly' });
+    weeklyIntervalId = setInterval(() => {
+      void checkForUpdates({ reason: 'weekly' });
+    }, ONE_WEEK_MS);
   }, nextDelay);
 
   return { scheduled: true, delayMs: nextDelay };
@@ -353,5 +353,5 @@ module.exports = {
   checkForUpdates,
   initializeAutoUpdater,
   installDownloadedUpdate,
-  scheduleDailyUpdateCheck,
+  scheduleWeeklyUpdateCheck,
 };

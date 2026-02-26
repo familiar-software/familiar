@@ -8,7 +8,7 @@ const resetUpdatesModule = () => {
     delete require.cache[updatesPath];
 };
 
-const stubModules = ({ isPackaged = true, dialogResponse = 1 } = {}) => {
+const stubModules = ({ isPackaged = true, dialogResponse = 1, loadSettingsValue = {} } = {}) => {
     const calls = {
         checkForUpdates: 0,
         downloadUpdate: 0,
@@ -53,7 +53,7 @@ const stubModules = ({ isPackaged = true, dialogResponse = 1 } = {}) => {
     const stubElectronUpdater = { autoUpdater };
     const stubElectronLog = { transports: { file: { level: null } } };
     const stubSettings = {
-        loadSettings: () => ({}),
+        loadSettings: () => loadSettingsValue,
         saveSettings: (payload) => {
             calls.savedSettings.push(payload);
             return '/tmp/settings.json';
@@ -182,5 +182,99 @@ test(
 
         restore();
         resetUpdatesModule();
+    }
+);
+
+test(
+    'scheduleWeeklyUpdateCheck schedules immediate startup delay when last check is older than a week',
+    { skip: process.platform !== 'darwin' },
+    () => {
+        const now = 2_000_000_000_000;
+        const eightDaysMs = 8 * 24 * 60 * 60 * 1000;
+        const timeoutCalls = [];
+        const intervalCalls = [];
+
+        const originalNow = Date.now;
+        const originalSetTimeout = global.setTimeout;
+        const originalSetInterval = global.setInterval;
+
+        Date.now = () => now;
+        global.setTimeout = (handler, delay) => {
+            timeoutCalls.push(delay);
+            if (typeof handler === 'function') {
+                handler();
+            }
+            return 1;
+        };
+        global.setInterval = (handler, delay) => {
+            intervalCalls.push(delay);
+            return 2;
+        };
+
+        const { restore } = stubModules({
+            isPackaged: true,
+            loadSettingsValue: { updateLastCheckedAt: now - eightDaysMs },
+        });
+        try {
+            resetUpdatesModule();
+            const updates = require('../src/updates');
+            updates.initializeAutoUpdater({ isE2E: false, isCI: false });
+
+            const scheduled = updates.scheduleWeeklyUpdateCheck({ delayMs: 10_000 });
+            assert.equal(scheduled.scheduled, true);
+            assert.equal(scheduled.delayMs, 10_000);
+            assert.deepEqual(timeoutCalls, [10_000]);
+            assert.equal(intervalCalls.length, 1);
+            assert.equal(intervalCalls[0], 7 * 24 * 60 * 60 * 1000);
+        } finally {
+            restore();
+            resetUpdatesModule();
+            Date.now = originalNow;
+            global.setTimeout = originalSetTimeout;
+            global.setInterval = originalSetInterval;
+        }
+    }
+);
+
+test(
+    'scheduleWeeklyUpdateCheck delays until one-week gate when last check was recent',
+    { skip: process.platform !== 'darwin' },
+    () => {
+        const now = 2_000_000_000_000;
+        const oneDayMs = 24 * 60 * 60 * 1000;
+        const expectedDelay = 6 * oneDayMs;
+        const timeoutCalls = [];
+
+        const originalNow = Date.now;
+        const originalSetTimeout = global.setTimeout;
+        const originalSetInterval = global.setInterval;
+
+        Date.now = () => now;
+        global.setTimeout = (handler, delay) => {
+            timeoutCalls.push(delay);
+            return 1;
+        };
+        global.setInterval = () => 2;
+
+        const { restore } = stubModules({
+            isPackaged: true,
+            loadSettingsValue: { updateLastCheckedAt: now - oneDayMs },
+        });
+        try {
+            resetUpdatesModule();
+            const updates = require('../src/updates');
+            updates.initializeAutoUpdater({ isE2E: false, isCI: false });
+
+            const scheduled = updates.scheduleWeeklyUpdateCheck({ delayMs: 10_000 });
+            assert.equal(scheduled.scheduled, true);
+            assert.equal(scheduled.delayMs, expectedDelay);
+            assert.deepEqual(timeoutCalls, [expectedDelay]);
+        } finally {
+            restore();
+            resetUpdatesModule();
+            Date.now = originalNow;
+            global.setTimeout = originalSetTimeout;
+            global.setInterval = originalSetInterval;
+        }
     }
 );
