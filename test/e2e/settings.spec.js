@@ -8,6 +8,7 @@ test('choose button sets the context folder path', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const expectedContextPath = path.resolve(contextPath)
+  const expectedDisplayPath = path.join(expectedContextPath, 'familiar')
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
   const settingsPath = path.join(settingsDir, 'settings.json')
   fs.writeFileSync(
@@ -50,7 +51,7 @@ test('choose button sets the context folder path', async () => {
     await window.getByRole('tab', { name: 'Storage' }).click()
 
     await window.locator('#context-folder-choose').click()
-    await expect(window.locator('#context-folder-path')).toHaveValue(expectedContextPath)
+    await expect(window.locator('#context-folder-path')).toHaveValue(expectedDisplayPath)
     await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))

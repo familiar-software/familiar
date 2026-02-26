@@ -122,6 +122,7 @@ const goToFinalWizardStep = async (window, nextButton) => {
 test('wizard happy flow completes setup and routes to Storage', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
   const { electronApp, settingsDir, skillHomeDir } = launchElectron({
     contextPath,
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
@@ -139,7 +140,7 @@ test('wizard happy flow completes setup and routes to Storage', async () => {
     await expect(nextButton).toBeDisabled()
 
     await window.locator('#wizard-context-folder-choose').click()
-    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(path.resolve(contextPath))
+    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(expectedDisplayPath)
     await expect(nextButton).toBeEnabled()
 
     await nextButton.click()
@@ -169,6 +170,7 @@ test('wizard happy flow completes setup and routes to Storage', async () => {
 test('wizard permission step requires enabling recording', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
   const { electronApp } = launchElectron({
     contextPath,
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
@@ -196,6 +198,7 @@ test('wizard permission step requires enabling recording', async () => {
 test('wizard install step requires skill installation before continuing', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
   const { electronApp } = launchElectron({
     contextPath,
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
@@ -208,7 +211,7 @@ test('wizard install step requires skill installation before continuing', async 
     const nextButton = window.locator('#wizard-next')
 
     await window.locator('#wizard-context-folder-choose').click()
-    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(path.resolve(contextPath))
+    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(expectedDisplayPath)
     await nextButton.click()
 
     await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()

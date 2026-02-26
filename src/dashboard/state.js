@@ -50,10 +50,24 @@
       }
     }
 
+    function toDisplayedContextFolderPath(value) {
+      if (typeof value !== 'string') {
+        return ''
+      }
+      const normalized = value.replace(/\\/g, '/').replace(/\/+$/, '')
+      if (!normalized) {
+        return ''
+      }
+      if (normalized.toLowerCase().endsWith('/familiar')) {
+        return normalized
+      }
+      return `${normalized}/familiar`
+    }
+
     function setContextFolderValue(value) {
       const nextValue = value || ''
       state.currentContextFolderPath = nextValue
-      setInputValues(contextFolderInputs, state.currentContextFolderPath)
+      setInputValues(contextFolderInputs, toDisplayedContextFolderPath(state.currentContextFolderPath))
       callIfAvailable(apis.recordingApi, 'updateRecordingUI')
       updateWizardUI()
     }
