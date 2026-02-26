@@ -13,6 +13,8 @@
     "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run build:rg-bundle && npm run css:build && electron-builder --mac --x64",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
     "css:build": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --minify",
+    "css:landing": "tailwindcss -c tailwind.config.landing.js -i docs/input.css -o docs/styles.css --minify",
+    "css:landing:watch": "tailwindcss -c tailwind.config.landing.js -i docs/input.css -o docs/styles.css --watch",
     "start": "npm run rebuild:electron && npm run css:build && electron .",
     "predev": "npm run build:apple-vision-ocr && npm run build:rg-bundle",
     "dev": "npm run rebuild:electron && tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
