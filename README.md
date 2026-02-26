@@ -185,6 +185,10 @@ With Familiar, AI can.
 
 - Existing local file system
 
+### Involve AI "without a prompt"
+
+> Help me with what I'm working on right now.
+
 ### Predict
 
 > Predict what is going to happen next week and tell me how to make it 10x more impactful.
@@ -199,15 +203,23 @@ Or less about meta-use cases, and just pure help:
 
 > Based on the past week, what were the most crucial design choices that we took for <X>? look for opinionated design choices that influence the usability of the app. 
 
-## Seeing connections
+### Compounding
+
+> Turn what I did today into skills.
+
+> Turn what I did today into skills for Clawdbot.
+
+### Seeing connections
 
 > What two things from this week seem unrelated but might actually connect? Based on what you've seen me do 
 
-## Updates
+### Updates
 
-> Write my weekly status update based on what I _actually did_ this week. 
+> Write my weekly status update based on what I _actually did_ this week.
 
-## Relationships
+> It's performance review time/conversation with manager. Write my brag document from the last 6 months of screen history. What did I actually accomplish?
+
+### Relationships
 
 > What's every interaction I've had with this person in the last month? What's the emotional arc? What did I promise? What did they promise?
 
@@ -219,7 +231,9 @@ Or less about meta-use cases, and just pure help:
 
 > What's everything I know about [company/person] based on what's crossed my screen?
 
-## Knowledge transfer
+### Knowledge transfer
+
+> I'm onboarding a new team member, what should I tell them?
 
 > I'm going on parental leave. Based on my last 3 months of screen history, what does my replacement need to know about each initiative?
 
@@ -229,7 +243,7 @@ Or less about meta-use cases, and just pure help:
 
 > I just had a breakthrough solving a problem. Reconstruct the exact sequence so I can document/communicate it.
 
-## Productivity
+### Productivity
 
 > I've been bouncing between message threads and docs for two hours and my brain is soup. What are the open threads I still need to respond to?
 
@@ -247,7 +261,7 @@ Or less about meta-use cases, and just pure help:
 
 > Where does my deep work actually happen, and what kills it?
 
-## Focus
+### Focus
 
 > What did I commit to that I've forgotten based on what you've seen me do?
 
@@ -255,7 +269,7 @@ Or less about meta-use cases, and just pure help:
 
 > Are there any shadow initiatives or threads or goals I'm working on that I should make explicit
 
-## Emerging patterns
+### Emerging patterns
 
 > What's emerging? What am I doing more of this week compared to last week?
 
@@ -263,7 +277,7 @@ Or less about meta-use cases, and just pure help:
 
 > When I'm procrastinating, what do I gravitate toward? What does that say about what I actually enjoy?
 
-## Recall
+### Recall
 
 > I was in back-to-back meetings all day. What did I commit to across all of them?
 
