@@ -66,6 +66,14 @@ const writeMarkdownFile = async ({
     fileIdentifier: outputPath,
     onRedactionWarning
   })
+  if (redactionResult.dropContent) {
+    console.warn('Dropped still markdown due to sensitive payment detection', {
+      outputPath,
+      dropReason: redactionResult.dropReason,
+      matchedDropCategories: redactionResult.matchedDropCategories
+    })
+    return null
+  }
   if (redactionResult.redactionBypassed) {
     console.warn('Saved still markdown without redaction due to scanner issue', { outputPath })
   } else if (redactionResult.findings > 0) {
@@ -176,6 +184,17 @@ const createStillsMarkdownWorker = ({
           scanAndRedactContentImpl,
           onRedactionWarning
         })
+        if (!outputPath) {
+          queueStore.markFailed({
+            id: row.id,
+            error: 'dropped-by-sensitive-payment-detection'
+          })
+          logger.warn('Dropped still markdown output due to sensitive payment detection', {
+            id: row.id,
+            imagePath: row.image_path
+          })
+          continue
+        }
         queueStore.markDone({
           id: row.id,
           markdownPath: outputPath,

@@ -210,3 +210,76 @@ test('resolveRgBinaryPath uses env override when present', async () => {
     }
   }
 })
+
+test('scanAndRedactContent sets dropContent when payment keyword and 10+ digit card-like sequence co-exist', async () => {
+  const { stubPath } = writeStubRgBinary({
+    scriptBody: [
+      'let input = "";',
+      'process.stdin.setEncoding("utf8");',
+      'process.stdin.on("data", (chunk) => { input += chunk; });',
+      'process.stdin.on("end", () => {',
+      '  const lines = input.split(/\\n/);',
+      '  for (let i = 0; i < lines.length; i += 1) {',
+      '    process.stdout.write(JSON.stringify({ type: "match", data: { line_number: i + 1, submatches: [{ match: { text: "x" }, start: 0, end: 1 }] } }) + "\\n");',
+      '  }',
+      '  process.exit(0);',
+      '});'
+    ].join('\n')
+  })
+
+  const prior = process.env.FAMILIAR_RG_BINARY
+  process.env.FAMILIAR_RG_BINARY = stubPath
+
+  try {
+    const result = await scanAndRedactContent({
+      content: [
+        'Please confirm payment method',
+        '4242 4242 4242'
+      ].join('\n')
+    })
+
+    assert.equal(result.dropContent, true)
+    assert.equal(result.dropReason, 'payment-keyword-and-card-number')
+    assert.equal(result.matchedDropCategories.payment_keyword > 0, true)
+    assert.equal(result.matchedDropCategories.payment_card_number > 0, true)
+  } finally {
+    if (prior === undefined) {
+      delete process.env.FAMILIAR_RG_BINARY
+    } else {
+      process.env.FAMILIAR_RG_BINARY = prior
+    }
+  }
+})
+
+test('scanAndRedactContent does not set dropContent when only payment keyword exists', async () => {
+  const { stubPath } = writeStubRgBinary({
+    scriptBody: [
+      'let input = "";',
+      'process.stdin.setEncoding("utf8");',
+      'process.stdin.on("data", (chunk) => { input += chunk; });',
+      'process.stdin.on("end", () => {',
+      '  const lines = input.split(/\\n/);',
+      '  for (let i = 0; i < lines.length; i += 1) {',
+      '    process.stdout.write(JSON.stringify({ type: "match", data: { line_number: i + 1, submatches: [{ match: { text: "x" }, start: 0, end: 1 }] } }) + "\\n");',
+      '  }',
+      '  process.exit(0);',
+      '});'
+    ].join('\n')
+  })
+
+  const prior = process.env.FAMILIAR_RG_BINARY
+  process.env.FAMILIAR_RG_BINARY = stubPath
+
+  try {
+    const result = await scanAndRedactContent({
+      content: 'checkout flow details only'
+    })
+    assert.equal(result.dropContent, false)
+  } finally {
+    if (prior === undefined) {
+      delete process.env.FAMILIAR_RG_BINARY
+    } else {
+      process.env.FAMILIAR_RG_BINARY = prior
+    }
+  }
+})

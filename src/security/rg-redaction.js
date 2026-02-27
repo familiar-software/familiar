@@ -7,6 +7,7 @@ const {
 } = require('./rg-redaction-rules')
 
 const RG_WARNING_CODE = 'rg-redaction-unavailable'
+const DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER = 'payment-keyword-and-card-number'
 
 function noop () {}
 
@@ -204,17 +205,30 @@ const redactLine = ({ line, compiledRules }) => {
     return {
       redactedLine: line,
       findings: 0,
-      ruleCounts: {}
+      ruleCounts: {},
+      matchedRuleCounts: {},
+      matchedDropCategories: {}
     }
   }
 
   let redactedLine = line
   let findings = 0
   const ruleCounts = {}
+  const matchedRuleCounts = {}
+  const matchedDropCategories = {}
 
-  for (const { id, regex, maskStrategy } of compiledRules) {
+  for (const { id, regex, maskStrategy, action, dropCategory } of compiledRules) {
     redactedLine = redactedLine.replace(regex, (matchText) => {
       if (shouldSkipMatch(matchText)) {
+        return matchText
+      }
+
+      matchedRuleCounts[id] = (matchedRuleCounts[id] || 0) + 1
+      if (action === 'drop' && dropCategory) {
+        matchedDropCategories[dropCategory] = (matchedDropCategories[dropCategory] || 0) + 1
+      }
+
+      if (action !== 'redact') {
         return matchText
       }
 
@@ -231,13 +245,17 @@ const redactLine = ({ line, compiledRules }) => {
   return {
     redactedLine,
     findings,
-    ruleCounts
+    ruleCounts,
+    matchedRuleCounts,
+    matchedDropCategories
   }
 }
 
 const compileRules = () =>
   RULES.map((rule) => ({
     id: rule.id,
+    action: rule.action || 'redact',
+    dropCategory: typeof rule.dropCategory === 'string' ? rule.dropCategory : '',
     maskStrategy: rule.maskStrategy,
     regex: new RegExp(rule.jsPattern, rule.jsFlags)
   }))
@@ -268,6 +286,10 @@ const scanAndRedactContent = async ({
       content: normalizedContent,
       findings: 0,
       ruleCounts: {},
+      matchedRuleCounts: {},
+      matchedDropCategories: {},
+      dropContent: false,
+      dropReason: null,
       redactionBypassed: true
     }
   }
@@ -307,6 +329,10 @@ const scanAndRedactContent = async ({
       content: normalizedContent,
       findings: 0,
       ruleCounts: {},
+      matchedRuleCounts: {},
+      matchedDropCategories: {},
+      dropContent: false,
+      dropReason: null,
       redactionBypassed: true
     }
   }
@@ -316,6 +342,10 @@ const scanAndRedactContent = async ({
       content: normalizedContent,
       findings: 0,
       ruleCounts: {},
+      matchedRuleCounts: {},
+      matchedDropCategories: {},
+      dropContent: false,
+      dropReason: null,
       redactionBypassed: false
     }
   }
@@ -323,6 +353,8 @@ const scanAndRedactContent = async ({
   const lines = normalizedContent.split('\n')
   let findings = 0
   const ruleCounts = {}
+  const matchedRuleCounts = {}
+  const matchedDropCategories = {}
 
   for (const lineIndex of candidateLineIndexes) {
     if (lineIndex < 0 || lineIndex >= lines.length) {
@@ -340,18 +372,35 @@ const scanAndRedactContent = async ({
     for (const [ruleId, count] of Object.entries(result.ruleCounts)) {
       ruleCounts[ruleId] = (ruleCounts[ruleId] || 0) + count
     }
+    for (const [ruleId, count] of Object.entries(result.matchedRuleCounts || {})) {
+      matchedRuleCounts[ruleId] = (matchedRuleCounts[ruleId] || 0) + count
+    }
+    for (const [category, count] of Object.entries(result.matchedDropCategories || {})) {
+      matchedDropCategories[category] = (matchedDropCategories[category] || 0) + count
+    }
   }
+
+  const dropContent = Boolean(
+    matchedDropCategories.payment_keyword > 0 &&
+    matchedDropCategories.payment_card_number > 0
+  )
+  const dropReason = dropContent ? DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER : null
 
   return {
     content: lines.join('\n'),
     findings,
     ruleCounts,
+    matchedRuleCounts,
+    matchedDropCategories,
+    dropContent,
+    dropReason,
     redactionBypassed: false
   }
 }
 
 module.exports = {
   RG_WARNING_CODE,
+  DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER,
   RULES,
   normalizeContent,
   resolveRgBinaryPath,
