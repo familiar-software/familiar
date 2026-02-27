@@ -114,11 +114,16 @@
     }
 
     const updatePermissionControls = () => {
-      const showToggle = wizardPermissionState === 'granted'
+      const shouldShowToggleForSection = (section) => {
+        if (section?.dataset?.permissionToggleVisibility === 'always') {
+          return true
+        }
+        return wizardPermissionState === 'granted'
+      }
       const showOpenSettingsButton = wizardPermissionState === 'denied'
 
       for (const section of allPermissionRecordingToggleSections) {
-        section.classList.toggle('hidden', !showToggle)
+        section.classList.toggle('hidden', !shouldShowToggleForSection(section))
       }
 
       for (const button of allPermissionCheckButtons) {

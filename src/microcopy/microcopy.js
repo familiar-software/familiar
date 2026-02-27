@@ -47,6 +47,8 @@ const microcopy = {
       recordingEnableFamiliarInScreenRecording: 'Enable Familiar In Screen Recording',
       recordingAfterEnablingRestartFamiliar: 'After enabling capturing, restart Familiar',
       recordingCaptureWhileActive: 'Capture While Active',
+      recordingActionRequiredToProceed: 'Action required to proceed',
+      recordingCapturingIsEnabled: 'Capturing is enabled',
       recordingProcessingTitle: 'Processing',
       recordingProcessingSubtitle: 'Review and manage capturing',
       recordingProcessingModeLocal: 'Local',

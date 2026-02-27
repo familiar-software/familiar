@@ -61,6 +61,50 @@ test('choose button sets the context folder path', async () => {
   }
 })
 
+test('capturing tab keeps toggle visible before checking permissions', async () => {
+  const appRoot = path.join(__dirname, '../..')
+  const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
+  const settingsPath = path.join(settingsDir, 'settings.json')
+  fs.writeFileSync(
+    settingsPath,
+    JSON.stringify(
+      {
+        wizardCompleted: true
+      },
+      null,
+      2
+    )
+  )
+
+  const launchArgs = ['.']
+  if (process.platform === 'linux') {
+    launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
+  }
+
+  const electronApp = await electron.launch({
+    args: launchArgs,
+    cwd: appRoot,
+    env: {
+      ...process.env,
+      FAMILIAR_E2E: '1',
+      FAMILIAR_E2E_CONTEXT_PATH: contextPath,
+      FAMILIAR_SETTINGS_DIR: settingsDir,
+      FAMILIAR_E2E_SCREEN_RECORDING_PERMISSION: 'denied'
+    }
+  })
+
+  try {
+    const window = await electronApp.firstWindow()
+    await window.waitForLoadState('domcontentloaded')
+
+    await window.getByRole('tab', { name: 'Capturing' }).click()
+    await expect(window.locator('#recording-recording-toggle-section')).toBeVisible()
+  } finally {
+    await electronApp.close()
+  }
+})
+
 test('activate event reopens settings window and settings window is resizable', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')

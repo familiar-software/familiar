@@ -492,6 +492,46 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     })
   }
 
+  const MESSAGE_AUTO_CLEAR_TIMEOUT_MS = 5000
+  const messageTimeoutState = new WeakMap()
+  let nextMessageTimeoutToken = 1
+
+  function clearMessageTimeout(element) {
+    if (!element) {
+      return
+    }
+    const state = messageTimeoutState.get(element)
+    if (!state) {
+      return
+    }
+    if (state.timeoutId != null) {
+      clearTimeout(state.timeoutId)
+    }
+    messageTimeoutState.delete(element)
+  }
+
+  function scheduleMessageClear(element, value) {
+    if (!element || !value) {
+      return
+    }
+
+    clearMessageTimeout(element)
+    const token = nextMessageTimeoutToken
+    nextMessageTimeoutToken += 1
+
+    const timeoutId = setTimeout(() => {
+      const currentState = messageTimeoutState.get(element)
+      if (!currentState || currentState.token !== token) {
+        return
+      }
+      element.textContent = ''
+      element.classList.toggle('hidden', true)
+      messageTimeoutState.delete(element)
+    }, MESSAGE_AUTO_CLEAR_TIMEOUT_MS)
+
+    messageTimeoutState.set(element, { timeoutId, token })
+  }
+
   function setMessage(elements, message) {
     const targets = toArray(elements)
     const value = message || ''
@@ -501,6 +541,11 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       }
       element.textContent = value
       element.classList.toggle('hidden', !value)
+      if (!value) {
+        clearMessageTimeout(element)
+        continue
+      }
+      scheduleMessageClear(element, value)
     }
   }
 
