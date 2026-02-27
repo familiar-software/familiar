@@ -123,7 +123,7 @@ const microcopy = {
       wizardInstallSkillButton: 'Install Skill',
       wizardCloudCoworkGuideTitle: 'Claude Cowork install guide',
       wizardCloudCoworkGuideSubtitle: 'Use marketplace installation in Cowork.',
-      wizardCloudCoworkGuideStep1: 'Open Settings from the top left corner (or press Cmd + ,).',
+      wizardCloudCoworkGuideStep1: 'Open Settings from the top left corner (or press: ⌘ + , ).',
       wizardCloudCoworkGuideStep2: 'Go to Capabilities.',
       wizardCloudCoworkGuideStep3: 'Toggle on Allow network egress.',
       wizardCloudCoworkGuideStep4: 'Go back to the Cowork landing page (chat view).',
