@@ -87,7 +87,7 @@ const openCloudCoWorkGuide = async (window) => {
   await skillInstallButton.click()
 
   await expect(guideContainer).toBeVisible()
-  await expect(guideContainer).toContainText('Add marketplace from Github')
+  await expect(guideContainer).toContainText('Add marketplace from GitHub')
   await expect(guideContainer).toContainText(
     'https://github.com/familiar-software/familiar-claude-cowork-skill'
   )
