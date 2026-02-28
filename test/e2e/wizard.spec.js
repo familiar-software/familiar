@@ -149,6 +149,11 @@ test('wizard happy flow completes setup and routes to Storage', async () => {
 
     await installWizardSkill(window)
     await goToFinalWizardStep(window, nextButton)
+    await expect(window.getByText('Will it capture passwords or embarrassing searches?')).toBeVisible()
+    await expect(window.locator('[data-wizard-step="4"]')).toContainText('FAQ')
+    await expect(window.locator('[data-wizard-step="4"]')).toContainText(
+      'Will it capture passwords or embarrassing searches?'
+    )
     await expect(doneButton).toBeEnabled()
     await doneButton.click()
 

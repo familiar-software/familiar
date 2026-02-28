@@ -102,6 +102,9 @@ const microcopy = {
       wizardChooseContextFolderTitle: 'Choose your context folder',
       wizardChooseContextFolderDescription:
         'Familiar stores everything inside <Context Folder>/familiar/.',
+      wizardChooseContextFolderBestPracticesLabel: 'Best Practices:',
+      wizardChooseContextFolderBestPractices:
+        'Use the same folder with which you usually work with agents.',
       wizardContextFolder: 'Context Folder',
       wizardContextFolderPlaceholderNoFolderSelected: 'No folder selected',
       wizardContextFolderChange: 'Change',
@@ -142,6 +145,27 @@ const microcopy = {
       wizardAllSetTitle: "You're all set",
       wizardAllSetDescription:
         'Your context folder and capturing preferences are configured, and the skill install completed.',
+      wizardFaqTitle: 'FAQ',
+      wizardFaqScrollHint: 'Scroll down to see all FAQs',
+      wizardFaqQuestionSensitiveData: 'Will it capture passwords or embarrassing searches?',
+      wizardFaqAnswerSensitiveData: "Passwords & API keys are skipped from clipboard.\nCommon patterns of passwords, api keys and payment methods are scanned for each screenshot and are either redacted or completely dropped.",
+      wizardFaqQuestionLeavesComputer: 'Does anything leave my computer?',
+      wizardFaqAnswerLeavesComputer: 'You control your data. Familiar does NOT share any information.',
+      wizardFaqQuestionStorage: 'How much space does it take?',
+      wizardFaqAnswerStorage:
+        'Overtime storage will grow to no more than 3GB. Familias has cleanup mechanisms built in, and is designed to generate information of months with minimal bloat.',
+      wizardFaqQuestionPerformance: 'Will it slow down my Mac or battery?',
+      wizardFaqAnswerPerformance:
+        'There is some overhead (periodic screenshots + OCR), but there shouldn\'t be any noticeable impact on modern day macs.',
+      wizardFaqQuestionPauseIdle: 'Can I pause it / does it stop when I’m idle?',
+      wizardFaqAnswerPauseIdle:
+        'Yes. You can pause capture manually, and Familiar is designed to capture only while you’re actively using your computer (not while idle).',
+      wizardFaqQuestionAudio: 'Does it record meetings/audio?',
+      wizardFaqAnswerAudio:
+        'No. Familiar currently captures screen + clipboard context, not microphone audio or full meeting transcripts.',
+      wizardFaqQuestionScreenshotFrequency: 'How often does Familiar take a screenshot?',
+      wizardFaqAnswerScreenshotFrequency:
+        'When in "Low Power Mode", every 15 seconds. Otherwise, every 5 seconds.',
       wizardBack: 'Back',
       wizardNext: 'Next',
       wizardDone: 'Done'
