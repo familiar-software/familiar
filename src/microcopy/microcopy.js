@@ -76,7 +76,6 @@ const microcopy = {
       storageUsageLabelScreenshots: 'Screenshots',
       storageUsageLabelMarkdown: 'Markdown',
       storageUsageLabelSystem: 'System',
-      storageDangerZone: 'Danger Zone',
       storageDeleteRecentFilesTitle: 'Delete recent files',
       storageDeleteRecentFilesDescription:
         'Oops, forgot to turn off recording?\nDelete all collected information in the selected time window',
