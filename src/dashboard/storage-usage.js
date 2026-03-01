@@ -17,20 +17,12 @@
     return `${scaled.toFixed(decimals)} ${units[exponent]}`
   }
 
-  function toPercent(value, total) {
-    if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) {
-      return 0
-    }
-    return Math.max(0, Math.min(100, (value / total) * 100))
-  }
-
   const createStorageUsage = (options = {}) => {
     const familiar = options.familiar || {}
     const setMessage = typeof options.setMessage === 'function' ? options.setMessage : () => {}
     const elements = options.elements || {}
 
     const {
-      totalLabel = null,
       statusElements = [],
       errorElements = [],
       loadingContainer = null,
@@ -38,11 +30,7 @@
       loadingIndicator = null,
       computingTag = null,
       screenshotsValueLabel = null,
-      steelsMarkdownValueLabel = null,
-      systemValueLabel = null,
-      screenshotsBar = null,
-      steelsMarkdownBar = null,
-      systemBar = null
+      steelsMarkdownValueLabel = null
     } = elements
 
     function setLoadingState(isLoading) {
@@ -59,42 +47,17 @@
       if (computingTag) {
         computingTag.classList.toggle('hidden', !isLoading)
       }
-      if (totalLabel) {
-        totalLabel.classList.toggle('hidden', isLoading)
-      }
-    }
-
-    function updateBar(barElement, value, total) {
-      if (!barElement) {
-        return
-      }
-      const percent = toPercent(value, total)
-      barElement.style.width = `${percent}%`
-      barElement.title = `${percent.toFixed(1)}%`
     }
 
     function updateUI(usage = {}) {
-      const totalBytes = Number.isFinite(usage.totalBytes) ? usage.totalBytes : 0
       const screenshotsBytes = Number.isFinite(usage.screenshotsBytes) ? usage.screenshotsBytes : 0
       const steelsMarkdownBytes = Number.isFinite(usage.steelsMarkdownBytes) ? usage.steelsMarkdownBytes : 0
-      const systemBytes = Number.isFinite(usage.systemBytes) ? usage.systemBytes : 0
-
-      if (totalLabel) {
-        totalLabel.textContent = `${microcopy.dashboard.storageUsage.totalPrefix} ${formatBytes(totalBytes)}`
+      if (steelsMarkdownValueLabel) {
+        steelsMarkdownValueLabel.textContent = formatBytes(steelsMarkdownBytes)
       }
       if (screenshotsValueLabel) {
         screenshotsValueLabel.textContent = formatBytes(screenshotsBytes)
       }
-      if (steelsMarkdownValueLabel) {
-        steelsMarkdownValueLabel.textContent = formatBytes(steelsMarkdownBytes)
-      }
-      if (systemValueLabel) {
-        systemValueLabel.textContent = formatBytes(systemBytes)
-      }
-
-      updateBar(screenshotsBar, screenshotsBytes, totalBytes)
-      updateBar(steelsMarkdownBar, steelsMarkdownBytes, totalBytes)
-      updateBar(systemBar, systemBytes, totalBytes)
     }
 
     async function refresh() {

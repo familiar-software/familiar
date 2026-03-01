@@ -87,17 +87,12 @@
       deleteFilesButtons = [],
       deleteFilesWindowSelects = [],
       storageAutoCleanupRetentionSelects = [],
-      storageUsageTotalLabel = null,
       storageUsageLoadingContainer = null,
       storageUsageLoadedContainer = null,
       storageUsageLoadingIndicator = null,
       storageUsageComputingTag = null,
       storageUsageScreenshotsValueLabel = null,
       storageUsageSteelsMarkdownValueLabel = null,
-      storageUsageSystemValueLabel = null,
-      storageUsageScreenshotsBar = null,
-      storageUsageSteelsMarkdownBar = null,
-      storageUsageSystemBar = null,
       storageUsageStatuses = [],
       storageUsageErrors = [],
       deleteFilesErrors = [],
@@ -124,7 +119,6 @@
             familiar,
             setMessage,
             elements: {
-              totalLabel: storageUsageTotalLabel,
               loadingContainer: storageUsageLoadingContainer,
               loadedContainer: storageUsageLoadedContainer,
               loadingIndicator: storageUsageLoadingIndicator,
@@ -132,11 +126,7 @@
               statusElements: storageUsageStatuses,
               errorElements: storageUsageErrors,
               screenshotsValueLabel: storageUsageScreenshotsValueLabel,
-              steelsMarkdownValueLabel: storageUsageSteelsMarkdownValueLabel,
-              systemValueLabel: storageUsageSystemValueLabel,
-              screenshotsBar: storageUsageScreenshotsBar,
-              steelsMarkdownBar: storageUsageSteelsMarkdownBar,
-              systemBar: storageUsageSystemBar
+              steelsMarkdownValueLabel: storageUsageSteelsMarkdownValueLabel
             }
           })
         : null

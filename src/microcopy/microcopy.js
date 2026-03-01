@@ -50,10 +50,10 @@ const microcopy = {
       recordingActionRequiredToProceed: 'Action required to proceed',
       recordingCapturingIsEnabled: 'Capturing is enabled',
       recordingProcessingTitle: 'Processing',
-      recordingProcessingSubtitle: 'Review and manage capturing',
       recordingProcessingModeLocal: 'Local',
       recordingProcessingModeCloud: 'Cloud',
-      recordingLlmDescription: 'Sends still images directly from your Mac to your configured provider for extraction.',
+      recordingLlmDescription:
+        'Sends still images directly from your Mac to your configured provider for extraction.',
       recordingAiProvider: 'AI Provider',
       recordingSelectProvider: 'Select provider...',
       recordingProviderGemini: 'Gemini',
@@ -72,13 +72,10 @@ const microcopy = {
       storageUsageBreakdown: 'Usage Breakdown',
       storageUsageComputing: '(Computing)',
       storageUsageCalculating: 'Calculating...',
-      storageUsageTotalZero: 'Total: 0 B',
-      storageUsageLabelScreenshots: 'Screenshots',
-      storageUsageLabelMarkdown: 'Markdown',
-      storageUsageLabelSystem: 'System',
+      storageUsageTextFilesUsing: 'Text files using',
+      storageUsageScreenshotsUsing: 'Screenshots using',
       storageDeleteRecentFilesTitle: 'Delete recent files',
-      storageDeleteRecentFilesDescription:
-        'Oops, forgot to turn off recording?\nDelete all collected information in the selected time window',
+      storageDeleteRecentFilesDescription: 'Oops, forgot to turn off recording?',
       storageDeleteWindow15m: '15 minutes',
       storageDeleteWindow1h: '1 hour',
       storageDeleteWindow1d: '1 day',
@@ -86,7 +83,8 @@ const microcopy = {
       storageDeleteWindowAll: 'all time',
       storageDeleteFiles: 'Delete files',
       storageImagesRetentionTitle: 'Images retention',
-      storageImagesRetentionDescription: 'Maximum number of days to keep images (markdown files are NOT deleted)',
+      storageImagesRetentionDescription:
+        'Deletes screenshots automatically to save space (markdown files are NOT deleted)',
       storageRetention2d: '2 days',
       storageRetention7d: '7 days',
       installSkillAriaLabelInstallSkillSettings: 'Install skill settings',
@@ -133,10 +131,12 @@ const microcopy = {
       wizardCloudCoworkGuideStep5: 'Click plus sign (+) -> Plugins -> Add Plugin.',
       wizardCloudCoworkGuideStep6: 'Go to Personal tab.',
       wizardCloudCoworkGuideStep7: 'Click plus sign (+) -> Add marketplace from GitHub.',
-      wizardCloudCoworkGuideStep8: 'Paste https://github.com/familiar-software/familiar-claude-cowork-skill.',
+      wizardCloudCoworkGuideStep8:
+        'Paste https://github.com/familiar-software/familiar-claude-cowork-skill.',
       wizardCloudCoworkGuideStep9: 'Click Sync.',
       wizardCloudCoworkGuideStep10: 'Open the added marketplace and install the Familiar skill.',
-      wizardCloudCoworkGuideStep11: 'Go back to the Cowork landing page and choose a work folder that contains Familiar context.',
+      wizardCloudCoworkGuideStep11:
+        'Go back to the Cowork landing page and choose a work folder that contains Familiar context.',
       wizardCloudCoworkGuideStep12: 'Start a new Cowork session and invoke /familiar ....',
       wizardCloudCoworkGuideCopyLink: 'Copy Link',
       wizardCloudCoworkGuideDone: 'Done',
@@ -146,15 +146,17 @@ const microcopy = {
       wizardFaqTitle: 'FAQ',
       wizardFaqScrollHint: 'Scroll down to see all FAQs',
       wizardFaqQuestionSensitiveData: 'Will it capture passwords or embarrassing searches?',
-      wizardFaqAnswerSensitiveData: "Passwords & API keys are skipped from clipboard.\nCommon patterns of passwords, api keys and payment methods are scanned for each screenshot and are either redacted or completely dropped.",
+      wizardFaqAnswerSensitiveData:
+        'Passwords & API keys are skipped from clipboard.\nCommon patterns of passwords, api keys and payment methods are scanned for each screenshot and are either redacted or completely dropped.',
       wizardFaqQuestionLeavesComputer: 'Does anything leave my computer?',
-      wizardFaqAnswerLeavesComputer: 'You control your data. Familiar does NOT share any information.',
+      wizardFaqAnswerLeavesComputer:
+        'You control your data. Familiar does NOT share any information.',
       wizardFaqQuestionStorage: 'How much space does it take?',
       wizardFaqAnswerStorage:
         'Overtime storage will grow to no more than 3GB. Familias has cleanup mechanisms built in, and is designed to generate information of months with minimal bloat.',
       wizardFaqQuestionPerformance: 'Will it slow down my Mac or battery?',
       wizardFaqAnswerPerformance:
-        'There is some overhead (periodic screenshots + OCR), but there shouldn\'t be any noticeable impact on modern day macs.',
+        "There is some overhead (periodic screenshots + OCR), but there shouldn't be any noticeable impact on modern day macs.",
       wizardFaqQuestionPauseIdle: 'Can I pause it / does it stop when I’m idle?',
       wizardFaqAnswerPauseIdle:
         'Yes. You can pause capture manually, and Familiar is designed to capture only while you’re actively using your computer (not while idle).',
@@ -178,16 +180,13 @@ const microcopy = {
         subtitle: 'Check for new versions and download when available.'
       },
       recording: {
-        title: 'Capturing',
-        subtitle: 'Choose whether processing runs in the cloud or locally.'
+        title: 'Capturing'
       },
       storage: {
-        title: 'Storage',
-        subtitle: 'Review and manage local Familiar storage.'
+        title: 'Storage'
       },
       installSkill: {
-        title: 'Install Skill',
-        subtitle: 'Install Familiar into your coding assistant skills folder.'
+        title: 'Install Skill'
       }
     },
     stills: {
@@ -232,7 +231,8 @@ const microcopy = {
       statusCheckingForUpdates: 'Checking for updates...',
       statusAlreadyCheckingForUpdates: 'Already checking for updates...',
       statusNoUpdatesFound: 'No updates found.',
-      statusUpdateAvailableTemplate: 'Update available: {{currentVersion}} -> {{version}}. You will be prompted to download.',
+      statusUpdateAvailableTemplate:
+        'Update available: {{currentVersion}} -> {{version}}. You will be prompted to download.',
       errors: {
         bridgeUnavailableRestart: 'Update bridge unavailable. Restart the app.',
         autoUpdatesDisabled: 'Auto-updates are disabled in this build.',
@@ -269,7 +269,8 @@ const microcopy = {
         installing: 'Installing...',
         openedCloudCoworkGuide: 'Opened Claude Cowork guide.',
         failedToInstallSkill: 'Failed to install skill.',
-        installedAndFailedTemplate: 'Installed for {{succeededHarnesses}}. Failed for {{failedHarnesses}}: {{message}}',
+        installedAndFailedTemplate:
+          'Installed for {{succeededHarnesses}}. Failed for {{failedHarnesses}}: {{message}}',
         installedAndAdditionalFailureTemplate: 'Installed for {{succeededHarnesses}}. {{message}}',
         openedCloudCoworkGuideCombinedTemplate: '{{status}} Opened Claude Cowork guide.'
       }
@@ -279,7 +280,6 @@ const microcopy = {
       failedToCopyLink: 'Failed to copy link.'
     },
     storageUsage: {
-      totalPrefix: 'Total:',
       errors: {
         unavailableRestart: 'Storage usage unavailable. Restart the app.',
         failedToLoad: 'Failed to load storage usage.'
@@ -290,6 +290,6 @@ const microcopy = {
 
 const api = { microcopy }
 
-if (typeof module !== "undefined" && module.exports) {
+if (typeof module !== 'undefined' && module.exports) {
   module.exports = api
 }

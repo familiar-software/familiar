@@ -41,6 +41,52 @@ test('storage section renders images retention before delete recent files', () =
   )
 })
 
+test('storage usage section renders plain text lines without usage bars or system/total labels', () => {
+  const storageMarkup = getStorageSectionMarkup()
+
+  assert.equal(
+    storageMarkup.includes('id="storage-usage-bar-screenshots"'),
+    false,
+    'Storage usage should not render screenshots usage bar'
+  )
+  assert.equal(
+    storageMarkup.includes('id="storage-usage-bar-steels-markdown"'),
+    false,
+    'Storage usage should not render markdown usage bar'
+  )
+  assert.equal(
+    storageMarkup.includes('id="storage-usage-bar-system"'),
+    false,
+    'Storage usage should not render system usage bar'
+  )
+  assert.equal(
+    storageMarkup.includes('id="storage-usage-total"'),
+    false,
+    'Storage usage should not render total usage label'
+  )
+  assert.equal(
+    storageMarkup.includes('dashboard.html.storageUsageLabelSystem'),
+    false,
+    'Storage usage should not render system usage label'
+  )
+})
+
+test('images retention card keeps the same vertical spacing as delete recent files card content', () => {
+  const storageMarkup = getStorageSectionMarkup()
+
+  const retentionHeadingIndex = storageMarkup.indexOf('dashboard.html.storageImagesRetentionTitle')
+  const retentionDescriptionIndex = storageMarkup.indexOf('dashboard.html.storageImagesRetentionDescription')
+  const spacingClassIndex = storageMarkup.indexOf('class="p-4 space-y-3"', retentionHeadingIndex)
+
+  assert.notEqual(retentionHeadingIndex, -1, 'Images retention heading should be present')
+  assert.notEqual(retentionDescriptionIndex, -1, 'Images retention description should be present')
+  assert.notEqual(spacingClassIndex, -1, 'Images retention card should use p-4 space-y-3 spacing')
+  assert.ok(
+    spacingClassIndex < retentionDescriptionIndex,
+    'Spacing wrapper should appear before retention description content'
+  )
+})
+
 test('storage headings render above gray cards with details inside each card', () => {
   const storageMarkup = getStorageSectionMarkup()
 

@@ -235,17 +235,12 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const storageAutoCleanupRetentionSelects = selectAll(
     '[data-setting="storage-auto-cleanup-retention-days"]'
   )
-  const storageUsageTotalLabel = document.getElementById('storage-usage-total')
   const storageUsageLoadingContainer = document.getElementById('storage-usage-loading')
   const storageUsageLoadedContainer = document.getElementById('storage-usage-loaded')
   const storageUsageLoadingIndicator = document.getElementById('storage-usage-loading-indicator')
   const storageUsageComputingTag = document.getElementById('storage-usage-computing-tag')
   const storageUsageScreenshotsValueLabel = document.getElementById('storage-usage-value-screenshots')
   const storageUsageSteelsMarkdownValueLabel = document.getElementById('storage-usage-value-steels-markdown')
-  const storageUsageSystemValueLabel = document.getElementById('storage-usage-value-system')
-  const storageUsageScreenshotsBar = document.getElementById('storage-usage-bar-screenshots')
-  const storageUsageSteelsMarkdownBar = document.getElementById('storage-usage-bar-steels-markdown')
-  const storageUsageSystemBar = document.getElementById('storage-usage-bar-system')
   const storageUsageStatus = document.getElementById('storage-usage-status')
   const storageUsageError = document.getElementById('storage-usage-error')
   const storageUsageStatuses = storageUsageStatus ? [storageUsageStatus] : []
@@ -638,17 +633,12 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       deleteFilesButtons,
       deleteFilesWindowSelects,
       storageAutoCleanupRetentionSelects,
-      storageUsageTotalLabel,
       storageUsageLoadingContainer,
       storageUsageLoadedContainer,
       storageUsageLoadingIndicator,
       storageUsageComputingTag,
       storageUsageScreenshotsValueLabel,
       storageUsageSteelsMarkdownValueLabel,
-      storageUsageSystemValueLabel,
-      storageUsageScreenshotsBar,
-      storageUsageSteelsMarkdownBar,
-      storageUsageSystemBar,
       storageUsageStatuses,
       storageUsageErrors,
       deleteFilesErrors,
