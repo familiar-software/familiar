@@ -7,6 +7,11 @@ const { isScreenRecordingPermissionGranted } = require('../screen-capture/permis
 const { createLowPowerModeMonitor } = require('../screen-capture/low-power-mode');
 const { createSessionStore } = require('./session-store');
 const { createStillsQueue } = require('./stills-queue');
+const {
+  createActiveWindowDetector,
+  detectWindowSnapshot,
+  resolveCaptureAppContext
+} = require('./on-screen-apps-detector');
 
 const CAPTURE_CONFIG = Object.freeze({
   format: 'webp',
@@ -81,6 +86,7 @@ function normalizeDataUrl(dataUrl) {
   return `data:image/${mime};base64,${base64Payload}`;
 }
 
+
 function resolveIntervalMs({ options, logger }) {
   if (Number.isFinite(options.intervalSeconds) && options.intervalSeconds > 0) {
     return Math.round(options.intervalSeconds * 1000);
@@ -106,6 +112,7 @@ function createRecorder(options = {}) {
     setInterval,
     clearInterval
   };
+  const createActiveWindowDetectorImpl = options.createActiveWindowDetectorImpl || createActiveWindowDetector;
   const hasE2EIntervalOverride =
     process.env.FAMILIAR_E2E === '1' &&
     Number.isFinite(Number.parseInt(process.env.FAMILIAR_E2E_STILLS_INTERVAL_MS, 10)) &&
@@ -127,6 +134,7 @@ function createRecorder(options = {}) {
   let sourceDetails = null;
   let queueStore = null;
   let captureLoopIntervalMs = null;
+  const activeWindowDetector = createActiveWindowDetectorImpl({ logger });
 
   function isCaptureAlreadyInProgressError(error) {
     const message = error?.message || '';
@@ -670,7 +678,16 @@ function createRecorder(options = {}) {
     const filePath = path.join(sessionStore.sessionDir, nextCapture.fileName);
 
     try {
+      let captureAppContext = {
+        appName: null,
+        appBundleId: null,
+        appTitle: null,
+        appLabelSource: null,
+        visibleWindowNames: []
+      };
+
       if (!IS_E2E_FAKE_CAPTURE) {
+        const beforeSnapshot = await detectWindowSnapshot({ activeWindowDetector });
         const requestId = randomUUID();
         const activeSourceDetails = await ensureCaptureSource('capture-tick');
         const window = await ensureWindowReady();
@@ -689,6 +706,12 @@ function createRecorder(options = {}) {
           timeoutMs: STOP_TIMEOUT_MS,
           expectedStatuses: ['captured']
         });
+        const afterSnapshot = await detectWindowSnapshot({ activeWindowDetector });
+        captureAppContext = resolveCaptureAppContext({
+          logger,
+          beforeSnapshot,
+          afterSnapshot
+        });
         sourceDetails = activeSourceDetails || sourceDetails;
       } else {
         createFakeCaptureFile(filePath);
@@ -698,7 +721,12 @@ function createRecorder(options = {}) {
           queueStore.enqueueCapture({
             imagePath: filePath,
             sessionId: sessionStore.sessionId,
-            capturedAt: nextCapture.capturedAt
+            capturedAt: nextCapture.capturedAt,
+            appName: captureAppContext.appName,
+            appBundleId: captureAppContext.appBundleId,
+            appTitle: captureAppContext.appTitle,
+            appLabelSource: captureAppContext.appLabelSource,
+            visibleWindowNames: captureAppContext.visibleWindowNames
           });
         } catch (error) {
           logger.error('Failed to enqueue still capture', { error, filePath });

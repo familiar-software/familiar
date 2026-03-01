@@ -1575,3 +1575,335 @@ test('recorder keeps fixed E2E interval override and skips Low Power Mode adapta
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test('recorder attaches app metadata from before/after window detection', async () => {
+  resetRecorderModule();
+
+  const ipcMain = new EventEmitter();
+  const queueEnqueues = [];
+  const windowSnapshots = [
+    [
+      {
+        name: 'Code',
+        bundleId: 'com.microsoft.VSCode',
+        title: 'familiar.md',
+        active: true
+      },
+      {
+        name: 'Spotify',
+        bundleId: 'com.spotify.client',
+        title: 'Music',
+        active: false
+      }
+    ],
+    [
+      {
+        name: 'Google Chrome',
+        bundleId: 'com.google.Chrome',
+        title: 'mail.google.com',
+        active: true
+      },
+      {
+        name: 'Code',
+        bundleId: 'com.microsoft.VSCode',
+        title: 'familiar.md',
+        active: false
+      }
+    ]
+  ];
+  let detectCalls = 0;
+  let startCalls = 0;
+  let stopCalls = 0;
+  let captureCalls = 0;
+  let getSourcesCalls = 0;
+
+  function createWebContents() {
+    const webContents = new EventEmitter();
+    webContents.getURL = () => 'file://stills.html';
+    webContents.send = (channel, payload) => {
+      if (channel === 'screen-stills:start') {
+        startCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'started'
+          });
+        });
+      }
+
+      if (channel === 'screen-stills:stop') {
+        stopCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'stopped'
+          });
+        });
+      }
+
+      if (channel === 'screen-stills:capture') {
+        captureCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'captured',
+            filePath: payload.filePath
+          });
+        });
+      }
+    };
+    return webContents;
+  }
+
+  function BrowserWindowStub() {
+    this.webContents = createWebContents();
+    this._destroyed = false;
+
+    this.loadFile = () => {
+      process.nextTick(() => {
+        this.webContents.emit('did-finish-load');
+        ipcMain.emit('screen-stills:ready', { sender: this.webContents });
+      });
+    };
+
+    this.on = () => {};
+    this.isDestroyed = () => this._destroyed;
+    this.destroy = () => {
+      this._destroyed = true;
+    };
+  }
+
+  const stubElectron = {
+    BrowserWindow: BrowserWindowStub,
+    desktopCapturer: {
+      getSources: async () => {
+        getSourcesCalls += 1;
+        return [createMockSource()];
+      }
+    },
+    ipcMain,
+    screen: {
+      getAllDisplays: () => [{ id: 1, bounds: { width: 1000, height: 800 }, scaleFactor: 1 }],
+      getPrimaryDisplay: () => ({ id: 1, bounds: { width: 1000, height: 800 }, scaleFactor: 1 })
+    },
+    app: { getVersion: () => 'test' }
+  };
+
+  const originalLoad = Module._load;
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return stubElectron;
+    }
+    if (request === '../screen-capture/permissions') {
+      return { isScreenRecordingPermissionGranted: () => true };
+    }
+    if (request === './session-store') {
+      return {
+        createSessionStore: ({ contextFolderPath }) => {
+          const sessionId = 'session-test';
+          return {
+            sessionId,
+            sessionDir: `${contextFolderPath}/familiar/stills/${sessionId}`,
+            nextCaptureFile: (capturedAt) => ({ fileName: 'capture.webp', capturedAt })
+          };
+        }
+      };
+    }
+    if (request === './stills-queue') {
+      return {
+        createStillsQueue: () => ({
+          enqueueCapture: (payload) => {
+            queueEnqueues.push(payload);
+          },
+          close: () => {}
+        })
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  try {
+    const { createRecorder } = require('../src/screen-stills/recorder');
+    const recorder = createRecorder({
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor(),
+      createActiveWindowDetectorImpl: () => ({
+        detectWindowCandidates: async () => {
+          const value = windowSnapshots[detectCalls] || [];
+          detectCalls += 1;
+          return value
+        },
+        resolveBinaryPath: async () => '/tmp/list-on-screen-apps'
+      })
+    });
+
+    const result = await recorder.start({ contextFolderPath: '/tmp/familiar-test' });
+
+    assert.equal(result.ok, true);
+    assert.equal(getSourcesCalls >= 2, true);
+    assert.equal(startCalls, 1);
+    assert.equal(captureCalls, 1);
+    assert.equal(detectCalls, 2);
+    assert.equal(queueEnqueues.length, 1);
+    assert.equal(queueEnqueues[0].appName, null);
+    assert.equal(queueEnqueues[0].appBundleId, null);
+    assert.equal(queueEnqueues[0].appTitle, null);
+    assert.equal(queueEnqueues[0].appLabelSource, null);
+    assert.deepEqual(queueEnqueues[0].visibleWindowNames, ['Code', 'Spotify', 'Google Chrome']);
+
+    await recorder.stop({ reason: 'test' });
+    assert.equal(stopCalls, 1);
+  } finally {
+    Module._load = originalLoad;
+    resetRecorderModule();
+  }
+});
+
+test('recorder fails when active window detection throws before capture', async () => {
+  resetRecorderModule();
+
+  const ipcMain = new EventEmitter();
+  let startCalls = 0;
+  let captureCalls = 0;
+  let stopCalls = 0;
+  const queueEnqueues = [];
+  let getSourcesCalls = 0;
+
+  function createWebContents() {
+    const webContents = new EventEmitter();
+    webContents.getURL = () => 'file://stills.html';
+    webContents.send = (channel, payload) => {
+      if (channel === 'screen-stills:start') {
+        startCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'started'
+          });
+        });
+      }
+
+      if (channel === 'screen-stills:stop') {
+        stopCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'stopped'
+          });
+        });
+      }
+
+      if (channel === 'screen-stills:capture') {
+        captureCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'captured',
+            filePath: payload.filePath
+          });
+        });
+      }
+    };
+    return webContents;
+  }
+
+  function BrowserWindowStub() {
+    this.webContents = createWebContents();
+    this._destroyed = false;
+
+    this.loadFile = () => {
+      process.nextTick(() => {
+        this.webContents.emit('did-finish-load');
+        ipcMain.emit('screen-stills:ready', { sender: this.webContents });
+      });
+    };
+
+    this.on = () => {};
+    this.isDestroyed = () => this._destroyed;
+    this.destroy = () => {
+      this._destroyed = true;
+    };
+  }
+
+  const stubElectron = {
+    BrowserWindow: BrowserWindowStub,
+    desktopCapturer: {
+      getSources: async () => {
+        getSourcesCalls += 1;
+        return [createMockSource()];
+      }
+    },
+    ipcMain,
+    screen: {
+      getAllDisplays: () => [{ id: 1, bounds: { width: 1000, height: 800 }, scaleFactor: 1 }],
+      getPrimaryDisplay: () => ({ id: 1, bounds: { width: 1000, height: 800 }, scaleFactor: 1 })
+    },
+    app: { getVersion: () => 'test' }
+  };
+
+  const originalLoad = Module._load;
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return stubElectron;
+    }
+    if (request === '../screen-capture/permissions') {
+      return { isScreenRecordingPermissionGranted: () => true };
+    }
+    if (request === './session-store') {
+      return {
+        createSessionStore: ({ contextFolderPath }) => {
+          const sessionId = 'session-test';
+          return {
+            sessionId,
+            sessionDir: `${contextFolderPath}/familiar/stills/${sessionId}`,
+            nextCaptureFile: (capturedAt) => ({ fileName: 'capture.webp', capturedAt })
+          };
+        }
+      };
+    }
+    if (request === './stills-queue') {
+      return {
+        createStillsQueue: () => ({
+          enqueueCapture: (payload) => {
+            queueEnqueues.push(payload);
+          },
+          close: () => {}
+        })
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  try {
+    const { createRecorder } = require('../src/screen-stills/recorder');
+    let detectCalls = 0;
+    const recorder = createRecorder({
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor(),
+      createActiveWindowDetectorImpl: () => ({
+        detectWindowCandidates: async () => {
+          detectCalls += 1;
+          throw new Error('No active window detected from helper output.')
+        },
+        resolveBinaryPath: async () => '/tmp/list-on-screen-apps'
+      })
+    });
+
+    await assert.rejects(
+      recorder.start({ contextFolderPath: '/tmp/familiar-test' }),
+      /No active window detected from helper output/
+    );
+
+    assert.equal(queueEnqueues.length, 0);
+    assert.equal(startCalls, 1);
+    assert.equal(getSourcesCalls, 1);
+    assert.equal(stopCalls, 1);
+    assert.equal(captureCalls, 0);
+    assert.equal(detectCalls, 1);
+  } finally {
+    Module._load = originalLoad;
+    resetRecorderModule();
+  }
+});

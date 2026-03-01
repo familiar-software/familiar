@@ -2,6 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const Database = require('better-sqlite3')
 const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DB_FILENAME } = require('../const')
+const { normalizeAppString } = require('../utils/strings')
 
 const STATUS = Object.freeze({
   PENDING: 'pending',
@@ -12,6 +13,18 @@ const STATUS = Object.freeze({
 
 const resolveDbPath = (contextFolderPath) =>
   path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DB_FILENAME)
+
+const normalizeVisibleWindowNames = (visibleWindowNames) => {
+  if (Array.isArray(visibleWindowNames)) {
+    return visibleWindowNames.length > 0 ? JSON.stringify(visibleWindowNames) : null
+  }
+
+  if (typeof visibleWindowNames === 'string') {
+    return normalizeAppString(visibleWindowNames, null)
+  }
+
+  return null
+}
 
 const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
   if (!contextFolderPath) {
@@ -24,6 +37,15 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
   const db = new Database(dbPath)
   db.pragma('journal_mode = WAL')
 
+  const existingColumns = [];
+  const ensureColumn = (name, ddl) => {
+    if (existingColumns.includes(name)) {
+      return;
+    }
+    db.exec(`ALTER TABLE stills_queue ADD COLUMN ${ddl}`)
+    existingColumns.push(name)
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS stills_queue (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,12 +57,27 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
       model TEXT,
       markdown_path TEXT,
       last_error TEXT,
+      app_name TEXT,
+      app_bundle_id TEXT,
+      app_title TEXT,
+      app_label_source TEXT,
+      visible_window_names TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_stills_queue_status_captured
       ON stills_queue (status, captured_at);
   `)
+  const tableInfo = db.prepare('PRAGMA table_info(stills_queue)').all()
+  existingColumns.push(
+    ...Array.isArray(tableInfo) ? tableInfo.map((row) => row?.name).filter(Boolean) : []
+  )
+
+  ensureColumn('app_name', 'app_name TEXT')
+  ensureColumn('app_bundle_id', 'app_bundle_id TEXT')
+  ensureColumn('app_title', 'app_title TEXT')
+  ensureColumn('app_label_source', 'app_label_source TEXT')
+  ensureColumn('visible_window_names', 'visible_window_names TEXT')
 
   logger.log('Stills queue initialized', { dbPath })
 
@@ -54,13 +91,27 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
       model,
       markdown_path,
       last_error,
+      app_name,
+      app_bundle_id,
+      app_title,
+      app_label_source,
+      visible_window_names,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const pendingStmt = db.prepare(`
-    SELECT id, image_path, session_id, captured_at
+    SELECT
+      id,
+      image_path,
+      session_id,
+      captured_at,
+      app_name,
+      app_bundle_id,
+      app_title,
+      app_label_source,
+      visible_window_names
     FROM stills_queue
     WHERE status = ?
     ORDER BY captured_at ASC
@@ -114,7 +165,18 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
     WHERE status = ? AND updated_at < ?
   `)
 
-  const enqueueCapture = ({ imagePath, sessionId, capturedAt, provider, model } = {}) => {
+  const enqueueCapture = ({
+    imagePath,
+    sessionId,
+    capturedAt,
+    provider,
+    model,
+    appName,
+    appBundleId,
+    appTitle,
+    appLabelSource,
+    visibleWindowNames
+  } = {}) => {
     if (!imagePath) {
       throw new Error('imagePath is required to enqueue still capture.')
     }
@@ -135,6 +197,11 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
       model || null,
       null,
       null,
+      appName || null,
+      appBundleId || null,
+      appTitle || null,
+      appLabelSource || null,
+      normalizeVisibleWindowNames(visibleWindowNames),
       now,
       now
     )

@@ -4,6 +4,7 @@ const path = require('node:path')
 const { createModelProviderClients } = require('../modelProviders')
 const { readImageAsBase64, inferMimeType } = require('../utils/image')
 const { buildBatchPrompt, parseBatchResponse } = require('./stills-markdown-format')
+const { normalizeAppString } = require('../utils/strings')
 const {
   resolveAppleVisionOcrBinaryPath,
   runAppleVisionOcrBinary,
@@ -21,6 +22,31 @@ const PROMPT_TEMPLATE = (() => {
 })()
 
 const isLlmMockEnabled = () => process.env.FAMILIAR_LLM_MOCK === '1'
+
+const parseVisibleWindowNames = (value, { logger = console } = {}) => {
+  if (Array.isArray(value)) {
+    return value.filter((item) => typeof item === 'string')
+  }
+
+  if (typeof value !== 'string') {
+    return []
+  }
+  const normalized = normalizeAppString(value, null)
+  if (!normalized) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(normalized)
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : []
+  } catch (_error) {
+    logger.error('Failed to parse visibleWindowNames JSON', {
+      value: normalized,
+      error: _error?.message || String(_error)
+    })
+    return []
+  }
+}
 
 const normalizeExtractorType = (settings) => {
   const raw = settings?.stills_markdown_extractor
@@ -204,7 +230,12 @@ const createAppleVisionOcrExtractor = ({
         const markdown = buildMarkdownLayoutFromOcrImpl({
           imagePath: row.image_path,
           meta,
-          lines
+          lines,
+          appName: row?.app_name || null,
+          appBundleId: row?.app_bundle_id || null,
+          appTitle: row?.app_title || null,
+          appLabelSource: row?.app_label_source || null,
+          visibleWindowNames: parseVisibleWindowNames(row?.visible_window_names, { logger })
         })
         results.set(String(row.id), {
           markdown,
