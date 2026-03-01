@@ -338,13 +338,11 @@ const createElements = () => {
     'section-recording': new TestElement(),
     'section-storage': new TestElement(),
     'section-install-skill': new TestElement(),
-    'section-nest': new TestElement(),
     'wizard-nav': new TestElement(),
     'updates-nav': new TestElement(),
     'recording-nav': new TestElement(),
     'storage-nav': new TestElement(),
-    'install-skill-nav': new TestElement(),
-    'nest-nav': new TestElement()
+    'install-skill-nav': new TestElement()
   }
 
   elements['context-folder-path'].dataset.setting = 'context-folder-path'
@@ -447,10 +445,6 @@ const createElements = () => {
   elements['storage-nav'].dataset.sectionTarget = 'storage'
   elements['section-install-skill'].dataset.sectionPane = 'install-skill'
   elements['install-skill-nav'].dataset.sectionTarget = 'install-skill'
-  elements['section-nest'].dataset.sectionPane = 'nest'
-  elements['nest-nav'].dataset.sectionTarget = 'nest'
-  elements['section-nest'].classList.add('hidden')
-  elements['nest-nav'].classList.add('hidden')
 
   return elements
 }
@@ -550,75 +544,6 @@ test('defaults to storage when wizardCompleted is true', async () => {
     assert.equal(elements['wizard-nav'].classList.contains('hidden'), true)
     assert.equal(elements['settings-header'].classList.contains('hidden'), false)
     assert.equal(elements['settings-content'].classList.contains('hidden'), false)
-  } finally {
-    global.document = priorDocument
-    global.window = priorWindow
-  }
-})
-
-test('nest tab stays hidden in non-dev builds', async () => {
-  const familiar = createFamiliar({
-    getSettings: async () => ({
-      contextFolderPath: '',
-      llmProviderName: 'gemini',
-      llmProviderApiKey: '',
-      stillsMarkdownExtractorType: 'llm',
-      alwaysRecordWhenActive: false,
-      wizardCompleted: true,
-      appVersion: '9.8.7',
-      isDevBuild: false
-    })
-  })
-
-  const elements = createElements()
-  const document = new TestDocument(elements)
-  const priorDocument = global.document
-  const priorWindow = global.window
-  global.document = document
-  global.window = { familiar }
-
-  try {
-    loadRenderer()
-    document.trigger('DOMContentLoaded')
-    await flushPromises()
-
-    assert.equal(elements['nest-nav'].classList.contains('hidden'), true)
-  } finally {
-    global.document = priorDocument
-    global.window = priorWindow
-  }
-})
-
-test('nest tab is visible and navigable in dev builds', async () => {
-  const familiar = createFamiliar({
-    getSettings: async () => ({
-      contextFolderPath: '',
-      llmProviderName: 'gemini',
-      llmProviderApiKey: '',
-      stillsMarkdownExtractorType: 'llm',
-      alwaysRecordWhenActive: false,
-      wizardCompleted: true,
-      appVersion: '9.8.7',
-      isDevBuild: true
-    })
-  })
-
-  const elements = createElements()
-  const document = new TestDocument(elements)
-  const priorDocument = global.document
-  const priorWindow = global.window
-  global.document = document
-  global.window = { familiar }
-
-  try {
-    loadRenderer()
-    document.trigger('DOMContentLoaded')
-    await flushPromises()
-
-    assert.equal(elements['nest-nav'].classList.contains('hidden'), false)
-
-    await elements['nest-nav'].click()
-    assert.equal(elements['section-title'].textContent, microcopy.dashboard.sections.nest.title)
   } finally {
     global.document = priorDocument
     global.window = priorWindow

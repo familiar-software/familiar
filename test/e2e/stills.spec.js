@@ -512,7 +512,7 @@ test('tray recording action pauses and resumes while settings window reflects st
 
     const initialTrayLabel = await window.evaluate(() => window.familiar.getTrayRecordingLabelForE2E())
     expect(initialTrayLabel.ok).toBe(true)
-    expect(initialTrayLabel.label).toBe('Click to pause for 10 min')
+    expect(initialTrayLabel.label).toBe('Capturing (click to pause for 10 min)')
 
     const pausedTray = await window.evaluate(() => window.familiar.clickTrayRecordingActionForE2E())
     expect(pausedTray.ok).toBe(true)
@@ -522,7 +522,7 @@ test('tray recording action pauses and resumes while settings window reflects st
 
     const resumedTray = await window.evaluate(() => window.familiar.clickTrayRecordingActionForE2E())
     expect(resumedTray.ok).toBe(true)
-    expect(resumedTray.label).toBe('Click to pause for 10 min')
+    expect(resumedTray.label).toBe('Capturing (click to pause for 10 min)')
 
     await expect(window.locator('#recording-status')).toHaveText('Capturing')
   } finally {

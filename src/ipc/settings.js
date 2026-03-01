@@ -149,7 +149,6 @@ function registerSettingsHandlers(options = {}) {
 
 function handleGetSettings() {
     const appVersion = readAppVersion();
-    const isDevBuild = !app.isPackaged;
     try {
         const settings = loadSettings();
         const contextFolderPath = settings.contextFolderPath || '';
@@ -195,8 +194,7 @@ function handleGetSettings() {
                 harness: skillInstallerHarness,
                 installPath: skillInstallerInstallPath,
             },
-            appVersion,
-            isDevBuild
+            appVersion
         };
     } catch (error) {
         console.error('Failed to load settings', error);
@@ -210,8 +208,7 @@ function handleGetSettings() {
             storageAutoCleanupRetentionDays: resolveAutoCleanupRetentionDays(undefined),
             wizardCompleted: false,
             skillInstaller: { harness: [], installPath: [] },
-            appVersion,
-            isDevBuild
+            appVersion
         };
     }
 }
