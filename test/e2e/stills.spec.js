@@ -48,7 +48,7 @@ const ensureRecordingPrereqs = async (window) => {
 
 const setContextFolder = async (window) => {
   await window.getByRole('tab', { name: 'Storage' }).click()
-  await window.locator('#context-folder-choose').click()
+  await window.locator('#context-folder-picker-surface').click()
   await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 }
 

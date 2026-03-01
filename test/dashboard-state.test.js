@@ -52,3 +52,25 @@ test('setContextFolderValue does not duplicate familiar suffix in display', () =
   assert.equal(input.value, '/tmp/context/familiar')
   assert.equal(state.getSettingsState().currentContextFolderPath, '/tmp/context/familiar')
 })
+
+test('setContextFolderValue truncates storage display and sets full-path tooltips', () => {
+  const createDashboardState = loadCreateDashboardState()
+  const storageInput = { value: '', title: '' }
+  const wizardInput = { value: '', title: '' }
+  const storageSurface = { title: '' }
+  const state = createDashboardState({
+    elements: {
+      contextFolderInputs: [storageInput, wizardInput],
+      storageContextFolderInput: storageInput,
+      contextFolderPickerSurfaces: [storageSurface]
+    },
+    apis: {}
+  })
+
+  state.setContextFolderValue('/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot')
+
+  assert.equal(wizardInput.value, '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar')
+  assert.equal(storageInput.value, '.../Perfect Lefts Copilot/familiar')
+  assert.equal(storageInput.title, '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar')
+  assert.equal(storageSurface.title, '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar')
+})

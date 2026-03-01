@@ -250,6 +250,7 @@ const createElements = () => {
     'advanced-toggle-btn': new TestElement(),
     'advanced-options': new TestElement(),
     'context-folder-path': new TestElement(),
+    'context-folder-picker-surface': new TestElement(),
     'context-folder-choose': new TestElement(),
     'context-folder-error': new TestElement(),
     'context-folder-status': new TestElement(),
@@ -344,6 +345,7 @@ const createElements = () => {
   }
 
   elements['context-folder-path'].dataset.setting = 'context-folder-path'
+  elements['context-folder-picker-surface'].dataset.action = 'context-folder-picker-surface'
   elements['context-folder-choose'].dataset.action = 'context-folder-choose'
   elements['context-folder-error'].dataset.settingError = 'context-folder-error'
   elements['context-folder-status'].dataset.settingStatus = 'context-folder-status'
@@ -1483,6 +1485,43 @@ test('check for updates reports no update when latest matches current', async ()
 
     assert.equal(updateCalls.length, 1)
     assert.equal(elements['updates-status'].textContent, microcopy.dashboard.updates.statusNoUpdatesFound)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('storage picker surface opens folder picker and updates truncated display with full-path tooltip', async () => {
+  const fullPath = '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot'
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '',
+      wizardCompleted: true
+    }),
+    pickContextFolder: async () => ({ canceled: false, path: fullPath })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['context-folder-picker-surface'].click()
+    await flushPromises()
+
+    assert.equal(elements['context-folder-status'].textContent, microcopy.dashboard.settings.statusSaved)
+    assert.equal(elements['context-folder-path'].value, '.../Perfect Lefts Copilot/familiar')
+    assert.equal(
+      elements['context-folder-picker-surface'].title,
+      '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar'
+    )
   } finally {
     global.document = priorDocument
     global.window = priorWindow

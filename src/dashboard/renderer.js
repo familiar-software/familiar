@@ -223,6 +223,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
 
   const contextFolderInputs = selectAll('[data-setting="context-folder-path"]')
   const contextFolderChooseButtons = selectAll('[data-action="context-folder-choose"]')
+  const contextFolderPickerSurfaces = selectAll('[data-action="context-folder-picker-surface"]')
+  const storageContextFolderInput = document.getElementById('context-folder-path')
   const contextFolderErrors = selectAll('[data-setting-error="context-folder-error"]')
   const contextFolderStatuses = selectAll('[data-setting-status="context-folder-status"]')
   const copyLogButtons = selectAll('[data-action="copy-debug-log"]')
@@ -303,6 +305,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const state = createDashboardState({
     elements: {
       contextFolderInputs,
+      storageContextFolderInput,
+      contextFolderPickerSurfaces,
       llmProviderSelects,
       llmKeyInputs,
       stillsMarkdownExtractorSelects,
@@ -625,6 +629,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     elements: {
       appVersionLabel,
       contextFolderChooseButtons,
+      contextFolderPickerSurfaces,
       contextFolderErrors,
       contextFolderStatuses,
       copyLogButtons,

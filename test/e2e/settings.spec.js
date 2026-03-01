@@ -4,11 +4,16 @@ const path = require('node:path')
 const { test, expect } = require('playwright/test')
 const { _electron: electron } = require('playwright')
 
-test('choose button sets the context folder path', async () => {
+test('storage picker surface sets the context folder path', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const expectedContextPath = path.resolve(contextPath)
-  const expectedDisplayPath = path.join(expectedContextPath, 'familiar')
+  const expectedDisplayPath = path.join(expectedContextPath, 'familiar').replace(/\\/g, '/')
+  const pathSegments = expectedDisplayPath.split('/').filter((segment) => segment.length > 0)
+  const expectedStorageDisplayPath =
+    expectedDisplayPath.length > 48 && pathSegments.length > 2
+      ? `.../${pathSegments.slice(-2).join('/')}`
+      : expectedDisplayPath
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
   const settingsPath = path.join(settingsDir, 'settings.json')
   fs.writeFileSync(
@@ -50,8 +55,8 @@ test('choose button sets the context folder path', async () => {
     expect(visibleTabs.slice(0, 2)).toEqual(['Storage', 'Capturing'])
     await window.getByRole('tab', { name: 'Storage' }).click()
 
-    await window.locator('#context-folder-choose').click()
-    await expect(window.locator('#context-folder-path')).toHaveValue(expectedDisplayPath)
+    await window.locator('#context-folder-picker-surface').click()
+    await expect(window.locator('#context-folder-path')).toHaveValue(expectedStorageDisplayPath)
     await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))

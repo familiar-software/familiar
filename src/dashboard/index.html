@@ -317,8 +317,8 @@
                 <span id="context-folder-status" data-setting-status="context-folder-status"
                   class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
               </div>
-              <div
-                class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+              <div id="context-folder-picker-surface" data-action="context-folder-picker-surface" role="button" tabindex="0" title=""
+                class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg cursor-pointer focus:outline-none">
                 <div
                   class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
                   <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -329,10 +329,8 @@
                 </div>
                 <input id="context-folder-path" data-setting="context-folder-path" type="text"
                   data-copy-placeholder-key="dashboard.html.storageContextFolderPlaceholderNoFolderSelected" placeholder="" readonly
-                  class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none">
-                <button id="context-folder-choose" data-action="context-folder-choose" type="button" data-copy-key="dashboard.html.storageContextFolderChange"
-                  class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"></button>
-                <button id="recording-open-folder" type="button" data-copy-key="dashboard.html.storageOpenInFinder"
+                  class="flex-1 min-w-0 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none truncate cursor-pointer">
+                <button id="recording-open-folder" type="button" data-action="storage-open-folder" data-copy-key="dashboard.html.storageOpenInFinder" title=""
                   class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hidden"></button>
               </div>
               <p id="context-folder-error" data-setting-error="context-folder-error"

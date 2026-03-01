@@ -78,6 +78,7 @@
     const {
       appVersionLabel = null,
       contextFolderChooseButtons = [],
+      contextFolderPickerSurfaces = [],
       contextFolderErrors = [],
       contextFolderStatuses = [],
       copyLogButtons = [],
@@ -456,32 +457,69 @@
       syncStorageAutoCleanupRetentionSelects(storageAutoCleanupRetentionSelects[0].value)
     }
 
+    const pickAndSaveContextFolderPath = async () => {
+      try {
+        setMessage(contextFolderStatuses, microcopy.dashboard.settings.statusOpeningFolderPicker)
+        const result = await familiar.pickContextFolder()
+        if (result && !result.canceled && result.path) {
+          setContextFolderValue(result.path)
+          setMessage(contextFolderErrors, '')
+          setMessage(contextFolderStatuses, '')
+          const saved = await saveContextFolderPath(result.path)
+          if (saved) {
+            updateDeleteFilesButtonState()
+            await refreshStorageUsage()
+          }
+        } else if (result && result.error) {
+          setMessage(contextFolderStatuses, '')
+          setMessage(contextFolderErrors, result.error)
+        } else {
+          setMessage(contextFolderStatuses, '')
+        }
+      } catch (error) {
+        console.error('Failed to pick context folder', error)
+        setMessage(contextFolderStatuses, '')
+        setMessage(contextFolderErrors, microcopy.dashboard.settings.errors.failedToOpenFolderPicker)
+      }
+    }
+
+    const shouldSkipStoragePickerSurface = (event) => {
+      const eventTarget = event?.target
+      if (!eventTarget || typeof eventTarget.closest !== 'function') {
+        return false
+      }
+      return Boolean(eventTarget.closest('[data-action="storage-open-folder"]'))
+    }
+
     if (contextFolderChooseButtons.length > 0) {
       contextFolderChooseButtons.forEach((button) => {
-        button.addEventListener('click', async () => {
-          try {
-            setMessage(contextFolderStatuses, microcopy.dashboard.settings.statusOpeningFolderPicker)
-            const result = await familiar.pickContextFolder()
-            if (result && !result.canceled && result.path) {
-              setContextFolderValue(result.path)
-              setMessage(contextFolderErrors, '')
-              setMessage(contextFolderStatuses, '')
-              const saved = await saveContextFolderPath(result.path)
-              if (saved) {
-                updateDeleteFilesButtonState()
-                await refreshStorageUsage()
-              }
-            } else if (result && result.error) {
-              setMessage(contextFolderStatuses, '')
-              setMessage(contextFolderErrors, result.error)
-            } else {
-              setMessage(contextFolderStatuses, '')
-            }
-          } catch (error) {
-            console.error('Failed to pick context folder', error)
-            setMessage(contextFolderStatuses, '')
-            setMessage(contextFolderErrors, microcopy.dashboard.settings.errors.failedToOpenFolderPicker)
+        button.addEventListener('click', () => {
+          void pickAndSaveContextFolderPath()
+        })
+      })
+    }
+
+    if (contextFolderPickerSurfaces.length > 0) {
+      contextFolderPickerSurfaces.forEach((surface) => {
+        surface.addEventListener('click', (event) => {
+          if (shouldSkipStoragePickerSurface(event)) {
+            return
           }
+          void pickAndSaveContextFolderPath()
+        })
+        surface.addEventListener('keydown', (event) => {
+          const isEnter = event?.key === 'Enter'
+          const isSpace = event?.key === ' '
+          if (!isEnter && !isSpace) {
+            return
+          }
+          if (typeof event?.preventDefault === 'function') {
+            event.preventDefault()
+          }
+          if (shouldSkipStoragePickerSurface(event)) {
+            return
+          }
+          void pickAndSaveContextFolderPath()
         })
       })
     }
