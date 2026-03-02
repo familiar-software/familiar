@@ -1,0 +1,97 @@
+name: Update Landing Page
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # Manual trigger for testing/emergency updates
+
+permissions:
+  contents: write
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Extract version from git tag (removes 'v' prefix)
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Extracted version: ${VERSION}"
+
+      - name: Update download.js
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Updating download.js to version ${VERSION}..."
+
+          # Update CURRENT_VERSION constant in download.js
+          sed -i "s/const CURRENT_VERSION = '[^']*'/const CURRENT_VERSION = '${VERSION}'/" docs/download.js
+
+          # Verify the change
+          grep "CURRENT_VERSION" docs/download.js
+
+      - name: Update index.html
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Updating index.html to version ${VERSION}..."
+
+          # Update all version references (e.g., v0.0.37 -> v0.0.38)
+          # This handles version badges, links, and download URLs
+          sed -i "s/v[0-9]\+\.[0-9]\+\.[0-9]\+/v${VERSION}/g" docs/index.html
+
+          # Verify changes
+          echo "Updated version references:"
+          grep -n "v${VERSION}" docs/index.html | head -5
+
+      - name: Verify changes
+        run: |
+          echo "=== Git status ==="
+          git status
+
+          echo "=== Changed files ==="
+          git diff --name-only
+
+          echo "=== Version in download.js ==="
+          grep "CURRENT_VERSION" docs/download.js
+
+          echo "=== Version badge in index.html ==="
+          grep -A2 "Latest:" docs/index.html | head -3
+
+      - name: Commit and push changes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage changes
+          git add docs/download.js docs/index.html
+
+          # Commit (skip if no changes)
+          git commit -m "Update landing page to v${VERSION}" || {
+            echo "No changes to commit"
+            exit 0
+          }
+
+          # Push to main
+          git push origin main
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "✅ Landing page updated to v${VERSION}"
+          echo "📦 Changes committed and pushed to main branch"
+          echo "🌐 Live at: https://familiar-software.github.io/familiar/"
+          echo ""
+          echo "Updated files:"
+          echo "  - docs/download.js"
+          echo "  - docs/index.html"

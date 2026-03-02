@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
+}
+
+@layer base {
+  ::selection {
+    background-color: rgba(99, 102, 241, 0.2);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Dark mode transitions */
+  * {
+    transition-property: background-color, border-color, color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}
+
+@layer components {
+  /* Details/Summary styling */
+  details > summary {
+    list-style: none;
+  }
+
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Focus states for accessibility */
+  a:focus-visible,
+  button:focus-visible,
+  details:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+  }
+}
