@@ -22,7 +22,7 @@ const {
 const {
     createTrayMenuController,
 } = require('./tray/refresh');
-const { initializeAutoUpdater, scheduleDailyUpdateCheck } = require('./updates');
+const { initializeAutoUpdater, scheduleWeeklyUpdateCheck } = require('./updates');
 const { createScreenStillsController } = require('./screen-stills');
 const { createPresenceMonitor } = require('./screen-capture/presence');
 const { getScreenRecordingPermissionStatus } = require('./screen-capture/permissions');
@@ -690,7 +690,7 @@ if (isPrimaryInstance) {
             createTray();
             const updateState = initializeAutoUpdater({ isE2E, isCI });
             if (updateState.enabled) {
-                scheduleDailyUpdateCheck();
+                scheduleWeeklyUpdateCheck();
             }
         } else if (isE2E) {
             console.log('E2E mode: running on non-macOS platform');

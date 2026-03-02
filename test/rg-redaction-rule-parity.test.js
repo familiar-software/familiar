@@ -61,6 +61,9 @@ const maskValueAfterSeparator = ({ matchText, ruleId }) => {
 }
 
 const applyRuleMask = ({ rule, input }) => {
+  if (rule.action === 'drop') {
+    return input
+  }
   const regex = new RegExp(rule.jsPattern, rule.jsFlags)
   return input.replace(regex, (matchText) => {
     if (rule.maskStrategy === 'value_after_separator') {
@@ -191,6 +194,18 @@ const CASES = Object.freeze([
     positive: 'credential: abcdefghijklmnopqrstuvwxyz123456',
     negative: 'credential: short',
     expected: '[REDACTED:generic_long_token_contextual]'
+  },
+  {
+    ruleId: 'payment_keyword_context',
+    positive: 'Please confirm payment method at checkout',
+    negative: 'Please confirm your profile details',
+    expected: 'Please confirm payment method at checkout'
+  },
+  {
+    ruleId: 'payment_card_number_sequence',
+    positive: 'card token 4242 4242 4242',
+    negative: 'card token 4242 4242',
+    expected: 'card token 4242 4242 4242'
   }
 ])
 

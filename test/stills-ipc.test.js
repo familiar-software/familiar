@@ -10,6 +10,7 @@ const resetModule = (modulePath) => {
 function withStillsIpcModule(run) {
   const handlers = {}
   const openPathCalls = []
+  const toastCalls = []
   let openPathResult = ''
   let settings = { contextFolderPath: '' }
   const mkdirCalls = []
@@ -47,6 +48,13 @@ function withStillsIpcModule(run) {
         loadSettings: () => settings
       }
     }
+    if (request === '../toast') {
+      return {
+        showToast: (payload) => {
+          toastCalls.push(payload)
+        }
+      }
+    }
     return originalLoad.call(this, request, parent, isMain)
   }
 
@@ -59,6 +67,7 @@ function withStillsIpcModule(run) {
         stillsModule,
         handlers,
         openPathCalls,
+        toastCalls,
         mkdirCalls,
         setOpenPathResult: (value) => {
           openPathResult = value
@@ -75,7 +84,7 @@ function withStillsIpcModule(run) {
 }
 
 test('stills:openFolder opens the familiar root folder under context', async () => {
-  await withStillsIpcModule(async ({ stillsModule, handlers, openPathCalls, mkdirCalls, setSettings }) => {
+  await withStillsIpcModule(async ({ stillsModule, handlers, openPathCalls, toastCalls, mkdirCalls, setSettings }) => {
     setSettings({ contextFolderPath: '/tmp/context' })
     stillsModule.registerStillsHandlers()
 
@@ -90,11 +99,19 @@ test('stills:openFolder opens the familiar root folder under context', async () 
       }
     ])
     assert.deepEqual(openPathCalls, ['/tmp/context/familiar'])
+    assert.deepEqual(toastCalls, [
+      {
+        title: 'Finder opened',
+        body: 'Timestamps in file/folder names are UTC.',
+        type: 'info',
+        duration: 7000
+      }
+    ])
   })
 })
 
 test('stills:openFolder returns error when context folder is missing', async () => {
-  await withStillsIpcModule(async ({ stillsModule, handlers, openPathCalls, mkdirCalls, setSettings }) => {
+  await withStillsIpcModule(async ({ stillsModule, handlers, openPathCalls, toastCalls, mkdirCalls, setSettings }) => {
     setSettings({ contextFolderPath: '' })
     stillsModule.registerStillsHandlers()
 
@@ -103,12 +120,13 @@ test('stills:openFolder returns error when context folder is missing', async () 
     assert.equal(result.message, 'Context folder is not set.')
     assert.deepEqual(mkdirCalls, [])
     assert.deepEqual(openPathCalls, [])
+    assert.deepEqual(toastCalls, [])
   })
 })
 
 test('stills:openFolder returns error when Finder open fails', async () => {
   await withStillsIpcModule(
-    async ({ stillsModule, handlers, openPathCalls, mkdirCalls, setSettings, setOpenPathResult }) => {
+    async ({ stillsModule, handlers, openPathCalls, toastCalls, mkdirCalls, setSettings, setOpenPathResult }) => {
       setSettings({ contextFolderPath: '/tmp/context' })
       setOpenPathResult('Unable to open')
       stillsModule.registerStillsHandlers()
@@ -123,6 +141,7 @@ test('stills:openFolder returns error when Finder open fails', async () => {
         }
       ])
       assert.deepEqual(openPathCalls, ['/tmp/context/familiar'])
+      assert.deepEqual(toastCalls, [])
     }
   )
 })

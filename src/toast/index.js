@@ -24,9 +24,10 @@ const SIZES = {
  * @param {'success' | 'error' | 'warning' | 'info'} [options.type='info'] - Toast type for icon
  * @param {'compact' | 'large'} [options.size='compact'] - Toast size variant
  * @param {number} [options.duration=3000] - Duration in ms before auto-hide
+ * @param {boolean} [options.closable=true] - Whether the toast shows a close button
  * @param {Array<{label: string, action: string, data?: any}>} [options.actions=[]] - Action buttons
  */
-function showToast ({ title, body, type = 'info', size = 'compact', duration = TOAST_DURATION_MS, actions = [] } = {}) {
+function showToast ({ title, body, type = 'info', size = 'compact', duration = TOAST_DURATION_MS, actions = [], closable = true } = {}) {
   if (hideTimeout) {
     clearTimeout(hideTimeout)
     hideTimeout = null
@@ -55,7 +56,15 @@ function showToast ({ title, body, type = 'info', size = 'compact', duration = T
   const sendDataAndAutosize = async () => {
     if (!toastWindow || toastWindow.isDestroyed()) return
 
-    toastWindow.webContents.send('toast-data', { title, body, type, size, actions, duration })
+    toastWindow.webContents.send('toast-data', {
+      title,
+      body,
+      type,
+      size,
+      actions,
+      duration,
+      closable
+    })
 
     // Wait for the renderer to apply DOM changes, then measure actual height in the page
     try {

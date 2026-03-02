@@ -3,11 +3,22 @@ const path = require('node:path')
 const { execFile } = require('node:child_process')
 const { promisify } = require('node:util')
 
+const { normalizeAppString } = require('../utils/strings')
+
 const execFileAsync = promisify(execFile)
 
 const escapeForQuotedBullet = (value) => String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
-const buildMarkdownLayoutFromOcr = ({ imagePath, meta, lines } = {}) => {
+const buildMarkdownLayoutFromOcr = ({
+  imagePath,
+  meta,
+  lines,
+  appName,
+  appBundleId,
+  appTitle,
+  appLabelSource,
+  visibleWindowNames
+} = {}) => {
   const width = Number(meta?.image_width) || null
   const height = Number(meta?.image_height) || null
   const resolution = width && height ? `${width}x${height}` : 'unknown'
@@ -22,6 +33,20 @@ const buildMarkdownLayoutFromOcr = ({ imagePath, meta, lines } = {}) => {
 
   const level = meta?.level || 'accurate'
   const minConfidence = typeof meta?.min_confidence === 'number' ? meta.min_confidence : undefined
+  const normalizedAppName = normalizeAppString(appName, 'unknown')
+  const normalizedAppBundleId = normalizeAppString(appBundleId, 'unknown')
+  const normalizedAppTitle = normalizeAppString(appTitle, 'unknown')
+  const normalizedAppLabelSource = normalizeAppString(appLabelSource, 'unknown')
+  const normalizedVisibleWindowNames = Array.isArray(visibleWindowNames)
+    ? visibleWindowNames.filter((item) => typeof item === 'string')
+    : []
+  const normalizedVisibleWindowYamlLines =
+    normalizedVisibleWindowNames.length > 0
+      ? [
+          'visible_windows:',
+          ...normalizedVisibleWindowNames.map((name) => `  - "${escapeForQuotedBullet(String(name))}"`)
+        ]
+      : ['visible_windows: []']
 
   const normalizedLines = Array.isArray(lines)
     ? lines.map((line) => String(line).trim()).filter(Boolean)
@@ -39,9 +64,12 @@ const buildMarkdownLayoutFromOcr = ({ imagePath, meta, lines } = {}) => {
     `source_image: ${basename}`,
     `screen_resolution: ${resolution}`,
     'grid: unknown',
-    'app: unknown',
-    'window_title_raw: unknown',
-    'window_title_norm: unknown',
+    `app: ${normalizedAppName}`,
+    `app_bundle_id: ${normalizedAppBundleId}`,
+    `window_title_raw: ${normalizedAppTitle}`,
+    `window_title_norm: ${normalizedAppTitle}`,
+    `app_label_source: ${normalizedAppLabelSource}`,
+    ...normalizedVisibleWindowYamlLines,
     'url: unknown',
     'ocr_engine: apple-vision',
     `ocr_level: ${level}`,

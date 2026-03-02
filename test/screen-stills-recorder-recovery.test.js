@@ -1,6 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const Module = require('node:module');
+const os = require('node:os');
+const path = require('node:path');
 const { EventEmitter } = require('node:events');
 
 const resetRecorderModule = () => {
@@ -23,6 +26,16 @@ const MOCK_THUMBNAIL_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCA
 const MOCK_THUMBNAIL_PNG_DATA_URL = `data:image/png;base64,${MOCK_THUMBNAIL_PNG_BASE64}`;
 const MOCK_THUMBNAIL_PNG_BUFFER = Buffer.from(MOCK_THUMBNAIL_PNG_BASE64, 'base64');
 const MOCK_INVALID_THUMBNAIL_BUFFER = Buffer.from([0x12, 0x34, 0x56]);
+
+function createDeterministicLowPowerModeMonitor({ enabled = false } = {}) {
+  return {
+    start: () => {},
+    stop: () => {},
+    on: () => {},
+    off: () => {},
+    isLowPowerModeEnabled: () => enabled
+  };
+}
 
 function createMockSource(options = {}) {
   const {
@@ -186,7 +199,11 @@ test('recorder.start force-resets and retries once when renderer reports capture
       error: (...args) => logs.push({ level: 'error', args })
     };
 
-  const recorder = createRecorder({ logger, intervalSeconds: 1 });
+  const recorder = createRecorder({
+    logger,
+    intervalSeconds: 1,
+    lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+  });
     const result = await recorder.start({ contextFolderPath: '/tmp/familiar-test' });
 
     assert.equal(result.ok, true);
@@ -372,7 +389,11 @@ test('recorder.start recreates the capture window when force-stop fails, then re
       error: (...args) => logs.push({ level: 'error', args })
     };
 
-    const recorder = createRecorder({ logger, intervalSeconds: 1 });
+    const recorder = createRecorder({
+      logger,
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+    });
     const result = await recorder.start({ contextFolderPath: '/tmp/familiar-test' });
 
     assert.equal(result.ok, true);
@@ -530,7 +551,11 @@ test('recorder resolves capture thumbnail from data URL when toPNG is not PNG', 
 
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
-    const recorder = createRecorder({ logger: console, intervalSeconds: 1 });
+    const recorder = createRecorder({
+      logger: console,
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+    });
     const result = await recorder.start({ contextFolderPath: '/tmp/familiar-test' });
 
     assert.equal(result.ok, true);
@@ -666,7 +691,11 @@ test('recorder fails to start when source thumbnail is unavailable', async () =>
 
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
-    const recorder = createRecorder({ logger: console, intervalSeconds: 1 });
+    const recorder = createRecorder({
+      logger: console,
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+    });
     await assert.rejects(
       recorder.start({ contextFolderPath: '/tmp/familiar-test' }),
       /No thumbnail available for capture source\./
@@ -817,7 +846,11 @@ test('recorder fails when thumbnail resize throws and does not start', async () 
 
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
-    const recorder = createRecorder({ logger: console, intervalSeconds: 1 });
+    const recorder = createRecorder({
+      logger: console,
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+    });
     await assert.rejects(
       recorder.start({ contextFolderPath: '/tmp/familiar-test' }),
       /No thumbnail available for capture source\./
@@ -973,7 +1006,11 @@ test('recorder follows cursor display and switches capture source between monito
 
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
-    const recorder = createRecorder({ logger: console, intervalSeconds: 0.02 });
+    const recorder = createRecorder({
+      logger: console,
+      intervalSeconds: 0.02,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+    });
     const result = await recorder.start({ contextFolderPath: '/tmp/familiar-test' });
     assert.equal(result.ok, true);
 
@@ -1145,7 +1182,11 @@ test('recorder refreshes capture thumbnail payload when source stays the same', 
 
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
-    const recorder = createRecorder({ logger: console, intervalSeconds: 0.02 });
+    const recorder = createRecorder({
+      logger: console,
+      intervalSeconds: 0.02,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+    });
     await recorder.start({ contextFolderPath: '/tmp/familiar-test' });
 
     await waitForCondition(
@@ -1292,7 +1333,11 @@ test('recorder falls back to primary display source when cursor display source i
       warn: (...args) => logs.push({ level: 'warn', args }),
       error: (...args) => logs.push({ level: 'error', args })
     };
-    const recorder = createRecorder({ logger, intervalSeconds: 1 });
+    const recorder = createRecorder({
+      logger,
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+    });
     const result = await recorder.start({ contextFolderPath: '/tmp/familiar-test' });
     assert.equal(result.ok, true);
     assert.equal(getSourcesCalls >= 1, true);
@@ -1313,6 +1358,550 @@ test('recorder falls back to primary display source when cursor display source i
       entry.args[0].includes('Cursor display source unavailable')
     );
     assert.equal(fallbackWarned, true);
+  } finally {
+    Module._load = originalLoad;
+    resetRecorderModule();
+  }
+});
+
+test('recorder adapts screenshot interval when Low Power Mode changes', async () => {
+  resetRecorderModule();
+
+  const originalE2E = process.env.FAMILIAR_E2E;
+  const originalFakeCapture = process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE;
+  process.env.FAMILIAR_E2E = '1';
+  delete process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE;
+
+  let lowPowerEnabled = false;
+  const monitorEmitter = new EventEmitter();
+  let monitorStartCalls = 0;
+  let monitorStopCalls = 0;
+  const lowPowerModeMonitor = {
+    start: () => {
+      monitorStartCalls += 1;
+    },
+    stop: () => {
+      monitorStopCalls += 1;
+    },
+    on: (eventName, handler) => monitorEmitter.on(eventName, handler),
+    off: (eventName, handler) => monitorEmitter.off(eventName, handler),
+    isLowPowerModeEnabled: () => lowPowerEnabled
+  };
+
+  const setIntervalCalls = [];
+  const clearIntervalCalls = [];
+  const scheduler = {
+    setInterval: (_handler, delay) => {
+      const timer = { id: setIntervalCalls.length + 1, unref: () => {} };
+      setIntervalCalls.push({ delay, timer });
+      return timer;
+    },
+    clearInterval: (timer) => {
+      clearIntervalCalls.push(timer);
+    }
+  };
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-low-power-'));
+  const sessionDir = path.join(tempDir, 'familiar', 'stills', 'session-test');
+  fs.mkdirSync(sessionDir, { recursive: true });
+
+  const originalLoad = Module._load;
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return {
+        ipcMain: new EventEmitter(),
+        app: { getVersion: () => 'test' }
+      };
+    }
+    if (request === '../screen-capture/permissions') {
+      return { isScreenRecordingPermissionGranted: () => true };
+    }
+    if (request === './session-store') {
+      return {
+        createSessionStore: () => ({
+          sessionId: 'session-test',
+          sessionDir,
+          nextCaptureFile: (capturedAt) => ({ fileName: 'capture.webp', capturedAt })
+        })
+      };
+    }
+    if (request === './stills-queue') {
+      return {
+        createStillsQueue: () => ({
+          enqueueCapture: () => {},
+          close: () => {}
+        })
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  try {
+    const { createRecorder } = require('../src/screen-stills/recorder');
+    const recorder = createRecorder({
+      logger: console,
+      scheduler,
+      lowPowerModeMonitor
+    });
+
+    const started = await recorder.start({ contextFolderPath: tempDir });
+    assert.equal(started.ok, true);
+    assert.equal(monitorStartCalls, 1);
+    assert.equal(setIntervalCalls[0]?.delay, 5000);
+
+    lowPowerEnabled = true;
+    monitorEmitter.emit('change', { enabled: true, source: 'test' });
+
+    assert.equal(setIntervalCalls[1]?.delay, 15000);
+    assert.equal(clearIntervalCalls.length >= 1, true);
+
+    await recorder.stop({ reason: 'test' });
+    assert.equal(monitorStopCalls, 1);
+  } finally {
+    Module._load = originalLoad;
+    resetRecorderModule();
+    if (originalE2E == null) {
+      delete process.env.FAMILIAR_E2E;
+    } else {
+      process.env.FAMILIAR_E2E = originalE2E;
+    }
+    if (originalFakeCapture == null) {
+      delete process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE;
+    } else {
+      process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE = originalFakeCapture;
+    }
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('recorder keeps fixed E2E interval override and skips Low Power Mode adaptation', async () => {
+  resetRecorderModule();
+
+  const originalE2E = process.env.FAMILIAR_E2E;
+  const originalE2EInterval = process.env.FAMILIAR_E2E_STILLS_INTERVAL_MS;
+  const originalFakeCapture = process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE;
+  process.env.FAMILIAR_E2E = '1';
+  process.env.FAMILIAR_E2E_STILLS_INTERVAL_MS = '600';
+  delete process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE;
+
+  let monitorStartCalls = 0;
+  const lowPowerModeMonitor = {
+    start: () => {
+      monitorStartCalls += 1;
+    },
+    stop: () => {},
+    on: () => {},
+    off: () => {},
+    isLowPowerModeEnabled: () => true
+  };
+
+  const setIntervalCalls = [];
+  const scheduler = {
+    setInterval: (_handler, delay) => {
+      const timer = { id: setIntervalCalls.length + 1, unref: () => {} };
+      setIntervalCalls.push(delay);
+      return timer;
+    },
+    clearInterval: () => {}
+  };
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-e2e-interval-'));
+  const sessionDir = path.join(tempDir, 'familiar', 'stills', 'session-test');
+  fs.mkdirSync(sessionDir, { recursive: true });
+
+  const originalLoad = Module._load;
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return {
+        ipcMain: new EventEmitter(),
+        app: { getVersion: () => 'test' }
+      };
+    }
+    if (request === '../screen-capture/permissions') {
+      return { isScreenRecordingPermissionGranted: () => true };
+    }
+    if (request === './session-store') {
+      return {
+        createSessionStore: () => ({
+          sessionId: 'session-test',
+          sessionDir,
+          nextCaptureFile: (capturedAt) => ({ fileName: 'capture.webp', capturedAt })
+        })
+      };
+    }
+    if (request === './stills-queue') {
+      return {
+        createStillsQueue: () => ({
+          enqueueCapture: () => {},
+          close: () => {}
+        })
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  try {
+    const { createRecorder } = require('../src/screen-stills/recorder');
+    const recorder = createRecorder({
+      logger: console,
+      scheduler,
+      lowPowerModeMonitor
+    });
+
+    const started = await recorder.start({ contextFolderPath: tempDir });
+    assert.equal(started.ok, true);
+    assert.equal(monitorStartCalls, 1);
+    assert.deepEqual(setIntervalCalls, [600]);
+
+    await recorder.stop({ reason: 'test' });
+  } finally {
+    Module._load = originalLoad;
+    resetRecorderModule();
+    if (originalE2E == null) {
+      delete process.env.FAMILIAR_E2E;
+    } else {
+      process.env.FAMILIAR_E2E = originalE2E;
+    }
+    if (originalE2EInterval == null) {
+      delete process.env.FAMILIAR_E2E_STILLS_INTERVAL_MS;
+    } else {
+      process.env.FAMILIAR_E2E_STILLS_INTERVAL_MS = originalE2EInterval;
+    }
+    if (originalFakeCapture == null) {
+      delete process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE;
+    } else {
+      process.env.FAMILIAR_E2E_FAKE_SCREEN_CAPTURE = originalFakeCapture;
+    }
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('recorder attaches app metadata from before/after window detection', async () => {
+  resetRecorderModule();
+
+  const ipcMain = new EventEmitter();
+  const queueEnqueues = [];
+  const windowSnapshots = [
+    [
+      {
+        name: 'Code',
+        bundleId: 'com.microsoft.VSCode',
+        title: 'familiar.md',
+        active: true
+      },
+      {
+        name: 'Spotify',
+        bundleId: 'com.spotify.client',
+        title: 'Music',
+        active: false
+      }
+    ],
+    [
+      {
+        name: 'Google Chrome',
+        bundleId: 'com.google.Chrome',
+        title: 'mail.google.com',
+        active: true
+      },
+      {
+        name: 'Code',
+        bundleId: 'com.microsoft.VSCode',
+        title: 'familiar.md',
+        active: false
+      }
+    ]
+  ];
+  let detectCalls = 0;
+  let startCalls = 0;
+  let stopCalls = 0;
+  let captureCalls = 0;
+  let getSourcesCalls = 0;
+
+  function createWebContents() {
+    const webContents = new EventEmitter();
+    webContents.getURL = () => 'file://stills.html';
+    webContents.send = (channel, payload) => {
+      if (channel === 'screen-stills:start') {
+        startCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'started'
+          });
+        });
+      }
+
+      if (channel === 'screen-stills:stop') {
+        stopCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'stopped'
+          });
+        });
+      }
+
+      if (channel === 'screen-stills:capture') {
+        captureCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'captured',
+            filePath: payload.filePath
+          });
+        });
+      }
+    };
+    return webContents;
+  }
+
+  function BrowserWindowStub() {
+    this.webContents = createWebContents();
+    this._destroyed = false;
+
+    this.loadFile = () => {
+      process.nextTick(() => {
+        this.webContents.emit('did-finish-load');
+        ipcMain.emit('screen-stills:ready', { sender: this.webContents });
+      });
+    };
+
+    this.on = () => {};
+    this.isDestroyed = () => this._destroyed;
+    this.destroy = () => {
+      this._destroyed = true;
+    };
+  }
+
+  const stubElectron = {
+    BrowserWindow: BrowserWindowStub,
+    desktopCapturer: {
+      getSources: async () => {
+        getSourcesCalls += 1;
+        return [createMockSource()];
+      }
+    },
+    ipcMain,
+    screen: {
+      getAllDisplays: () => [{ id: 1, bounds: { width: 1000, height: 800 }, scaleFactor: 1 }],
+      getPrimaryDisplay: () => ({ id: 1, bounds: { width: 1000, height: 800 }, scaleFactor: 1 })
+    },
+    app: { getVersion: () => 'test' }
+  };
+
+  const originalLoad = Module._load;
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return stubElectron;
+    }
+    if (request === '../screen-capture/permissions') {
+      return { isScreenRecordingPermissionGranted: () => true };
+    }
+    if (request === './session-store') {
+      return {
+        createSessionStore: ({ contextFolderPath }) => {
+          const sessionId = 'session-test';
+          return {
+            sessionId,
+            sessionDir: `${contextFolderPath}/familiar/stills/${sessionId}`,
+            nextCaptureFile: (capturedAt) => ({ fileName: 'capture.webp', capturedAt })
+          };
+        }
+      };
+    }
+    if (request === './stills-queue') {
+      return {
+        createStillsQueue: () => ({
+          enqueueCapture: (payload) => {
+            queueEnqueues.push(payload);
+          },
+          close: () => {}
+        })
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  try {
+    const { createRecorder } = require('../src/screen-stills/recorder');
+    const recorder = createRecorder({
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor(),
+      createActiveWindowDetectorImpl: () => ({
+        detectWindowCandidates: async () => {
+          const value = windowSnapshots[detectCalls] || [];
+          detectCalls += 1;
+          return value
+        },
+        resolveBinaryPath: async () => '/tmp/list-on-screen-apps'
+      })
+    });
+
+    const result = await recorder.start({ contextFolderPath: '/tmp/familiar-test' });
+
+    assert.equal(result.ok, true);
+    assert.equal(getSourcesCalls >= 2, true);
+    assert.equal(startCalls, 1);
+    assert.equal(captureCalls, 1);
+    assert.equal(detectCalls, 2);
+    assert.equal(queueEnqueues.length, 1);
+    assert.equal(queueEnqueues[0].appName, null);
+    assert.equal(queueEnqueues[0].appBundleId, null);
+    assert.equal(queueEnqueues[0].appTitle, null);
+    assert.equal(queueEnqueues[0].appLabelSource, null);
+    assert.deepEqual(queueEnqueues[0].visibleWindowNames, ['Code', 'Spotify', 'Google Chrome']);
+
+    await recorder.stop({ reason: 'test' });
+    assert.equal(stopCalls, 1);
+  } finally {
+    Module._load = originalLoad;
+    resetRecorderModule();
+  }
+});
+
+test('recorder fails when active window detection throws before capture', async () => {
+  resetRecorderModule();
+
+  const ipcMain = new EventEmitter();
+  let startCalls = 0;
+  let captureCalls = 0;
+  let stopCalls = 0;
+  const queueEnqueues = [];
+  let getSourcesCalls = 0;
+
+  function createWebContents() {
+    const webContents = new EventEmitter();
+    webContents.getURL = () => 'file://stills.html';
+    webContents.send = (channel, payload) => {
+      if (channel === 'screen-stills:start') {
+        startCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'started'
+          });
+        });
+      }
+
+      if (channel === 'screen-stills:stop') {
+        stopCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'stopped'
+          });
+        });
+      }
+
+      if (channel === 'screen-stills:capture') {
+        captureCalls += 1;
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'captured',
+            filePath: payload.filePath
+          });
+        });
+      }
+    };
+    return webContents;
+  }
+
+  function BrowserWindowStub() {
+    this.webContents = createWebContents();
+    this._destroyed = false;
+
+    this.loadFile = () => {
+      process.nextTick(() => {
+        this.webContents.emit('did-finish-load');
+        ipcMain.emit('screen-stills:ready', { sender: this.webContents });
+      });
+    };
+
+    this.on = () => {};
+    this.isDestroyed = () => this._destroyed;
+    this.destroy = () => {
+      this._destroyed = true;
+    };
+  }
+
+  const stubElectron = {
+    BrowserWindow: BrowserWindowStub,
+    desktopCapturer: {
+      getSources: async () => {
+        getSourcesCalls += 1;
+        return [createMockSource()];
+      }
+    },
+    ipcMain,
+    screen: {
+      getAllDisplays: () => [{ id: 1, bounds: { width: 1000, height: 800 }, scaleFactor: 1 }],
+      getPrimaryDisplay: () => ({ id: 1, bounds: { width: 1000, height: 800 }, scaleFactor: 1 })
+    },
+    app: { getVersion: () => 'test' }
+  };
+
+  const originalLoad = Module._load;
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return stubElectron;
+    }
+    if (request === '../screen-capture/permissions') {
+      return { isScreenRecordingPermissionGranted: () => true };
+    }
+    if (request === './session-store') {
+      return {
+        createSessionStore: ({ contextFolderPath }) => {
+          const sessionId = 'session-test';
+          return {
+            sessionId,
+            sessionDir: `${contextFolderPath}/familiar/stills/${sessionId}`,
+            nextCaptureFile: (capturedAt) => ({ fileName: 'capture.webp', capturedAt })
+          };
+        }
+      };
+    }
+    if (request === './stills-queue') {
+      return {
+        createStillsQueue: () => ({
+          enqueueCapture: (payload) => {
+            queueEnqueues.push(payload);
+          },
+          close: () => {}
+        })
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  try {
+    const { createRecorder } = require('../src/screen-stills/recorder');
+    let detectCalls = 0;
+    const recorder = createRecorder({
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+      intervalSeconds: 1,
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor(),
+      createActiveWindowDetectorImpl: () => ({
+        detectWindowCandidates: async () => {
+          detectCalls += 1;
+          throw new Error('No active window detected from helper output.')
+        },
+        resolveBinaryPath: async () => '/tmp/list-on-screen-apps'
+      })
+    });
+
+    await assert.rejects(
+      recorder.start({ contextFolderPath: '/tmp/familiar-test' }),
+      /No active window detected from helper output/
+    );
+
+    assert.equal(queueEnqueues.length, 0);
+    assert.equal(startCalls, 1);
+    assert.equal(getSourcesCalls, 1);
+    assert.equal(stopCalls, 1);
+    assert.equal(captureCalls, 0);
+    assert.equal(detectCalls, 1);
   } finally {
     Module._load = originalLoad;
     resetRecorderModule();

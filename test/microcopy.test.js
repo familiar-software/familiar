@@ -25,6 +25,30 @@ test('microcopy keys do not contain spaces', () => {
 test('getMicrocopyValue resolves configured copy', () => {
   assert.equal(getMicrocopyValue('tray.actions.settings'), microcopy.tray.actions.settings)
   assert.equal(getMicrocopyValue('dashboard.sections.storage.title'), microcopy.dashboard.sections.storage.title)
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardFaqTitle'),
+    'FAQ'
+  )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardFaqScrollHint'),
+    'Scroll down to see all FAQs'
+  )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardChooseContextFolderBestPracticesLabel'),
+    'Best Practices:'
+  )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardChooseContextFolderBestPractices'),
+    'Use the same folder with which you usually work with agents.'
+  )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardFaqQuestionScreenshotFrequency'),
+    'How often does Familiar take a screenshot?'
+  )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardFaqAnswerScreenshotFrequency'),
+    'When in "Low Power Mode", every 15 seconds. Otherwise, every 5 seconds.'
+  )
 })
 
 test('formatters use configured templates', () => {

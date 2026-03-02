@@ -9,8 +9,12 @@
   function createDashboardState(options = {}) {
     const elements = options.elements || {}
     const apis = options.apis || {}
+    const STORAGE_CONTEXT_FOLDER_MIN_FULL_LENGTH = 48
+    const STORAGE_CONTEXT_FOLDER_TAIL_SEGMENTS = 2
 
     const contextFolderInputs = elements.contextFolderInputs || []
+    const storageContextFolderInput = elements.storageContextFolderInput || null
+    const contextFolderPickerSurfaces = elements.contextFolderPickerSurfaces || []
     const llmProviderSelects = elements.llmProviderSelects || []
     const llmKeyInputs = elements.llmKeyInputs || []
     const stillsMarkdownExtractorSelects = elements.stillsMarkdownExtractorSelects || []
@@ -50,10 +54,59 @@
       }
     }
 
+    function setTitleValues(targets, value) {
+      for (const element of targets) {
+        if (!element) {
+          continue
+        }
+        if (element.title !== value) {
+          element.title = value
+        }
+      }
+    }
+
+    function toDisplayedContextFolderPath(value) {
+      if (typeof value !== 'string') {
+        return ''
+      }
+      const normalized = value.replace(/\\/g, '/').replace(/\/+$/, '')
+      if (!normalized) {
+        return ''
+      }
+      if (normalized.toLowerCase().endsWith('/familiar')) {
+        return normalized
+      }
+      return `${normalized}/familiar`
+    }
+
+    function toStorageDisplayedContextFolderPath(value) {
+      if (typeof value !== 'string') {
+        return ''
+      }
+      if (value.length <= STORAGE_CONTEXT_FOLDER_MIN_FULL_LENGTH) {
+        return value
+      }
+      const pathSegments = value.split('/').filter((segment) => segment.length > 0)
+      if (pathSegments.length <= STORAGE_CONTEXT_FOLDER_TAIL_SEGMENTS) {
+        return value
+      }
+      return `.../${pathSegments.slice(-STORAGE_CONTEXT_FOLDER_TAIL_SEGMENTS).join('/')}`
+    }
+
     function setContextFolderValue(value) {
       const nextValue = value || ''
       state.currentContextFolderPath = nextValue
-      setInputValues(contextFolderInputs, state.currentContextFolderPath)
+      const displayedContextFolderPath = toDisplayedContextFolderPath(state.currentContextFolderPath)
+      setInputValues(contextFolderInputs, displayedContextFolderPath)
+      if (storageContextFolderInput) {
+        const storageDisplayedContextFolderPath =
+          toStorageDisplayedContextFolderPath(displayedContextFolderPath)
+        if (storageContextFolderInput.value !== storageDisplayedContextFolderPath) {
+          storageContextFolderInput.value = storageDisplayedContextFolderPath
+        }
+        storageContextFolderInput.title = displayedContextFolderPath
+      }
+      setTitleValues(contextFolderPickerSurfaces, displayedContextFolderPath)
       callIfAvailable(apis.recordingApi, 'updateRecordingUI')
       updateWizardUI()
     }

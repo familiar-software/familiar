@@ -1,5 +1,6 @@
-## Changes
+## Release Notes
 
-- Fixed **Open in Finder** so it opens the Familiar root folder (`<context>/familiar`) reliably.
-- Centralized user-facing microcopy 
-- Refactored internal parameter passing 
+### Context Capture Enhancements
+- Added on-screen app detection for captures so the app now records which applications were visible during capture.
+- Added an `app` tag to captured entries and a list of visible apps.
+- Added support for app-level blacklisting (for future filtering behavior).

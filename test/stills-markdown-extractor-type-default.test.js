@@ -43,3 +43,30 @@ test('apple vision ocr extractor caps parallel batches at 2', () => {
 
   assert.equal(extractor.execution.maxParallelBatches, 2)
 })
+
+test('apple vision extractor passes visible window names into markdown builder', async () => {
+  let visibleWindowNamesSeen
+  const extractor = createAppleVisionOcrExtractor({
+    settings: { stills_markdown_extractor: { type: 'apple_vision_ocr' } },
+    resolveBinaryPathImpl: async () => '/tmp/familiar-ocr-helper',
+    runAppleVisionOcrBinaryImpl: async () => ({
+      meta: {},
+      lines: ['test']
+    }),
+    buildMarkdownLayoutFromOcrImpl: ({ visibleWindowNames }) => {
+      visibleWindowNamesSeen = visibleWindowNames
+      return 'mock markdown'
+    }
+  })
+
+  const result = await extractor.extractBatch({
+    rows: [{
+      id: 1,
+      image_path: '/tmp/image.png',
+      visible_window_names: JSON.stringify(['Code', 'Google Chrome'])
+    }]
+  })
+
+  assert.equal(result.get('1')?.markdown, 'mock markdown')
+  assert.deepEqual(visibleWindowNamesSeen, ['Code', 'Google Chrome'])
+})

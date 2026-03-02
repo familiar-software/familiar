@@ -118,6 +118,59 @@ class TestDocument {
 
 const flushPromises = () => new Promise((resolve) => setImmediate(resolve))
 
+const createFakeTimers = () => {
+  const originalSetTimeout = global.setTimeout
+  const originalClearTimeout = global.clearTimeout
+  let now = 0
+  let nextId = 1
+  const scheduled = new Map()
+
+  const runDueTimers = () => {
+    let hasDueTimers = true
+    while (hasDueTimers) {
+      hasDueTimers = false
+      const dueTimers = Array.from(scheduled.entries())
+        .filter(([, timer]) => timer.runAtMs <= now)
+        .sort((a, b) => a[1].runAtMs - b[1].runAtMs || a[0] - b[0])
+
+      for (const [id, timer] of dueTimers) {
+        if (!scheduled.has(id)) {
+          continue
+        }
+        scheduled.delete(id)
+        timer.handler()
+        hasDueTimers = true
+      }
+    }
+  }
+
+  global.setTimeout = (handler, delay = 0) => {
+    const id = nextId
+    nextId += 1
+    const normalizedDelay = Number.isFinite(Number(delay)) ? Number(delay) : 0
+    scheduled.set(id, {
+      handler: typeof handler === 'function' ? handler : () => {},
+      runAtMs: now + Math.max(0, normalizedDelay)
+    })
+    return id
+  }
+
+  global.clearTimeout = (id) => {
+    scheduled.delete(id)
+  }
+
+  return {
+    advanceBy(ms) {
+      now += ms
+      runDueTimers()
+    },
+    restore() {
+      global.setTimeout = originalSetTimeout
+      global.clearTimeout = originalClearTimeout
+    }
+  }
+}
+
 const storageDeleteWindow = require('../src/storage/delete-window')
 const autoCleanupRetention = require('../src/storage/auto-cleanup-retention')
 const { microcopy } = require('../src/microcopy')
@@ -196,11 +249,8 @@ const createElements = () => {
   const elements = {
     'advanced-toggle-btn': new TestElement(),
     'advanced-options': new TestElement(),
-    'sidebar-recording-dot': new TestElement(),
-    'sidebar-recording-status': new TestElement(),
-    'sidebar-recording-action': new TestElement(),
-    'sidebar-recording-permission': new TestElement(),
     'context-folder-path': new TestElement(),
+    'context-folder-picker-surface': new TestElement(),
     'context-folder-choose': new TestElement(),
     'context-folder-error': new TestElement(),
     'context-folder-status': new TestElement(),
@@ -210,15 +260,21 @@ const createElements = () => {
     'stills-markdown-extractor': new TestElement(),
     'stills-markdown-extractor-error': new TestElement(),
     'stills-markdown-extractor-status': new TestElement(),
-    'always-record-when-active': new TestElement(),
-    'always-record-when-active-error': new TestElement(),
-    'always-record-when-active-status': new TestElement(),
+    'recording-status-dot': new TestElement(),
+    'recording-status': new TestElement(),
+    'recording-always-record-when-active': new TestElement(),
+    'recording-always-record-when-active-error': new TestElement(),
+    'recording-always-record-when-active-status': new TestElement(),
     'wizard-always-record-when-active': new TestElement(),
     'wizard-always-record-when-active-error': new TestElement(),
     'wizard-always-record-when-active-status': new TestElement(),
     'wizard-check-permissions': new TestElement(),
     'wizard-open-screen-recording-settings': new TestElement(),
     'wizard-recording-toggle-section': new TestElement(),
+    'recording-check-permissions': new TestElement(),
+    'recording-open-screen-recording-settings': new TestElement(),
+    'recording-recording-toggle-section': new TestElement(),
+    'recording-open-screen-recording-settings-note': new TestElement(),
     'permissions-always-record-when-active': new TestElement(),
     'permissions-always-record-when-active-error': new TestElement(),
     'permissions-always-record-when-active-status': new TestElement(),
@@ -229,12 +285,10 @@ const createElements = () => {
     'wizard-skill-error': new TestElement(),
     'wizard-skill-path': new TestElement(),
     'wizard-skill-cursor-restart-note': new TestElement(),
-    'wizard-skill-install': new TestElement(),
     'settings-skill-status': new TestElement(),
     'settings-skill-error': new TestElement(),
     'settings-skill-path': new TestElement(),
     'settings-skill-cursor-restart-note': new TestElement(),
-    'settings-skill-install': new TestElement(),
     'wizard-skill-harness-claude': new TestElement(),
     'wizard-skill-harness-codex': new TestElement(),
     'wizard-skill-harness-cursor': new TestElement(),
@@ -256,17 +310,12 @@ const createElements = () => {
     'storage-auto-cleanup-retention-days': new TestElement(),
     'storage-delete-files-status': new TestElement(),
     'storage-delete-files-error': new TestElement(),
-    'storage-usage-total': new TestElement(),
     'storage-usage-loading': new TestElement(),
     'storage-usage-loaded': new TestElement(),
     'storage-usage-loading-indicator': new TestElement(),
     'storage-usage-computing-tag': new TestElement(),
     'storage-usage-value-screenshots': new TestElement(),
     'storage-usage-value-steels-markdown': new TestElement(),
-    'storage-usage-value-system': new TestElement(),
-    'storage-usage-bar-screenshots': new TestElement(),
-    'storage-usage-bar-steels-markdown': new TestElement(),
-    'storage-usage-bar-system': new TestElement(),
     'storage-usage-status': new TestElement(),
     'storage-usage-error': new TestElement(),
     'wizard-back': new TestElement(),
@@ -291,6 +340,7 @@ const createElements = () => {
   }
 
   elements['context-folder-path'].dataset.setting = 'context-folder-path'
+  elements['context-folder-picker-surface'].dataset.action = 'context-folder-picker-surface'
   elements['context-folder-choose'].dataset.action = 'context-folder-choose'
   elements['context-folder-error'].dataset.settingError = 'context-folder-error'
   elements['context-folder-status'].dataset.settingStatus = 'context-folder-status'
@@ -305,10 +355,10 @@ const createElements = () => {
     'stills-markdown-extractor-error'
   elements['stills-markdown-extractor-status'].dataset.settingStatus =
     'stills-markdown-extractor-status'
-  elements['always-record-when-active'].dataset.setting = 'always-record-when-active'
-  elements['always-record-when-active-error'].dataset.settingError =
+  elements['recording-always-record-when-active'].dataset.setting = 'always-record-when-active'
+  elements['recording-always-record-when-active-error'].dataset.settingError =
     'always-record-when-active-error'
-  elements['always-record-when-active-status'].dataset.settingStatus =
+  elements['recording-always-record-when-active-status'].dataset.settingStatus =
     'always-record-when-active-status'
   elements['wizard-always-record-when-active'].dataset.setting = 'always-record-when-active'
   elements['wizard-always-record-when-active-error'].dataset.settingError =
@@ -321,16 +371,20 @@ const createElements = () => {
   elements['permissions-always-record-when-active-status'].dataset.settingStatus =
     'always-record-when-active-status'
   elements['wizard-check-permissions'].dataset.action = 'check-permissions'
+  elements['recording-check-permissions'].dataset.action = 'check-permissions'
   elements['permissions-check-permissions'].dataset.action = 'check-permissions'
   elements['wizard-open-screen-recording-settings'].dataset.action =
+    'open-screen-recording-settings'
+  elements['recording-open-screen-recording-settings'].dataset.action =
     'open-screen-recording-settings'
   elements['permissions-open-screen-recording-settings'].dataset.action =
     'open-screen-recording-settings'
   elements['wizard-recording-toggle-section'].dataset.role = 'permission-recording-toggle-section'
+  elements['wizard-recording-toggle-section'].dataset.permissionToggleVisibility = 'granted-only'
+  elements['recording-recording-toggle-section'].dataset.role = 'permission-recording-toggle-section'
+  elements['recording-recording-toggle-section'].dataset.permissionToggleVisibility = 'always'
   elements['permissions-recording-toggle-section'].dataset.role =
     'permission-recording-toggle-section'
-  elements['wizard-skill-install'].dataset.action = 'skill-install'
-  elements['settings-skill-install'].dataset.action = 'skill-install'
   elements['wizard-skill-status'].dataset.skillInstallStatus = 'wizard'
   elements['settings-skill-status'].dataset.skillInstallStatus = 'settings'
   elements['wizard-skill-error'].dataset.skillInstallError = 'wizard'
@@ -352,8 +406,10 @@ const createElements = () => {
   elements['settings-skill-harness-codex'].value = 'codex'
   elements['settings-skill-harness-cursor'].value = 'cursor'
   elements['wizard-open-screen-recording-settings'].classList.add('hidden')
+  elements['recording-open-screen-recording-settings'].classList.add('hidden')
   elements['permissions-open-screen-recording-settings'].classList.add('hidden')
   elements['wizard-recording-toggle-section'].classList.add('hidden')
+  elements['recording-recording-toggle-section'].classList.add('hidden')
   elements['permissions-recording-toggle-section'].classList.add('hidden')
 
   elements['updates-check'].dataset.action = 'updates-check'
@@ -599,15 +655,18 @@ test('always record toggle saves on change', async () => {
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    elements['always-record-when-active'].checked = true
-    await elements['always-record-when-active']._listeners.change({
-      target: elements['always-record-when-active']
+    elements['recording-always-record-when-active'].checked = true
+    await elements['recording-always-record-when-active']._listeners.change({
+      target: elements['recording-always-record-when-active']
     })
     await flushPromises()
 
     assert.equal(saveCalls.length, 1)
     assert.deepEqual(saveCalls[0], { alwaysRecordWhenActive: true })
-    assert.equal(elements['always-record-when-active-status'].textContent, microcopy.dashboard.settings.statusSaved)
+    assert.equal(
+      elements['recording-always-record-when-active-status'].textContent,
+      microcopy.dashboard.settings.statusSaved
+    )
     assert.equal(elements['wizard-always-record-when-active-status'].textContent, microcopy.dashboard.settings.statusSaved)
     assert.equal(elements['permissions-always-record-when-active-status'].textContent, microcopy.dashboard.settings.statusSaved)
     assert.equal(elements['wizard-always-record-when-active'].checked, true)
@@ -646,6 +705,7 @@ test('wizard permission check is click-driven and denied state shows settings sh
 
     assert.equal(checkCalls, 0)
     assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), true)
+    assert.equal(elements['recording-recording-toggle-section'].classList.contains('hidden'), false)
 
     await elements['wizard-check-permissions'].click()
     await flushPromises()
@@ -667,6 +727,10 @@ test('wizard permission check is click-driven and denied state shows settings sh
       false
     )
     assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), true)
+    assert.equal(
+      elements['recording-recording-toggle-section'].classList.contains('hidden'),
+      false
+    )
     assert.equal(
       elements['permissions-recording-toggle-section'].classList.contains('hidden'),
       true
@@ -724,6 +788,10 @@ test('wizard permission check granted state reveals recording toggle', async () 
       true
     )
     assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), false)
+    assert.equal(
+      elements['recording-recording-toggle-section'].classList.contains('hidden'),
+      false
+    )
     assert.equal(
       elements['permissions-recording-toggle-section'].classList.contains('hidden'),
       false
@@ -1172,6 +1240,10 @@ test('wizard step 2 does not auto-check permissions when recording is already en
     )
     assert.equal(elements['wizard-recording-toggle-section'].classList.contains('hidden'), true)
     assert.equal(
+      elements['recording-recording-toggle-section'].classList.contains('hidden'),
+      false
+    )
+    assert.equal(
       elements['permissions-recording-toggle-section'].classList.contains('hidden'),
       true
     )
@@ -1181,8 +1253,47 @@ test('wizard step 2 does not auto-check permissions when recording is already en
   }
 })
 
-test('stills action button starts capture when inactive', async () => {
-  const startCalls = []
+test('stills status indicator in capturing tab shows capturing state', async () => {
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '/tmp/context',
+      llmProviderName: 'gemini',
+      llmProviderApiKey: '',
+      alwaysRecordWhenActive: true,
+      wizardCompleted: true
+    }),
+    getScreenStillsStatus: async () => ({
+      ok: true,
+      state: 'recording',
+      isRecording: true,
+      manualPaused: false
+    })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['recording-nav'].click()
+    await flushPromises()
+
+    assert.equal(elements['recording-status'].textContent, microcopy.recordingIndicator.capturing)
+    assert.equal(elements['recording-status-dot'].classList.contains('bg-emerald-500'), true)
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('stills status indicator in capturing tab shows paused state', async () => {
   const familiar = createFamiliar({
     getSettings: async () => ({
       contextFolderPath: '/tmp/context',
@@ -1195,12 +1306,8 @@ test('stills action button starts capture when inactive', async () => {
       ok: true,
       state: 'armed',
       isRecording: false,
-      manualPaused: false
-    }),
-    startScreenStills: async () => {
-      startCalls.push(true)
-      return { ok: true, state: 'recording', isRecording: true, manualPaused: false }
-    }
+      manualPaused: true
+    })
   })
 
   const elements = createElements()
@@ -1218,79 +1325,15 @@ test('stills action button starts capture when inactive', async () => {
     await elements['recording-nav'].click()
     await flushPromises()
 
-    await elements['sidebar-recording-action'].click()
-    await flushPromises()
-
-    assert.equal(startCalls.length, 1)
+    assert.equal(elements['recording-status'].textContent, microcopy.recordingIndicator.paused)
+    assert.equal(elements['recording-status-dot'].classList.contains('bg-amber-500'), true)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
   }
 })
 
-test('stills action button pauses and resumes when paused', async () => {
-  const pauseCalls = []
-  const startCalls = []
-  let status = { ok: true, state: 'recording', isRecording: true, manualPaused: false }
-  const familiar = createFamiliar({
-    getSettings: async () => ({
-      contextFolderPath: '/tmp/context',
-      llmProviderName: 'gemini',
-      llmProviderApiKey: '',
-      alwaysRecordWhenActive: true,
-      wizardCompleted: true
-    }),
-    getScreenStillsStatus: async () => status,
-    pauseScreenStills: async () => {
-      pauseCalls.push(true)
-      status = { ok: true, state: 'armed', isRecording: false, manualPaused: true }
-      return status
-    },
-    startScreenStills: async () => {
-      startCalls.push(true)
-      status = { ok: true, state: 'recording', isRecording: true, manualPaused: false }
-      return status
-    }
-  })
-
-  const elements = createElements()
-  const document = new TestDocument(elements)
-  const priorDocument = global.document
-  const priorWindow = global.window
-  global.document = document
-  global.window = { familiar }
-
-  try {
-    loadRenderer()
-    document.trigger('DOMContentLoaded')
-    await flushPromises()
-
-    await elements['recording-nav'].click()
-    await flushPromises()
-
-    assert.equal(elements['sidebar-recording-status'].textContent, microcopy.dashboard.stills.capturing)
-    assert.equal(elements['sidebar-recording-action'].textContent, microcopy.dashboard.stills.pauseFor10Min)
-
-    await elements['sidebar-recording-action'].click()
-    await flushPromises()
-
-    assert.equal(pauseCalls.length, 1)
-    assert.equal(elements['sidebar-recording-status'].textContent, microcopy.dashboard.stills.paused)
-    assert.equal(elements['sidebar-recording-action'].textContent, 'Resume')
-
-    await elements['sidebar-recording-action'].click()
-    await flushPromises()
-
-    assert.equal(startCalls.length, 1)
-    assert.equal(elements['sidebar-recording-status'].textContent, microcopy.dashboard.stills.capturing)
-    assert.equal(elements['sidebar-recording-action'].textContent, microcopy.dashboard.stills.pauseFor10Min)
-  } finally {
-    global.document = priorDocument
-    global.window = priorWindow
-  }
-})
-
-test('stills sidebar shows permission needed and red status dot', async () => {
+test('stills status indicator in capturing tab shows permission needed and red dot', async () => {
   const familiar = createFamiliar({
     getSettings: async () => ({
       contextFolderPath: '/tmp/context',
@@ -1325,9 +1368,8 @@ test('stills sidebar shows permission needed and red status dot', async () => {
     await elements['recording-nav'].click()
     await flushPromises()
 
-    assert.equal(elements['sidebar-recording-status'].textContent, microcopy.recordingIndicator.permissionNeeded)
-    assert.equal(elements['sidebar-recording-dot'].classList.contains('bg-red-500'), true)
-    assert.equal(elements['sidebar-recording-permission'].classList.contains('hidden'), true)
+    assert.equal(elements['recording-status'].textContent, microcopy.recordingIndicator.permissionNeeded)
+    assert.equal(elements['recording-status-dot'].classList.contains('bg-red-500'), true)
   } finally {
     global.document = priorDocument
     global.window = priorWindow
@@ -1439,6 +1481,126 @@ test('check for updates reports no update when latest matches current', async ()
     assert.equal(updateCalls.length, 1)
     assert.equal(elements['updates-status'].textContent, microcopy.dashboard.updates.statusNoUpdatesFound)
   } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('storage picker surface opens folder picker and updates truncated display with full-path tooltip', async () => {
+  const fullPath = '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot'
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '',
+      wizardCompleted: true
+    }),
+    pickContextFolder: async () => ({ canceled: false, path: fullPath })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['context-folder-picker-surface'].click()
+    await flushPromises()
+
+    assert.equal(elements['context-folder-status'].textContent, microcopy.dashboard.settings.statusSaved)
+    assert.equal(elements['context-folder-path'].value, '.../Perfect Lefts Copilot/familiar')
+    assert.equal(
+      elements['context-folder-picker-surface'].title,
+      '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar'
+    )
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('status messages auto-clear after 5 seconds', async () => {
+  const timers = createFakeTimers()
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '/tmp/context',
+      wizardCompleted: true
+    }),
+    pickContextFolder: async () => ({ canceled: false, path: '/tmp/next-context' })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['context-folder-choose'].click()
+    await flushPromises()
+
+    assert.equal(elements['context-folder-status'].textContent, microcopy.dashboard.settings.statusSaved)
+    timers.advanceBy(4999)
+    assert.equal(elements['context-folder-status'].textContent, microcopy.dashboard.settings.statusSaved)
+
+    timers.advanceBy(1)
+    assert.equal(elements['context-folder-status'].textContent, '')
+    assert.equal(elements['context-folder-status'].classList.contains('hidden'), true)
+  } finally {
+    timers.restore()
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('newer status messages are not cleared by older timers', async () => {
+  const timers = createFakeTimers()
+  let resolveCheck = null
+  const familiar = createFamiliar({
+    checkForUpdates: async () =>
+      new Promise((resolve) => {
+        resolveCheck = resolve
+      })
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    const clickPromise = elements['updates-check'].click()
+    await flushPromises()
+    assert.equal(elements['updates-status'].textContent, microcopy.dashboard.updates.statusCheckingForUpdates)
+
+    timers.advanceBy(1000)
+    resolveCheck({ ok: true, updateInfo: { version: '0.0.4' }, currentVersion: '0.0.4' })
+    await clickPromise
+    await flushPromises()
+    assert.equal(elements['updates-status'].textContent, microcopy.dashboard.updates.statusNoUpdatesFound)
+
+    timers.advanceBy(4000)
+    assert.equal(elements['updates-status'].textContent, microcopy.dashboard.updates.statusNoUpdatesFound)
+
+    timers.advanceBy(1000)
+    assert.equal(elements['updates-status'].textContent, '')
+  } finally {
+    timers.restore()
     global.document = priorDocument
     global.window = priorWindow
   }

@@ -74,6 +74,26 @@ test('apple-vision-ocr script: buildMarkdownLayoutFromOcr emits stable familiar 
     assert.ok(markdown.includes('- "Second line"\n'));
 });
 
+test('apple-vision-ocr script: buildMarkdownLayoutFromOcr includes visible window names as YAML list', () => {
+    const markdown = buildMarkdownLayoutFromOcr({
+        imagePath: '/some/dir/screenshot.png',
+        meta: {
+            image_width: 640,
+            image_height: 480,
+            level: 'accurate',
+            languages: ['en-US'],
+            uses_language_correction: true,
+            min_confidence: 0.0,
+        },
+        lines: ['Hello'],
+        visibleWindowNames: ['Code', 'Google Chrome'],
+    });
+
+    assert.ok(markdown.includes('visible_windows:\n'));
+    assert.ok(markdown.includes('  - "Code"\n'));
+    assert.ok(markdown.includes('  - "Google Chrome"\n'));
+});
+
 test('apple-vision-ocr script: escapeForQuotedBullet escapes backslashes and quotes', () => {
     assert.equal(escapeForQuotedBullet(String.raw`a\b`), String.raw`a\\b`);
     assert.equal(escapeForQuotedBullet('a"b'), 'a\\"b');

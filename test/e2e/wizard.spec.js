@@ -54,7 +54,6 @@ const completeWizardPermissionsStep = async (window, nextButton) => {
 }
 
 const installWizardSkill = async (window) => {
-  const skillInstallButton = window.locator('#wizard-skill-install')
   const skillStatus = window.locator('#wizard-skill-status')
   const wizardStepThree = window.locator('[data-wizard-step="3"]')
   const codexHarnessOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Codex' })
@@ -64,14 +63,11 @@ const installWizardSkill = async (window) => {
   if (!(await codexHarness.isChecked())) {
     await codexHarnessOption.click()
   }
-  await expect(skillInstallButton).toBeEnabled()
-  await skillInstallButton.click()
   await expect(skillStatus).toContainText('Installed')
 }
 
 const openCloudCoWorkGuide = async (window) => {
   const wizardStepThree = window.locator('[data-wizard-step="3"]')
-  const skillInstallButton = window.locator('#wizard-skill-install')
   const skillStatus = window.locator('#wizard-skill-status')
   const cloudCoWorkOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Claude Cowork' })
   const cloudCoWorkHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="cloud-cowork"]')
@@ -83,11 +79,8 @@ const openCloudCoWorkGuide = async (window) => {
     await cloudCoWorkOption.click()
   }
 
-  await expect(skillInstallButton).toBeEnabled()
-  await skillInstallButton.click()
-
   await expect(guideContainer).toBeVisible()
-  await expect(guideContainer).toContainText('Add marketplace from Github')
+  await expect(guideContainer).toContainText('Add marketplace from GitHub')
   await expect(guideContainer).toContainText(
     'https://github.com/familiar-software/familiar-claude-cowork-skill'
   )
@@ -98,7 +91,7 @@ const openCloudCoWorkGuide = async (window) => {
   await expect(guideContainer).toBeHidden()
 }
 
-const expectInstallRequiredToAdvance = async (window, nextButton) => {
+const expectAutoInstallAllowsAdvance = async (window, nextButton) => {
   const wizardStepThree = window.locator('[data-wizard-step="3"]')
   const codexHarnessOption = wizardStepThree.locator('.skill-picker-option', { hasText: 'Codex' })
   const codexHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="codex"]')
@@ -108,8 +101,8 @@ const expectInstallRequiredToAdvance = async (window, nextButton) => {
     await codexHarnessOption.click()
   }
 
-  await expect(nextButton).toBeDisabled()
-  await expect(window.locator('#wizard-skill-status')).not.toContainText('Installed')
+  await expect(window.locator('#wizard-skill-status')).toContainText('Installed')
+  await expect(nextButton).toBeEnabled()
 }
 
 const goToFinalWizardStep = async (window, nextButton) => {
@@ -122,6 +115,7 @@ const goToFinalWizardStep = async (window, nextButton) => {
 test('wizard happy flow completes setup and routes to Storage', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
   const { electronApp, settingsDir, skillHomeDir } = launchElectron({
     contextPath,
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
@@ -139,7 +133,7 @@ test('wizard happy flow completes setup and routes to Storage', async () => {
     await expect(nextButton).toBeDisabled()
 
     await window.locator('#wizard-context-folder-choose').click()
-    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(path.resolve(contextPath))
+    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(expectedDisplayPath)
     await expect(nextButton).toBeEnabled()
 
     await nextButton.click()
@@ -148,6 +142,11 @@ test('wizard happy flow completes setup and routes to Storage', async () => {
 
     await installWizardSkill(window)
     await goToFinalWizardStep(window, nextButton)
+    await expect(window.getByText('Will it capture passwords or embarrassing searches?')).toBeVisible()
+    await expect(window.locator('[data-wizard-step="4"]')).toContainText('FAQ')
+    await expect(window.locator('[data-wizard-step="4"]')).toContainText(
+      'Will it capture passwords or embarrassing searches?'
+    )
     await expect(doneButton).toBeEnabled()
     await doneButton.click()
 
@@ -169,6 +168,7 @@ test('wizard happy flow completes setup and routes to Storage', async () => {
 test('wizard permission step requires enabling recording', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
   const { electronApp } = launchElectron({
     contextPath,
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
@@ -193,9 +193,10 @@ test('wizard permission step requires enabling recording', async () => {
   }
 })
 
-test('wizard install step requires skill installation before continuing', async () => {
+test('wizard install step auto-installs selected harness and allows continuing', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
   const { electronApp } = launchElectron({
     contextPath,
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
@@ -208,17 +209,15 @@ test('wizard install step requires skill installation before continuing', async 
     const nextButton = window.locator('#wizard-next')
 
     await window.locator('#wizard-context-folder-choose').click()
-    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(path.resolve(contextPath))
+    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(expectedDisplayPath)
     await nextButton.click()
 
     await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()
     await completeWizardPermissionsStep(window, nextButton)
     await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
 
-    await expectInstallRequiredToAdvance(window, nextButton)
+    await expectAutoInstallAllowsAdvance(window, nextButton)
     await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
-
-    await installWizardSkill(window)
     await expect(nextButton).toBeEnabled()
     await nextButton.click()
     await expect(window.locator('[data-wizard-step="4"]')).toBeVisible()

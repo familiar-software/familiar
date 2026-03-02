@@ -213,7 +213,7 @@ const escapeForQuotedBullet = (value) => {
     return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 };
 
-const buildMarkdownLayoutFromOcr = ({ imagePath, meta, lines } = {}) => {
+const buildMarkdownLayoutFromOcr = ({ imagePath, meta, lines, visibleWindowNames } = {}) => {
     const width = Number(meta?.image_width) || null;
     const height = Number(meta?.image_height) || null;
     const resolution = width && height ? `${width}x${height}` : 'unknown';
@@ -238,6 +238,19 @@ const buildMarkdownLayoutFromOcr = ({ imagePath, meta, lines } = {}) => {
         normalizedLines.length > 0 ? normalizedLines : ['NO_TEXT_DETECTED'];
 
     const ocrBullets = ocrLines.map((line) => `- "${escapeForQuotedBullet(line)}"`).join('\n');
+    const normalizedVisibleWindowNames =
+        Array.isArray(visibleWindowNames) ?
+            visibleWindowNames.filter((item) => typeof item === 'string') :
+            [];
+    const visibleWindowLines =
+        normalizedVisibleWindowNames.length > 0
+            ? [
+                'visible_windows:',
+                ...normalizedVisibleWindowNames.map(
+                    (name) => `  - "${escapeForQuotedBullet(String(name))}"`
+                )
+            ]
+            : ['visible_windows: []'];
 
     const basename = imagePath ? path.basename(imagePath) : 'unknown';
 
@@ -257,6 +270,7 @@ const buildMarkdownLayoutFromOcr = ({ imagePath, meta, lines } = {}) => {
         `ocr_languages: ${languages}`,
         `ocr_uses_language_correction: ${usesCorrection ? 'true' : 'false'}`,
         minConfidence === undefined ? null : `ocr_min_confidence: ${minConfidence}`,
+        ...visibleWindowLines,
         '---',
         '# Layout Map',
         `SCREEN ${resolution}`,

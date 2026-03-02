@@ -19,12 +19,10 @@
 
     const {
       skillHarnessInputs = [],
-      skillInstallButtons = [],
       skillInstallStatuses = [],
       skillInstallErrors = [],
       skillInstallPaths = [],
       skillCursorRestartNotes = [],
-      skillInstallButton,
       skillInstallStatus,
       skillInstallError,
       skillInstallPath,
@@ -38,10 +36,6 @@
       return value ? [value] : []
     }
 
-    const allSkillInstallButtons = [
-      ...toArray(skillInstallButtons),
-      ...toArray(skillInstallButton)
-    ]
     const allSkillInstallStatuses = [
       ...toArray(skillInstallStatuses),
       ...toArray(skillInstallStatus)
@@ -170,19 +164,6 @@
       setError('')
     }
 
-    const updateInstallButtonState = () => {
-      const selectedHarnesses = getCurrentHarnesses()
-      const installableHarnesses = getInstallableHarnesses(selectedHarnesses)
-      const manualHarnesses = getManualGuideHarnesses(selectedHarnesses)
-      const canInstall =
-        selectedHarnesses.length > 0 &&
-        ((installableHarnesses.length > 0 && hasInstallerApi) ||
-          (manualHarnesses.length > 0 && hasCloudCoWorkGuide))
-      for (const button of allSkillInstallButtons) {
-        button.disabled = !canInstall
-      }
-    }
-
     const checkInstallStatus = async (harnessesInput) => {
       const selectedHarnesses = normalizeHarnesses(harnessesInput)
       const installableHarnesses = getInstallableHarnesses(selectedHarnesses)
@@ -192,7 +173,6 @@
         clearInstallPath()
         clearMessages()
         setSkillInstalled(false)
-        updateInstallButtonState()
         updateWizardUI()
         return { ok: true, installed: false, installPaths: {} }
       }
@@ -200,13 +180,11 @@
         clearInstallPath()
         clearMessages()
         setSkillInstalled(false)
-        updateInstallButtonState()
         updateWizardUI()
         return { ok: true, installed: false, installPaths: {} }
       }
       if (!hasInstallerApi) {
         setError(microcopy.dashboard.wizardSkill.messages.installerUnavailableRestart)
-        updateInstallButtonState()
         updateWizardUI()
         return { ok: false }
       }
@@ -282,7 +260,6 @@
         setError(microcopy.dashboard.wizardSkill.messages.failedToCheckSkillInstallation)
         return { ok: false }
       } finally {
-        updateInstallButtonState()
         updateWizardUI()
       }
     }
@@ -302,7 +279,6 @@
         setSkillHarness('')
       }
       syncHarnessSelection(selectedHarnesses)
-      updateInstallButtonState()
       if (!hasInstallerApi && getInstallableHarnesses(selectedHarnesses).length > 0) {
         setError(microcopy.dashboard.wizardSkill.messages.installerUnavailableRestart)
         return
@@ -312,13 +288,14 @@
         const status = await checkInstallStatus(selectedHarnesses)
         if (status && status.ok) {
           await persistSkillInstaller({ harnesses: selectedHarnesses, installPaths: status.installPaths || {} })
+          await installSelectedHarnesses()
         }
       } else {
         await persistSkillInstaller({ harnesses: [] })
       }
     }
 
-    const handleInstallClick = async () => {
+    const installSelectedHarnesses = async () => {
       const selectedHarnesses = getCurrentHarnesses()
       const installableHarnesses = getInstallableHarnesses(selectedHarnesses)
       const manualHarnesses = getManualGuideHarnesses(selectedHarnesses)
@@ -338,7 +315,6 @@
       clearMessages()
       clearInstallPath()
       setSkillInstalled(false)
-      updateInstallButtonState()
 
       try {
         const installResults = []
@@ -433,7 +409,6 @@
         setStatus('')
         setError(microcopy.dashboard.wizardSkill.messages.failedToInstallSkill)
       } finally {
-        updateInstallButtonState()
         updateWizardUI()
       }
     }
@@ -446,19 +421,11 @@
       input.addEventListener('change', handleHarnessChange)
     })
 
-    allSkillInstallButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        void handleInstallClick()
-      })
-    })
-
     const initialHarnesses = getCurrentHarnesses()
     setCursorRestartNoteVisibility(initialHarnesses)
     if (initialHarnesses.length > 0) {
       syncHarnessSelection(initialHarnesses)
       void checkInstallStatus(initialHarnesses)
-    } else {
-      updateInstallButtonState()
     }
 
     return {

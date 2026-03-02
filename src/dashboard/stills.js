@@ -25,16 +25,11 @@
         })
 
     const {
-      sidebarRecordingDot,
-      sidebarRecordingStatus,
-      sidebarRecordingToggleTrack,
-      sidebarRecordingActionButton,
-      sidebarRecordingPermission,
+      recordingStatusDot,
+      recordingStatus,
       recordingDetails,
       recordingPath,
       recordingOpenFolderButton,
-      recordingStatus,
-      recordingActionButton,
       recordingPermission,
       permissionCheckButtons = [],
       openScreenRecordingSettingsButtons = [],
@@ -71,14 +66,11 @@
     let wizardPermissionState = 'idle'
     let isCheckingPermission = false
 
-    const isCaptureActive = () =>
-      currentScreenStillsState === 'recording' || currentScreenStillsState === 'idleGrace'
-
     const buildStillsPath = (contextFolderPath) =>
       contextFolderPath ? `${contextFolderPath}/familiar/stills` : ''
 
-    const updateSidebarStatus = (alwaysEnabled) => {
-      if (!sidebarRecordingStatus && !sidebarRecordingDot) {
+    const updateStatusIndicator = (alwaysEnabled) => {
+      if (!recordingStatus && !recordingStatusDot) {
         return
       }
 
@@ -91,34 +83,32 @@
       })
       const label = indicator.label
       const dotClass = indicator.dotClass
-      const togglePausedClass = '!bg-amber-500'
 
-      if (sidebarRecordingStatus) {
-        sidebarRecordingStatus.textContent = label
+      if (recordingStatus) {
+        recordingStatus.textContent = label
       }
-      if (sidebarRecordingDot) {
-        sidebarRecordingDot.classList.remove(
+      if (recordingStatusDot) {
+        recordingStatusDot.classList.remove(
           'bg-zinc-400',
           'bg-emerald-500',
           'bg-amber-500',
           'bg-red-500'
         )
-        sidebarRecordingDot.classList.add(dotClass)
-      }
-      if (sidebarRecordingToggleTrack) {
-        sidebarRecordingToggleTrack.classList.remove(togglePausedClass)
-        if (alwaysEnabled && currentScreenStillsPaused) {
-          sidebarRecordingToggleTrack.classList.add(togglePausedClass)
-        }
+        recordingStatusDot.classList.add(dotClass)
       }
     }
 
     const updatePermissionControls = () => {
-      const showToggle = wizardPermissionState === 'granted'
+      const shouldShowToggleForSection = (section) => {
+        if (section?.dataset?.permissionToggleVisibility === 'always') {
+          return true
+        }
+        return wizardPermissionState === 'granted'
+      }
       const showOpenSettingsButton = wizardPermissionState === 'denied'
 
       for (const section of allPermissionRecordingToggleSections) {
-        section.classList.toggle('hidden', !showToggle)
+        section.classList.toggle('hidden', !shouldShowToggleForSection(section))
       }
 
       for (const button of allPermissionCheckButtons) {
@@ -206,7 +196,7 @@
       const currentAlwaysRecordWhenActive = Boolean(state.currentAlwaysRecordWhenActive)
       const stillsPath = buildStillsPath(currentContextFolderPath)
 
-      updateSidebarStatus(currentAlwaysRecordWhenActive)
+      updateStatusIndicator(currentAlwaysRecordWhenActive)
 
       if (recordingDetails) {
         recordingDetails.classList.toggle('hidden', !currentAlwaysRecordWhenActive)
@@ -226,44 +216,9 @@
         recordingOpenFolderButton.classList.toggle('hidden', !canOpenFolder)
       }
 
-      if (recordingStatus) {
-        if (currentScreenStillsPaused) {
-          recordingStatus.textContent = microcopy.dashboard.stills.paused
-        } else {
-          recordingStatus.textContent = isCaptureActive()
-            ? microcopy.dashboard.stills.capturing
-            : microcopy.dashboard.stills.notCapturing
-        }
-      }
-
-      if (recordingActionButton) {
-        const isActive = isCaptureActive()
-        let label = microcopy.dashboard.stills.startCapture
-        if (currentScreenStillsPaused) {
-          label = microcopy.dashboard.stills.resume
-        } else if (isActive) {
-          label = microcopy.dashboard.stills.pauseFor10Min
-        }
-        recordingActionButton.textContent = label
-        recordingActionButton.disabled = !currentAlwaysRecordWhenActive || !currentContextFolderPath
-      }
-
-      if (sidebarRecordingActionButton) {
-        const isActive = isCaptureActive()
-        let label = microcopy.dashboard.stills.startCapture
-        if (currentScreenStillsPaused) {
-          label = microcopy.dashboard.stills.resume
-        } else if (isActive) {
-          label = microcopy.dashboard.stills.pauseFor10Min
-        }
-        sidebarRecordingActionButton.textContent = label
-        sidebarRecordingActionButton.disabled = !currentAlwaysRecordWhenActive || !currentContextFolderPath
-      }
-
-      const permissionElement = sidebarRecordingPermission || recordingPermission
-      if (permissionElement) {
-        permissionElement.textContent = ''
-        permissionElement.classList.add('hidden')
+      if (recordingPermission) {
+        recordingPermission.textContent = ''
+        recordingPermission.classList.add('hidden')
       }
 
       updatePermissionControls()
@@ -312,7 +267,6 @@
       }
     }
 
-
     const startStatusPoller = () => {
       if (statusPoller) {
         return
@@ -334,26 +288,6 @@
       statusPoller = null
     }
 
-    const handleAction = async () => {
-      if (!familiar.startScreenStills || !familiar.pauseScreenStills) {
-        return
-      }
-      try {
-        if (currentScreenStillsPaused) {
-          await familiar.startScreenStills()
-        } else if (isCaptureActive()) {
-          await familiar.pauseScreenStills()
-        } else {
-          await familiar.startScreenStills()
-        }
-      } catch (error) {
-        console.error('Failed to toggle stills', error)
-      } finally {
-        await refreshStatus()
-        updateStillsUI()
-      }
-    }
-
     const handleOpenFolder = async () => {
       if (!familiar.openStillsFolder) {
         return
@@ -369,21 +303,9 @@
     }
 
     function handleSectionChange(nextSection) {
-      // Sidebar status is always visible, so keep it fresh in any section.
+      // Keep the recording status indicator fresh when sections change.
       void refreshStatus().then(updateStillsUI)
       startStatusPoller()
-    }
-
-    if (recordingActionButton) {
-      recordingActionButton.addEventListener('click', () => {
-        void handleAction()
-      })
-    }
-
-    if (sidebarRecordingActionButton) {
-      sidebarRecordingActionButton.addEventListener('click', () => {
-        void handleAction()
-      })
     }
 
     if (recordingOpenFolderButton) {

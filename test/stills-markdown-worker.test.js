@@ -117,6 +117,51 @@ test('writeMarkdownFile applies redaction before persisting markdown fixture pat
   }
 })
 
+test('writeMarkdownFile drops markdown when scanner indicates sensitive payment data', async () => {
+  const contextFolderPath = await fs.mkdtemp(path.join(os.tmpdir(), 'familiar-markdown-drop-'))
+  const imagePath = path.join(
+    contextFolderPath,
+    'familiar',
+    'stills',
+    'session-123',
+    '2026-02-20T14-22-33-123Z.png'
+  )
+  await fs.mkdir(path.dirname(imagePath), { recursive: true })
+  await fs.writeFile(imagePath, 'fake-image-bytes')
+
+  const outputPath = await require('../src/screen-stills/stills-markdown-worker').writeMarkdownFile({
+    contextFolderPath,
+    imagePath,
+    markdown: 'checkout\n4242 4242 4242',
+    scanAndRedactContentImpl: async ({ content }) => ({
+      content,
+      findings: 0,
+      ruleCounts: {},
+      matchedRuleCounts: {
+        payment_keyword_context: 1,
+        payment_card_number_sequence: 1
+      },
+      matchedDropCategories: {
+        payment_keyword: 1,
+        payment_card_number: 1
+      },
+      dropContent: true,
+      dropReason: 'payment-keyword-and-card-number',
+      redactionBypassed: false
+    })
+  })
+
+  assert.equal(outputPath, null)
+  const expectedOutputPath = path.join(
+    contextFolderPath,
+    'familiar',
+    'stills-markdown',
+    'session-123',
+    '2026-02-20T14-22-33-123Z.md'
+  )
+  assert.equal(fsSync.existsSync(expectedOutputPath), false)
+})
+
 test('stills markdown worker does nothing on empty queue', async () => {
   const calls = { extract: 0, processing: 0 }
   const queue = {
@@ -284,6 +329,54 @@ test('stills markdown worker processes a batch and writes outputs', async () => 
 
   assert.equal(done.length, 2)
   assert.equal(failed.length, 0)
+})
+
+test('stills markdown worker marks frame failed when markdown is dropped by sensitive payment policy', async () => {
+  const done = []
+  const failed = []
+  let batchCalls = 0
+  const batch = [{ id: 1, image_path: '/tmp/a.webp' }]
+  const queue = {
+    requeueStaleProcessing: () => 0,
+    getPendingBatch: () => {
+      batchCalls += 1
+      return batchCalls === 1 ? batch : []
+    },
+    markProcessing: () => {},
+    markDone: ({ id, markdownPath }) => done.push({ id, markdownPath }),
+    markFailed: ({ id, error }) => failed.push({ id, error }),
+    close: () => {}
+  }
+
+  const createExtractorImpl = () => ({
+    type: 'stub',
+    execution: { maxParallelBatches: Infinity },
+    canRun: async () => ({ ok: true }),
+    extractBatch: async ({ rows }) => new Map(rows.map((row) => [
+      String(row.id),
+      { markdown: `Markdown ${row.id}`, providerLabel: 'stub', modelLabel: 'stub' }
+    ]))
+  })
+
+  const worker = createStillsMarkdownWorker({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    pollIntervalMs: 0,
+    runImmediately: false,
+    isOnlineImpl: async () => true,
+    loadSettingsImpl: () => ({}),
+    createQueueImpl: () => queue,
+    createExtractorImpl,
+    writeMarkdownFileImpl: async () => null
+  })
+
+  worker.start({ contextFolderPath: '/tmp' })
+  await worker.runOnce()
+  worker.stop()
+
+  assert.equal(done.length, 0)
+  assert.equal(failed.length, 1)
+  assert.equal(failed[0].id, 1)
+  assert.equal(failed[0].error, 'dropped-by-sensitive-payment-detection')
 })
 
 test('stills markdown worker processes multiple batches per tick', async () => {

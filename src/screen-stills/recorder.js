@@ -4,13 +4,20 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { isScreenRecordingPermissionGranted } = require('../screen-capture/permissions');
+const { createLowPowerModeMonitor } = require('../screen-capture/low-power-mode');
 const { createSessionStore } = require('./session-store');
 const { createStillsQueue } = require('./stills-queue');
+const {
+  createActiveWindowDetector,
+  detectWindowSnapshot,
+  resolveCaptureAppContext
+} = require('./on-screen-apps-detector');
 
 const CAPTURE_CONFIG = Object.freeze({
   format: 'webp',
   scale: 0.5,
-  intervalSeconds: 4
+  intervalSeconds: 5,
+  lowPowerModeIntervalSeconds: 15
 });
 
 const START_TIMEOUT_MS = 10000;
@@ -79,6 +86,7 @@ function normalizeDataUrl(dataUrl) {
   return `data:image/${mime};base64,${base64Payload}`;
 }
 
+
 function resolveIntervalMs({ options, logger }) {
   if (Number.isFinite(options.intervalSeconds) && options.intervalSeconds > 0) {
     return Math.round(options.intervalSeconds * 1000);
@@ -100,7 +108,19 @@ function resolveIntervalMs({ options, logger }) {
 
 function createRecorder(options = {}) {
   const logger = options.logger || console;
+  const scheduler = options.scheduler || {
+    setInterval,
+    clearInterval
+  };
+  const createActiveWindowDetectorImpl = options.createActiveWindowDetectorImpl || createActiveWindowDetector;
+  const hasE2EIntervalOverride =
+    process.env.FAMILIAR_E2E === '1' &&
+    Number.isFinite(Number.parseInt(process.env.FAMILIAR_E2E_STILLS_INTERVAL_MS, 10)) &&
+    Number.parseInt(process.env.FAMILIAR_E2E_STILLS_INTERVAL_MS, 10) > 0;
   const intervalMs = resolveIntervalMs({ options, logger });
+  const usesFixedInterval = Number.isFinite(options.intervalSeconds) && options.intervalSeconds > 0;
+  const lowPowerModeAdaptiveIntervalEnabled = !usesFixedInterval && !hasE2EIntervalOverride;
+  const lowPowerModeMonitor = options.lowPowerModeMonitor || createLowPowerModeMonitor({ logger });
 
   let captureWindow = null;
   let windowReadyPromise = null;
@@ -113,6 +133,8 @@ function createRecorder(options = {}) {
   let stopInProgress = null;
   let sourceDetails = null;
   let queueStore = null;
+  let captureLoopIntervalMs = null;
+  const activeWindowDetector = createActiveWindowDetectorImpl({ logger });
 
   function isCaptureAlreadyInProgressError(error) {
     const message = error?.message || '';
@@ -605,25 +627,41 @@ function createRecorder(options = {}) {
     return sourceDetails;
   }
 
-  function scheduleCaptureLoop() {
-    if (captureTimer) {
-      clearInterval(captureTimer);
+  function resolveCaptureLoopIntervalMs() {
+    if (!lowPowerModeAdaptiveIntervalEnabled) {
+      return intervalMs;
     }
-    captureTimer = setInterval(function () {
+    return lowPowerModeMonitor.isLowPowerModeEnabled()
+      ? CAPTURE_CONFIG.lowPowerModeIntervalSeconds * 1000
+      : intervalMs;
+  }
+
+  function scheduleCaptureLoop(reason = 'schedule') {
+    const nextIntervalMs = resolveCaptureLoopIntervalMs();
+    if (captureTimer && captureLoopIntervalMs === nextIntervalMs) {
+      return;
+    }
+    if (captureTimer) {
+      scheduler.clearInterval(captureTimer);
+    }
+    captureLoopIntervalMs = nextIntervalMs;
+    captureTimer = scheduler.setInterval(function () {
       captureNext().catch(function (error) {
         logger.error('Failed to capture still', error);
       });
-    }, intervalMs);
+    }, nextIntervalMs);
     if (typeof captureTimer.unref === 'function') {
       captureTimer.unref();
     }
+    logger.log('Stills capture interval scheduled', { intervalMs: nextIntervalMs, reason });
   }
 
   function clearCaptureLoop() {
     if (captureTimer) {
-      clearInterval(captureTimer);
+      scheduler.clearInterval(captureTimer);
       captureTimer = null;
     }
+    captureLoopIntervalMs = null;
   }
 
   async function captureNext() {
@@ -640,7 +678,16 @@ function createRecorder(options = {}) {
     const filePath = path.join(sessionStore.sessionDir, nextCapture.fileName);
 
     try {
+      let captureAppContext = {
+        appName: null,
+        appBundleId: null,
+        appTitle: null,
+        appLabelSource: null,
+        visibleWindowNames: []
+      };
+
       if (!IS_E2E_FAKE_CAPTURE) {
+        const beforeSnapshot = await detectWindowSnapshot({ activeWindowDetector });
         const requestId = randomUUID();
         const activeSourceDetails = await ensureCaptureSource('capture-tick');
         const window = await ensureWindowReady();
@@ -659,6 +706,12 @@ function createRecorder(options = {}) {
           timeoutMs: STOP_TIMEOUT_MS,
           expectedStatuses: ['captured']
         });
+        const afterSnapshot = await detectWindowSnapshot({ activeWindowDetector });
+        captureAppContext = resolveCaptureAppContext({
+          logger,
+          beforeSnapshot,
+          afterSnapshot
+        });
         sourceDetails = activeSourceDetails || sourceDetails;
       } else {
         createFakeCaptureFile(filePath);
@@ -668,7 +721,12 @@ function createRecorder(options = {}) {
           queueStore.enqueueCapture({
             imagePath: filePath,
             sessionId: sessionStore.sessionId,
-            capturedAt: nextCapture.capturedAt
+            capturedAt: nextCapture.capturedAt,
+            appName: captureAppContext.appName,
+            appBundleId: captureAppContext.appBundleId,
+            appTitle: captureAppContext.appTitle,
+            appLabelSource: captureAppContext.appLabelSource,
+            visibleWindowNames: captureAppContext.visibleWindowNames
           });
         } catch (error) {
           logger.error('Failed to enqueue still capture', { error, filePath });
@@ -702,6 +760,8 @@ function createRecorder(options = {}) {
       }
 
       async function startOnce() {
+        lowPowerModeMonitor.start();
+
         const initialSourceDetails = IS_E2E_FAKE_CAPTURE
           ? {
               sourceId: 'e2e-fake-source',
@@ -733,9 +793,10 @@ function createRecorder(options = {}) {
           }
           sourceDetails = initialSourceDetails;
           await captureNext();
-          scheduleCaptureLoop();
+          scheduleCaptureLoop('start');
           return { ok: true, sessionId: sessionStore.sessionId, sessionDir: sessionStore.sessionDir };
         } catch (error) {
+          lowPowerModeMonitor.stop();
           if (queueStore) {
             queueStore.close();
             queueStore = null;
@@ -794,6 +855,7 @@ function createRecorder(options = {}) {
         queueStore.close();
         queueStore = null;
       }
+      lowPowerModeMonitor.stop();
       logger.log('Recording session stopped', { reason: stopReason });
 
       if (!sessionStore && !captureWindow) {
@@ -844,6 +906,19 @@ function createRecorder(options = {}) {
   } else {
     logger.warn('IPC unavailable; recording status listener not registered');
   }
+
+  lowPowerModeMonitor.on('change', function (payload = {}) {
+    const enabled = payload.enabled === true;
+    logger.log('Applying Low Power Mode capture interval', {
+      enabled,
+      intervalMs: enabled
+        ? CAPTURE_CONFIG.lowPowerModeIntervalSeconds * 1000
+        : CAPTURE_CONFIG.intervalSeconds * 1000
+    });
+    if (sessionStore && lowPowerModeAdaptiveIntervalEnabled) {
+      scheduleCaptureLoop('low-power-mode-change');
+    }
+  });
 
   return {
     start,

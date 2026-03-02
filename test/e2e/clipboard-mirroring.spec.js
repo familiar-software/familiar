@@ -37,7 +37,12 @@ test.describe('clipboard mirroring', () => {
     try {
       await electronApp.evaluate(({ clipboard }) => {
         globalThis.__FAMILIAR_TEST_CLIPBOARD_TEXT = ''
+        globalThis.__FAMILIAR_TEST_CLIPBOARD_IMAGE = null
         clipboard.readText = () => globalThis.__FAMILIAR_TEST_CLIPBOARD_TEXT
+        clipboard.readImage = () => ({
+          isEmpty: () => !globalThis.__FAMILIAR_TEST_CLIPBOARD_IMAGE,
+          toPNG: () => globalThis.__FAMILIAR_TEST_CLIPBOARD_IMAGE || Buffer.alloc(0)
+        })
       })
 
       const window = await electronApp.firstWindow()
@@ -45,7 +50,7 @@ test.describe('clipboard mirroring', () => {
 
       // Configure context folder.
       await window.getByRole('tab', { name: 'Storage' }).click()
-      await window.locator('#context-folder-choose').click()
+      await window.locator('#context-folder-picker-surface').click()
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       // Enable recording while active (required for manual start).
@@ -120,14 +125,19 @@ test.describe('clipboard mirroring', () => {
     try {
       await electronApp.evaluate(({ clipboard }) => {
         globalThis.__FAMILIAR_TEST_CLIPBOARD_TEXT = ''
+        globalThis.__FAMILIAR_TEST_CLIPBOARD_IMAGE = null
         clipboard.readText = () => globalThis.__FAMILIAR_TEST_CLIPBOARD_TEXT
+        clipboard.readImage = () => ({
+          isEmpty: () => !globalThis.__FAMILIAR_TEST_CLIPBOARD_IMAGE,
+          toPNG: () => globalThis.__FAMILIAR_TEST_CLIPBOARD_IMAGE || Buffer.alloc(0)
+        })
       })
 
       const window = await electronApp.firstWindow()
       await window.waitForLoadState('domcontentloaded')
 
       await window.getByRole('tab', { name: 'Storage' }).click()
-      await window.locator('#context-folder-choose').click()
+      await window.locator('#context-folder-picker-surface').click()
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       const enableResult = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: true }))
@@ -210,7 +220,7 @@ test.describe('clipboard mirroring', () => {
       await window.waitForLoadState('domcontentloaded')
 
       await window.getByRole('tab', { name: 'Storage' }).click()
-      await window.locator('#context-folder-choose').click()
+      await window.locator('#context-folder-picker-surface').click()
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       const extractorResult = await window.evaluate(() =>

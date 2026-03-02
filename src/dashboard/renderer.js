@@ -179,8 +179,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
 
     const copyEntries = [
       ['section-title', microcopy.dashboard.sections.storage.title],
-      ['section-subtitle', microcopy.dashboard.sections.storage.subtitle],
-      ['sidebar-recording-action', microcopy.dashboard.stills.pauseFor10Min]
+      ['section-subtitle', microcopy.dashboard.sections.storage.subtitle]
     ]
     for (const [id, value] of copyEntries) {
       const element = document.getElementById(id)
@@ -210,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const wizardStepIndicators = selectAll('[data-wizard-step-indicator]')
   const wizardStepConnectors = selectAll('[data-wizard-step-connector]')
   const skillHarnessInputs = selectAll('[data-skill-harness]')
-  const skillInstallButtons = selectAll('[data-action="skill-install"]')
   const skillInstallStatuses = selectAll('[data-skill-install-status]')
   const skillInstallErrors = selectAll('[data-skill-install-error]')
   const skillInstallPaths = selectAll('[data-skill-install-path]')
@@ -225,6 +223,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
 
   const contextFolderInputs = selectAll('[data-setting="context-folder-path"]')
   const contextFolderChooseButtons = selectAll('[data-action="context-folder-choose"]')
+  const contextFolderPickerSurfaces = selectAll('[data-action="context-folder-picker-surface"]')
+  const storageContextFolderInput = document.getElementById('context-folder-path')
   const contextFolderErrors = selectAll('[data-setting-error="context-folder-error"]')
   const contextFolderStatuses = selectAll('[data-setting-status="context-folder-status"]')
   const copyLogButtons = selectAll('[data-action="copy-debug-log"]')
@@ -235,17 +235,12 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const storageAutoCleanupRetentionSelects = selectAll(
     '[data-setting="storage-auto-cleanup-retention-days"]'
   )
-  const storageUsageTotalLabel = document.getElementById('storage-usage-total')
   const storageUsageLoadingContainer = document.getElementById('storage-usage-loading')
   const storageUsageLoadedContainer = document.getElementById('storage-usage-loaded')
   const storageUsageLoadingIndicator = document.getElementById('storage-usage-loading-indicator')
   const storageUsageComputingTag = document.getElementById('storage-usage-computing-tag')
   const storageUsageScreenshotsValueLabel = document.getElementById('storage-usage-value-screenshots')
   const storageUsageSteelsMarkdownValueLabel = document.getElementById('storage-usage-value-steels-markdown')
-  const storageUsageSystemValueLabel = document.getElementById('storage-usage-value-system')
-  const storageUsageScreenshotsBar = document.getElementById('storage-usage-bar-screenshots')
-  const storageUsageSteelsMarkdownBar = document.getElementById('storage-usage-bar-steels-markdown')
-  const storageUsageSystemBar = document.getElementById('storage-usage-bar-system')
   const storageUsageStatus = document.getElementById('storage-usage-status')
   const storageUsageError = document.getElementById('storage-usage-error')
   const storageUsageStatuses = storageUsageStatus ? [storageUsageStatus] : []
@@ -264,11 +259,9 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const alwaysRecordWhenActiveInputs = selectAll('[data-setting="always-record-when-active"]')
   const alwaysRecordWhenActiveErrors = selectAll('[data-setting-error="always-record-when-active-error"]')
   const alwaysRecordWhenActiveStatuses = selectAll('[data-setting-status="always-record-when-active-status"]')
-  const sidebarRecordingDot = document.getElementById('sidebar-recording-dot')
-  const sidebarRecordingStatus = document.getElementById('sidebar-recording-status')
-  const sidebarRecordingToggleTrack = document.getElementById('sidebar-recording-toggle-track')
-  const sidebarRecordingActionButton = document.getElementById('sidebar-recording-action')
-  const sidebarRecordingPermission = document.getElementById('sidebar-recording-permission')
+  const recordingHeaderStatus = document.getElementById('recording-header-status')
+  const recordingStatusDot = document.getElementById('recording-status-dot')
+  const recordingStatus = document.getElementById('recording-status')
   const recordingDetails = document.getElementById('recording-details')
   const recordingPath = document.getElementById('recording-path')
   const recordingOpenFolderButton = document.getElementById('recording-open-folder')
@@ -307,6 +300,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const state = createDashboardState({
     elements: {
       contextFolderInputs,
+      storageContextFolderInput,
+      contextFolderPickerSurfaces,
       llmProviderSelects,
       llmKeyInputs,
       stillsMarkdownExtractorSelects,
@@ -415,6 +410,11 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     if (settingsHeader) {
       settingsHeader.classList.toggle('hidden', isWizard)
     }
+    if (recordingHeaderStatus) {
+      const showRecordingHeaderStatus = !isWizard && nextSection === 'recording'
+      recordingHeaderStatus.classList.toggle('hidden', !showRecordingHeaderStatus)
+      recordingHeaderStatus.classList.toggle('flex', showRecordingHeaderStatus)
+    }
     if (settingsContent) {
       settingsContent.classList.toggle('hidden', isWizard)
     }
@@ -492,6 +492,46 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     })
   }
 
+  const MESSAGE_AUTO_CLEAR_TIMEOUT_MS = 5000
+  const messageTimeoutState = new WeakMap()
+  let nextMessageTimeoutToken = 1
+
+  function clearMessageTimeout(element) {
+    if (!element) {
+      return
+    }
+    const state = messageTimeoutState.get(element)
+    if (!state) {
+      return
+    }
+    if (state.timeoutId != null) {
+      clearTimeout(state.timeoutId)
+    }
+    messageTimeoutState.delete(element)
+  }
+
+  function scheduleMessageClear(element, value) {
+    if (!element || !value) {
+      return
+    }
+
+    clearMessageTimeout(element)
+    const token = nextMessageTimeoutToken
+    nextMessageTimeoutToken += 1
+
+    const timeoutId = setTimeout(() => {
+      const currentState = messageTimeoutState.get(element)
+      if (!currentState || currentState.token !== token) {
+        return
+      }
+      element.textContent = ''
+      element.classList.toggle('hidden', true)
+      messageTimeoutState.delete(element)
+    }, MESSAGE_AUTO_CLEAR_TIMEOUT_MS)
+
+    messageTimeoutState.set(element, { timeoutId, token })
+  }
+
   function setMessage(elements, message) {
     const targets = toArray(elements)
     const value = message || ''
@@ -501,6 +541,11 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       }
       element.textContent = value
       element.classList.toggle('hidden', !value)
+      if (!value) {
+        clearMessageTimeout(element)
+        continue
+      }
+      scheduleMessageClear(element, value)
     }
   }
 
@@ -520,7 +565,6 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     window,
     elements: {
       skillHarnessInputs,
-      skillInstallButtons,
       skillInstallStatuses,
       skillInstallErrors,
       skillInstallPaths,
@@ -553,11 +597,8 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   apis.recordingApi = runBootstrapStills({
     window,
     elements: {
-      sidebarRecordingDot,
-      sidebarRecordingStatus,
-      sidebarRecordingToggleTrack,
-      sidebarRecordingActionButton,
-      sidebarRecordingPermission,
+      recordingStatusDot,
+      recordingStatus,
       recordingDetails,
       recordingPath,
       recordingOpenFolderButton,
@@ -583,6 +624,7 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
     elements: {
       appVersionLabel,
       contextFolderChooseButtons,
+      contextFolderPickerSurfaces,
       contextFolderErrors,
       contextFolderStatuses,
       copyLogButtons,
@@ -591,17 +633,12 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
       deleteFilesButtons,
       deleteFilesWindowSelects,
       storageAutoCleanupRetentionSelects,
-      storageUsageTotalLabel,
       storageUsageLoadingContainer,
       storageUsageLoadedContainer,
       storageUsageLoadingIndicator,
       storageUsageComputingTag,
       storageUsageScreenshotsValueLabel,
       storageUsageSteelsMarkdownValueLabel,
-      storageUsageSystemValueLabel,
-      storageUsageScreenshotsBar,
-      storageUsageSteelsMarkdownBar,
-      storageUsageSystemBar,
       storageUsageStatuses,
       storageUsageErrors,
       deleteFilesErrors,

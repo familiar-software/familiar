@@ -8,46 +8,55 @@
     content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
   <link href="./styles.css" rel="stylesheet">
   <style>
-    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card {
+    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card,
+    #recording-always-record-when-active:checked+.wizard-capture-toggle-card {
       border-color: var(--color-indigo-500);
       background-color: color-mix(in oklab, var(--color-indigo-50) 40%, transparent);
       box-shadow: 0 1px 3px 0 #0000001a, 0 1px 2px -1px #0000001a;
     }
 
-    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-icon {
+    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-icon,
+    #recording-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-icon {
       border-color: transparent;
       background-color: var(--color-indigo-100);
       color: var(--color-indigo-600);
     }
 
-    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-off {
+    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-off,
+    #recording-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-off {
       display: none;
     }
 
-    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-on {
+    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-on,
+    #recording-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-on {
       display: block;
     }
 
-    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-switch {
+    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-switch,
+    #recording-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-switch {
       background-color: var(--color-indigo-600);
     }
 
-    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-knob {
+    #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-knob,
+    #recording-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-knob {
       transform: translateX(calc(var(--spacing) * 6));
     }
 
     @media (prefers-color-scheme: dark) {
-      #wizard-always-record-when-active:checked+.wizard-capture-toggle-card {
+      #wizard-always-record-when-active:checked+.wizard-capture-toggle-card,
+      #recording-always-record-when-active:checked+.wizard-capture-toggle-card {
         border-color: color-mix(in oklab, var(--color-indigo-500) 50%, transparent);
         background-color: color-mix(in oklab, var(--color-indigo-500) 10%, transparent);
       }
 
-      #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-icon {
+      #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-icon,
+      #recording-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-icon {
         background-color: color-mix(in oklab, var(--color-indigo-900) 50%, transparent);
         color: var(--color-indigo-400);
       }
 
-      #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-on {
+      #wizard-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-on,
+      #recording-always-record-when-active:checked+.wizard-capture-toggle-card .wizard-capture-toggle-subtitle-on {
         color: var(--color-indigo-400);
       }
     }
@@ -65,46 +74,6 @@
         <span class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100" data-copy-key="dashboard.html.brandName"></span>
         <span id="app-version" class="text-xs font-medium text-zinc-500 dark:text-zinc-400"
           aria-label=""></span>
-      </div>
-
-      <!-- Status (Capture Toggle + Live State) -->
-      <div class="px-3 mb-4">
-        <div class="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-          <div class="flex items-center justify-between gap-2 mb-1">
-            <div class="flex items-center gap-2">
-              <span id="sidebar-recording-dot" class="w-2 h-2 rounded-full bg-zinc-400"></span>
-              <span id="sidebar-recording-status"
-                class="text-xs font-medium text-zinc-700 dark:text-zinc-200" data-copy-key="recordingIndicator.off"></span>
-            </div>
-            <label for="always-record-when-active" class="relative inline-flex items-center cursor-pointer"
-              data-copy-aria-label-key="dashboard.html.sidebarRecordingAriaLabelToggleCapturing" aria-label="">
-              <input id="always-record-when-active" data-setting="always-record-when-active" type="checkbox"
-                class="sr-only peer">
-              <div id="sidebar-recording-toggle-track"
-                class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
-              </div>
-              <div
-                class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5">
-              </div>
-            </label>
-          </div>
-          <button id="sidebar-recording-action" type="button" data-copy-aria-label-key="dashboard.html.sidebarRecordingAriaLabelPauseOrResumeCapturing"
-            class="w-full flex items-center justify-center gap-2 h-7 rounded-md bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="">
-            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
-              aria-hidden="true">
-              <path d="M12 8v4l2 2" />
-              <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            <span data-copy-key="dashboard.html.sidebarRecordingActionPauseFor10Min"></span>
-          </button>
-          <p id="sidebar-recording-permission" class="text-xs text-red-600 dark:text-red-400 hidden pt-2" role="alert"
-            aria-live="polite"></p>
-          <p id="always-record-when-active-error" data-setting-error="always-record-when-active-error"
-            class="text-xs text-red-600 dark:text-red-400 hidden pt-1" role="alert" aria-live="polite"></p>
-          <span id="always-record-when-active-status" data-setting-status="always-record-when-active-status"
-            class="sr-only hidden" aria-live="polite"></span>
-        </div>
       </div>
 
       <nav class="flex-1 px-2 space-y-1" role="tablist" data-copy-aria-label-key="dashboard.html.sidebarAriaLabelSettingsSections" aria-label="">
@@ -171,12 +140,62 @@
           <h2 id="section-title" class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100" data-copy-key="dashboard.sections.storage.title"></h2>
           <p id="section-subtitle" class="text-xs text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.sections.storage.subtitle"></p>
         </div>
+        <div id="recording-header-status"
+          class="hidden items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+          <span id="recording-status-dot" class="w-2 h-2 rounded-full bg-zinc-400"></span>
+          <span id="recording-status" data-copy-key="recordingIndicator.off"></span>
+        </div>
       </div>
 
       <div id="settings-content" class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-slim">
         <section id="section-recording" data-section-pane="recording" role="tabpanel" data-copy-aria-label-key="dashboard.html.recordingAriaLabelCapturingSettings" aria-label=""
           class="hidden flex flex-col min-h-full">
           <div class="space-y-6">
+            <section id="recording-recording-toggle-section" data-role="permission-recording-toggle-section"
+              data-permission-toggle-visibility="always" class="space-y-2">
+              <label for="recording-always-record-when-active" class="relative block w-full cursor-pointer group">
+                  <input id="recording-always-record-when-active" data-setting="always-record-when-active"
+                    type="checkbox" class="sr-only peer">
+                  <div
+                    class="wizard-capture-toggle-card rounded-xl border-2 border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900 p-4 transition-all duration-300
+                    hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800
+                    peer-checked:border-indigo-500 peer-checked:bg-indigo-50/40 dark:peer-checked:border-indigo-500/50 dark:peer-checked:bg-indigo-500/10 peer-checked:shadow-sm">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <div class="wizard-capture-toggle-icon w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300
+                          bg-white dark:bg-black border border-zinc-200 dark:border-zinc-700 text-zinc-400
+                          group-hover:text-zinc-600 dark:group-hover:text-zinc-300
+                          peer-checked:bg-indigo-100 dark:peer-checked:bg-indigo-900/50 peer-checked:border-transparent peer-checked:text-indigo-600 dark:peer-checked:text-indigo-400">
+                          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8"
+                            aria-hidden="true">
+                            <rect x="3" y="7" width="13" height="10" rx="2"></rect>
+                            <path d="M16 10l5-3v10l-5-3z"></path>
+                          </svg>
+                        </div>
+                        <div class="flex flex-col gap-0.5 min-w-0">
+                          <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100" data-copy-key="dashboard.html.recordingCaptureWhileActive"></span>
+                          <span
+                            class="wizard-capture-toggle-subtitle-off text-xs text-zinc-500 dark:text-zinc-400 block peer-checked:hidden transition-opacity" data-copy-key="dashboard.html.recordingActionRequiredToProceed"></span>
+                          <span
+                            class="wizard-capture-toggle-subtitle-on text-xs text-indigo-600 dark:text-indigo-400 hidden peer-checked:block transition-opacity" data-copy-key="dashboard.html.recordingCapturingIsEnabled"></span>
+                        </div>
+                      </div>
+                      <div
+                        class="wizard-capture-toggle-switch relative w-12 h-6 rounded-full bg-zinc-300 dark:bg-zinc-700 transition-colors duration-300 ease-in-out peer-checked:bg-indigo-600 shadow-inner group-hover:bg-zinc-400 dark:group-hover:bg-zinc-600 peer-checked:group-hover:bg-indigo-700">
+                        <div
+                          class="wizard-capture-toggle-knob absolute left-1 top-1 w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 peer-checked:translate-x-6">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </label>
+              <p id="recording-always-record-when-active-error" data-setting-error="always-record-when-active-error"
+                class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
+              <span id="recording-always-record-when-active-status"
+                data-setting-status="always-record-when-active-status"
+                class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
+            </section>
+
             <section class="space-y-2">
               <div class="flex items-center justify-between">
                 <label class="section-label" data-copy-key="dashboard.html.recordingPermissionsLabel"></label>
@@ -191,36 +210,12 @@
                   <p id="recording-open-screen-recording-settings-note" data-open-screen-recording-settings-note
                     class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden" data-copy-key="dashboard.html.recordingAfterEnablingRestartFamiliar"></p>
                 </div>
-                <section id="recording-recording-toggle-section" data-role="permission-recording-toggle-section"
-                  class="space-y-2 hidden">
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="space-y-1">
-                      <label for="recording-always-record-when-active" class="section-label" data-copy-key="dashboard.html.recordingCaptureWhileActive"></label>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input id="recording-always-record-when-active" data-setting="always-record-when-active"
-                        type="checkbox" class="sr-only peer">
-                      <div
-                        class="w-10 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
-                      </div>
-                      <div
-                        class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5">
-                      </div>
-                    </label>
-                  </div>
-                  <p id="recording-always-record-when-active-error" data-setting-error="always-record-when-active-error"
-                    class="text-xs text-red-600 dark:text-red-400 hidden" role="alert" aria-live="polite"></p>
-                  <span id="recording-always-record-when-active-status"
-                    data-setting-status="always-record-when-active-status"
-                    class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
-                </section>
               </div>
             </section>
 
             <section class="space-y-2" data-processing-engine>
               <div class="space-y-1">
-                <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100" data-copy-key="dashboard.html.recordingProcessingTitle"></h3>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.html.recordingProcessingSubtitle"></p>
+                <h3 class="section-label" data-copy-key="dashboard.html.recordingProcessingTitle"></h3>
               </div>
               <div class="flex items-center justify-between">
                 <span id="stills-markdown-extractor-status" data-setting-status="stills-markdown-extractor-status"
@@ -321,8 +316,8 @@
                 <span id="context-folder-status" data-setting-status="context-folder-status"
                   class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></span>
               </div>
-              <div
-                class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+              <div id="context-folder-picker-surface" data-action="context-folder-picker-surface" role="button" tabindex="0" title=""
+                class="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg cursor-pointer focus:outline-none">
                 <div
                   class="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
                   <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -333,10 +328,8 @@
                 </div>
                 <input id="context-folder-path" data-setting="context-folder-path" type="text"
                   data-copy-placeholder-key="dashboard.html.storageContextFolderPlaceholderNoFolderSelected" placeholder="" readonly
-                  class="flex-1 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none">
-                <button id="context-folder-choose" data-action="context-folder-choose" type="button" data-copy-key="dashboard.html.storageContextFolderChange"
-                  class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"></button>
-                <button id="recording-open-folder" type="button" data-copy-key="dashboard.html.storageOpenInFinder"
+                  class="flex-1 min-w-0 bg-transparent text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none truncate cursor-pointer">
+                <button id="recording-open-folder" type="button" data-action="storage-open-folder" data-copy-key="dashboard.html.storageOpenInFinder" title=""
                   class="px-2.5 py-1.5 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hidden"></button>
               </div>
               <p id="context-folder-error" data-setting-error="context-folder-error"
@@ -355,77 +348,22 @@
                   </svg>
                   <span class="text-xs" data-copy-key="dashboard.html.storageUsageCalculating"></span>
                 </div>
-                <span id="storage-usage-total" class="text-xs text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.html.storageUsageTotalZero"></span>
               </div>
 
-              <div id="storage-usage-loading" class="space-y-3 hidden">
-                <div class="w-full h-2.5 rounded-full bg-zinc-200/60 dark:bg-zinc-800/60 animate-pulse"></div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div class="flex items-start gap-2">
-                    <span class="mt-1 w-2 h-2 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse"></span>
-                    <div class="space-y-1">
-                      <div class="h-2.5 w-20 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
-                      <div class="h-2 w-12 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse"></div>
-                    </div>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="mt-1 w-2 h-2 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse"></span>
-                    <div class="space-y-1">
-                      <div class="h-2.5 w-16 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
-                      <div class="h-2 w-10 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse"></div>
-                    </div>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="mt-1 w-2 h-2 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse"></span>
-                    <div class="space-y-1">
-                      <div class="h-2.5 w-24 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
-                      <div class="h-2 w-14 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
+              <div id="storage-usage-loading" class="space-y-2 hidden">
+                <div class="h-2.5 w-52 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                <div class="h-2.5 w-48 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
               </div>
 
-              <div id="storage-usage-loaded" class="space-y-3">
-                <div class="h-2.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden flex">
-                  <div
-                    id="storage-usage-bar-screenshots"
-                    class="h-full bg-indigo-500 transition-all duration-300"
-                    style="width: 0%"
-                    title=""></div>
-                  <div
-                    id="storage-usage-bar-steels-markdown"
-                    class="h-full bg-teal-500 transition-all duration-300"
-                    style="width: 0%"
-                    title=""></div>
-                  <div
-                    id="storage-usage-bar-system"
-                    class="h-full bg-zinc-400 dark:bg-zinc-600 transition-all duration-300"
-                    style="width: 0%"
-                    title=""></div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div class="flex items-start gap-2">
-                    <span class="mt-1 w-2 h-2 rounded-full bg-indigo-500"></span>
-                    <div class="space-y-0.5">
-                      <p class="text-xs font-medium text-zinc-700 dark:text-zinc-300" data-copy-key="dashboard.html.storageUsageLabelScreenshots"></p>
-                      <p id="storage-usage-value-screenshots" class="text-xs text-zinc-500 dark:text-zinc-400"></p>
-                    </div>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="mt-1 w-2 h-2 rounded-full bg-teal-500"></span>
-                    <div class="space-y-0.5">
-                      <p class="text-xs font-medium text-zinc-700 dark:text-zinc-300" data-copy-key="dashboard.html.storageUsageLabelMarkdown"></p>
-                      <p id="storage-usage-value-steels-markdown" class="text-xs text-zinc-500 dark:text-zinc-400"></p>
-                    </div>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="mt-1 w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-600"></span>
-                    <div class="space-y-0.5">
-                      <p class="text-xs font-medium text-zinc-700 dark:text-zinc-300" data-copy-key="dashboard.html.storageUsageLabelSystem"></p>
-                      <p id="storage-usage-value-system" class="text-xs text-zinc-500 dark:text-zinc-400"></p>
-                    </div>
-                  </div>
-                </div>
+              <div id="storage-usage-loaded" class="space-y-1">
+                <p class="text-xs text-zinc-600 dark:text-zinc-400">
+                  <span class="font-medium text-zinc-700 dark:text-zinc-300" data-copy-key="dashboard.html.storageUsageTextFilesUsing"></span>
+                  <span id="storage-usage-value-steels-markdown" class="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100"></span>
+                </p>
+                <p class="text-xs text-zinc-600 dark:text-zinc-400">
+                  <span class="font-medium text-zinc-700 dark:text-zinc-300" data-copy-key="dashboard.html.storageUsageScreenshotsUsing"></span>
+                  <span id="storage-usage-value-screenshots" class="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100"></span>
+                </p>
               </div>
               <span id="storage-usage-status" class="text-xs text-emerald-600 dark:text-emerald-400 hidden"></span>
               <p
@@ -435,35 +373,11 @@
                 aria-live="polite"></p>
             </section>
 
-            <h3 class="section-label" data-copy-key="dashboard.html.storageDangerZone"></h3>
-            <div
-              class="bg-zinc-50 dark:bg-zinc-900 border border-red-300 dark:border-red-900/50 rounded-lg overflow-hidden">
-              <div class="p-4 space-y-3">
-                <div class="space-y-1">
-                  <h4 class="text-xs font-semibold text-zinc-900 dark:text-zinc-100" data-copy-key="dashboard.html.storageDeleteRecentFilesTitle"></h4>
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.html.storageDeleteRecentFilesDescription"></p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <div class="relative">
-                    <select id="storage-delete-window" data-setting="storage-delete-window"
-                      class="appearance-none bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-medium rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-zinc-400/20 cursor-pointer transition-all">
-                      <option value="15m" data-copy-key="dashboard.html.storageDeleteWindow15m"></option>
-                      <option value="1h" data-copy-key="dashboard.html.storageDeleteWindow1h"></option>
-                      <option value="1d" data-copy-key="dashboard.html.storageDeleteWindow1d"></option>
-                      <option value="7d" data-copy-key="dashboard.html.storageDeleteWindow7d"></option>
-                      <option value="all" data-copy-key="dashboard.html.storageDeleteWindowAll"></option>
-                    </select>
-                    <svg viewBox="0 0 24 24"
-                      class="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-                      fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  </div>
-                  <button id="storage-delete-files" data-action="storage-delete-files" type="button" data-copy-key="dashboard.html.storageDeleteFiles"
-                    class="px-3 py-2 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-800 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"></button>
-                </div>
-                <div class="space-y-1">
-                  <h4 class="text-xs font-semibold text-zinc-900 dark:text-zinc-100" data-copy-key="dashboard.html.storageImagesRetentionTitle"></h4>
+            <div class="space-y-2">
+              <h3 class="section-label" data-copy-key="dashboard.html.storageImagesRetentionTitle"></h3>
+                <div
+                class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+                <div class="p-4 space-y-3">
                   <p class="text-xs text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.html.storageImagesRetentionDescription"></p>
                   <div class="relative w-fit">
                     <select
@@ -478,6 +392,35 @@
                       fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                       <path d="m6 9 6 6 6-6" />
                     </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="section-label" data-copy-key="dashboard.html.storageDeleteRecentFilesTitle"></h3>
+              <div
+                class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+                <div class="p-4 space-y-3">
+                  <p class="text-xs text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.html.storageDeleteRecentFilesDescription"></p>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="relative">
+                      <select id="storage-delete-window" data-setting="storage-delete-window"
+                        class="appearance-none bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-medium rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-zinc-400/20 cursor-pointer transition-all">
+                        <option value="15m" data-copy-key="dashboard.html.storageDeleteWindow15m"></option>
+                        <option value="1h" data-copy-key="dashboard.html.storageDeleteWindow1h"></option>
+                        <option value="1d" data-copy-key="dashboard.html.storageDeleteWindow1d"></option>
+                        <option value="7d" data-copy-key="dashboard.html.storageDeleteWindow7d"></option>
+                        <option value="all" data-copy-key="dashboard.html.storageDeleteWindowAll"></option>
+                      </select>
+                      <svg viewBox="0 0 24 24"
+                        class="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+                        fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </div>
+                    <button id="storage-delete-files" data-action="storage-delete-files" type="button" data-copy-key="dashboard.html.storageDeleteFiles"
+                      class="px-3 py-2 text-[11px] font-medium border border-zinc-200 dark:border-zinc-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-800 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"></button>
                   </div>
                 </div>
               </div>
@@ -556,6 +499,10 @@
             <div class="text-center space-y-1">
               <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100" data-copy-key="dashboard.html.wizardChooseContextFolderTitle"></h3>
               <p class="text-xs text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.html.wizardChooseContextFolderDescription"></p>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                <span class="font-semibold text-zinc-700 dark:text-zinc-200" data-copy-key="dashboard.html.wizardChooseContextFolderBestPracticesLabel"></span>
+                <span data-copy-key="dashboard.html.wizardChooseContextFolderBestPractices"></span>
+              </p>
             </div>
             <section class="space-y-2">
               <div class="flex items-center justify-between">
@@ -602,7 +549,7 @@
                 </div>
               </section>
               <section id="wizard-recording-toggle-section" data-role="permission-recording-toggle-section"
-                class="space-y-2 hidden">
+                data-permission-toggle-visibility="granted-only" class="space-y-2 hidden">
                 <label for="wizard-always-record-when-active" class="relative block w-full cursor-pointer group">
                   <input id="wizard-always-record-when-active" data-setting="always-record-when-active" type="checkbox"
                     class="sr-only peer">
@@ -722,10 +669,6 @@
                 class="text-xs text-zinc-500 dark:text-zinc-400 whitespace-pre-line hidden"></p>
               <p id="wizard-skill-status" data-skill-install-status
                 class="text-xs text-emerald-600 dark:text-emerald-400 hidden" aria-live="polite"></p>
-              <div class="flex flex-wrap items-center gap-2">
-                <button id="wizard-skill-install" data-action="skill-install" type="button" data-copy-key="dashboard.html.wizardInstallSkillButton"
-                  class="px-3 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-lg text-white focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"></button>
-              </div>
               <p id="wizard-skill-error" data-skill-install-error class="text-xs text-red-600 dark:text-red-400 hidden"
                 role="alert" aria-live="polite"></p>
               <div id="wizard-cloud-cowork-guide" data-cloud-cowork-guide
@@ -744,6 +687,12 @@
                     <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep4"></li>
                     <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep5"></li>
                     <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep6"></li>
+                    <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep7"></li>
+                    <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep8"></li>
+                    <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep9"></li>
+                    <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep10"></li>
+                    <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep11"></li>
+                    <li data-copy-key="dashboard.html.wizardCloudCoworkGuideStep12"></li>
                   </ol>
                   <div class="flex flex-wrap items-center justify-end gap-2">
                     <button id="wizard-cloud-cowork-copy-link" data-action="cloud-cowork-copy-link" type="button" data-copy-key="dashboard.html.wizardCloudCoworkGuideCopyLink"
@@ -765,6 +714,61 @@
               <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100" data-copy-key="dashboard.html.wizardAllSetTitle"></h3>
               <p class="text-xs text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.html.wizardAllSetDescription"></p>
             </div>
+            <section class="space-y-2">
+              <h4 class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400" data-copy-key="dashboard.html.wizardFaqTitle"></h4>
+              <p
+                class="text-[11px] text-zinc-400 dark:text-zinc-500 text-center"
+                data-copy-key="dashboard.html.wizardFaqScrollHint"></p>
+              <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 group">
+                <summary class="cursor-pointer list-none text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between gap-2">
+                  <span data-copy-key="dashboard.html.wizardFaqQuestionSensitiveData"></span>
+                  <span class="text-zinc-400 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
+                </summary>
+                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300" data-copy-key="dashboard.html.wizardFaqAnswerSensitiveData"></p>
+              </details>
+              <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 group">
+                <summary class="cursor-pointer list-none text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between gap-2">
+                  <span data-copy-key="dashboard.html.wizardFaqQuestionLeavesComputer"></span>
+                  <span class="text-zinc-400 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
+                </summary>
+                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300" data-copy-key="dashboard.html.wizardFaqAnswerLeavesComputer"></p>
+              </details>
+              <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 group">
+                <summary class="cursor-pointer list-none text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between gap-2">
+                  <span data-copy-key="dashboard.html.wizardFaqQuestionStorage"></span>
+                  <span class="text-zinc-400 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
+                </summary>
+                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300" data-copy-key="dashboard.html.wizardFaqAnswerStorage"></p>
+              </details>
+              <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 group">
+                <summary class="cursor-pointer list-none text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between gap-2">
+                  <span data-copy-key="dashboard.html.wizardFaqQuestionPerformance"></span>
+                  <span class="text-zinc-400 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
+                </summary>
+                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300" data-copy-key="dashboard.html.wizardFaqAnswerPerformance"></p>
+              </details>
+              <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 group">
+                <summary class="cursor-pointer list-none text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between gap-2">
+                  <span data-copy-key="dashboard.html.wizardFaqQuestionPauseIdle"></span>
+                  <span class="text-zinc-400 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
+                </summary>
+                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300" data-copy-key="dashboard.html.wizardFaqAnswerPauseIdle"></p>
+              </details>
+              <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 group">
+                <summary class="cursor-pointer list-none text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between gap-2">
+                  <span data-copy-key="dashboard.html.wizardFaqQuestionAudio"></span>
+                  <span class="text-zinc-400 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
+                </summary>
+                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300" data-copy-key="dashboard.html.wizardFaqAnswerAudio"></p>
+              </details>
+              <details class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 group">
+                <summary class="cursor-pointer list-none text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between gap-2">
+                  <span data-copy-key="dashboard.html.wizardFaqQuestionScreenshotFrequency"></span>
+                  <span class="text-zinc-400 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
+                </summary>
+                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300" data-copy-key="dashboard.html.wizardFaqAnswerScreenshotFrequency"></p>
+              </details>
+            </section>
           </div>
         </div>
 

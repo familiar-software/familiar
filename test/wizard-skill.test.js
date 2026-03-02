@@ -50,23 +50,6 @@ class TestInput {
   }
 }
 
-class TestButton {
-  constructor() {
-    this.disabled = false
-    this._listeners = {}
-  }
-
-  addEventListener(event, handler) {
-    this._listeners[event] = handler
-  }
-
-  async click() {
-    if (typeof this._listeners.click === 'function') {
-      await this._listeners.click()
-    }
-  }
-}
-
 const setMessage = (elements, message) => {
   const targets = Array.isArray(elements) ? elements : [elements]
   const value = message || ''
@@ -113,8 +96,6 @@ const createHarness = ({
   const settingsSkillPath = { classList: new ClassList(), textContent: '' }
   const wizardSkillStatus = { classList: new ClassList(), textContent: '' }
   const settingsSkillStatus = { classList: new ClassList(), textContent: '' }
-  const wizardSkillInstallButton = new TestButton()
-  const settingsSkillInstallButton = new TestButton()
   const installCalls = []
   const statusCalls = []
   const saveCalls = []
@@ -158,7 +139,6 @@ const createHarness = ({
         settingsCursor,
         settingsCloudCoWork
       ],
-      skillInstallButtons: [wizardSkillInstallButton, settingsSkillInstallButton],
       skillInstallPaths: [wizardSkillPath, settingsSkillPath],
       skillInstallStatuses: [wizardSkillStatus, settingsSkillStatus],
       skillCursorRestartNotes: [wizardSkillCursorRestartNote, settingsSkillCursorRestartNote]
@@ -206,8 +186,6 @@ const createHarness = ({
     settingsSkillPath,
     wizardSkillStatus,
     settingsSkillStatus,
-    wizardSkillInstallButton,
-    settingsSkillInstallButton,
     installCalls,
     statusCalls,
     saveCalls,
@@ -281,30 +259,28 @@ test('wizard skill shows cursor restart note on init when cursor is in selected 
   }
 })
 
-test('wizard skill shows missing install paths and then a multi-installed status', async () => {
+test('wizard skill auto-installs on selection changes and reports multi-installed status', async () => {
   const priorWindow = global.window
   global.window = {}
-  const statusByHarness = {
-    codex: { ok: true, installed: false, path: '/tmp/.codex/skills/familiar' },
-    cursor: { ok: true, installed: false, path: '/tmp/.cursor/skills/familiar' }
-  }
 
   try {
-    const { codex, cursor, wizardSkillPath, wizardSkillStatus, api } = createHarness({
-      getStatus: ({ harness }) => statusByHarness[harness]
+    const statusByHarness = {
+      codex: { ok: true, installed: false, path: '/tmp/.codex/skills/familiar' },
+      cursor: { ok: true, installed: false, path: '/tmp/.cursor/skills/familiar' }
+    }
+    const { codex, cursor, wizardSkillPath, wizardSkillStatus, installCalls } = createHarness({
+      getStatus: ({ harness }) => statusByHarness[harness],
+      installSkill: async ({ harness }) => {
+        statusByHarness[harness] = { ok: true, installed: true, path: `/tmp/.${harness}/skills/familiar` }
+        return { ok: true, path: `/tmp/.${harness}/skills/familiar` }
+      }
     })
 
     await codex.triggerChange(true)
     await cursor.triggerChange(true)
-    assert.match(wizardSkillPath.textContent, /Install paths:/)
-    assert.match(wizardSkillPath.textContent, /Codex: \/tmp\/\.codex\/skills\/familiar/)
-    assert.match(wizardSkillPath.textContent, /Cursor: \/tmp\/\.cursor\/skills\/familiar/)
-    assert.equal(wizardSkillStatus.textContent, '')
+    await new Promise((resolve) => setImmediate(resolve))
 
-    statusByHarness.codex = { ok: true, installed: true, path: '/tmp/.codex/skills/familiar' }
-    statusByHarness.cursor = { ok: true, installed: true, path: '/tmp/.cursor/skills/familiar' }
-    await api.checkInstallStatus(['codex', 'cursor'])
-
+    assert.deepEqual(installCalls, ['codex', 'codex', 'cursor'])
     assert.equal(wizardSkillPath.textContent, '')
     assert.equal(wizardSkillStatus.textContent, formatters.wizardSkillInstalledFor('Codex, Cursor'))
     assert.equal(wizardSkillStatus.classList.contains('hidden'), false)
@@ -313,36 +289,31 @@ test('wizard skill shows missing install paths and then a multi-installed status
   }
 })
 
-test('wizard skill installs for all selected harnesses on install click', async () => {
+test('wizard skill installs selected harness immediately on selection', async () => {
   const priorWindow = global.window
   global.window = {}
 
   try {
-    const { codex, cursor, wizardSkillInstallButton, installCalls, saveCalls, wizardSkillStatus } = createHarness({
+    const { codex, installCalls, saveCalls, wizardSkillStatus } = createHarness({
       getStatus: ({ harness }) => ({ ok: true, installed: false, path: `/tmp/.${harness}/skills/familiar` }),
       installSkill: async ({ harness }) => ({ ok: true, path: `/tmp/.${harness}/skills/familiar` })
     })
 
     await codex.triggerChange(true)
-    await cursor.triggerChange(true)
-    await wizardSkillInstallButton.click()
     await new Promise((resolve) => setImmediate(resolve))
 
-    assert.deepEqual(installCalls, ['codex', 'cursor'])
-    assert.equal(wizardSkillStatus.textContent, formatters.wizardSkillInstalledFor('Codex, Cursor'))
+    assert.deepEqual(installCalls, ['codex'])
+    assert.equal(wizardSkillStatus.textContent, formatters.wizardSkillInstalledAt('/tmp/.codex/skills/familiar'))
     assert.equal(saveCalls.length > 0, true)
     const latestSave = saveCalls[saveCalls.length - 1]
-    assert.deepEqual(latestSave.skillInstaller.harness, ['codex', 'cursor'])
-    assert.deepEqual(
-      latestSave.skillInstaller.installPath,
-      ['/tmp/.codex/skills/familiar', '/tmp/.cursor/skills/familiar']
-    )
+    assert.deepEqual(latestSave.skillInstaller.harness, ['codex'])
+    assert.deepEqual(latestSave.skillInstaller.installPath, ['/tmp/.codex/skills/familiar'])
   } finally {
     global.window = priorWindow
   }
 })
 
-test('wizard skill opens Claude Cowork guide without calling installer APIs', async () => {
+test('wizard skill opens Claude Cowork guide immediately on selection without calling installer APIs', async () => {
   const priorWindow = global.window
   global.window = {}
 
@@ -350,7 +321,6 @@ test('wizard skill opens Claude Cowork guide without calling installer APIs', as
     const {
       cloudCoWork,
       settingsCloudCoWork,
-      wizardSkillInstallButton,
       installCalls,
       statusCalls,
       saveCalls,
@@ -362,8 +332,6 @@ test('wizard skill opens Claude Cowork guide without calling installer APIs', as
     assert.equal(cloudCoWork.checked, true)
     assert.equal(settingsCloudCoWork.checked, true)
     assert.deepEqual(statusCalls, [])
-
-    await wizardSkillInstallButton.click()
     await new Promise((resolve) => setImmediate(resolve))
 
     assert.deepEqual(installCalls, [])
