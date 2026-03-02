@@ -7,9 +7,10 @@ const {
   STILLS_DIR_NAME,
   STILLS_MARKDOWN_DIR_NAME
 } = require('../const')
+const { formatLocalTimestamp } = require('../utils/timestamp-utils')
 
 function buildTimestamp (date = new Date()) {
-  return date.toISOString().replace(/[:.]/g, '-')
+  return formatLocalTimestamp(date)
 }
 
 function buildClipboardMirrorFilename (date = new Date()) {

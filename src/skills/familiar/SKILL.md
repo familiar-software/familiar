@@ -1,6 +1,6 @@
 ---
 name: familiar
-version: 1.0.1
+version: 1.0.2
 description: Locate, filter and analyze the user's past on-screen behavior when context is needed for brainstorming, documentation, planning, and productivity workflows.
 ---
 
@@ -26,9 +26,9 @@ If the skill is called without any extra inline date/prompt, treat it as if the 
 ## Naming Conventions
 
 - Session name format: `session-<timestamp>`
-- `<timestamp>` is ISO-8601 with `:` and `.` replaced by `-`.
-- Example session: `session-2026-02-05T16-35-35-626Z`
-- Example capture file: `2026-02-05T16-35-35-770Z.md`
+- `<timestamp>` is local time with `:` and `.` replaced by `-`.
+- Example session: `session-2026-02-05T16-35-35-626`
+- Example capture file: `2026-02-05T16-35-35-770.md`
 - Lexicographic order matches chronological order.
 
 ## Content Format

@@ -103,7 +103,9 @@ const listCaptureFiles = (sessionDir) => {
   }
   return fs
     .readdirSync(sessionDir)
-    .filter((entry) => /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.(webp|png|jpg|jpeg)$/i.test(entry))
+    .filter((entry) =>
+      /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z?\.(webp|png|jpg|jpeg)$/i.test(entry)
+    )
     .sort()
 }
 

@@ -4,7 +4,6 @@ const path = require('node:path');
 
 const { loadSettings } = require('../settings');
 const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME } = require('../const');
-const { showToast } = require('../toast');
 
 function getFamiliarFolderPath(contextFolderPath) {
   return path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME);
@@ -34,12 +33,6 @@ async function handleOpenStillsFolder() {
     }
 
     console.log('Opened Familiar folder', { familiarPath });
-    showToast({
-      title: 'Finder opened',
-      body: 'Timestamps in file/folder names are UTC.',
-      type: 'info',
-      duration: 7000
-    });
     return { ok: true };
   } catch (error) {
     console.error('Failed to open Familiar folder', error);

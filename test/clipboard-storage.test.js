@@ -12,6 +12,7 @@ const {
   saveClipboardImageMirrorToDirectory,
   saveClipboardMirrorToDirectory
 } = require('../src/clipboard/storage')
+const { formatLocalTimestamp } = require('../src/utils/timestamp-utils')
 const {
   FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
   STILLS_DIR_NAME,
@@ -22,19 +23,19 @@ test('buildClipboardMirrorFilename uses a stable timestamp format with clipboard
   const date = new Date(Date.UTC(2026, 0, 2, 3, 4, 5, 6))
   const filename = buildClipboardMirrorFilename(date)
 
-  assert.equal(filename, '2026-01-02T03-04-05-006Z.clipboard.txt')
+  assert.equal(filename, `${formatLocalTimestamp(date)}.clipboard.txt`)
 })
 
 test('buildClipboardImageMirrorFilename uses a stable timestamp format with clipboard suffix', () => {
   const date = new Date(Date.UTC(2026, 0, 2, 3, 4, 5, 6))
   const filename = buildClipboardImageMirrorFilename({ date, extension: 'png' })
 
-  assert.equal(filename, '2026-01-02T03-04-05-006Z.clipboard.png')
+  assert.equal(filename, `${formatLocalTimestamp(date)}.clipboard.png`)
 })
 
 test('clipboard filename timestamp prefix matches markdown filename timestamp prefix', () => {
   const date = new Date(Date.UTC(2026, 1, 17, 12, 34, 56, 789))
-  const timestampPrefix = date.toISOString().replace(/[:.]/g, '-')
+  const timestampPrefix = formatLocalTimestamp(date)
   const clipboardFilename = buildClipboardMirrorFilename(date)
   const markdownFilename = `${timestampPrefix}.md`
 

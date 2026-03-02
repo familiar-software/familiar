@@ -53,6 +53,20 @@ test('parseLeadingTimestampMs parses Familiar timestamp prefix with suffix', asy
   })
 })
 
+test('parseLeadingTimestampMs parses local-timestamp prefix with suffix', async () => {
+  await withStorageModule(async ({ storageModule }) => {
+    const parsed = storageModule.parseLeadingTimestampMs('2026-02-17T12-30-45-123.clipboard.txt')
+    assert.equal(parsed, new Date(2026, 1, 17, 12, 30, 45, 123).getTime())
+  })
+})
+
+test('parseSessionTimestampMs parses local timestamp session ids', async () => {
+  await withStorageModule(async ({ storageModule }) => {
+    const parsed = storageModule.parseSessionTimestampMs('session-2026-02-17T12-30-45-123')
+    assert.equal(parsed, new Date(2026, 1, 17, 12, 30, 45, 123).getTime())
+  })
+})
+
 test('collectFilesWithinWindow aborts when root is outside familiar folder', async () => {
   await withStorageModule(async ({ storageModule }) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-storage-collect-'))

@@ -2,6 +2,7 @@ const { BrowserWindow, dialog, ipcMain } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 const { loadSettings } = require('../settings')
+const { parseTimestampMs } = require('../utils/timestamp-utils')
 const {
   FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
   STILLS_DB_FILENAME,
@@ -16,8 +17,8 @@ const {
   getStorageUsageBreakdown
 } = require('../storage/usage-breakdown')
 
-const LEADING_TIMESTAMP_PATTERN = /^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/
-const SESSION_ID_PATTERN = /^session-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)$/
+const LEADING_TIMESTAMP_PATTERN = /^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z?)/
+const SESSION_ID_PATTERN = /^session-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z?)$/
 
 function resolveDeleteWindow(deleteWindow) {
   const requestedWindow =
@@ -77,12 +78,7 @@ function parseLeadingTimestampMs(fileName) {
   if (!match) {
     return null
   }
-  const normalizedIso = match[1].replace(
-    /^(\d{4}-\d{2}-\d{2}T)(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/,
-    '$1$2:$3:$4.$5Z'
-  )
-  const parsed = Date.parse(normalizedIso)
-  return Number.isFinite(parsed) ? parsed : null
+  return parseTimestampMs(match[1])
 }
 
 function parseSessionTimestampMs(sessionId) {
@@ -93,12 +89,7 @@ function parseSessionTimestampMs(sessionId) {
   if (!match) {
     return null
   }
-  const normalizedIso = match[1].replace(
-    /^(\d{4}-\d{2}-\d{2}T)(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/,
-    '$1$2:$3:$4.$5Z'
-  )
-  const parsed = Date.parse(normalizedIso)
-  return Number.isFinite(parsed) ? parsed : null
+  return parseTimestampMs(match[1])
 }
 
 function collectFilesWithinWindow({

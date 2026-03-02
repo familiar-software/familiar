@@ -2,9 +2,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME } = require('../const');
+const { formatLocalTimestamp } = require('../utils/timestamp-utils');
 
 function formatTimestamp(date) {
-  return date.toISOString().replace(/[:.]/g, '-');
+  return formatLocalTimestamp(date);
 }
 
 function getStillsRoot(contextFolderPath) {
