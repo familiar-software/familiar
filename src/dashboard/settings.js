@@ -74,6 +74,18 @@
             }
             return confirmFn(formatters.autoCleanupRetentionConfirm(retentionDays))
           }
+    const confirmMoveContextFolder =
+      typeof options.confirmMoveContextFolder === 'function'
+        ? options.confirmMoveContextFolder
+        : () => {
+            const confirmFn =
+              (typeof globalThis !== 'undefined' && globalThis.window && globalThis.window.confirm) ||
+              (typeof globalThis !== 'undefined' && globalThis.confirm)
+            if (typeof confirmFn !== 'function') {
+              return true
+            }
+            return confirmFn(microcopy.dashboard.settings.confirmMoveContextFolder)
+          }
 
     const {
       appVersionLabel = null,
@@ -183,6 +195,14 @@
       })
       deleteFilesWindowSelects.forEach((select) => {
         select.disabled = !isEnabled
+      })
+    }
+
+    let contextFolderMoveInProgress = false
+    const setContextFolderMoveInProgress = (isMoving) => {
+      contextFolderMoveInProgress = isMoving === true
+      contextFolderChooseButtons.forEach((button) => {
+        button.disabled = contextFolderMoveInProgress
       })
     }
 
@@ -473,6 +493,66 @@
       }
     }
 
+    const moveContextFolderPath = async (nextContextFolderPath) => {
+      if (!isReady) {
+        return false
+      }
+
+      setContextFolderMoveInProgress(true)
+      setMessage(contextFolderStatuses, microcopy.dashboard.settings.statusMovingContextFolder)
+      setMessage(contextFolderErrors, '')
+
+      try {
+        const result = await familiar.moveContextFolder({ contextFolderPath: nextContextFolderPath })
+        if (result && result.ok) {
+          setContextFolderValue(result.contextFolderPath || nextContextFolderPath)
+          if (typeof result.alwaysRecordWhenActive === 'boolean') {
+            setAlwaysRecordWhenActiveValue(result.alwaysRecordWhenActive)
+          }
+          setMessage(contextFolderErrors, '')
+          setMessage(contextFolderStatuses, microcopy.dashboard.settings.statusSaved)
+          if (typeof result.warning === 'string' && result.warning.trim().length > 0) {
+            setMessage(contextFolderErrors, result.warning)
+          }
+          updateDeleteFilesButtonState()
+          await refreshStorageUsage()
+          return true
+        }
+        setMessage(contextFolderStatuses, '')
+        setMessage(
+          contextFolderErrors,
+          result?.message || microcopy.dashboard.settings.errors.failedToMoveContextFolder
+        )
+      } catch (error) {
+        console.error('Failed to move context folder', error)
+        setMessage(contextFolderStatuses, '')
+        setMessage(contextFolderErrors, microcopy.dashboard.settings.errors.failedToMoveContextFolder)
+      } finally {
+        setContextFolderMoveInProgress(false)
+      }
+
+      return false
+    }
+
+    const pickAndMoveContextFolderPath = async () => {
+      try {
+        setMessage(contextFolderStatuses, microcopy.dashboard.settings.statusOpeningFolderPicker)
+        const result = await familiar.pickContextFolder()
+        if (result && !result.canceled && result.path) {
+          await moveContextFolderPath(result.path)
+        } else if (result && result.error) {
+          setMessage(contextFolderStatuses, '')
+          setMessage(contextFolderErrors, result.error)
+        } else {
+          setMessage(contextFolderStatuses, '')
+        }
+      } catch (error) {
+        console.error('Failed to pick context folder', error)
+        setMessage(contextFolderStatuses, '')
+        setMessage(contextFolderErrors, microcopy.dashboard.settings.errors.failedToOpenFolderPicker)
+      }
+    }
+
     const openCurrentContextFolder = async () => {
       try {
         const result = await familiar.openStillsFolder()
@@ -488,6 +568,9 @@
     }
 
     const shouldSkipStoragePickerSurface = (event) => {
+      if (contextFolderMoveInProgress) {
+        return true
+      }
       const eventTarget = event?.target
       if (!eventTarget || typeof eventTarget.closest !== 'function') {
         return false
@@ -497,7 +580,24 @@
 
     if (contextFolderChooseButtons.length > 0) {
       contextFolderChooseButtons.forEach((button) => {
+        const buttonAction = typeof button?.dataset?.action === 'string'
+          ? button.dataset.action
+          : typeof button?.getAttribute === 'function'
+            ? button.getAttribute('data-action')
+            : ''
+        const requiresMoveConfirm = buttonAction === 'storage-open-folder'
         button.addEventListener('click', () => {
+          if (contextFolderMoveInProgress) {
+            return
+          }
+          if (requiresMoveConfirm) {
+            const isConfirmed = confirmMoveContextFolder()
+            if (!isConfirmed) {
+              return
+            }
+            void pickAndMoveContextFolderPath()
+            return
+          }
           void pickAndSaveContextFolderPath()
         })
       })

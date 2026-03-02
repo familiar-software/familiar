@@ -11,7 +11,7 @@ const path = require('node:path');
 const { registerIpcHandlers } = require('./ipc');
 const { showWindow } = require('./utils/window');
 const { ensureHomebrewPath } = require('./utils/path');
-const { loadSettings, saveSettings } = require('./settings');
+const { loadSettings, saveSettings, validateContextFolderPath } = require('./settings');
 const { buildTrayMenuTemplate } = require('./menu');
 const { ensureFamiliarSkillAlignment } = require('./skills/familiar-skill-alignment');
 const { initLogging } = require('./logger');
@@ -38,6 +38,8 @@ const {
     resolveCleanupRetentionDays
 } = require('./storage/auto-session-cleanup');
 const { createRetentionChangeTrigger } = require('./storage/retention-change-trigger');
+const { moveFamiliarFolder } = require('./context-folder/move');
+const { createMoveContextFolderHandler } = require('./context-folder/move-handler');
 
 const trayIconPath = path.join(__dirname, 'icon_white_owl.png');
 
@@ -283,6 +285,7 @@ const pauseScreenStills = async () => {
     }
 };
 
+
 const refreshTrayMenu = () => {
     if (trayMenuController && typeof trayMenuController.refreshTrayMenuFromSettings === 'function') {
         trayMenuController.refreshTrayMenuFromSettings();
@@ -380,6 +383,22 @@ const runCaptureActionAndRefreshTray = async (action) => {
     refreshTrayMenu();
     return result;
 };
+
+const notifyAlwaysRecordWhenActiveChanged = ({ enabled } = {}) => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+        settingsWindow.webContents.send('settings:alwaysRecordWhenActiveChanged', { enabled });
+    }
+};
+
+const handleMoveContextFolder = createMoveContextFolderHandler({
+    loadSettings,
+    saveSettings,
+    validateContextFolderPath,
+    moveFamiliarFolder,
+    updateScreenCaptureFromSettings,
+    notifyAlwaysRecordWhenActiveChanged,
+    logger: console
+});
 
 if (process.platform === 'linux' && (isE2E || isCI)) {
     console.log('Applying Linux CI/E2E Electron flags');
@@ -524,7 +543,10 @@ function createTray() {
 }
 
 const registerMainProcessIpc = () => {
-    registerIpcHandlers({ onSettingsSaved: handleMainSettingsSaved });
+    registerIpcHandlers({
+        onSettingsSaved: handleMainSettingsSaved,
+        onMoveContextFolder: handleMoveContextFolder
+    });
 
     ipcMain.on('microcopy:get-sync', (event) => {
         event.returnValue = microcopy;
@@ -569,6 +591,7 @@ const registerMainProcessIpc = () => {
             ...getScreenStillsStatusPayload()
         };
     });
+
 
     ipcMain.handle('screenStills:simulateIdle', (_event, payload = {}) => {
         if (!isE2E) {

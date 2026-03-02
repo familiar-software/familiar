@@ -206,8 +206,11 @@ const microcopy = {
       statusSaving: 'Saving...',
       statusSaved: 'Saved.',
       statusOpeningFolderPicker: 'Opening folder picker...',
+      statusMovingContextFolder: 'Moving context folder...',
       statusCopying: 'Copying...',
       statusCopied: 'Copied.',
+      confirmMoveContextFolder:
+        'Changing the context folder will move all of the captured files along with it',
       errors: {
         failedToSaveSettings: 'Failed to save settings.',
         failedToSaveSetting: 'Failed to save setting.',
@@ -218,6 +221,7 @@ const microcopy = {
         selectLlmProvider: 'Select an LLM provider.',
         bridgeUnavailableRestart: 'Settings bridge unavailable. Restart the app.',
         failedToOpenFolderPicker: 'Failed to open folder picker.',
+        failedToMoveContextFolder: 'Failed to move context folder.',
         logCopyUnavailableRestart: 'Log copy unavailable. Restart the app.',
         failedToCopyLogFile: 'Failed to copy log file.',
         storageCleanupUnavailableRestart: 'Storage cleanup unavailable. Restart the app.',

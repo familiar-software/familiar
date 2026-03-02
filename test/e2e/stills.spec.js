@@ -7,6 +7,7 @@ const {
   FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
   STILLS_DIR_NAME
 } = require('../../src/const')
+const { confirmMoveContextFolder } = require('./helpers')
 
 const buildLaunchArgs = () => {
   const launchArgs = ['.']
@@ -16,13 +17,23 @@ const buildLaunchArgs = () => {
   return launchArgs
 }
 
-const launchApp = async ({ contextPath, settingsDir, env = {} }) => {
+const ensureSourceContext = (sourceContextPath) => {
+  const resolvedSourceContextPath = sourceContextPath
+    ? path.resolve(sourceContextPath)
+    : fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-source-'))
+  fs.mkdirSync(path.join(resolvedSourceContextPath, 'familiar'), { recursive: true })
+  return resolvedSourceContextPath
+}
+
+const launchApp = async ({ contextPath, sourceContextPath, settingsDir, env = {} }) => {
   const appRoot = path.join(__dirname, '../..')
+  const resolvedSourceContextPath = ensureSourceContext(sourceContextPath)
   fs.writeFileSync(
     path.join(settingsDir, 'settings.json'),
     JSON.stringify(
       {
-        wizardCompleted: true
+        wizardCompleted: true,
+        contextFolderPath: resolvedSourceContextPath
       },
       null,
       2
@@ -48,7 +59,9 @@ const ensureRecordingPrereqs = async (window) => {
 
 const setContextFolder = async (window) => {
   await window.getByRole('tab', { name: 'Storage' }).click()
+  const confirmDialog = confirmMoveContextFolder(window)
   await window.locator('#recording-open-folder').click()
+  await confirmDialog
   await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 }
 

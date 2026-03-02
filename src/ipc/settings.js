@@ -13,6 +13,7 @@ const { createRecorder } = require('../screen-stills/recorder');
 const { resolveAutoCleanupRetentionDays } = require('../storage/auto-cleanup-retention');
 
 let onSettingsSaved = null;
+let onMoveContextFolder = null;
 const PROBE_RECORDER_WINDOW_NAME = 'familiar-permission-probe-';
 const PERMISSION_PROBE_TIMEOUT_MS = 12_000;
 let permissionProbeRecorder = null;
@@ -138,9 +139,11 @@ function readAppVersion() {
  */
 function registerSettingsHandlers(options = {}) {
     onSettingsSaved = typeof options.onSettingsSaved === 'function' ? options.onSettingsSaved : null;
+    onMoveContextFolder = typeof options.onMoveContextFolder === 'function' ? options.onMoveContextFolder : null;
     ipcMain.handle('settings:get', handleGetSettings);
     ipcMain.handle('settings:save', handleSaveSettings);
     ipcMain.handle('settings:pickContextFolder', handlePickContextFolder);
+    ipcMain.handle('settings:moveContextFolder', handleMoveContextFolder);
     ipcMain.handle('settings:checkScreenRecordingPermission', handleCheckScreenRecordingPermission);
     ipcMain.handle('settings:requestScreenRecordingPermission', handleRequestScreenRecordingPermission);
     ipcMain.handle('settings:openScreenRecordingSettings', handleOpenScreenRecordingSettings);
@@ -398,6 +401,19 @@ async function handleOpenScreenRecordingSettings() {
         console.warn('Failed to open Screen Recording settings', { message: result.message || 'unknown-error' });
     }
     return result;
+}
+
+async function handleMoveContextFolder(_event, payload) {
+    if (!onMoveContextFolder) {
+        return { ok: false, message: 'Context folder move unavailable. Restart the app.' };
+    }
+
+    try {
+        return await onMoveContextFolder(payload);
+    } catch (error) {
+        console.error('Failed to move context folder', error);
+        return { ok: false, message: error?.message || 'Failed to move context folder.' };
+    }
 }
 
 module.exports = {

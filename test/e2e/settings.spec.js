@@ -3,16 +3,19 @@ const os = require('node:os')
 const path = require('node:path')
 const { test, expect } = require('playwright/test')
 const { _electron: electron } = require('playwright')
+const { confirmMoveContextFolder } = require('./helpers')
 
 test('storage change button sets the context folder path', async () => {
   const appRoot = path.join(__dirname, '../..')
-  const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const sourceContextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-source-'))
+  fs.mkdirSync(path.join(sourceContextPath, 'familiar'), { recursive: true })
+  const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-destination-'))
   const expectedContextPath = path.resolve(contextPath)
   const expectedDisplayPath = path.join(expectedContextPath, 'familiar').replace(/\\/g, '/')
   const pathSegments = expectedDisplayPath.split('/').filter((segment) => segment.length > 0)
   const expectedStorageDisplayPath =
-    expectedDisplayPath.length > 48 && pathSegments.length > 2
-      ? `.../${pathSegments.slice(-2).join('/')}`
+    expectedDisplayPath.length > 48 && pathSegments.length > 4
+      ? `.../${pathSegments.slice(-4).join('/')}`
       : expectedDisplayPath
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
   const settingsPath = path.join(settingsDir, 'settings.json')
@@ -20,7 +23,8 @@ test('storage change button sets the context folder path', async () => {
     settingsPath,
     JSON.stringify(
       {
-        wizardCompleted: true
+        wizardCompleted: true,
+        contextFolderPath: sourceContextPath
       },
       null,
       2
@@ -55,7 +59,9 @@ test('storage change button sets the context folder path', async () => {
     expect(visibleTabs.slice(0, 2)).toEqual(['Storage', 'Capturing'])
     await window.getByRole('tab', { name: 'Storage' }).click()
 
+    const confirmDialog = confirmMoveContextFolder(window)
     await window.locator('#recording-open-folder').click()
+    await confirmDialog
     await expect(window.locator('#context-folder-path')).toHaveValue(expectedStorageDisplayPath)
     await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 

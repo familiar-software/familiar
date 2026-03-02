@@ -10,7 +10,7 @@
     const elements = options.elements || {}
     const apis = options.apis || {}
     const STORAGE_CONTEXT_FOLDER_MIN_FULL_LENGTH = 48
-    const STORAGE_CONTEXT_FOLDER_TAIL_SEGMENTS = 2
+    const STORAGE_CONTEXT_FOLDER_TAIL_SEGMENTS = 4
 
     const contextFolderInputs = elements.contextFolderInputs || []
     const storageContextFolderInput = elements.storageContextFolderInput || null

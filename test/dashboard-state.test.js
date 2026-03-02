@@ -70,7 +70,7 @@ test('setContextFolderValue truncates storage display and sets full-path tooltip
   state.setContextFolderValue('/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot')
 
   assert.equal(wizardInput.value, '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar')
-  assert.equal(storageInput.value, '.../Perfect Lefts Copilot/familiar')
+  assert.equal(storageInput.value, '.../Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar')
   assert.equal(storageInput.title, '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar')
   assert.equal(storageSurface.title, '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar')
 })

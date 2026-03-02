@@ -3,19 +3,23 @@ const os = require('node:os')
 const path = require('node:path')
 const { test, expect } = require('playwright/test')
 const { _electron: electron } = require('playwright')
+const { confirmMoveContextFolder } = require('./helpers')
 
 const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME, STILLS_MARKDOWN_DIR_NAME } = require('../../src/const')
 
 test.describe('clipboard mirroring', () => {
   test('mirrors clipboard text into the current stills-markdown session while recording', async () => {
     const appRoot = path.join(__dirname, '../..')
+    const sourceContextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-source-'))
+    fs.mkdirSync(path.join(sourceContextPath, 'familiar'), { recursive: true })
     const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-clipboard-'))
     const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
     fs.writeFileSync(
       path.join(settingsDir, 'settings.json'),
       JSON.stringify(
         {
-          wizardCompleted: true
+          wizardCompleted: true,
+          contextFolderPath: sourceContextPath
         },
         null,
         2
@@ -50,7 +54,9 @@ test.describe('clipboard mirroring', () => {
 
       // Configure context folder.
       await window.getByRole('tab', { name: 'Storage' }).click()
+      const confirmDialog = confirmMoveContextFolder(window)
       await window.locator('#recording-open-folder').click()
+      await confirmDialog
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       // Enable recording while active (required for manual start).
@@ -97,13 +103,16 @@ test.describe('clipboard mirroring', () => {
 
   test('does not mirror one-word clipboard text while recording', async () => {
     const appRoot = path.join(__dirname, '../..')
+    const sourceContextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-source-'))
+    fs.mkdirSync(path.join(sourceContextPath, 'familiar'), { recursive: true })
     const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-clipboard-single-word-'))
     const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
     fs.writeFileSync(
       path.join(settingsDir, 'settings.json'),
       JSON.stringify(
         {
-          wizardCompleted: true
+          wizardCompleted: true,
+          contextFolderPath: sourceContextPath
         },
         null,
         2
@@ -136,8 +145,10 @@ test.describe('clipboard mirroring', () => {
       const window = await electronApp.firstWindow()
       await window.waitForLoadState('domcontentloaded')
 
+      const confirmDialog = confirmMoveContextFolder(window)
       await window.getByRole('tab', { name: 'Storage' }).click()
       await window.locator('#recording-open-folder').click()
+      await confirmDialog
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       const enableResult = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: true }))
@@ -179,13 +190,16 @@ test.describe('clipboard mirroring', () => {
 
   test('mirrors clipboard image into stills session and writes .clipboard markdown output', async () => {
     const appRoot = path.join(__dirname, '../..')
+    const sourceContextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-source-'))
+    fs.mkdirSync(path.join(sourceContextPath, 'familiar'), { recursive: true })
     const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-clipboard-image-'))
     const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
     fs.writeFileSync(
       path.join(settingsDir, 'settings.json'),
       JSON.stringify(
         {
-          wizardCompleted: true
+          wizardCompleted: true,
+          contextFolderPath: sourceContextPath
         },
         null,
         2
@@ -219,8 +233,10 @@ test.describe('clipboard mirroring', () => {
       const window = await electronApp.firstWindow()
       await window.waitForLoadState('domcontentloaded')
 
+      const confirmDialog = confirmMoveContextFolder(window)
       await window.getByRole('tab', { name: 'Storage' }).click()
       await window.locator('#recording-open-folder').click()
+      await confirmDialog
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       const extractorResult = await window.evaluate(() =>

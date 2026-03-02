@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('familiar', {
   requestScreenRecordingPermission: () => ipcRenderer.invoke('settings:requestScreenRecordingPermission'),
   openScreenRecordingSettings: () => ipcRenderer.invoke('settings:openScreenRecordingSettings'),
   pickContextFolder: () => ipcRenderer.invoke('settings:pickContextFolder'),
+  moveContextFolder: (payload) => ipcRenderer.invoke('settings:moveContextFolder', payload),
   saveSettings: (payload) => {
     const data = typeof payload === 'string' ? { contextFolderPath: payload } : payload
     return ipcRenderer.invoke('settings:save', data)

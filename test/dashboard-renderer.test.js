@@ -206,6 +206,7 @@ const createFamiliar = (overrides = {}) => ({
   openScreenRecordingSettings: async () => ({ ok: true }),
   openStillsFolder: async () => ({ ok: true }),
   pickContextFolder: async () => ({ canceled: true }),
+  moveContextFolder: async () => ({ ok: true, contextFolderPath: '' }),
   saveSettings: async () => ({ ok: true }),
   getScreenStillsStatus: async () => ({
     ok: true,
@@ -1496,7 +1497,8 @@ test('storage change button updates context folder path with truncated display a
       contextFolderPath: '',
       wizardCompleted: true
     }),
-    pickContextFolder: async () => ({ canceled: false, path: fullPath })
+    pickContextFolder: async () => ({ canceled: false, path: fullPath }),
+    moveContextFolder: async () => ({ ok: true, contextFolderPath: fullPath })
   })
 
   const elements = createElements()
@@ -1515,7 +1517,7 @@ test('storage change button updates context folder path with truncated display a
     await flushPromises()
 
     assert.equal(elements['context-folder-status'].textContent, microcopy.dashboard.settings.statusSaved)
-    assert.equal(elements['context-folder-path'].value, '.../Perfect Lefts Copilot/familiar')
+    assert.equal(elements['context-folder-path'].value, '.../Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar')
     assert.equal(
       elements['context-folder-picker-surface'].title,
       '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar'

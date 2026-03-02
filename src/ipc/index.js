@@ -9,7 +9,10 @@ const { registerStorageHandlers } = require('./storage');
  * Registers all IPC handlers for the main process.
  */
 function registerIpcHandlers(options = {}) {
-    registerSettingsHandlers({ onSettingsSaved: options.onSettingsSaved });
+    registerSettingsHandlers({
+        onSettingsSaved: options.onSettingsSaved,
+        onMoveContextFolder: options.onMoveContextFolder
+    });
     registerStillsHandlers();
     registerUpdateHandlers();
     registerSkillHandlers();

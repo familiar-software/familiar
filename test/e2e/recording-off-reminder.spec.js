@@ -3,6 +3,7 @@ const os = require('node:os')
 const path = require('node:path')
 const { test, expect } = require('playwright/test')
 const { _electron: electron } = require('playwright')
+const { confirmMoveContextFolder } = require('./helpers')
 
 const REMINDER_DELAY_MS = 500
 
@@ -14,13 +15,15 @@ const buildLaunchArgs = () => {
   return launchArgs
 }
 
-const launchApp = async ({ contextPath, settingsDir, env = {} }) => {
+const launchApp = async ({ contextPath, sourceContextPath, settingsDir, env = {} }) => {
   const appRoot = path.join(__dirname, '../..')
+  const resolvedSourceContextPath = sourceContextPath ? path.resolve(sourceContextPath) : ''
   fs.writeFileSync(
     path.join(settingsDir, 'settings.json'),
     JSON.stringify(
       {
-        wizardCompleted: true
+        wizardCompleted: true,
+        ...(resolvedSourceContextPath ? { contextFolderPath: resolvedSourceContextPath } : {})
       },
       null,
       2
@@ -57,7 +60,9 @@ const ensureRecordingPrereqs = async (window) => {
 
 const setContextFolder = async (window) => {
   await window.getByRole('tab', { name: 'Storage' }).click()
+  const confirmDialog = confirmMoveContextFolder(window)
   await window.locator('#recording-open-folder').click()
+  await confirmDialog
   await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 }
 
@@ -87,11 +92,14 @@ const readToastEvents = async (window) => {
 }
 
 test('recording-off reminder shows toast after e2e-configured delay', async () => {
+  const sourceContextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-source-'))
+  fs.mkdirSync(path.join(sourceContextPath, 'familiar'), { recursive: true })
   const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-recording-off-reminder-'))
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
 
   const electronApp = await launchApp({
     contextPath,
+    sourceContextPath,
     settingsDir,
     env: {
       FAMILIAR_RECORDING_OFF_REMINDER_DELAY_MS: String(REMINDER_DELAY_MS)
