@@ -1,5 +1,4 @@
 const { powerMonitor } = require('electron');
-const { execFileSync } = require('node:child_process');
 const { EventEmitter } = require('node:events');
 
 const DEFAULT_POLL_INTERVAL_MS = 300000;
@@ -17,12 +16,15 @@ function parseLowPowerModeFromPmsetOutput(output) {
   return match[1] === '1';
 }
 
-function readLowPowerModeEnabled({ execFileSyncFn, logger } = {}) {
+function readLowPowerModeEnabled({ powerMonitorApi, logger } = {}) {
+  if (!powerMonitorApi || typeof powerMonitorApi.isOnBatteryPower !== 'function') {
+    return false;
+  }
+
   try {
-    const stdout = execFileSyncFn('pmset', ['-g'], { encoding: 'utf8' });
-    return parseLowPowerModeFromPmsetOutput(stdout);
+    return Boolean(powerMonitorApi.isOnBatteryPower());
   } catch (error) {
-    logger.warn('Failed to read Low Power Mode status from pmset', {
+    logger.warn('Failed to read power source from powerMonitor', {
       error: error?.message || String(error)
     });
     return false;
@@ -37,7 +39,6 @@ function createLowPowerModeMonitor(options = {}) {
       ? Math.floor(options.pollIntervalMs)
       : DEFAULT_POLL_INTERVAL_MS;
   const powerMonitorApi = options.powerMonitor || powerMonitor;
-  const execFileSyncFn = options.execFileSync || execFileSync;
   const emitter = new EventEmitter();
   const isDarwin = platform === 'darwin';
 
@@ -50,7 +51,7 @@ function createLowPowerModeMonitor(options = {}) {
       return;
     }
 
-    const nextValue = readLowPowerModeEnabled({ execFileSyncFn, logger });
+    const nextValue = readLowPowerModeEnabled({ powerMonitorApi, logger });
     if (nextValue === lowPowerModeEnabled) {
       return;
     }
@@ -84,7 +85,6 @@ function createLowPowerModeMonitor(options = {}) {
       powerMonitorApi.on('resume', handleResume);
       powerMonitorApi.on('on-ac', handlePowerSourceChange);
       powerMonitorApi.on('on-battery', handlePowerSourceChange);
-      powerMonitorApi.on('speed-limit-change', handleSpeedLimitChange);
     }
 
     logger.log('Low Power Mode monitor started', { pollIntervalMs });
@@ -105,7 +105,6 @@ function createLowPowerModeMonitor(options = {}) {
       powerMonitorApi.removeListener('resume', handleResume);
       powerMonitorApi.removeListener('on-ac', handlePowerSourceChange);
       powerMonitorApi.removeListener('on-battery', handlePowerSourceChange);
-      powerMonitorApi.removeListener('speed-limit-change', handleSpeedLimitChange);
     }
 
     logger.log('Low Power Mode monitor stopped');
@@ -117,10 +116,6 @@ function createLowPowerModeMonitor(options = {}) {
 
   function handlePowerSourceChange() {
     refreshState({ source: 'power-source-change' });
-  }
-
-  function handleSpeedLimitChange() {
-    refreshState({ source: 'speed-limit-change' });
   }
 
   function on(eventName, handler) {
