@@ -1,7 +1,7 @@
 ---
 name: familiar
-version: 1.0.0
-description: Locate, interpret, and filter the user's past behavior. Use when the harness needs to answer questions about past activity, repeated behaviors, or question where on-screen behavior can be helpful.
+version: 1.0.1
+description: Locate, filter and analyze the user's past on-screen behavior when context is needed for brainstorming, documentation, planning, and productivity workflows.
 ---
 
 # Familiar Stills Markdown
@@ -10,6 +10,7 @@ description: Locate, interpret, and filter the user's past behavior. Use when th
 
 Use a repository of markdown files that represent all of the actions/interactions/visuals the user had on-screen.
 The markdown files are ready to use with regular bash commands, they are already preprocessed with a defined structure.
+If the skill is called without any extra inline date/prompt, treat it as if the user wants help with existing thread/issue and analyze how the data from Familiar can help.
 
 ## Locate The Data
 
