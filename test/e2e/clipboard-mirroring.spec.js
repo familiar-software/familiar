@@ -50,7 +50,7 @@ test.describe('clipboard mirroring', () => {
 
       // Configure context folder.
       await window.getByRole('tab', { name: 'Storage' }).click()
-      await window.locator('#context-folder-picker-surface').click()
+      await window.locator('#recording-open-folder').click()
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       // Enable recording while active (required for manual start).
@@ -137,7 +137,7 @@ test.describe('clipboard mirroring', () => {
       await window.waitForLoadState('domcontentloaded')
 
       await window.getByRole('tab', { name: 'Storage' }).click()
-      await window.locator('#context-folder-picker-surface').click()
+      await window.locator('#recording-open-folder').click()
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       const enableResult = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: true }))
@@ -220,7 +220,7 @@ test.describe('clipboard mirroring', () => {
       await window.waitForLoadState('domcontentloaded')
 
       await window.getByRole('tab', { name: 'Storage' }).click()
-      await window.locator('#context-folder-picker-surface').click()
+      await window.locator('#recording-open-folder').click()
       await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 
       const extractorResult = await window.evaluate(() =>

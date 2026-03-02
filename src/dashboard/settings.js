@@ -473,6 +473,20 @@
       }
     }
 
+    const openCurrentContextFolder = async () => {
+      try {
+        const result = await familiar.openStillsFolder()
+        if (!result || result.ok !== true) {
+          setMessage(contextFolderErrors, result?.message || microcopy.dashboard.settings.errors.failedToOpenFolderPicker)
+          return
+        }
+        setMessage(contextFolderErrors, '')
+      } catch (error) {
+        console.error('Failed to open context folder', error)
+        setMessage(contextFolderErrors, microcopy.dashboard.settings.errors.failedToOpenFolderPicker)
+      }
+    }
+
     const shouldSkipStoragePickerSurface = (event) => {
       const eventTarget = event?.target
       if (!eventTarget || typeof eventTarget.closest !== 'function') {
@@ -495,7 +509,7 @@
           if (shouldSkipStoragePickerSurface(event)) {
             return
           }
-          void pickAndSaveContextFolderPath()
+          void openCurrentContextFolder()
         })
         surface.addEventListener('keydown', (event) => {
           const isEnter = event?.key === 'Enter'
@@ -509,7 +523,7 @@
           if (shouldSkipStoragePickerSurface(event)) {
             return
           }
-          void pickAndSaveContextFolderPath()
+          void openCurrentContextFolder()
         })
       })
     }

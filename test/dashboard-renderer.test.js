@@ -204,6 +204,7 @@ const createFamiliar = (overrides = {}) => ({
     granted: true
   }),
   openScreenRecordingSettings: async () => ({ ok: true }),
+  openStillsFolder: async () => ({ ok: true }),
   pickContextFolder: async () => ({ canceled: true }),
   saveSettings: async () => ({ ok: true }),
   getScreenStillsStatus: async () => ({
@@ -252,6 +253,7 @@ const createElements = () => {
     'context-folder-path': new TestElement(),
     'context-folder-picker-surface': new TestElement(),
     'context-folder-choose': new TestElement(),
+    'recording-open-folder': new TestElement(),
     'context-folder-error': new TestElement(),
     'context-folder-status': new TestElement(),
     'llm-api-key': new TestElement(),
@@ -342,6 +344,7 @@ const createElements = () => {
   elements['context-folder-path'].dataset.setting = 'context-folder-path'
   elements['context-folder-picker-surface'].dataset.action = 'context-folder-picker-surface'
   elements['context-folder-choose'].dataset.action = 'context-folder-choose'
+  elements['recording-open-folder'].dataset.action = 'storage-open-folder'
   elements['context-folder-error'].dataset.settingError = 'context-folder-error'
   elements['context-folder-status'].dataset.settingStatus = 'context-folder-status'
 
@@ -1486,7 +1489,7 @@ test('check for updates reports no update when latest matches current', async ()
   }
 })
 
-test('storage picker surface opens folder picker and updates truncated display with full-path tooltip', async () => {
+test('storage change button updates context folder path with truncated display and full-path tooltip', async () => {
   const fullPath = '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot'
   const familiar = createFamiliar({
     getSettings: async () => ({
@@ -1508,7 +1511,7 @@ test('storage picker surface opens folder picker and updates truncated display w
     document.trigger('DOMContentLoaded')
     await flushPromises()
 
-    await elements['context-folder-picker-surface'].click()
+    await elements['recording-open-folder'].click()
     await flushPromises()
 
     assert.equal(elements['context-folder-status'].textContent, microcopy.dashboard.settings.statusSaved)
@@ -1517,6 +1520,41 @@ test('storage picker surface opens folder picker and updates truncated display w
       elements['context-folder-picker-surface'].title,
       '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot/familiar'
     )
+  } finally {
+    global.document = priorDocument
+    global.window = priorWindow
+  }
+})
+
+test('storage picker surface opens current context folder', async () => {
+  let folderOpened = false
+  const familiar = createFamiliar({
+    getSettings: async () => ({
+      contextFolderPath: '/Users/talraviv/Dropbox/Perfect Lefts/Perfect Lefts Copilot',
+      wizardCompleted: true
+    }),
+    openStillsFolder: async () => {
+      folderOpened = true
+      return { ok: true }
+    }
+  })
+
+  const elements = createElements()
+  const document = new TestDocument(elements)
+  const priorDocument = global.document
+  const priorWindow = global.window
+  global.document = document
+  global.window = { familiar }
+
+  try {
+    loadRenderer()
+    document.trigger('DOMContentLoaded')
+    await flushPromises()
+
+    await elements['context-folder-picker-surface'].click()
+    await flushPromises()
+
+    assert.equal(folderOpened, true)
   } finally {
     global.document = priorDocument
     global.window = priorWindow

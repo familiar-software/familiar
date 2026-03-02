@@ -4,7 +4,7 @@ const path = require('node:path')
 const { test, expect } = require('playwright/test')
 const { _electron: electron } = require('playwright')
 
-test('storage picker surface sets the context folder path', async () => {
+test('storage change button sets the context folder path', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const expectedContextPath = path.resolve(contextPath)
@@ -55,7 +55,7 @@ test('storage picker surface sets the context folder path', async () => {
     expect(visibleTabs.slice(0, 2)).toEqual(['Storage', 'Capturing'])
     await window.getByRole('tab', { name: 'Storage' }).click()
 
-    await window.locator('#context-folder-picker-surface').click()
+    await window.locator('#recording-open-folder').click()
     await expect(window.locator('#context-folder-path')).toHaveValue(expectedStorageDisplayPath)
     await expect(window.locator('#context-folder-status')).toHaveText('Saved.')
 

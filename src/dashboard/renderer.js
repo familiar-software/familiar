@@ -222,7 +222,10 @@ document.addEventListener('DOMContentLoaded', function onDOMContentLoaded() {
   const cloudCoWorkGuideErrors = selectAll('[data-cloud-cowork-guide-error]')
 
   const contextFolderInputs = selectAll('[data-setting="context-folder-path"]')
-  const contextFolderChooseButtons = selectAll('[data-action="context-folder-choose"]')
+  const contextFolderChooseButtons = [
+    ...selectAll('[data-action="context-folder-choose"]'),
+    ...selectAll('[data-action="storage-open-folder"]')
+  ]
   const contextFolderPickerSurfaces = selectAll('[data-action="context-folder-picker-surface"]')
   const storageContextFolderInput = document.getElementById('context-folder-path')
   const contextFolderErrors = selectAll('[data-setting-error="context-folder-error"]')

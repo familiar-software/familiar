@@ -29,7 +29,6 @@
       recordingStatus,
       recordingDetails,
       recordingPath,
-      recordingOpenFolderButton,
       recordingPermission,
       permissionCheckButtons = [],
       openScreenRecordingSettingsButtons = [],
@@ -210,12 +209,6 @@
         }
       }
 
-      if (recordingOpenFolderButton) {
-        const canOpenFolder = Boolean(stillsPath)
-        recordingOpenFolderButton.disabled = !canOpenFolder
-        recordingOpenFolderButton.classList.toggle('hidden', !canOpenFolder)
-      }
-
       if (recordingPermission) {
         recordingPermission.textContent = ''
         recordingPermission.classList.add('hidden')
@@ -288,30 +281,10 @@
       statusPoller = null
     }
 
-    const handleOpenFolder = async () => {
-      if (!familiar.openStillsFolder) {
-        return
-      }
-      try {
-        const result = await familiar.openStillsFolder()
-        if (!result || result.ok !== true) {
-          console.error('Failed to open stills folder', result?.message || result)
-        }
-      } catch (error) {
-        console.error('Failed to open stills folder', error)
-      }
-    }
-
     function handleSectionChange(nextSection) {
       // Keep the recording status indicator fresh when sections change.
       void refreshStatus().then(updateStillsUI)
       startStatusPoller()
-    }
-
-    if (recordingOpenFolderButton) {
-      recordingOpenFolderButton.addEventListener('click', () => {
-        void handleOpenFolder()
-      })
     }
 
     for (const button of allPermissionCheckButtons) {

@@ -67,7 +67,7 @@ const microcopy = {
       storageAriaLabelStorageSettings: 'Storage settings',
       storageContextFolder: 'Context Folder',
       storageContextFolderPlaceholderNoFolderSelected: 'No folder selected',
-      storageContextFolderChange: 'Change',
+      storageContextFolderChange: 'Change Folder',
       storageOpenInFinder: 'Open in Finder',
       storageUsageBreakdown: 'Usage Breakdown',
       storageUsageComputing: '(Computing)',
