@@ -23,6 +23,27 @@ test('saveSettings persists contextFolderPath', () => {
   assert.equal(loaded.contextFolderPath, contextDir)
 })
 
+test('saveSettings persists familiarSkillInstalledVersion', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+
+  saveSettings({ familiarSkillInstalledVersion: '2.0.0' }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.familiarSkillInstalledVersion, '2.0.0')
+})
+
+test('saveSettings preserves familiarSkillInstalledVersion when updating other settings', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+
+  saveSettings({ familiarSkillInstalledVersion: '2.0.0' }, { settingsDir })
+  saveSettings({ contextFolderPath: path.join(tempRoot, 'context') }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.familiarSkillInstalledVersion, '2.0.0')
+})
+
 test('saveSettings persists stills_markdown_extractor.llm_provider api_key/provider and preserves context', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

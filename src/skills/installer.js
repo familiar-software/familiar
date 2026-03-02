@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { getDefaultSkillSourceDir } = require('./familiar-skill-version');
 
 const HARNESS_SKILL_DIRS = {
     claude: path.join('.claude', 'skills'),
@@ -10,6 +11,7 @@ const HARNESS_SKILL_DIRS = {
 };
 
 const SKILL_NAME = 'familiar';
+const SKILL_DOCUMENT = 'SKILL.md';
 
 async function copyFileViaReadWrite(sourcePath, destinationPath) {
     const data = await fs.promises.readFile(sourcePath);
@@ -65,10 +67,6 @@ function resolveHarnessSkillPath(harness, options = {}) {
     return path.join(homeDir, baseDir, SKILL_NAME);
 }
 
-function getDefaultSkillSourceDir() {
-    return path.join(__dirname, SKILL_NAME);
-}
-
 async function assertValidSkillSourceDir(sourceDir) {
     let stat;
     try {
@@ -83,7 +81,7 @@ async function assertValidSkillSourceDir(sourceDir) {
     }
 
     // Minimal sanity check so we don't delete an existing install and then fail to copy.
-    const skillDoc = path.join(sourceDir, 'SKILL.md');
+    const skillDoc = path.join(sourceDir, SKILL_DOCUMENT);
     try {
         const docStat = await fs.promises.stat(skillDoc);
         if (!docStat.isFile()) {

@@ -1,5 +1,6 @@
 ---
 name: familiar
+version: 1.0.0
 description: Locate, interpret, and filter the user's past behavior. Use when the harness needs to answer questions about past activity, repeated behaviors, or question where on-screen behavior can be helpful.
 ---
 

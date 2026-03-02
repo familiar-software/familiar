@@ -13,6 +13,7 @@ const { showWindow } = require('./utils/window');
 const { ensureHomebrewPath } = require('./utils/path');
 const { loadSettings, saveSettings } = require('./settings');
 const { buildTrayMenuTemplate } = require('./menu');
+const { ensureFamiliarSkillAlignment } = require('./skills/familiar-skill-alignment');
 const { initLogging } = require('./logger');
 const { showToast } = require('./toast');
 const {
@@ -621,12 +622,14 @@ const registerMainProcessIpc = () => {
 if (isPrimaryInstance) {
     registerMainProcessIpc();
 
-    app.whenReady().then(() => {
+    app.whenReady().then(async () => {
         if (process.platform !== 'darwin' && !isE2E) {
             console.error('Familiar desktop app is macOS-only right now.');
             app.quit();
             return;
         }
+
+        await ensureFamiliarSkillAlignment();
 
         const shouldInitializeRecording = process.platform === 'darwin' || isE2E;
         if (shouldInitializeRecording) {

@@ -84,6 +84,10 @@ const saveSettings = (settings, options = {}) => {
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(settings, 'alwaysRecordWhenActive');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(settings, 'wizardCompleted');
     const hasSkillInstaller = Object.prototype.hasOwnProperty.call(settings, 'skillInstaller');
+    const hasFamiliarSkillInstalledVersion = Object.prototype.hasOwnProperty.call(
+        settings,
+        'familiarSkillInstalledVersion'
+    );
     const existingStillsExtractor =
         existing && typeof existing.stills_markdown_extractor === 'object' ? existing.stills_markdown_extractor : {};
     const existingStillsExtractorLlmProvider =
@@ -210,6 +214,14 @@ const saveSettings = (settings, options = {}) => {
         const harnesses = normalizeSkillInstallerHarnessList(existingSkillInstaller);
         const installPaths = normalizeSkillInstallerPathList(existingSkillInstaller, harnesses);
         payload.skillInstaller = { harness: harnesses, installPath: installPaths };
+    }
+
+    if (hasFamiliarSkillInstalledVersion) {
+        payload.familiarSkillInstalledVersion = typeof settings.familiarSkillInstalledVersion === 'string'
+            ? settings.familiarSkillInstalledVersion
+            : null;
+    } else if (Object.prototype.hasOwnProperty.call(existing, 'familiarSkillInstalledVersion')) {
+        payload.familiarSkillInstalledVersion = existing.familiarSkillInstalledVersion;
     }
 
     fs.writeFileSync(settingsPath, JSON.stringify(payload, null, 2), 'utf-8');
