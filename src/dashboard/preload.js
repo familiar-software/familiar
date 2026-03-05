@@ -35,12 +35,19 @@ contextBridge.exposeInMainWorld('familiar', {
     ipcRenderer.on('settings:screenStillsStateChanged', listener)
     return () => ipcRenderer.removeListener('settings:screenStillsStateChanged', listener)
   },
+  onHeartbeatRunStateChanged: (handler) => {
+    const listener = (_event, payload) => handler(payload)
+    ipcRenderer.on('settings:heartbeatRunStateChanged', listener)
+    return () => ipcRenderer.removeListener('settings:heartbeatRunStateChanged', listener)
+  },
   onSettingsWindowOpened: (handler) => {
     const listener = (_event, payload) => handler(payload)
     ipcRenderer.on('settings:window-opened', listener)
     return () => ipcRenderer.removeListener('settings:window-opened', listener)
   },
   openStillsFolder: () => ipcRenderer.invoke('stills:openFolder'),
+  openHeartbeatsFolder: () => ipcRenderer.invoke('heartbeats:openFolder'),
+  runHeartbeatNow: (payload) => ipcRenderer.invoke('heartbeats:runNow', payload || {}),
   deleteFilesAt: ({ requestedAtMs, deleteWindow } = {}) =>
     ipcRenderer.invoke('storage:deleteFiles', { requestedAtMs, deleteWindow }),
   getStorageUsageBreakdown: () => ipcRenderer.invoke('storage:getUsageBreakdown'),

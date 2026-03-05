@@ -10,6 +10,7 @@ const { ADAPTER_STATUS, AVAILABILITY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } = require(
 
 const ADAPTER_NAME = 'codex'
 const TOOL_NAME = 'codex'
+const DEFAULT_CODEX_SANDBOX_MODE = 'workspace-write'
 
 const createMeta = ({ startedAt, durationMs, workspaceDir } = {}) => ({
   adapter: ADAPTER_NAME,
@@ -21,6 +22,7 @@ const createMeta = ({ startedAt, durationMs, workspaceDir } = {}) => ({
 const createCodexAdapter = ({
   logger = console,
   runCommandImpl = runCommand,
+  sandboxMode = DEFAULT_CODEX_SANDBOX_MODE,
   now = () => Date.now()
 } = {}) => {
   const checkAvailability = async () => {
@@ -90,7 +92,7 @@ const createCodexAdapter = ({
         args: [
           'exec',
           '--sandbox',
-          'read-only',
+          sandboxMode,
           '--skip-git-repo-check',
           '--cd',
           resolvedWorkspaceDir,

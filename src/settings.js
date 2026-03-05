@@ -132,6 +132,7 @@ const saveSettings = (settings, options = {}) => {
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(settings, 'alwaysRecordWhenActive');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(settings, 'wizardCompleted');
     const hasSkillInstaller = Object.prototype.hasOwnProperty.call(settings, 'skillInstaller');
+    const hasHeartbeats = Object.prototype.hasOwnProperty.call(settings, 'heartbeats');
     const hasFamiliarSkillInstalledVersion = Object.prototype.hasOwnProperty.call(
         settings,
         'familiarSkillInstalledVersion'
@@ -145,6 +146,7 @@ const saveSettings = (settings, options = {}) => {
     const existingProvider = existingStillsExtractorLlmProvider;
     const existingSkillInstaller =
         existing && typeof existing.skillInstaller === 'object' ? existing.skillInstaller : {};
+    const existingHeartbeats = existing && typeof existing.heartbeats === 'object' ? existing.heartbeats : {};
     const contextFolderPath = hasContextFolderPath
         ? typeof settings.contextFolderPath === 'string'
             ? settings.contextFolderPath
@@ -262,6 +264,14 @@ const saveSettings = (settings, options = {}) => {
         const harnesses = normalizeSkillInstallerHarnessList(existingSkillInstaller);
         const installPaths = normalizeSkillInstallerPathList(existingSkillInstaller, harnesses);
         payload.skillInstaller = { harness: harnesses, installPath: installPaths };
+    }
+
+    if (hasHeartbeats) {
+        const raw = settings && typeof settings.heartbeats === 'object' ? settings.heartbeats : {};
+        const items = Array.isArray(raw?.items) ? raw.items : [];
+        payload.heartbeats = { items };
+    } else if (Array.isArray(existingHeartbeats.items)) {
+        payload.heartbeats = { items: existingHeartbeats.items };
     }
 
     if (hasFamiliarSkillInstalledVersion) {

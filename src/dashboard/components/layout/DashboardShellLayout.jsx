@@ -28,6 +28,7 @@ export function DashboardShellLayout({
   const sectionTitle = {
     wizard: 'Setup Wizard',
     storage: 'Storage',
+    heartbeats: 'Heartbeats',
     recording: 'Capturing',
     'install-skill': 'Install Skill',
     installSkill: 'Install Skill'
@@ -54,6 +55,12 @@ export function DashboardShellLayout({
           <rect x="3" y="7" width="13" height="10" rx="2" />
           <path d="M16 9.5 21 7v10l-5-2.5" />
         </>
+      )
+    }
+
+    if (id === 'heartbeats') {
+      return (
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 4.97l-1.06-0.36a5.5 5.5 0 1 0-7.78 7.78L12 21.17l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
       )
     }
 

@@ -14,10 +14,13 @@ export const DEFAULT_MICROCOPY = {
         title: 'Capturing'
       },
       updates: {
-        title: 'Updates'
+      title: 'Updates'
       },
       installSkill: {
         title: 'Install Skill'
+      },
+      heartbeats: {
+        title: 'Heartbeats'
       }
     },
     settings: {
@@ -174,5 +177,30 @@ export const DEFAULT_SETTINGS = {
   stillsMarkdownExtractorType: 'apple_vision_ocr',
   alwaysRecordWhenActive: false,
   storageAutoCleanupRetentionDays: 2,
-  wizardCompleted: false
+  wizardCompleted: false,
+  heartbeats: { items: [] }
 }
+
+export const HEARTBEAT_RUNNERS = [
+  { value: 'codex', label: 'Codex' },
+  { value: 'claude-code', label: 'Claude Code' }
+]
+
+export const HEARTBEAT_FREQUENCIES = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' }
+]
+
+export const HEARTBEAT_WEEKDAYS = [
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' },
+  { value: '7', label: 'Sunday' }
+]
+
+export const HEARTBEAT_TOPIC_PATTERN = /^[A-Za-z0-9_-]+$/
+export const HEARTBEAT_TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
+export const HEARTBEAT_DEFAULT_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'

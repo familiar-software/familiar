@@ -9,6 +9,7 @@ import { useDashboardCapture } from './dashboard/useDashboardCapture'
 import { useDashboardLifecycle } from './dashboard/useDashboardLifecycle'
 import { useDashboardSkills } from './dashboard/useDashboardSkills'
 import { useDashboardState } from './dashboard/useDashboardState'
+import { useDashboardHeartbeats } from './dashboard/useDashboardHeartbeats'
 import { useDashboardStorage } from './dashboard/useDashboardStorage'
 import { useDashboardUpdates } from './dashboard/useDashboardUpdates'
 import { useDashboardWizard } from './dashboard/useDashboardWizard'
@@ -35,6 +36,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     ...core,
     refreshRecordingStatus: lifecycle.refreshRecordingStatus
   })
+  const heartbeats = useDashboardHeartbeats(core)
   const storage = useDashboardStorage(core, lifecycle)
   const updates = useDashboardUpdates(core)
   const wizard = useDashboardWizard({
@@ -197,6 +199,15 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
           isDeleteControlsDisabled: storage.isDeleteControlsDisabled,
           deleteRecentFiles: storage.deleteRecentFiles,
           formatBytes
+        }}
+        heartbeatsSectionProps={{
+          ...heartbeats,
+          mc: core.mc,
+          toDisplayText,
+          settings: core.settings,
+          heartbeats: core.settings?.heartbeats?.items || [],
+          heartbeatMessage: core.heartbeatMessage,
+          heartbeatError: core.heartbeatError
         }}
       />
     </DashboardShellLayout>

@@ -171,6 +171,9 @@ function handleGetSettings() {
         const wizardCompleted = settings.wizardCompleted === true;
         const skillInstallerHarness = normalizeSkillInstallerHarnesses(settings?.skillInstaller || {});
         const skillInstallerInstallPath = normalizeSkillInstallerPaths(settings?.skillInstaller || {}, skillInstallerHarness);
+        const heartbeats = settings?.heartbeats && typeof settings.heartbeats === 'object'
+            ? settings.heartbeats
+            : { items: [] };
         let validationMessage = '';
 
         if (contextFolderPath) {
@@ -197,6 +200,7 @@ function handleGetSettings() {
                 harness: skillInstallerHarness,
                 installPath: skillInstallerInstallPath,
             },
+            heartbeats,
             appVersion
         };
     } catch (error) {
@@ -211,6 +215,7 @@ function handleGetSettings() {
             storageAutoCleanupRetentionDays: resolveAutoCleanupRetentionDays(undefined),
             wizardCompleted: false,
             skillInstaller: { harness: [], installPath: [] },
+            heartbeats: { items: [] },
             appVersion
         };
     }
@@ -225,6 +230,7 @@ function handleSaveSettings(_event, payload) {
     const hasStorageAutoCleanupRetentionDays = Object.prototype.hasOwnProperty.call(payload || {}, 'storageAutoCleanupRetentionDays');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(payload || {}, 'wizardCompleted');
     const hasSkillInstaller = Object.prototype.hasOwnProperty.call(payload || {}, 'skillInstaller');
+    const hasHeartbeats = Object.prototype.hasOwnProperty.call(payload || {}, 'heartbeats');
     const settingsPayload = {};
 
     if (
@@ -236,6 +242,7 @@ function handleSaveSettings(_event, payload) {
         !hasStorageAutoCleanupRetentionDays &&
         !hasWizardCompleted &&
         !hasSkillInstaller
+        && !hasHeartbeats
     ) {
         return { ok: false, message: 'No settings provided.' };
     }
@@ -300,6 +307,12 @@ function handleSaveSettings(_event, payload) {
             harness: harnesses,
             installPath: harnesses.map((harness) => resolveHarnessSkillPath(harness)),
         };
+    }
+
+    if (hasHeartbeats) {
+        const raw = payload?.heartbeats;
+        const items = raw && typeof raw === 'object' && Array.isArray(raw.items) ? raw.items : [];
+        settingsPayload.heartbeats = { items };
     }
 
     try {

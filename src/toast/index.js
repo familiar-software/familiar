@@ -186,6 +186,12 @@ if (ipcMain && typeof ipcMain.on === 'function') {
     if (action === 'open-in-folder' && data) {
       shell.showItemInFolder(data)
       hideToast()
+      return
+    }
+
+    if (action === 'open-familiar-log' && data) {
+      shell.openPath(data).catch(() => {})
+      hideToast()
     }
   })
 }

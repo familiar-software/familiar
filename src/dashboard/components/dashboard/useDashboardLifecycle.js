@@ -20,7 +20,8 @@ export const useDashboardLifecycle = (state, options = {}) => {
     setStorageUsageLoaded,
     setRecordingStatus,
     setSettings,
-    normalizeHarnesses
+    normalizeHarnesses,
+    setRunningHeartbeatIds
   } = state
 
   const onInitialHarnessesLoaded = options.onInitialHarnessesLoaded || (() => Promise.resolve({ ok: true }))
@@ -85,7 +86,7 @@ export const useDashboardLifecycle = (state, options = {}) => {
 
   const loadSettings = useCallback(async () => {
     if (hasLoadedSettingsRef.current) {
-      return { ok: true, reason: 'already-loaded' };
+      return { ok: true, reason: 'already-loaded' }
     }
 
     if (isLoadingSettingsRef.current) {
@@ -182,6 +183,31 @@ export const useDashboardLifecycle = (state, options = {}) => {
     })
   }, [setRecordingStatus])
 
+  const applyHeartbeatRunStateFromPayload = useCallback((payload = {}) => {
+    const heartbeatId = typeof payload.id === 'string' ? payload.id : ''
+    if (!heartbeatId) {
+      return
+    }
+    const heartbeatRunState = payload.state
+    if (heartbeatRunState === 'running') {
+      setRunningHeartbeatIds((previous = {}) => ({
+        ...previous,
+        [heartbeatId]: true
+      }))
+      return
+    }
+    if (heartbeatRunState === 'completed') {
+      setRunningHeartbeatIds((previous = {}) => {
+        if (!previous[heartbeatId]) {
+          return previous
+        }
+        const next = { ...previous }
+        delete next[heartbeatId]
+        return next
+      })
+    }
+  }, [setRunningHeartbeatIds])
+
   useEffect(() => {
     mountedRef.current = true
     void loadSettings()
@@ -210,6 +236,10 @@ export const useDashboardLifecycle = (state, options = {}) => {
       typeof familiar?.onScreenStillsStateChanged === 'function'
         ? familiar.onScreenStillsStateChanged(applyRecordingStatusFromPayload)
         : null
+    const unsubscribeHeartbeatRunState =
+      typeof familiar?.onHeartbeatRunStateChanged === 'function'
+        ? familiar.onHeartbeatRunStateChanged(applyHeartbeatRunStateFromPayload)
+        : null
 
     return () => {
       mountedRef.current = false
@@ -223,15 +253,19 @@ export const useDashboardLifecycle = (state, options = {}) => {
       if (unsubscribeScreenStillsState) {
         unsubscribeScreenStillsState()
       }
+      if (unsubscribeHeartbeatRunState) {
+        unsubscribeHeartbeatRunState()
+      }
     }
   }, [
     familiar,
+    applyHeartbeatRunStateFromPayload,
+    applyRecordingStatusFromPayload,
     loadSettings,
     mountedRef,
     refreshRecordingStatus,
     refreshStorageUsageFromWindowOpen,
-    setSettings,
-    applyRecordingStatusFromPayload
+    setSettings
   ])
 
   return {

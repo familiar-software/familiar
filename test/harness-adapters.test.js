@@ -15,7 +15,7 @@ const createLogger = () => ({
   error: () => {}
 })
 
-test('codex adapter runPrompt executes codex with read-only args and returns answer', async () => {
+test('codex adapter runPrompt executes codex with writable workspace sandbox and returns answer', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-adapter-codex-'))
   const contextFolderPath = path.join(root, 'context')
   fs.mkdirSync(contextFolderPath, { recursive: true })
@@ -56,7 +56,7 @@ test('codex adapter runPrompt executes codex with read-only args and returns ans
   assert.equal(result.meta.adapter, 'codex')
   assert.equal(call.command, 'codex')
   assert.ok(call.args.includes('--sandbox'))
-  assert.ok(call.args.includes('read-only'))
+  assert.ok(call.args.includes('workspace-write'))
   assert.ok(call.args.includes('--skip-git-repo-check'))
   const cdIndex = call.args.indexOf('--cd')
   assert.notEqual(cdIndex, -1)

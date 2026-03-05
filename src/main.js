@@ -12,7 +12,7 @@ const path = require('node:path');
 const { registerIpcHandlers } = require('./ipc');
 const { showWindow } = require('./utils/window');
 const { ensureHomebrewPath } = require('./utils/path');
-const { loadSettings, saveSettings, validateContextFolderPath } = require('./settings');
+const { loadSettings, saveSettings, validateContextFolderPath, resolveSettingsDir } = require('./settings');
 const { buildTrayMenuTemplate } = require('./menu');
 const { ensureFamiliarSkillAlignment } = require('./skills/familiar-skill-alignment');
 const { initLogging } = require('./logger');
@@ -38,6 +38,8 @@ const {
     DEFAULT_CHECK_INTERVAL_MS,
     resolveCleanupRetentionDays
 } = require('./storage/auto-session-cleanup');
+const { createHeartbeatScheduler } = require('./heartbeats/scheduler');
+const { buildHeartbeatFailureToastBody } = require('./heartbeats/failure-toast');
 const { createRetentionChangeTrigger } = require('./storage/retention-change-trigger');
 const { moveFamiliarFolder } = require('./context-folder/move');
 const { createMoveContextFolderHandler } = require('./context-folder/move-handler');
@@ -55,6 +57,7 @@ let recordingShutdownInProgress = false;
 let recordingOffReminder = null;
 let autoSessionCleanupScheduler = null;
 let retentionChangeTrigger = null;
+let heartbeatScheduler = null;
 let redactionWarningShownForCurrentRecordingSession = false;
 let lastScreenCaptureSettings = {
     enabled: null,
@@ -102,6 +105,10 @@ const maybeE2EToast = (payload = {}) => {
     }
     recordE2EToastEvent(payload);
     showToast(payload);
+};
+
+const resolveFamiliarLogPath = () => {
+    return path.join(resolveSettingsDir(), 'logs', 'familiar.log');
 };
 
 const isE2E = process.env.FAMILIAR_E2E === '1';
@@ -370,6 +377,11 @@ const getCurrentScreenStillsState = () => {
     };
 };
 
+const isCaptureActiveForHeartbeats = () => {
+    const recordingState = getCurrentScreenStillsState();
+    return recordingState.state === 'recording' || recordingState.state === 'idleGrace';
+};
+
 const getScreenStillsStatusPayload = () => {
     const state = getCurrentScreenStillsState();
     const isRecording = state.state === 'recording' || state.state === 'idleGrace';
@@ -424,6 +436,25 @@ const notifyAlwaysRecordWhenActiveChanged = ({ enabled } = {}) => {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
         settingsWindow.webContents.send('settings:alwaysRecordWhenActiveChanged', { enabled });
     }
+};
+
+const notifyHeartbeatRunStateChanged = (payload = {}) => {
+    if (!settingsWindow || settingsWindow.isDestroyed()) {
+        return;
+    }
+    if (!payload || typeof payload !== 'object') {
+        return;
+    }
+    settingsWindow.webContents.send('settings:heartbeatRunStateChanged', {
+        id: typeof payload.id === 'string' ? payload.id : '',
+        topic: typeof payload.topic === 'string' ? payload.topic : '',
+        state: payload.state || '',
+        trigger: typeof payload.trigger === 'string' ? payload.trigger : '',
+        status: typeof payload.status === 'string' ? payload.status : '',
+        error: typeof payload.error === 'string' ? payload.error : '',
+        outputPath: typeof payload.outputPath === 'string' ? payload.outputPath : '',
+        scheduledAtMs: Number.isFinite(payload.scheduledAtMs) ? payload.scheduledAtMs : null
+    });
 };
 
 const handleMoveContextFolder = createMoveContextFolderHandler({
@@ -596,7 +627,8 @@ function createTray() {
 const registerMainProcessIpc = () => {
     registerIpcHandlers({
         onSettingsSaved: handleMainSettingsSaved,
-        onMoveContextFolder: handleMoveContextFolder
+        onMoveContextFolder: handleMoveContextFolder,
+        runHeartbeatNow: (payload) => heartbeatScheduler?.runHeartbeatNow?.(payload)
     });
 
     ipcMain.on('microcopy:get-sync', (event) => {
@@ -752,6 +784,37 @@ if (isPrimaryInstance) {
         });
         autoSessionCleanupScheduler.start();
 
+        heartbeatScheduler = createHeartbeatScheduler({
+            settingsLoader: loadSettings,
+            settingsSaver: saveSettings,
+            logger: console,
+            isCaptureActive: isCaptureActiveForHeartbeats,
+            onHeartbeatRunStateChanged: (payload) => {
+                notifyHeartbeatRunStateChanged(payload);
+            },
+            onFailure: (payload = {}) => {
+                const title = 'Heartbeat failed'
+                const topic = typeof payload.topic === 'string' && payload.topic.trim().length > 0
+                    ? payload.topic
+                    : 'Heartbeat'
+                const message = buildHeartbeatFailureToastBody(topic)
+                maybeE2EToast({
+                    title,
+                    body: message,
+                    type: 'warning',
+                    size: 'large',
+                    actions: [
+                        {
+                            label: 'Open logs',
+                            action: 'open-familiar-log',
+                            data: resolveFamiliarLogPath()
+                        }
+                    ]
+                })
+            }
+        });
+        heartbeatScheduler.start();
+
         let wasOpenedAtLogin = false;
 
         if (process.platform === 'darwin') {
@@ -798,6 +861,7 @@ if (isPrimaryInstance) {
 
 app.on('before-quit', (event) => {
     autoSessionCleanupScheduler?.stop?.();
+    heartbeatScheduler?.stop?.();
     if (recordingOffReminder && typeof recordingOffReminder.stopReminder === 'function') {
         recordingOffReminder.stopReminder();
     }
