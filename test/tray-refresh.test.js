@@ -73,3 +73,99 @@ test('registerTrayRefreshHandlers refreshes tray on click and right-click', () =
     assert.equal(loadSettingsCalls, 2)
     assert.equal(setContextMenuCalls, 2)
 })
+
+test('registerTrayRefreshHandlers runs tray-open side effects after refresh', async () => {
+    let clickHandler = null
+    const trayOpenPromise = new Promise((resolve) => {
+        const controller = createTrayMenuController({
+            tray: {
+                setContextMenu: () => {},
+                on: (event, handler) => {
+                    if (event === 'click') {
+                        clickHandler = handler
+                    }
+                }
+            },
+            trayHandlers: {},
+            onTrayMenuOpened: async ({ settings }) => {
+                assert.equal(settings.contextFolderPath, '/tmp/context')
+                resolve()
+            },
+            getRecordingState: () => ({ manualPaused: false, state: 'armed', pauseRemainingMs: 0 }),
+            menu: {
+                buildFromTemplate: (template) => template
+            },
+            loadSettingsFn: () => ({
+                contextFolderPath: '/tmp/context'
+            })
+        })
+
+        controller.registerTrayRefreshHandlers()
+    })
+    assert.ok(clickHandler)
+
+    clickHandler()
+    await trayOpenPromise
+})
+
+test('handleTrayMenuOpen is exposed for callers that need tray-open side effects', async () => {
+    let trayOpenCalls = 0
+
+    const controller = createTrayMenuController({
+        tray: {
+            setContextMenu: () => {},
+            on: () => {}
+        },
+        trayHandlers: {},
+        onTrayMenuOpened: async () => {
+            trayOpenCalls += 1
+        },
+        getRecordingState: () => ({ manualPaused: false, state: 'armed', pauseRemainingMs: 0 }),
+        menu: {
+            buildFromTemplate: (template) => template
+        },
+        loadSettingsFn: () => ({})
+    })
+
+    await controller.handleTrayMenuOpen()
+
+    assert.equal(trayOpenCalls, 1)
+})
+
+test('tray refresh loads recent heartbeats from the provided resolver', () => {
+    const menuCalls = []
+    let getRecentHeartbeatsCalls = 0
+
+    const controller = createTrayMenuController({
+        tray: {
+            setContextMenu: (menu) => {
+                menuCalls.push(menu)
+            }
+        },
+        trayHandlers: {},
+        getRecentHeartbeats: ({ settings }) => {
+            getRecentHeartbeatsCalls += 1
+            assert.equal(settings.contextFolderPath, '/tmp/context')
+            return [
+                {
+                    heartbeatId: 'hb-1',
+                    topic: 'daily summary',
+                    status: 'completed',
+                    completedAtUtc: '2026-03-06T10:15:00.000Z'
+                }
+            ]
+        },
+        getRecordingState: () => ({ manualPaused: false, state: 'armed', pauseRemainingMs: 0 }),
+        menu: {
+            buildFromTemplate: (template) => template
+        },
+        loadSettingsFn: () => ({
+            contextFolderPath: '/tmp/context'
+        })
+    })
+
+    controller.refreshTrayMenuFromSettings()
+
+    assert.equal(getRecentHeartbeatsCalls, 1)
+    assert.ok(menuCalls[0].some((item) => item.label === microcopy.tray.heartbeats.section))
+})

@@ -16,6 +16,9 @@ const microcopy = {
       clickToPauseFor10Min: 'Capturing (click to pause for 10 min)',
       startCapturing: 'Start Capturing'
     },
+    heartbeats: {
+      section: 'Heartbeats'
+    },
     actions: {
       settings: 'Settings',
       quit: 'Quit'

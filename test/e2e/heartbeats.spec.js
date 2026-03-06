@@ -18,6 +18,14 @@ const readStoredHeartbeat = (settingsPath) => {
   return Array.isArray(items) && items.length === 1 ? items[0] : null
 }
 
+const buildLaunchArgs = () => {
+  const launchArgs = ['.']
+  if (process.platform === 'linux') {
+    launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
+  }
+  return launchArgs
+}
+
 const expectStoredHeartbeat = async (settingsPath, expected) => {
   await expect
     .poll(() => {
@@ -115,13 +123,8 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
 
   fs.writeFileSync(settingsPath, JSON.stringify(initialSettings, null, 2), 'utf-8')
 
-  const launchArgs = ['.']
-  if (process.platform === 'linux') {
-    launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
-  }
-
   const electronApp = await electron.launch({
-    args: launchArgs,
+    args: buildLaunchArgs(),
     cwd: appRoot,
     env: {
       ...process.env,
@@ -232,6 +235,114 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     await deleteConfirmation
 
     await expect.poll(() => readSettings(settingsPath)?.heartbeats?.items?.length ?? 0).toBe(0)
+  } finally {
+    await electronApp.close()
+  }
+})
+
+test('heartbeat run appears in tray and tray click opens the output file in TextEdit', async () => {
+  const appRoot = path.join(__dirname, '../..')
+  const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-run-context-e2e-'))
+  const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-run-settings-e2e-'))
+  const settingsPath = path.join(settingsDir, 'settings.json')
+  const initialSettings = {
+    wizardCompleted: true,
+    contextFolderPath: contextPath,
+    skillInstaller: {
+      harness: ['codex'],
+      installPath: ['/tmp/.codex/skills/familiar']
+    },
+    heartbeats: { items: [] }
+  }
+
+  fs.writeFileSync(settingsPath, JSON.stringify(initialSettings, null, 2), 'utf-8')
+
+  const electronApp = await electron.launch({
+    args: buildLaunchArgs(),
+    cwd: appRoot,
+    env: {
+      ...process.env,
+      FAMILIAR_E2E: '1',
+      FAMILIAR_E2E_CONTEXT_PATH: contextPath,
+      FAMILIAR_SETTINGS_DIR: settingsDir,
+      FAMILIAR_E2E_HEARTBEAT_MOCK: '1',
+      FAMILIAR_E2E_HEARTBEAT_MOCK_TEXT: '# Daily summary\n\nMock heartbeat output from E2E.'
+    }
+  })
+
+  try {
+    const createdTime = toTimeInputValue(20)
+    const createdTopic = 'daily summary'
+    const createdPrompt = 'Summarize the most important work from the last day.'
+
+    const window = await electronApp.firstWindow()
+    await window.waitForLoadState('domcontentloaded')
+
+    await window.getByRole('tab', { name: 'Connect Agent' }).click()
+    await expect(window.locator('#settings-skill-harness-codex')).toBeChecked()
+
+    await window.getByRole('tab', { name: 'Heartbeats' }).click()
+    await window.locator('#heartbeats-add').click()
+    await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toBeVisible()
+    await window.locator('#heartbeat-topic').fill(createdTopic)
+    await window.locator('#heartbeat-prompt').fill(createdPrompt)
+    await window.locator('#heartbeat-time').fill(createdTime)
+    await saveHeartbeatForm(window)
+    await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toHaveCount(0)
+
+    const createdHeartbeat = readStoredHeartbeat(settingsPath)
+    expect(createdHeartbeat).not.toBeNull()
+
+    const clearTextEditEvents = await window.evaluate(() => window.familiar.getTextEditOpenEventsForE2E({ clear: true }))
+    expect(clearTextEditEvents?.ok).toBe(true)
+
+    const runResult = await window.evaluate((heartbeatId) => window.familiar.runHeartbeatNow({ heartbeatId }), createdHeartbeat.id)
+    expect(runResult?.ok).toBe(true)
+    expect(runResult?.status).toBe('ok')
+    expect(typeof runResult?.outputPath).toBe('string')
+
+    await expect.poll(async () => {
+      const trayIconState = await window.evaluate(() => window.familiar.getTrayIconStateForE2E())
+      return trayIconState?.iconState?.hasUnreadHeartbeats === true
+        ? path.basename(trayIconState.iconState.iconPath || '')
+        : ''
+    }).toBe('icon_green_owl.png')
+
+    await expect.poll(() => {
+      const stored = readStoredHeartbeat(settingsPath)
+      return stored?.lastRunStatus || ''
+    }).toBe('ok')
+
+    await expect.poll(() => fs.existsSync(runResult.outputPath)).toBe(true)
+    await expect.poll(() => fs.readFileSync(runResult.outputPath, 'utf-8')).toContain('Mock heartbeat output from E2E.')
+
+    const trayMenu = await window.evaluate(() => window.familiar.getTrayMenuItemsForE2E())
+    expect(trayMenu?.ok).toBe(true)
+    expect(trayMenu.items.some((item) => item.label === 'Heartbeats')).toBe(true)
+    expect(trayMenu.items.some((item) => /daily_summary - /.test(item.label))).toBe(true)
+
+    const trayHeartbeats = await window.evaluate(() => window.familiar.getTrayHeartbeatsForE2E())
+    expect(trayHeartbeats?.ok).toBe(true)
+    expect(Array.isArray(trayHeartbeats.items)).toBe(true)
+    expect(trayHeartbeats.items.length).toBeGreaterThan(0)
+
+    const trayItem = trayHeartbeats.items.find((item) => item.heartbeatId === createdHeartbeat.id)
+    expect(trayItem).toBeTruthy()
+    expect(trayItem.status).toBe('completed')
+
+    const trayOpen = await window.evaluate(() => window.familiar.openTrayMenuForE2E())
+    expect(trayOpen?.ok).toBe(true)
+    expect(trayOpen?.iconState?.hasUnreadHeartbeats).toBe(false)
+    expect(path.basename(trayOpen?.iconState?.iconPath || '')).toBe('icon_white_owl.png')
+
+    const trayClick = await window.evaluate((rowId) => window.familiar.clickTrayHeartbeatForE2E({ rowId }), trayItem.id)
+    expect(trayClick?.ok).toBe(true)
+    expect(trayClick?.targetPath).toBe(runResult.outputPath)
+
+    const textEditEvents = await window.evaluate(() => window.familiar.getTextEditOpenEventsForE2E())
+    expect(textEditEvents?.ok).toBe(true)
+    expect(textEditEvents.events.length).toBeGreaterThan(0)
+    expect(textEditEvents.events.at(-1)?.targetPath).toBe(runResult.outputPath)
   } finally {
     await electronApp.close()
   }

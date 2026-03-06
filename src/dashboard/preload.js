@@ -26,7 +26,13 @@ contextBridge.exposeInMainWorld('familiar', {
   simulateStillsIdle: (payload) => ipcRenderer.invoke('screenStills:simulateIdle', payload),
   getTrayRecordingLabelForE2E: () => ipcRenderer.invoke('e2e:tray:getRecordingLabel'),
   clickTrayRecordingActionForE2E: () => ipcRenderer.invoke('e2e:tray:clickRecordingAction'),
+  openTrayMenuForE2E: () => ipcRenderer.invoke('e2e:tray:openMenu'),
+  getTrayIconStateForE2E: () => ipcRenderer.invoke('e2e:tray:getIconState'),
+  getTrayMenuItemsForE2E: () => ipcRenderer.invoke('e2e:tray:getMenuItems'),
+  getTrayHeartbeatsForE2E: () => ipcRenderer.invoke('e2e:tray:getHeartbeats'),
+  clickTrayHeartbeatForE2E: (payload) => ipcRenderer.invoke('e2e:tray:clickHeartbeat', payload || {}),
   getToastEventsForE2E: (options) => ipcRenderer.invoke('e2e:toast:events', options || {}),
+  getTextEditOpenEventsForE2E: (options) => ipcRenderer.invoke('e2e:textedit:events', options || {}),
   onAlwaysRecordWhenActiveChanged: (handler) => {
     const listener = (_event, payload) => handler(payload)
     ipcRenderer.on('settings:alwaysRecordWhenActiveChanged', listener)

@@ -153,3 +153,44 @@ test('buildTrayMenuTemplate includes status icon when provided', () => {
 
     assert.equal(template[0].icon, recordingStatusIcon);
 });
+
+test('buildTrayMenuTemplate adds recent heartbeat rows and opens selected row', () => {
+    let openedHeartbeat = null;
+
+    const template = buildTrayMenuTemplate({
+        onRecordingPause: () => {},
+        onOpenHeartbeat: (entry) => {
+            openedHeartbeat = entry;
+        },
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        recentHeartbeats: [
+            {
+                heartbeatId: 'hb-1',
+                topic: 'daily summary',
+                status: 'completed',
+                completedAtUtc: '2026-03-06T10:15:00.000Z',
+                outputPath: '/tmp/daily-summary.md'
+            },
+            {
+                heartbeatId: 'hb-2',
+                topic: 'weekly retro',
+                status: 'failed',
+                completedAtUtc: '2026-03-06T09:15:00.000Z'
+            }
+        ]
+    });
+
+    const labels = template.filter((item) => item.label).map((item) => item.label);
+
+    assert.ok(labels.includes(microcopy.tray.heartbeats.section));
+    assert.ok(labels.some((label) => label.startsWith('daily summary - ')));
+    assert.ok(labels.some((label) => label.startsWith('weekly retro (failed) - ')));
+
+    const heartbeatItem = template.find((item) => item.label && item.label.startsWith('daily summary - '));
+    assert.ok(heartbeatItem);
+
+    heartbeatItem.click();
+
+    assert.equal(openedHeartbeat.heartbeatId, 'hb-1');
+});
