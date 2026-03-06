@@ -809,6 +809,7 @@ if (isPrimaryInstance) {
                     body: message,
                     type: 'warning',
                     size: 'large',
+                    duration: 10_000,
                     actions: [
                         {
                             label: 'Open logs',

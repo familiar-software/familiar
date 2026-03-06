@@ -1,23 +1,24 @@
 import React from 'react'
 
-import { Button } from '../../ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '../../ui/card'
 import { Checkbox } from '../../ui/checkbox'
 import { Input } from '../../ui/input'
 import { Label } from '../../ui/label'
 import { Select } from '../../ui/select'
 import { Textarea } from '../../ui/textarea'
-import { CardTitle } from '../../ui/card'
 
 import { getLabel } from './heartbeatsSectionUtils'
 
 export function HeartbeatForm({
   mc,
-  editingId,
   draft,
   setDraft,
-  save,
-  closeForm,
-  isFormSubmitting,
   formError,
   timezoneOptions,
   runnerLookup,
@@ -27,154 +28,198 @@ export function HeartbeatForm({
   const isWeekly = draft.frequency === 'weekly'
 
   return (
-    <section className="pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-4">
-      <CardTitle>
-        {editingId ? 'Edit Heartbeat' : 'New Heartbeat'}
-      </CardTitle>
-      <div className="space-y-3">
-        <Label htmlFor="heartbeat-topic" className="section-label">
-          Topic
-        </Label>
-        <Input
-          id="heartbeat-topic"
-          value={draft.topic}
-          onChange={(event) => {
-            setDraft((previous) => ({ ...previous, topic: event.target.value }))
-          }}
-        />
-        <Label htmlFor="heartbeat-prompt" className="section-label">
-          Prompt
-        </Label>
-        <Textarea
-          id="heartbeat-prompt"
-          className="min-h-24"
-          value={draft.prompt}
-          onChange={(event) => {
-            setDraft((previous) => ({ ...previous, prompt: event.target.value }))
-          }}
-        />
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.9fr)]">
+        <Card className="border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle>What to summarize</CardTitle>
+            <CardDescription>
+              Name the heartbeat and define the exact brief the agent should produce.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="heartbeat-topic"
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
+                Topic
+              </Label>
+              <Input
+                id="heartbeat-topic"
+                placeholder="Daily summary"
+                value={draft.topic}
+                onChange={(event) => {
+                  setDraft((previous) => ({ ...previous, topic: event.target.value }))
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="heartbeat-prompt"
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
+                Prompt
+              </Label>
+              <Textarea
+                id="heartbeat-prompt"
+                className="min-h-36 resize-y"
+                placeholder="Review the last 24 hours and summarize the most important work, blockers, and next actions."
+                value={draft.prompt}
+                onChange={(event) => {
+                  setDraft((previous) => ({ ...previous, prompt: event.target.value }))
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="heartbeat-runner" className="section-label">
-              Runner
-            </Label>
-            <Select
-              id="heartbeat-runner"
-              className="input-ring w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2 px-3 text-[14px]"
-              value={draft.runner}
-              onChange={(event) => {
-                setDraft((previous) => ({ ...previous, runner: event.target.value }))
-              }}
-            >
-              {runnerLookup.map((entry) => (
-                <option key={entry.value} value={entry.value}>
-                  {getLabel(mc?.dashboard?.heartbeats, entry, entry.label)}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="heartbeat-frequency" className="section-label">
-              Frequency
-            </Label>
-            <Select
-              id="heartbeat-frequency"
-              className="input-ring w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2 px-3 text-[14px]"
-              value={draft.frequency}
-              onChange={(event) => {
-                setDraft((previous) => ({ ...previous, frequency: event.target.value }))
-              }}
-            >
-              {frequencyLookup.map((entry) => (
-                <option key={entry.value} value={entry.value}>
-                  {getLabel(mc?.dashboard?.heartbeats, entry, entry.label)}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="heartbeat-time" className="section-label">Time</Label>
-            <Input
-              id="heartbeat-time"
-              type="time"
-              value={draft.time}
-              onChange={(event) => {
-                setDraft((previous) => ({ ...previous, time: event.target.value }))
-              }}
-            />
-          </div>
-          {isWeekly ? (
-            <div className="space-y-1">
-              <Label htmlFor="heartbeat-day-of-week" className="section-label">
-                Day of week
+        <Card className="border-zinc-200/80 bg-zinc-50/70 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle>Run settings</CardTitle>
+            <CardDescription>
+              Choose the runner, cadence, and timing for this heartbeat.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="heartbeat-runner"
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
+                Runner
               </Label>
               <Select
-                id="heartbeat-day-of-week"
-                className="input-ring w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2 px-3 text-[14px]"
-                value={draft.dayOfWeek}
+                id="heartbeat-runner"
+                value={draft.runner}
                 onChange={(event) => {
-                  setDraft((previous) => ({ ...previous, dayOfWeek: event.target.value }))
+                  setDraft((previous) => ({ ...previous, runner: event.target.value }))
                 }}
               >
-                {weekdayLookup.map((entry) => (
+                {runnerLookup.map((entry) => (
                   <option key={entry.value} value={entry.value}>
-                    {entry.label}
+                    {getLabel(mc?.dashboard?.heartbeats, entry, entry.label)}
                   </option>
                 ))}
               </Select>
             </div>
-          ) : (
-            <div />
-          )}
-        </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="heartbeat-timezone" className="section-label">Timezone</Label>
-          <Select
-            id="heartbeat-timezone"
-            className="input-ring w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2 px-3 text-[14px]"
-            value={draft.timezone}
-            onChange={(event) => {
-              setDraft((previous) => ({ ...previous, timezone: event.target.value }))
-            }}
-          >
-            {timezoneOptions.map((entry) => (
-              <option key={entry} value={entry}>
-                {entry}
-              </option>
-            ))}
-          </Select>
-        </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="heartbeat-frequency"
+                  className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+                >
+                  Frequency
+                </Label>
+                <Select
+                  id="heartbeat-frequency"
+                  value={draft.frequency}
+                  onChange={(event) => {
+                    setDraft((previous) => ({ ...previous, frequency: event.target.value }))
+                  }}
+                >
+                  {frequencyLookup.map((entry) => (
+                    <option key={entry.value} value={entry.value}>
+                      {getLabel(mc?.dashboard?.heartbeats, entry, entry.label)}
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
-        <Label className="inline-flex items-center gap-2 text-[14px] text-zinc-600 dark:text-zinc-300">
-          <Checkbox
-            type="checkbox"
-            className="h-3.5 w-3.5 accent-indigo-600 dark:accent-indigo-400"
-            checked={draft.enabled !== false}
-            onChange={(event) => {
-              setDraft((previous) => ({ ...previous, enabled: event.target.checked }))
-            }}
-          />
-          Enabled
-        </Label>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="heartbeat-time"
+                  className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+                >
+                  Time
+                </Label>
+                <Input
+                  id="heartbeat-time"
+                  type="time"
+                  value={draft.time}
+                  onChange={(event) => {
+                    setDraft((previous) => ({ ...previous, time: event.target.value }))
+                  }}
+                />
+              </div>
+            </div>
 
-        <p className={`text-[14px] text-red-600 dark:text-red-400 ${formError ? '' : 'hidden'}`}>
-          {formError}
-        </p>
+            {isWeekly ? (
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="heartbeat-day-of-week"
+                  className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+                >
+                  Day of week
+                </Label>
+                <Select
+                  id="heartbeat-day-of-week"
+                  value={draft.dayOfWeek}
+                  onChange={(event) => {
+                    setDraft((previous) => ({ ...previous, dayOfWeek: event.target.value }))
+                  }}
+                >
+                  {weekdayLookup.map((entry) => (
+                    <option key={entry.value} value={entry.value}>
+                      {entry.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : null}
 
-        <div className="flex items-center gap-2">
-          <Button onClick={save} disabled={isFormSubmitting}>
-            {isFormSubmitting ? 'Saving…' : 'Save heartbeat'}
-          </Button>
-          <Button variant="outline" onClick={closeForm} disabled={isFormSubmitting}>
-            Cancel
-          </Button>
-        </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="heartbeat-timezone"
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
+                Timezone
+              </Label>
+              <Select
+                id="heartbeat-timezone"
+                value={draft.timezone}
+                onChange={(event) => {
+                  setDraft((previous) => ({ ...previous, timezone: event.target.value }))
+                }}
+              >
+                {timezoneOptions.map((entry) => (
+                  <option key={entry} value={entry}>
+                    {entry}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="rounded-xl border border-zinc-200/80 bg-white/90 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-900/80">
+              <Label className="flex items-start gap-3 text-zinc-700 dark:text-zinc-200">
+                <Checkbox
+                  id="heartbeat-enabled"
+                  className="mt-0.5"
+                  checked={draft.enabled !== false}
+                  onChange={(event) => {
+                    setDraft((previous) => ({ ...previous, enabled: event.target.checked }))
+                  }}
+                />
+                <span className="space-y-1">
+                  <span className="block text-[14px] font-medium leading-none">Enabled</span>
+                  <span className="block text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    Run this heartbeat automatically on its schedule.
+                  </span>
+                </span>
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </section>
+
+      <Card className={`border-red-200 bg-red-50/80 shadow-sm dark:border-red-900/60 dark:bg-red-950/30 ${formError ? '' : 'hidden'}`}>
+        <CardContent className="p-4">
+          <p className="text-[14px] font-medium text-red-700 dark:text-red-300">
+            {formError}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

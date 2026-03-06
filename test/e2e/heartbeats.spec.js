@@ -46,7 +46,6 @@ const scrollSettingsContent = async (window, position = 'bottom') => {
 }
 
 const saveHeartbeatForm = async (window) => {
-  await scrollSettingsContent(window, 'bottom')
   const saveButton = window.getByRole('button', { name: 'Save heartbeat' })
   await saveButton.scrollIntoViewIfNeeded()
   await expect(saveButton).toBeVisible()
@@ -153,10 +152,12 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     await expect(window.locator('#section-title')).toHaveText('Heartbeats')
 
     await window.locator('#heartbeats-add').click()
+    await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toBeVisible()
     await window.locator('#heartbeat-topic').fill(createdTopic)
     await window.locator('#heartbeat-prompt').fill(createdPrompt)
     await window.locator('#heartbeat-time').fill(createdTime)
     await saveHeartbeatForm(window)
+    await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toHaveCount(0)
 
     await expect.poll(() => readSettings(settingsPath)?.heartbeats?.items?.length ?? 0).toBe(1)
     await expectStoredHeartbeat(settingsPath, {
@@ -177,21 +178,24 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     expect(typeof createdHeartbeat.updatedAt).toBe('number')
 
     await window.locator('#heartbeats-add').click()
+    await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toBeVisible()
     await window.locator('#heartbeat-topic').fill('blocked antigravity heartbeat')
     await window.locator('#heartbeat-prompt').fill('This should be rejected because Antigravity is not enabled.')
     await window.locator('#heartbeat-runner').selectOption('antigravity')
     await saveHeartbeatForm(window)
     await expect(window.getByText(invalidRunnerError).first()).toBeVisible()
     await expect.poll(() => readSettings(settingsPath)?.heartbeats?.items?.length ?? 0).toBe(1)
-    await scrollSettingsContent(window, 'bottom')
     await window.getByRole('button', { name: 'Cancel' }).click()
+    await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toHaveCount(0)
 
     await scrollSettingsContent(window, 'top')
     await window.getByRole('button', { name: 'Edit' }).click()
+    await expect(window.getByRole('dialog', { name: 'Edit Heartbeat' })).toBeVisible()
     await window.locator('#heartbeat-topic').fill(editedTopic)
     await window.locator('#heartbeat-prompt').fill(editedPrompt)
     await window.locator('#heartbeat-time').fill(editedTime)
     await saveHeartbeatForm(window)
+    await expect(window.getByRole('dialog', { name: 'Edit Heartbeat' })).toHaveCount(0)
 
     await expectStoredHeartbeat(settingsPath, {
       topic: editedTopic,

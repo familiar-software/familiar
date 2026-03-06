@@ -7,9 +7,7 @@ import {
   HEARTBEAT_RUNNERS,
   HEARTBEAT_WEEKDAYS
 } from '../dashboard/dashboardConstants'
-import { getHeartbeatCatalogTemplates } from '../dashboard/heartbeat-catalog-utils.cjs'
-import { HeartbeatCatalogModal } from './heartbeats/HeartbeatCatalogModal'
-import { HeartbeatForm } from './heartbeats/HeartbeatForm'
+import { HeartbeatFormDialog } from './heartbeats/HeartbeatFormDialog'
 import { HeartbeatList } from './heartbeats/HeartbeatList'
 import {
   getSafeTime,
@@ -36,7 +34,6 @@ export function HeartbeatsSection({
   heartbeatMessage,
   heartbeatError,
   saveHeartbeat,
-  addCatalogHeartbeat,
   deleteHeartbeat,
   setHeartbeatEnabled,
   runHeartbeatNow,
@@ -52,18 +49,14 @@ export function HeartbeatsSection({
     set.add(fallbackZone)
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [])
-  const catalogTemplates = useMemo(() => getHeartbeatCatalogTemplates(), [])
   const weekdayLookup = useMemo(() => HEARTBEAT_WEEKDAYS, [])
   const runnerLookup = useMemo(() => HEARTBEAT_RUNNERS, [])
   const frequencyLookup = useMemo(() => HEARTBEAT_FREQUENCIES, [])
   const hasContextFolder = Boolean(settings?.contextFolderPath)
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [isCatalogOpen, setIsCatalogOpen] = useState(false)
   const [editingId, setEditingId] = useState('')
   const [formError, setFormError] = useState('')
-  const [catalogError, setCatalogError] = useState('')
   const [isFormSubmitting, setIsFormSubmitting] = useState(false)
-  const [isCatalogSubmitting, setIsCatalogSubmitting] = useState(false)
   const [draft, setDraft] = useState(() => createEmptyDraft({
     runnerLookup,
     frequencyLookup,
@@ -180,25 +173,6 @@ export function HeartbeatsSection({
     void openHeartbeatsFolder?.()
   }
 
-  const onAddCatalogTemplate = async (template, runner) => {
-    if (typeof addCatalogHeartbeat !== 'function') {
-      setCatalogError('Unable to add heartbeat.')
-      return
-    }
-
-    setIsCatalogSubmitting(true)
-    setCatalogError('')
-    const result = await addCatalogHeartbeat(template, runner)
-    setIsCatalogSubmitting(false)
-
-    if (!result?.ok) {
-      setCatalogError(result?.message || 'Failed to add heartbeat.')
-      return
-    }
-
-    setIsCatalogOpen(false)
-  }
-
   return (
     <section id="section-heartbeats" className="space-y-5 max-w-[680px]">
       <div className="flex items-start justify-end gap-3">
@@ -211,17 +185,6 @@ export function HeartbeatsSection({
             size="sm"
           >
             Open Heartbeats Folder
-          </Button>
-          <Button
-            id="heartbeats-catalog"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setCatalogError('')
-              setIsCatalogOpen(true)
-            }}
-          >
-            Catalog
           </Button>
           <Button
             id="heartbeats-add"
@@ -254,37 +217,20 @@ export function HeartbeatsSection({
         weekdayLookup={weekdayLookup}
       />
 
-      {isFormOpen ? (
-        <HeartbeatForm
-          mc={mc}
-          editingId={editingId}
-          draft={draft}
-          setDraft={setDraft}
-          save={save}
-          closeForm={closeForm}
-          isFormSubmitting={isFormSubmitting}
-          formError={formError}
-          timezoneOptions={timezoneOptions}
-          runnerLookup={runnerLookup}
-          frequencyLookup={frequencyLookup}
-          weekdayLookup={weekdayLookup}
-        />
-      ) : null}
-
-      <HeartbeatCatalogModal
-        isOpen={isCatalogOpen}
-        templates={catalogTemplates}
-        runnerOptions={runnerLookup}
-        onClose={() => {
-          if (isCatalogSubmitting) {
-            return
-          }
-          setCatalogError('')
-          setIsCatalogOpen(false)
-        }}
-        onAddTemplate={onAddCatalogTemplate}
-        isSubmitting={isCatalogSubmitting}
-        errorMessage={catalogError}
+      <HeartbeatFormDialog
+        isOpen={isFormOpen}
+        mc={mc}
+        editingId={editingId}
+        draft={draft}
+        setDraft={setDraft}
+        save={save}
+        onClose={closeForm}
+        isSubmitting={isFormSubmitting}
+        formError={formError}
+        timezoneOptions={timezoneOptions}
+        runnerLookup={runnerLookup}
+        frequencyLookup={frequencyLookup}
+        weekdayLookup={weekdayLookup}
       />
     </section>
   )
