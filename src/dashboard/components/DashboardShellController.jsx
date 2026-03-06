@@ -27,6 +27,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     microcopy,
     formatters
   })
+  const isDevelopmentMode = familiar?.isDevelopmentMode === true
 
   const skills = useDashboardSkills(core)
   const lifecycle = useDashboardLifecycle(core, {
@@ -78,7 +79,8 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     storage
   ])
 
-  const navigation = buildDashboardNavigation(core.mc)
+  const navigation = buildDashboardNavigation(core.mc, { isDevelopmentMode })
+  const availableSectionIds = navigation.map((entry) => entry.id)
   const wizardCompleteMessage =
     core.mc.dashboard?.wizard?.completeStepToContinue || 'Please complete the setup wizard first.'
 
@@ -86,7 +88,8 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     (nextSection) => {
       const sectionSelection = resolveSectionSelection({
         isWizardCompleted: core.isWizardCompleted,
-        nextSection
+        nextSection,
+        availableSectionIds
       })
       if (!sectionSelection.allowed) {
         if (sectionSelection.showError) {
@@ -97,7 +100,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
       core.setGlobalError('')
       core.setActiveSection(nextSection)
     },
-    [core, wizardCompleteMessage]
+    [availableSectionIds, core, wizardCompleteMessage]
   )
 
   const recordingIndicator = resolveRecordingIndicatorVisuals({

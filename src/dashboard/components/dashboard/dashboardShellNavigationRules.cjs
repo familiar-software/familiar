@@ -5,7 +5,11 @@ const resolveInitialActiveSection = (wizardCompleted) => {
   return wizardCompleted === true ? STORAGE_SECTION : WIZARD_SECTION
 }
 
-const resolveSectionSelection = ({ isWizardCompleted, nextSection }) => {
+const resolveSectionSelection = ({ isWizardCompleted, nextSection, availableSectionIds = null }) => {
+  if (Array.isArray(availableSectionIds) && !availableSectionIds.includes(nextSection)) {
+    return { allowed: false, showError: false }
+  }
+
   if (isWizardCompleted === true && nextSection === WIZARD_SECTION) {
     return { allowed: false, showError: false }
   }

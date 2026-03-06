@@ -57,7 +57,8 @@ export const buildDashboardShellMicrocopy = (microcopy = {}) => ({
         noPrompt: 'Prompt is required.',
         noTime: 'Time is required.',
         invalidTime: 'Time must be HH:mm.',
-        invalidTimezone: 'Please select a valid timezone.'
+        invalidTimezone: 'Please select a valid timezone.',
+        runnerNotConfigured: 'Only allowed for options picked in "Connect Agent".'
       },
       errors: {
         ...(microcopy.dashboard?.heartbeats?.errors || {}),

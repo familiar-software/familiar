@@ -9,6 +9,12 @@ import {
   HEARTBEAT_WEEKDAYS
 } from './dashboardConstants'
 import { resolveHeartbeatField } from './heartbeat-utils.cjs'
+import { buildHeartbeatFromCatalogTemplate } from './heartbeat-catalog-utils.cjs'
+import {
+  isExecutableHeartbeatRunner,
+  isHeartbeatRunnerAllowedBySkillInstaller,
+  normalizeHeartbeatTopic
+} from './heartbeat-validation-utils.cjs'
 
 const HEARTBEAT_RUNNER_SET = new Set(HEARTBEAT_RUNNERS.map((entry) => entry.value))
 const HEARTBEAT_FREQUENCY_SET = new Set(HEARTBEAT_FREQUENCIES.map((entry) => entry.value))
@@ -46,6 +52,7 @@ export const useDashboardHeartbeats = (state) => {
     familiar,
     mc,
     settings,
+    selectedHarnesses,
     setSettings,
     setHeartbeatMessage,
     setHeartbeatError,
@@ -118,7 +125,7 @@ export const useDashboardHeartbeats = (state) => {
     const nowMs = Date.now()
     const existing = toSafeItems(heartbeats)
     const heartbeatId = toSafeString(payload.id)
-    const topic = toSafeString(payload.topic).toLowerCase()
+    const topic = normalizeHeartbeatTopic(payload.topic)
     const prompt = toSafeString(payload.prompt)
     const runner = toSafeString(payload.runner)
     const frequency = resolveHeartbeatField(payload, 'frequency')
@@ -141,6 +148,22 @@ export const useDashboardHeartbeats = (state) => {
     }
 
     if (!HEARTBEAT_RUNNER_SET.has(runner)) {
+      const message = 'Unsupported heartbeat runner.'
+      setHeartbeatError(message)
+      return { ok: false, message }
+    }
+
+    if (!isHeartbeatRunnerAllowedBySkillInstaller({ runner, skillInstaller: { harness: selectedHarnesses } })) {
+      const message = messages.runnerNotConfigured || 'Only allowed for options picked in "Connect Agent".'
+      console.warn('Rejected heartbeat save: runner not enabled in Connect Agent', {
+        runner,
+        selectedHarnesses
+      })
+      setHeartbeatError(message)
+      return { ok: false, message }
+    }
+
+    if (!isExecutableHeartbeatRunner(runner)) {
       const message = 'Unsupported heartbeat runner.'
       setHeartbeatError(message)
       return { ok: false, message }
@@ -209,7 +232,7 @@ export const useDashboardHeartbeats = (state) => {
       return result
     }
     return { ok: true, heartbeat: nextItem }
-  }, [errors.duplicateTopic, heartbeats, messages.invalidTimezone, messages.invalidTime, messages.noPrompt, messages.noTopic, persistHeartbeats, normalizeDayOfWeek, setHeartbeatError])
+  }, [errors.duplicateTopic, heartbeats, messages.invalidTimezone, messages.invalidTime, messages.noPrompt, messages.noTopic, messages.runnerNotConfigured, persistHeartbeats, normalizeDayOfWeek, selectedHarnesses, setHeartbeatError])
 
   const deleteHeartbeat = useCallback(async (heartbeatId) => {
     const existing = toSafeItems(heartbeats)
@@ -233,6 +256,32 @@ export const useDashboardHeartbeats = (state) => {
     }
     return saveHeartbeat({ ...target, enabled }, { showStatus: false })
   }, [heartbeats, messages.notFound, saveHeartbeat, setHeartbeatError])
+
+  const addCatalogHeartbeat = useCallback(async (template, runner) => {
+    const selectedRunner = toSafeString(runner)
+    if (!selectedRunner) {
+      const message = 'Select a runtime before adding this heartbeat.'
+      setHeartbeatError(message)
+      return { ok: false, message }
+    }
+
+    const payload = buildHeartbeatFromCatalogTemplate({
+      template,
+      existingItems: heartbeats,
+      fallbackTimezone: HEARTBEAT_DEFAULT_TIMEZONE,
+      selectedRunner
+    })
+
+    const result = await saveHeartbeat(payload)
+    if (result?.ok) {
+      console.log('Added heartbeat from catalog', {
+        templateTopic: template?.topic,
+        savedTopic: payload.topic,
+        runner: payload.runner
+      })
+    }
+    return result
+  }, [heartbeats, saveHeartbeat, setHeartbeatError])
 
   const runHeartbeatNow = useCallback(async (heartbeatId) => {
     if (!familiar || typeof familiar.runHeartbeatNow !== 'function') {
@@ -309,6 +358,7 @@ export const useDashboardHeartbeats = (state) => {
   return {
     heartbeats,
     saveHeartbeat,
+    addCatalogHeartbeat,
     deleteHeartbeat,
     setHeartbeatEnabled,
     runHeartbeatNow,

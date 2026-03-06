@@ -1,9 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron')
+const environment = ipcRenderer.sendSync('environment:get-sync') || {}
 
 contextBridge.exposeInMainWorld('familiar', {
   platform: process.platform,
   electronVersion: process.versions.electron,
   nodeVersion: process.versions.node,
+  isDevelopmentMode: environment.isDevelopmentMode === true,
   getSettings: () => ipcRenderer.invoke('settings:get'),
   checkScreenRecordingPermission: () => ipcRenderer.invoke('settings:checkScreenRecordingPermission'),
   requestScreenRecordingPermission: () => ipcRenderer.invoke('settings:requestScreenRecordingPermission'),

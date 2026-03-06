@@ -43,12 +43,26 @@ test('allows non-wizard sections after completion', () => {
 })
 
 test('blocks missing section target while wizard is incomplete', () => {
-  const result = resolveSectionSelection({ isWizardCompleted: false, nextSection: undefined })
+  const result = resolveSectionSelection({
+    isWizardCompleted: false,
+    nextSection: undefined,
+    availableSectionIds: ['wizard', 'storage']
+  })
   assert.equal(result.allowed, false)
-  assert.equal(result.showError, true)
+  assert.equal(result.showError, false)
 })
 
-test('treats unknown section as blocked when wizard is complete', () => {
+test('blocks unavailable section target when section is omitted from navigation', () => {
+  const result = resolveSectionSelection({
+    isWizardCompleted: true,
+    nextSection: 'heartbeats',
+    availableSectionIds: ['storage', 'recording', 'install-skill']
+  })
+  assert.equal(result.allowed, false)
+  assert.equal(result.showError, false)
+})
+
+test('treats unknown section as allowed when section availability is not provided', () => {
   const result = resolveSectionSelection({ isWizardCompleted: true, nextSection: 'unknown' })
   assert.equal(result.allowed, true)
   assert.equal(result.showError, false)

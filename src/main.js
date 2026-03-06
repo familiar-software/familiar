@@ -635,6 +635,12 @@ const registerMainProcessIpc = () => {
         event.returnValue = microcopy;
     });
 
+    ipcMain.on('environment:get-sync', (event) => {
+        event.returnValue = {
+            isDevelopmentMode: !app.isPackaged
+        };
+    });
+
     ipcMain.handle('screenStills:getStatus', () => {
         if (!screenStillsController) {
             const state = getCurrentScreenStillsState();
