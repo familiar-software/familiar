@@ -14,16 +14,7 @@ Free, open source, and offline. Nothing leaves your machine.
 
 ## Website
 
-**[lookfamiliar.org](https://lookfamiliar.org)**
-
-## Installation
-
-1. Open the [releases page](https://github.com/familiar-software/familiar/releases)
-2. Download the latest `.dmg`:
-   - `arm64` for Apple Silicon Macs (M1/M2/M3/M4)
-   - `x64` for Intel Macs
-3. Open the installer and move `Familiar.app` to `Applications`.
-4. Launch Familiar and complete setup in Settings.
+**[looksfamiliar.org](https://looksfamiliar.org)**
 
 ## Where Familiar writes data
 
