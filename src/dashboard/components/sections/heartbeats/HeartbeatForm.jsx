@@ -26,15 +26,16 @@ export function HeartbeatForm({
   weekdayLookup
 }) {
   const isWeekly = draft.frequency === 'weekly'
+  const formCopy = mc?.dashboard?.heartbeats?.form || {}
 
   return (
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.9fr)]">
         <Card className="border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle>What to summarize</CardTitle>
+            <CardTitle>{formCopy.summarizeTitle}</CardTitle>
             <CardDescription>
-              Name the heartbeat and define the exact brief the agent should produce.
+              {formCopy.summarizeDescription}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -43,11 +44,11 @@ export function HeartbeatForm({
                 htmlFor="heartbeat-topic"
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
               >
-                Topic
+                {formCopy.topicLabel}
               </Label>
               <Input
                 id="heartbeat-topic"
-                placeholder="Daily summary"
+                placeholder={formCopy.topicPlaceholder}
                 value={draft.topic}
                 onChange={(event) => {
                   setDraft((previous) => ({ ...previous, topic: event.target.value }))
@@ -59,12 +60,12 @@ export function HeartbeatForm({
                 htmlFor="heartbeat-prompt"
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
               >
-                Prompt
+                {formCopy.promptLabel}
               </Label>
               <Textarea
                 id="heartbeat-prompt"
                 className="min-h-36 resize-y"
-                placeholder="Review the last 24 hours and summarize the most important work, blockers, and next actions."
+                placeholder={formCopy.promptPlaceholder}
                 value={draft.prompt}
                 onChange={(event) => {
                   setDraft((previous) => ({ ...previous, prompt: event.target.value }))
@@ -76,9 +77,9 @@ export function HeartbeatForm({
 
         <Card className="border-zinc-200/80 bg-zinc-50/70 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle>Run settings</CardTitle>
+            <CardTitle>{formCopy.runSettingsTitle}</CardTitle>
             <CardDescription>
-              Choose the runner, cadence, and timing for this heartbeat.
+              {formCopy.runSettingsDescription}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -87,7 +88,7 @@ export function HeartbeatForm({
                 htmlFor="heartbeat-runner"
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
               >
-                Runner
+                {formCopy.runnerLabel}
               </Label>
               <Select
                 id="heartbeat-runner"
@@ -107,10 +108,10 @@ export function HeartbeatForm({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
               <div className="space-y-1.5">
                 <Label
-                  htmlFor="heartbeat-frequency"
-                  className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
-                >
-                  Frequency
+                htmlFor="heartbeat-frequency"
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
+                  {formCopy.frequencyLabel}
                 </Label>
                 <Select
                   id="heartbeat-frequency"
@@ -129,10 +130,10 @@ export function HeartbeatForm({
 
               <div className="space-y-1.5">
                 <Label
-                  htmlFor="heartbeat-time"
-                  className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
-                >
-                  Time
+                htmlFor="heartbeat-time"
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
+                  {formCopy.timeLabel}
                 </Label>
                 <Input
                   id="heartbeat-time"
@@ -148,10 +149,10 @@ export function HeartbeatForm({
             {isWeekly ? (
               <div className="space-y-1.5">
                 <Label
-                  htmlFor="heartbeat-day-of-week"
-                  className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
-                >
-                  Day of week
+                htmlFor="heartbeat-day-of-week"
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
+                  {formCopy.dayOfWeekLabel}
                 </Label>
                 <Select
                   id="heartbeat-day-of-week"
@@ -174,7 +175,7 @@ export function HeartbeatForm({
                 htmlFor="heartbeat-timezone"
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
               >
-                Timezone
+                {formCopy.timezoneLabel}
               </Label>
               <Select
                 id="heartbeat-timezone"
@@ -202,9 +203,9 @@ export function HeartbeatForm({
                   }}
                 />
                 <span className="space-y-1">
-                  <span className="block text-[14px] font-medium leading-none">Enabled</span>
+                  <span className="block text-[14px] font-medium leading-none">{formCopy.enabledTitle}</span>
                   <span className="block text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                    Run this heartbeat automatically on its schedule.
+                    {formCopy.enabledDescription}
                   </span>
                 </span>
               </Label>

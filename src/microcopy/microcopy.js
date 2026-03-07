@@ -32,6 +32,9 @@ const microcopy = {
     idle: 'Idle'
   },
   dashboard: {
+    errors: {
+      reactInitializationFailed: 'Unable to initialize the React dashboard.'
+    },
     html: {
       pageTitle: 'Familiar Settings',
       brandName: 'Familiar',
@@ -49,8 +52,11 @@ const microcopy = {
       recordingPermissionsLabel: 'Permissions',
       recordingCheckPermissions: 'Check Permissions',
       recordingEnableFamiliarInScreenRecording: 'Enable Familiar In Screen Recording',
+      recordingAdvancedTitle: 'Advanced',
+      recordingScreenRecordingSettingsNote:
+        'Enable access to capture while active in Screen Recording settings.',
       recordingAfterEnablingRestartFamiliar: 'After enabling capturing, restart Familiar',
-      recordingCaptureWhileActive: 'Capture While Active',
+      recordingCaptureWhileActive: 'Capture while active',
       recordingActionRequiredToProceed: 'Action required to proceed',
       recordingCapturingIsEnabled: 'Capturing is enabled',
       recordingCopyDebugLog: 'Copy Debug Log',
@@ -63,8 +69,8 @@ const microcopy = {
       storageUsageBreakdown: 'Usage Breakdown',
       storageUsageComputing: '(Computing)',
       storageUsageCalculating: 'Calculating...',
-      storageUsageTextFilesUsing: 'Text files using',
-      storageUsageScreenshotsUsing: 'Screenshots using',
+      storageUsageTextFilesUsing: 'Text files',
+      storageUsageScreenshotsUsing: 'Screenshots',
       storageDeleteRecentFilesTitle: 'Delete Recent Files',
       storageDeleteRecentFilesDescription: 'Oops, forgot to turn off recording?',
       storageDeleteWindow15m: '15 minutes',
@@ -176,6 +182,9 @@ const microcopy = {
       storage: {
         title: 'Storage'
       },
+      heartbeats: {
+        title: 'Heartbeats'
+      },
       installSkill: {
         title: 'Connect Agent'
       }
@@ -240,6 +249,76 @@ const microcopy = {
     },
     wizard: {
       completeStepToContinue: 'Complete this step to continue.'
+    },
+    heartbeats: {
+      openFolder: 'Open Heartbeats Folder',
+      add: 'Add Heartbeat',
+      deleteConfirm: 'Delete this heartbeat?',
+      emptyState: 'No heartbeats yet. Set one up to turn raw context into periodic insights.',
+      enabled: 'Enabled',
+      paused: 'Paused',
+      running: 'Running',
+      runNow: 'Run now',
+      edit: 'Edit',
+      duplicate: 'Duplicate',
+      delete: 'Delete',
+      cancel: 'Cancel',
+      save: 'Save heartbeat',
+      saving: 'Saving...',
+      dialog: {
+        newTitle: 'New Heartbeat',
+        editTitle: 'Edit Heartbeat',
+        closeAriaLabel: 'Close heartbeat form',
+        runnerFallback: 'Runner',
+        scheduleFallback: 'Schedule'
+      },
+      form: {
+        summarizeTitle: 'What to summarize',
+        summarizeDescription:
+          'Name the heartbeat and define the exact brief the agent should produce.',
+        topicLabel: 'Topic',
+        topicPlaceholder: 'Daily summary',
+        promptLabel: 'Prompt',
+        promptPlaceholder:
+          'Review the last 24 hours and summarize the most important work, blockers, and next actions.',
+        runSettingsTitle: 'Run settings',
+        runSettingsDescription: 'Choose the runner, cadence, and timing for this heartbeat.',
+        runnerLabel: 'Runner',
+        frequencyLabel: 'Frequency',
+        timeLabel: 'Time',
+        dayOfWeekLabel: 'Day of week',
+        timezoneLabel: 'Timezone',
+        enabledTitle: 'Enabled',
+        enabledDescription: 'Run this heartbeat automatically on its schedule.'
+      },
+      list: {
+        unnamed: 'Unnamed heartbeat',
+        didntRunYet: 'didnt run yet',
+        failedAtTemplate: 'Failed at {{dateText}}',
+        skippedAtTemplate: 'Skipped at {{dateText}}',
+        lastRunAtTemplate: 'Last run at {{dateText}}'
+      },
+      messages: {
+        topicRequired: 'Topic is required.',
+        promptRequired: 'Prompt is required.',
+        failedToSave: 'Failed to save heartbeat.',
+        noTopic: 'Topic is required and must match letters, numbers, underscore, or hyphen.',
+        noPrompt: 'Prompt is required.',
+        invalidTime: 'Time must be HH:mm.',
+        invalidTimezone: 'Please select a valid timezone.',
+        runnerNotConfigured: 'Only allowed for options picked in "Connect Agent".',
+        unsupportedRunner: 'Unsupported heartbeat runner.',
+        unsupportedFrequency: 'Unsupported heartbeat frequency.',
+        invalidWeeklySchedule: 'Invalid weekly schedule.',
+        notFound: 'Heartbeat not found.',
+        completed: 'Heartbeat completed.'
+      },
+      errors: {
+        duplicateTopic: 'A heartbeat already exists with this topic.',
+        requiredContextFolder: 'Set a context folder before running or opening heartbeats.',
+        failedToOpenFolder: 'Failed to open heartbeats folder.',
+        failedToRunNow: 'Failed to run heartbeat.'
+      }
     },
     settingsActions: {
       openFolder: 'Open in Finder',

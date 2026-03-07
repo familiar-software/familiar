@@ -136,7 +136,7 @@ export const useDashboardStorage = (state, lifecycle) => {
         deleteWindow
       })
       if (result?.ok) {
-        setStorageDeleteMessage(result.message || 'Deleted files.')
+        setStorageDeleteMessage(result.message || mc.dashboard.settings.deletedFiles)
         if (typeof refreshStorageUsage === 'function') {
           await refreshStorageUsage()
         }
@@ -320,7 +320,7 @@ export const useDashboardStorage = (state, lifecycle) => {
     if (isMove) {
       const isConfirmed =
         typeof window !== 'undefined' && typeof window.confirm === 'function'
-          ? window.confirm(mc.dashboard.settings.confirmMoveContextFolder || 'Confirm move context folder?')
+          ? window.confirm(mc.dashboard.settings.confirmMoveContextFolder)
           : true
       if (!isConfirmed) {
         return

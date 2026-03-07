@@ -24,6 +24,7 @@ export function RecordingSection({
   permissionCheckState,
   copyLogBusy
 }) {
+  const htmlCopy = mc?.dashboard?.html || {}
   const isPermissionCheckGranted = permissionCheckState === 'granted'
   const isPermissionCheckDenied = permissionCheckState === 'denied'
   const isCheckingPermissions = permissionCheckState === 'checking'
@@ -32,7 +33,7 @@ export function RecordingSection({
     : isPermissionCheckGranted
       ? mc.dashboard.stills.permissionsGranted
       : mc.dashboard.settingsActions.checkPermissions
-  const openScreenRecordingLabel = 'Enable Familiar In Screen Recording'
+  const openScreenRecordingLabel = toDisplayText(htmlCopy.recordingEnableFamiliarInScreenRecording)
   const isPathSet = Boolean(settings.contextFolderPath)
   const checkPermissionsClasses = isPermissionCheckGranted
     ? 'text-emerald-600 hover:text-emerald-700 border-emerald-600 hover:border-emerald-700'
@@ -90,7 +91,9 @@ export function RecordingSection({
                 </div>
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">Capture while active</span>
+                    <span className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">
+                      {toDisplayText(htmlCopy.recordingCaptureWhileActive)}
+                    </span>
                     <div
                       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[14px] font-medium uppercase tracking-wide ${statusBadgeClasses}`}
                       hidden={recordingIndicatorStatus !== 'paused'}
@@ -100,7 +103,7 @@ export function RecordingSection({
                     </div>
                   </div>
                   <span className="wizard-capture-toggle-subtitle-off text-[14px] text-zinc-500 dark:text-zinc-400 block peer-checked:hidden transition-opacity">
-                    Action required to proceed.
+                    {toDisplayText(htmlCopy.recordingActionRequiredToProceed)}
                   </span>
                 </div>
               </div>
@@ -129,7 +132,7 @@ export function RecordingSection({
 
       <Card>
         <CardHeader>
-          <CardTitle>Advanced</CardTitle>
+          <CardTitle>{toDisplayText(htmlCopy.recordingAdvancedTitle)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">
@@ -178,7 +181,7 @@ export function RecordingSection({
               className="text-[14px] font-semibold text-zinc-500 dark:text-zinc-400"
               hidden={!isPermissionCheckDenied}
             >
-              Enable access to capture while active in Screen Recording settings.
+              {toDisplayText(htmlCopy.recordingScreenRecordingSettingsNote)}
             </p>
             <span id="copy-log-status" data-setting-status="copy-log-status" className={`text-[14px] text-emerald-600 dark:text-emerald-400 ${toDisplayText(copyLogMessage) ? '' : 'hidden'}`} aria-live="polite">
               {toDisplayText(copyLogMessage)}

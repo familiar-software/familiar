@@ -4,6 +4,10 @@ import { createRoot } from 'react-dom/client'
 import DashboardShellController from './components/DashboardShellController'
 import { DashboardErrorBoundary } from './components/DashboardErrorBoundary'
 
+function getDashboardMicrocopy() {
+  return window.FamiliarMicrocopySource?.microcopy || window.FamiliarMicrocopy?.microcopy || {}
+}
+
 function toDisplayText(value) {
   if (value === null || value === undefined) {
     return ''
@@ -20,7 +24,22 @@ function toDisplayText(value) {
   return ''
 }
 
-function setInlineFallback(message) {
+function getAppName(microcopy) {
+  return (
+    toDisplayText(microcopy?.app?.name) ||
+    toDisplayText(microcopy?.dashboard?.html?.appName) ||
+    'Familiar'
+  )
+}
+
+function getInitializationErrorCopy(microcopy) {
+  return (
+    toDisplayText(microcopy?.dashboard?.errors?.reactInitializationFailed) ||
+    'Unable to initialize the React dashboard.'
+  )
+}
+
+function setInlineFallback(message, microcopy = getDashboardMicrocopy()) {
   const fallback = document.getElementById('familiar-dashboard-react-root')
   if (!fallback) {
     return
@@ -28,8 +47,8 @@ function setInlineFallback(message) {
   const safeMessage = toDisplayText(message)
   fallback.innerHTML = `
     <div class="react-fallback">
-      <h1>Familiar</h1>
-      <p>Unable to initialize the React dashboard.</p>
+      <h1>${getAppName(microcopy)}</h1>
+      <p>${getInitializationErrorCopy(microcopy)}</p>
       <p>${safeMessage}</p>
     </div>
   `
@@ -37,7 +56,7 @@ function setInlineFallback(message) {
 
 function DashboardRoot() {
   const familiar = window.familiar || {}
-  const microcopy = window.FamiliarMicrocopySource?.microcopy || window.FamiliarMicrocopy?.microcopy || {}
+  const microcopy = getDashboardMicrocopy()
   const formatters = window.FamiliarMicrocopy?.formatters || null
 
   const rootElement = document.getElementById('familiar-dashboard-react-root')
@@ -47,7 +66,7 @@ function DashboardRoot() {
 
   const root = createRoot(rootElement)
   root.render(
-    <DashboardErrorBoundary>
+    <DashboardErrorBoundary microcopy={microcopy}>
       <DashboardShellController familiar={familiar} microcopy={microcopy} formatters={formatters} />
     </DashboardErrorBoundary>
   )
@@ -60,13 +79,13 @@ try {
   const message = error && typeof error.message === 'string'
     ? error.message
     : 'unknown error'
-  setInlineFallback(message)
+  setInlineFallback(message, getDashboardMicrocopy())
 }
 
 window.addEventListener('error', (event) => {
   const message = event?.error?.message || event?.message || 'unknown error'
   console.error('Runtime error in React dashboard', event.error || message)
-  setInlineFallback(message)
+  setInlineFallback(message, getDashboardMicrocopy())
 })
 
 window.addEventListener('unhandledrejection', (event) => {
@@ -74,5 +93,5 @@ window.addEventListener('unhandledrejection', (event) => {
     ? event.reason.message
     : toDisplayText(event?.reason) || 'unhandled rejection'
   console.error('Unhandled rejection in React dashboard', event.reason)
-  setInlineFallback(message)
+  setInlineFallback(message, getDashboardMicrocopy())
 })

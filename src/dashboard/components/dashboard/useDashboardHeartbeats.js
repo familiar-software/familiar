@@ -135,25 +135,25 @@ export const useDashboardHeartbeats = (state) => {
     const dayOfWeek = normalizeDayOfWeek(resolveHeartbeatField(payload, 'dayOfWeek'), frequency)
 
     if (!HEARTBEAT_TOPIC_PATTERN.test(topic)) {
-      const message = messages.noTopic || 'Topic is required and must match letters, numbers, underscore, or hyphen.'
+      const message = messages.noTopic
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     if (!prompt) {
-      const message = messages.noPrompt || 'Prompt is required.'
+      const message = messages.noPrompt
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     if (!HEARTBEAT_RUNNER_SET.has(runner)) {
-      const message = 'Unsupported heartbeat runner.'
+      const message = messages.unsupportedRunner
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     if (!isHeartbeatRunnerAllowedBySkillInstaller({ runner, skillInstaller: { harness: selectedHarnesses } })) {
-      const message = messages.runnerNotConfigured || 'Only allowed for options picked in "Connect Agent".'
+      const message = messages.runnerNotConfigured
       console.warn('Rejected heartbeat save: runner not enabled in Connect Agent', {
         runner,
         selectedHarnesses
@@ -163,38 +163,38 @@ export const useDashboardHeartbeats = (state) => {
     }
 
     if (!isExecutableHeartbeatRunner(runner)) {
-      const message = 'Unsupported heartbeat runner.'
+      const message = messages.unsupportedRunner
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     if (!HEARTBEAT_FREQUENCY_SET.has(frequency)) {
-      const message = 'Unsupported heartbeat frequency.'
+      const message = messages.unsupportedFrequency
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     if (!HEARTBEAT_TIME_PATTERN.test(time)) {
-      const message = messages.invalidTime || 'Time must be HH:mm.'
+      const message = messages.invalidTime
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     if (!isTimezoneSupported(timezone)) {
-      const message = messages.invalidTimezone || 'Please select a valid timezone.'
+      const message = messages.invalidTimezone
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     if (frequency === 'weekly' && dayOfWeek === null) {
-      const message = messages.invalidTime || messages.invalidTimezone || 'Invalid weekly schedule.'
+      const message = messages.invalidWeeklySchedule
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     const duplicate = existing.some((entry) => entry.id !== heartbeatId && entry.topic === topic)
     if (duplicate) {
-      const message = errors.duplicateTopic || 'A heartbeat already exists with this topic.'
+      const message = errors.duplicateTopic
       setHeartbeatError(message)
       return { ok: false, message }
     }
@@ -237,7 +237,7 @@ export const useDashboardHeartbeats = (state) => {
     const existing = toSafeItems(heartbeats)
     const nextItems = existing.filter((entry) => entry.id !== heartbeatId)
     if (nextItems.length === existing.length) {
-      const message = messages.notFound || 'Heartbeat not found.'
+      const message = messages.notFound
       setHeartbeatError(message)
       return { ok: false, message }
     }
@@ -249,7 +249,7 @@ export const useDashboardHeartbeats = (state) => {
     const existing = toSafeItems(heartbeats)
     const target = existing.find((entry) => entry.id === heartbeatId)
     if (!target) {
-      const message = messages.notFound || 'Heartbeat not found.'
+      const message = messages.notFound
       setHeartbeatError(message)
       return { ok: false, message }
     }
@@ -264,20 +264,20 @@ export const useDashboardHeartbeats = (state) => {
     }
     setHeartbeatError('')
     if (!settings?.contextFolderPath) {
-      const message = errors.requiredContextFolder || 'Set a context folder before running or opening heartbeats.'
+      const message = errors.requiredContextFolder
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     const result = await familiar.runHeartbeatNow({ heartbeatId })
     if (!result || result.ok !== true) {
-      const message = result?.message || errors.failedToRunNow || messages.failedToRunNow || 'Failed to run heartbeat.'
+      const message = result?.message || errors.failedToRunNow
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     const nowMs = Date.now()
-    setHeartbeatMessage(result.message || 'Heartbeat completed.')
+    setHeartbeatMessage(result.message || messages.completed)
     setSettings((previous) => ({
       ...previous,
       heartbeats: {
@@ -307,14 +307,14 @@ export const useDashboardHeartbeats = (state) => {
     }
 
     if (!settings?.contextFolderPath) {
-      const message = errors.requiredContextFolder || 'Set a context folder before running or opening heartbeats.'
+      const message = errors.requiredContextFolder
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
     const result = await familiar.openHeartbeatsFolder()
     if (!result || result.ok !== true) {
-      const message = result?.message || errors.failedToOpenFolder || 'Failed to open heartbeats folder.'
+      const message = result?.message || errors.failedToOpenFolder
       setHeartbeatError(message)
       return { ok: false, message }
     }

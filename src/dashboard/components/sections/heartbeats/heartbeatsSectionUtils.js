@@ -42,19 +42,19 @@ export const resolveDayLabel = (value, labelLookup) => {
   return match?.label || 'Monday'
 }
 
-export const resolveLastRunText = (entry, toDisplayText) => {
+export const resolveLastRunText = (entry, toDisplayText, copy = {}) => {
   if (!entry) {
     return ''
   }
   if (!Number.isFinite(entry.lastRunAt) || entry.lastRunAt <= 0) {
-    return toDisplayText('didnt run yet')
+    return toDisplayText(copy.didntRunYet)
   }
   const dateText = new Date(entry.lastRunAt).toLocaleString()
   if (entry.lastRunStatus === 'error') {
-    return `Failed at ${dateText}`
+    return toDisplayText(copy.failedAtTemplate).replace('{{dateText}}', dateText)
   }
   if (entry.lastRunStatus === 'skipped') {
-    return `Skipped at ${dateText}`
+    return toDisplayText(copy.skippedAtTemplate).replace('{{dateText}}', dateText)
   }
-  return `Last run at ${dateText}`
+  return toDisplayText(copy.lastRunAtTemplate).replace('{{dateText}}', dateText)
 }

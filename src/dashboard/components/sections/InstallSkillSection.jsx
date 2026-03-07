@@ -14,21 +14,6 @@ const skillIcons = {
   cursor: './assets/skill-icons/cursor.svg'
 }
 
-const claudeCoworkGuideSteps = [
-  'Open Settings from the top left corner (or press: ⌘ + , ).',
-  'Go to Capabilities.',
-  'Toggle on Allow network egress.',
-  'Go back to the Cowork landing page (chat view).',
-  'Click plus sign (+) -> Plugins -> Add Plugin.',
-  'Go to Personal tab.',
-  'Click plus sign (+) -> Add marketplace from GitHub.',
-  'Paste https://github.com/familiar-software/familiar-claude-cowork-skill.',
-  'Click Sync.',
-  'Open the added marketplace and install the Familiar skill.',
-  'Go back to the Cowork landing page and choose a work folder that contains Familiar context.',
-  'Start a new Cowork session and invoke /familiar ....'
-]
-
 function getFormattedInstallPaths(skillInstallPaths) {
   const entries = Object.entries(skillInstallPaths || {})
     .filter(([, path]) => typeof path === 'string' && path.length > 0)
@@ -53,6 +38,10 @@ export function InstallSkillSection({
   claudeCoworkGuideError,
   hideClaudeCoworkGuide
 }) {
+  const htmlCopy = mc?.dashboard?.html || {}
+  const claudeCoworkGuideSteps = Array.from({ length: 12 }, (_unused, index) =>
+    toDisplayText(htmlCopy[`wizardClaudeCoworkGuideStep${index + 1}`])
+  ).filter(Boolean)
   const selectedSet = new Set(selectedHarnesses)
   const isCursorSelected = selectedSet.has('cursor')
   const statusText =
@@ -86,8 +75,7 @@ export function InstallSkillSection({
                 id="settings-skill-cursor-restart-note"
                 className={`react-skill-picker-note ${isCursorSelected ? '' : 'react-hidden'}`}
               >
-                {mc.dashboard.wizardSkill?.messages?.cursorRestartNote ||
-                  'Restart Cursor for the skill to take effect.'}
+                {toDisplayText(htmlCopy.wizardCursorRestartNote)}
               </span>
             ) : null}
           </Label>
@@ -115,8 +103,8 @@ export function InstallSkillSection({
       >
         <div className="react-install-guide-card">
           <div className="react-install-guide-title-wrap">
-            <CardTitle>Claude Cowork install guide</CardTitle>
-            <p className="react-install-guide-subtitle">Use marketplace installation in Cowork.</p>
+            <CardTitle>{toDisplayText(htmlCopy.wizardClaudeCoworkGuideTitle)}</CardTitle>
+            <p className="react-install-guide-subtitle">{toDisplayText(htmlCopy.wizardClaudeCoworkGuideSubtitle)}</p>
           </div>
           <ol className="react-install-guide-steps">
             {claudeCoworkGuideSteps.map((entry) => (
@@ -134,7 +122,7 @@ export function InstallSkillSection({
                 void copyClaudeCoworkGuideLink()
               }}
             >
-              Copy Link
+              {toDisplayText(htmlCopy.wizardClaudeCoworkGuideCopyLink)}
             </Button>
             <Button
               id="settings-cloud-cowork-done"
@@ -143,7 +131,7 @@ export function InstallSkillSection({
               type="button"
               onClick={hideClaudeCoworkGuide}
             >
-              Done
+              {toDisplayText(htmlCopy.wizardClaudeCoworkGuideDone)}
             </Button>
           </div>
           {toDisplayText(claudeCoworkGuideMessage) ? (

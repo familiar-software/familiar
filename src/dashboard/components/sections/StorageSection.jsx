@@ -5,19 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Input } from '../ui/input'
 import { Select } from '../ui/select'
 
-const AUTO_CLEANUP_OPTIONS = [
-  { value: '2', label: '2 days' },
-  { value: '7', label: '7 days' }
-]
-
-const STORAGE_DELETE_PRESETS = [
-  { value: '15m', label: '15 minutes' },
-  { value: '1h', label: '1 hour' },
-  { value: '1d', label: '1 day' },
-  { value: '7d', label: '7 days' },
-  { value: 'all', label: 'all time' }
-]
-
 export function StorageSection({
   mc,
   displayedContextFolderPath,
@@ -40,9 +27,21 @@ export function StorageSection({
   formatBytes,
   toDisplayText
 }) {
+  const htmlCopy = mc?.dashboard?.html || {}
+  const autoCleanupOptions = [
+    { value: '2', label: toDisplayText(htmlCopy.storageRetention2d) },
+    { value: '7', label: toDisplayText(htmlCopy.storageRetention7d) }
+  ]
+  const storageDeletePresets = [
+    { value: '15m', label: toDisplayText(htmlCopy.storageDeleteWindow15m) },
+    { value: '1h', label: toDisplayText(htmlCopy.storageDeleteWindow1h) },
+    { value: '1d', label: toDisplayText(htmlCopy.storageDeleteWindow1d) },
+    { value: '7d', label: toDisplayText(htmlCopy.storageDeleteWindow7d) },
+    { value: 'all', label: toDisplayText(htmlCopy.storageDeleteWindowAll) }
+  ]
   const isPickerDisabled = Boolean(isContextFolderMoveInProgress)
   const isDeleteDisabled = Boolean(isDeleteControlsDisabled || deleteBusy)
-  const moveFolderLabel = toDisplayText(mc?.settingsActions?.moveFolder) || 'Change Folder'
+  const moveFolderLabel = toDisplayText(mc?.dashboard?.settingsActions?.moveFolder)
   const isStorageUsageLoaded = Boolean(storageUsageLoaded)
   const contextFolderTitle = settings.contextFolderPath
     ? `${settings.contextFolderPath}/familiar`
@@ -89,7 +88,7 @@ export function StorageSection({
   return (
     <section id="section-storage" className="space-y-4 max-w-[520px] flex flex-col flex-1">
       <section className="space-y-2">
-        <CardTitle>Context Folder</CardTitle>
+        <CardTitle>{toDisplayText(htmlCopy.storageContextFolder)}</CardTitle>
         <div
           id="context-folder-picker-surface"
           data-action="context-folder-picker-surface"
@@ -127,7 +126,7 @@ export function StorageSection({
             id="context-folder-path"
             data-setting="context-folder-path"
             type="text"
-            placeholder="No folder selected"
+            placeholder={toDisplayText(htmlCopy.storageContextFolderPlaceholderNoFolderSelected)}
             readOnly
             value={storagePathValue}
             className="flex-1 min-w-0 bg-transparent text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 truncate cursor-pointer"
@@ -169,12 +168,12 @@ export function StorageSection({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between gap-2">
-            <span>Usage Breakdown</span>
+            <span>{toDisplayText(htmlCopy.storageUsageBreakdown)}</span>
             <span
               id="storage-usage-computing-tag"
               className={`text-[14px] text-zinc-400 ${isStorageUsageLoaded ? 'hidden' : ''}`}
             >
-              (Computing)
+              {toDisplayText(htmlCopy.storageUsageComputing)}
             </span>
           </CardTitle>
           <div
@@ -191,7 +190,7 @@ export function StorageSection({
             >
               <path d="M12 3a9 9 0 1 0 9 9" />
             </svg>
-            <span className="text-[14px]">Calculating...</span>
+            <span className="text-[14px]">{toDisplayText(htmlCopy.storageUsageCalculating)}</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -206,7 +205,7 @@ export function StorageSection({
           <div id="storage-usage-loaded" className={`grid grid-cols-2 gap-3 ${isStorageUsageLoaded ? '' : 'hidden'}`}>
             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm">
               <div className="flex items-center gap-2 text-[14px] font-medium text-zinc-600 dark:text-zinc-300">
-                <span>Text files</span>
+                <span>{toDisplayText(htmlCopy.storageUsageTextFilesUsing)}</span>
               </div>
               <div className="mt-2 flex items-baseline gap-1">
                 <span
@@ -226,7 +225,7 @@ export function StorageSection({
             </div>
             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm">
               <div className="flex items-center gap-2 text-[14px] font-medium text-zinc-600 dark:text-zinc-300">
-                <span>Screenshots</span>
+                <span>{toDisplayText(htmlCopy.storageUsageScreenshotsUsing)}</span>
               </div>
               <div className="mt-2 flex items-baseline gap-1">
                 <span
@@ -259,9 +258,9 @@ export function StorageSection({
 
       <Card>
         <CardHeader>
-          <CardTitle>Images Retention</CardTitle>
+          <CardTitle>{toDisplayText(htmlCopy.storageImagesRetentionTitle)}</CardTitle>
           <CardDescription style={{ fontSize: '14px' }}>
-            Deletes screenshots automatically to save space (markdown files are NOT deleted)
+            {toDisplayText(htmlCopy.storageImagesRetentionDescription)}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -275,7 +274,7 @@ export function StorageSection({
                 void saveStorageRetention(event.target.value)
               }}
             >
-              {AUTO_CLEANUP_OPTIONS.map((entry) => (
+              {autoCleanupOptions.map((entry) => (
                 <option key={entry.value} value={entry.value}>
                   {entry.label}
                 </option>
@@ -297,9 +296,9 @@ export function StorageSection({
 
       <Card>
         <CardHeader>
-          <CardTitle>Delete Recent Files</CardTitle>
+          <CardTitle>{toDisplayText(htmlCopy.storageDeleteRecentFilesTitle)}</CardTitle>
           <CardDescription>
-            Oops, forgot to turn off recording?
+            {toDisplayText(htmlCopy.storageDeleteRecentFilesDescription)}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -315,7 +314,7 @@ export function StorageSection({
                 }}
                 disabled={isDeleteDisabled}
                 >
-                  {STORAGE_DELETE_PRESETS.map((entry) => (
+                  {storageDeletePresets.map((entry) => (
                     <option key={entry.value} value={entry.value}>
                       {entry.label}
                     </option>
@@ -342,7 +341,7 @@ export function StorageSection({
               }}
               disabled={isDeleteDisabled}
             >
-              Delete files
+              {toDisplayText(htmlCopy.storageDeleteFiles)}
             </Button>
           </div>
         </CardContent>

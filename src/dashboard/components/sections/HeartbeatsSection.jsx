@@ -40,6 +40,8 @@ export function HeartbeatsSection({
   openHeartbeatsFolder,
   runningHeartbeatIds
 }) {
+  const heartbeatsCopy = mc?.dashboard?.heartbeats || {}
+  const heartbeatMessages = heartbeatsCopy.messages || {}
   const timezoneOptions = useMemo(() => {
     const source = typeof Intl.supportedValuesOf === 'function'
       ? Intl.supportedValuesOf('timeZone')
@@ -112,11 +114,11 @@ export function HeartbeatsSection({
       return
     }
     if (!draft.topic.trim()) {
-      setFormError('Topic is required.')
+      setFormError(heartbeatMessages.topicRequired)
       return
     }
     if (!draft.prompt.trim()) {
-      setFormError('Prompt is required.')
+      setFormError(heartbeatMessages.promptRequired)
       return
     }
 
@@ -153,7 +155,7 @@ export function HeartbeatsSection({
     if (!window?.confirm) {
       return deleteHeartbeat?.(id)
     }
-    if (!window.confirm('Delete this heartbeat?')) {
+    if (!window.confirm(heartbeatsCopy.deleteConfirm)) {
       return undefined
     }
     return deleteHeartbeat?.(id)
@@ -184,7 +186,7 @@ export function HeartbeatsSection({
             variant="outline"
             size="sm"
           >
-            Open Heartbeats Folder
+            {heartbeatsCopy.openFolder}
           </Button>
           <Button
             id="heartbeats-add"
@@ -192,7 +194,7 @@ export function HeartbeatsSection({
             size="sm"
             onClick={openNewForm}
           >
-            + Add Heartbeat
+            + {heartbeatsCopy.add}
           </Button>
         </div>
       </div>
@@ -205,6 +207,7 @@ export function HeartbeatsSection({
       </p>
 
       <HeartbeatList
+        mc={mc}
         heartbeats={heartbeats}
         hasContextFolder={hasContextFolder}
         runningHeartbeatIds={runningHeartbeatIds}

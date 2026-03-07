@@ -1,8 +1,8 @@
 import React from 'react'
 
-export function DashboardErrorBoundary({ children }) {
+export function DashboardErrorBoundary({ children, microcopy }) {
   return (
-    <DashboardErrorBoundaryInner children={children} />
+    <DashboardErrorBoundaryInner children={children} microcopy={microcopy} />
   )
 }
 
@@ -28,10 +28,18 @@ class DashboardErrorBoundaryInner extends React.Component {
     if (!this.state.hasError) {
       return this.props.children
     }
+    const appName =
+      toDisplayText(this.props.microcopy?.app?.name) ||
+      toDisplayText(this.props.microcopy?.dashboard?.html?.appName) ||
+      'Familiar'
+    const errorTitle =
+      toDisplayText(this.props.microcopy?.dashboard?.errors?.reactInitializationFailed) ||
+      'Unable to initialize the React dashboard.'
+
     return (
       <div className="react-fallback">
-        <h1>Familiar</h1>
-        <p>Unable to initialize the React dashboard.</p>
+        <h1>{appName}</h1>
+        <p>{errorTitle}</p>
         <p>{toDisplayText(this.state.message)}</p>
       </div>
     )

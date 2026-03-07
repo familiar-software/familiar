@@ -18,8 +18,11 @@ export function HeartbeatFormDialog({
   save,
   ...formProps
 }) {
-  const runnerLabel = runnerLookup.find((entry) => entry.value === draft?.runner)?.label || 'Runner'
-  const frequencyLabel = frequencyLookup.find((entry) => entry.value === draft?.frequency)?.label || 'Schedule'
+  const dialogCopy = formProps.mc?.dashboard?.heartbeats?.dialog || {}
+  const heartbeatsCopy = formProps.mc?.dashboard?.heartbeats || {}
+  const runnerLabel = runnerLookup.find((entry) => entry.value === draft?.runner)?.label || dialogCopy.runnerFallback
+  const frequencyLabel =
+    frequencyLookup.find((entry) => entry.value === draft?.frequency)?.label || dialogCopy.scheduleFallback
   const weekdayLabel = weekdayLookup.find((entry) => String(entry.value) === String(draft?.dayOfWeek))?.label || ''
   const scheduleLabel = draft?.frequency === 'weekly' && weekdayLabel
     ? `${frequencyLabel} · ${weekdayLabel}`
@@ -37,7 +40,7 @@ export function HeartbeatFormDialog({
     >
       <DialogContent
         className="max-w-[860px] overflow-hidden p-0"
-        aria-label={editingId ? 'Edit Heartbeat' : 'New Heartbeat'}
+        aria-label={editingId ? dialogCopy.editTitle : dialogCopy.newTitle}
       >
         <div className="flex max-h-[calc(100vh-48px)] flex-col">
           <div className="border-b border-zinc-200/80 bg-zinc-50/80 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-950/60">
@@ -45,7 +48,7 @@ export function HeartbeatFormDialog({
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Close heartbeat form"
+                aria-label={dialogCopy.closeAriaLabel}
                 className="rounded-full border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
                 onClick={onClose}
                 disabled={isSubmitting}
@@ -83,15 +86,15 @@ export function HeartbeatFormDialog({
                 <Badge>{scheduleLabel}</Badge>
                 <Badge>{draft?.time || '09:00'}</Badge>
                 <Badge className={draft?.enabled === false ? 'border-zinc-300 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300'}>
-                  {draft?.enabled === false ? 'Paused' : 'Enabled'}
+                  {draft?.enabled === false ? heartbeatsCopy.paused : heartbeatsCopy.enabled}
                 </Badge>
               </div>
               <div className="flex items-center justify-end gap-2">
                 <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-                  Cancel
+                  {heartbeatsCopy.cancel}
                 </Button>
                 <Button onClick={save} disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving…' : 'Save heartbeat'}
+                  {isSubmitting ? heartbeatsCopy.saving : heartbeatsCopy.save}
                 </Button>
               </div>
             </div>

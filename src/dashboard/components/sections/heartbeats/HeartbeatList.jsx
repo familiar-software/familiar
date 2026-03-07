@@ -17,6 +17,7 @@ import {
 } from './heartbeatsSectionUtils'
 
 export function HeartbeatList({
+  mc,
   heartbeats,
   hasContextFolder,
   runningHeartbeatIds,
@@ -29,11 +30,13 @@ export function HeartbeatList({
   weekdayLookup
 }) {
   const heartbeatItems = toSafeItems(heartbeats)
+  const heartbeatsCopy = mc?.dashboard?.heartbeats || {}
+  const listCopy = heartbeatsCopy.list || {}
 
   if (heartbeatItems.length === 0) {
     return (
       <div className="text-[14px] text-zinc-500 dark:text-zinc-400">
-        No heartbeats yet. Set one up to turn raw context into periodic insights.
+        {heartbeatsCopy.emptyState}
       </div>
     )
   }
@@ -61,7 +64,7 @@ export function HeartbeatList({
             <div className="p-3 flex items-start justify-between gap-3">
               <div className="space-y-1 min-w-0">
                 <p className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-100">
-                  {entry.topic || 'Unnamed heartbeat'}
+                  {entry.topic || heartbeatsCopy.list?.unnamed}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {metadata.map((label) => (
@@ -83,10 +86,10 @@ export function HeartbeatList({
                           d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M16.9 16.9l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M16.9 7.1l2.1-2.1"
                         />
                       </svg>
-                      Running
+                      {heartbeatsCopy.running}
                     </span>
                   ) : (
-                    resolveLastRunText(entry, toDisplayText)
+                    resolveLastRunText(entry, toDisplayText, listCopy)
                   )}
                 </p>
                 {entry.lastRunError ? (
@@ -106,7 +109,7 @@ export function HeartbeatList({
                     }
                   }}
                 />
-                Enabled
+                {heartbeatsCopy.enabled}
               </Label>
             </div>
             <CardFooter className="px-3 pb-3 pt-2 flex flex-wrap items-center justify-between gap-2">
@@ -120,7 +123,7 @@ export function HeartbeatList({
                   }}
                   disabled={!entry.id || !hasContextFolder || Boolean(runningHeartbeatIds?.[entry.id])}
                 >
-                  Run now
+                  {heartbeatsCopy.runNow}
                 </Button>
               </ButtonGroup>
               <div className="flex flex-wrap items-center gap-2">
@@ -132,7 +135,7 @@ export function HeartbeatList({
                       openEditForm(entry)
                     }}
                   >
-                    Edit
+                    {heartbeatsCopy.edit}
                   </Button>
                   <Button
                     size="sm"
@@ -141,7 +144,7 @@ export function HeartbeatList({
                       openDuplicateForm(entry)
                     }}
                   >
-                    Duplicate
+                    {heartbeatsCopy.duplicate}
                   </Button>
                 </ButtonGroup>
                 <ButtonGroup>
@@ -153,7 +156,7 @@ export function HeartbeatList({
                     }}
                     disabled={Boolean(runningHeartbeatIds?.[entry.id])}
                   >
-                    Delete
+                    {heartbeatsCopy.delete}
                   </Button>
                 </ButtonGroup>
               </div>
