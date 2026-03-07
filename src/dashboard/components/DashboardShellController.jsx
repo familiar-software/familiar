@@ -27,7 +27,6 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     microcopy,
     formatters
   })
-  const isDevelopmentMode = familiar?.isDevelopmentMode === true
 
   const skills = useDashboardSkills(core)
   const lifecycle = useDashboardLifecycle(core, {
@@ -79,7 +78,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     storage
   ])
 
-  const navigation = buildDashboardNavigation(core.mc, { isDevelopmentMode })
+  const navigation = buildDashboardNavigation(core.mc)
   const availableSectionIds = navigation.map((entry) => entry.id)
   const wizardCompleteMessage =
     core.mc.dashboard?.wizard?.completeStepToContinue || 'Please complete the setup wizard first.'
