@@ -1,7 +1,11 @@
 const path = require('node:path')
 
 const { createHarnessRunner } = require('../harness-adapters/runner')
-const { HEARTBEAT_POLL_INTERVAL_MS } = require('./constants')
+const {
+  HEARTBEAT_POLL_INTERVAL_MS,
+  HEARTBEAT_RETRY_DELAY_MS,
+  MAX_HEARTBEAT_ATTEMPTS
+} = require('./constants')
 const {
   normalizeHeartbeats,
   normalizeHeartbeat,
@@ -25,6 +29,13 @@ const {
 } = require('./utils')
 
 const logger = console
+
+const toUtcIso = (timestampMs) => {
+  if (!Number.isFinite(timestampMs)) {
+    return ''
+  }
+  return new Date(timestampMs).toISOString()
+}
 
 const buildHeartbeatMetadataUpdate = ({
   item,
@@ -93,31 +104,33 @@ const createHeartbeatScheduler = ({
 
   const recordHeartbeatHistory = ({
     heartbeat,
-    contextFolderPath,
     scheduledAtMs,
     startedAtMs,
     completedAtMs,
-    result
+    result,
+    attemptNumber = 1,
+    nextRetryAtMs = null,
+    heartbeatHistoryStore = null
   }) => {
-    if (typeof heartbeatHistoryStoreFactory !== 'function') {
+    if (!heartbeatHistoryStore || typeof heartbeatHistoryStore.recordHeartbeatRun !== 'function') {
       return
     }
 
-    let store = null
     try {
-      store = heartbeatHistoryStoreFactory({ contextFolderPath, logger })
-      store.recordHeartbeatRun({
+      heartbeatHistoryStore.recordHeartbeatRun({
         heartbeatId: heartbeat.id,
         topic: heartbeat.topic,
         runner: heartbeat.runner,
-        scheduledAtUtc: new Date(scheduledAtMs).toISOString(),
-        startedAtUtc: new Date(startedAtMs).toISOString(),
-        completedAtUtc: new Date(completedAtMs).toISOString(),
+        scheduledAtUtc: toUtcIso(scheduledAtMs),
+        startedAtUtc: toUtcIso(startedAtMs),
+        completedAtUtc: toUtcIso(completedAtMs),
         status: result.status === 'ok'
           ? HEARTBEAT_HISTORY_STATUS.COMPLETED
           : HEARTBEAT_HISTORY_STATUS.FAILED,
         outputPath: result.status === 'ok' ? toSafeString(result.outputPath) : null,
-        errorMessage: result.status === 'ok' ? null : toSafeString(result.error)
+        errorMessage: result.status === 'ok' ? null : toSafeString(result.error),
+        attemptNumber,
+        nextRetryAtUtc: toUtcIso(nextRetryAtMs) || null
       })
     } catch (error) {
       logger.error('Failed to record heartbeat history', {
@@ -125,10 +138,30 @@ const createHeartbeatScheduler = ({
         topic: heartbeat.topic,
         message: toSafeString(error?.message, 'Unknown heartbeat history error')
       })
-    } finally {
-      if (store && typeof store.close === 'function') {
-        store.close()
-      }
+    }
+  }
+
+  const getLatestPendingRetry = ({
+    heartbeat,
+    nowMs,
+    heartbeatHistoryStore
+  }) => {
+    if (!heartbeatHistoryStore || typeof heartbeatHistoryStore.getLatestPendingRetry !== 'function') {
+      return null
+    }
+
+    try {
+      return heartbeatHistoryStore.getLatestPendingRetry({
+        heartbeatId: heartbeat.id,
+        nowUtc: toUtcIso(nowMs)
+      })
+    } catch (error) {
+      logger.warn('Failed to load pending heartbeat retry', {
+        id: heartbeat.id,
+        topic: heartbeat.topic,
+        message: toSafeString(error?.message, 'Unknown heartbeat retry lookup error')
+      })
+      return null
     }
   }
 
@@ -175,7 +208,9 @@ const createHeartbeatScheduler = ({
     heartbeat,
     contextFolderPath,
     scheduledAtMs,
-    trigger = 'manual'
+    trigger = 'manual',
+    attemptNumber = 1,
+    heartbeatHistoryStore = null
   }) => {
     const startedAtMs = nowFn()
     notifyRunState({
@@ -225,6 +260,15 @@ const createHeartbeatScheduler = ({
       }
     }
 
+    const shouldScheduleRetry = (
+      trigger !== 'manual' &&
+      result.status !== 'ok' &&
+      attemptNumber < MAX_HEARTBEAT_ATTEMPTS
+    )
+    const nextRetryAtMs = shouldScheduleRetry
+      ? nowFn() + HEARTBEAT_RETRY_DELAY_MS
+      : null
+
     await updateHeartbeatState({
       heartbeat,
       scheduledAtMs,
@@ -237,15 +281,19 @@ const createHeartbeatScheduler = ({
       scheduledAtMs,
       startedAtMs,
       completedAtMs: nowFn(),
-      result
+      result,
+      attemptNumber,
+      nextRetryAtMs,
+      heartbeatHistoryStore
     })
 
-    if (result.status !== 'ok') {
+    if (result.status !== 'ok' && !shouldScheduleRetry) {
       const errorMessage = toSafeString(result.error, 'Heartbeat failed.')
       logger.error('Heartbeat failed', {
         id: heartbeat.id,
         topic: heartbeat.topic,
         status: result.status,
+        attemptNumber,
         error: errorMessage,
         scheduledAtMs
       })
@@ -258,11 +306,20 @@ const createHeartbeatScheduler = ({
           id: heartbeat.id,
           topic: heartbeat.topic,
           status: result.status,
+          attemptNumber,
           message: errorMessage,
           outputPath: toSafeString(result.outputPath),
           scheduledAtMs
         })
       }
+    } else if (shouldScheduleRetry) {
+      logger.warn('Heartbeat failed and scheduled for retry', {
+        id: heartbeat.id,
+        topic: heartbeat.topic,
+        attemptNumber,
+        nextRetryAtMs,
+        scheduledAtMs
+      })
     }
 
     notifyRunState({
@@ -308,86 +365,145 @@ const createHeartbeatScheduler = ({
     isRunning = true
     try {
       const contextFolderPath = getContextFolderPath()
+      const heartbeatHistoryStore = typeof heartbeatHistoryStoreFactory === 'function'
+        ? heartbeatHistoryStoreFactory({ contextFolderPath, logger })
+        : null
 
-      const items = loadCurrentHeartbeats()
-      if (items.length === 0) {
-        return { ok: true, processed: 0 }
-      }
+      try {
+        const items = loadCurrentHeartbeats()
+        if (items.length === 0) {
+          return { ok: true, processed: 0 }
+        }
 
-      const processed = []
-      for (const item of items) {
-        logger.log('Heartbeat check', {
-          heartbeatId: item.id,
-          topic: item.topic,
-          trigger,
-          enabled: item.enabled,
-          lastAttemptedScheduledAt: item.lastAttemptedScheduledAt
-        })
-        if (item.enabled !== true) {
-          logger.log('Heartbeat check skipped', {
+        const processed = []
+        for (const item of items) {
+          logger.log('Heartbeat check', {
             heartbeatId: item.id,
             topic: item.topic,
-            reason: 'disabled'
+            trigger,
+            enabled: item.enabled,
+            lastAttemptedScheduledAt: item.lastAttemptedScheduledAt
           })
-          continue
-        }
+          if (item.enabled !== true) {
+            logger.log('Heartbeat check skipped', {
+              heartbeatId: item.id,
+              topic: item.topic,
+              reason: 'disabled'
+            })
+            continue
+          }
 
-        const scheduleTimezone = item.schedule.timezone
-        const timezoneParts = readDatePartsByTimeZone(nowMs, scheduleTimezone)
-        if (!timezoneParts) {
-          logger.warn('Skipping heartbeat due slot compute: invalid timezone', {
+          const scheduleTimezone = item.schedule.timezone
+          const timezoneParts = readDatePartsByTimeZone(nowMs, scheduleTimezone)
+          if (!timezoneParts) {
+            logger.warn('Skipping heartbeat due slot compute: invalid timezone', {
+              id: item.id,
+              topic: item.topic,
+              timezone: scheduleTimezone
+            })
+            continue
+          }
+
+          const dueAtMs = computeLatestDueSlotMs({
+            frequency: item.schedule.frequency,
+            schedule: item.schedule,
+            timeZone: scheduleTimezone,
+            nowMs,
+            nowZoneParts: timezoneParts
+          })
+
+          const shouldRun = Number.isFinite(dueAtMs) && dueAtMs > item.lastAttemptedScheduledAt
+          logger.log('Heartbeat check evaluation', {
+            heartbeatId: item.id,
+            topic: item.topic,
+            dueAtMs,
+            lastAttemptedScheduledAt: item.lastAttemptedScheduledAt,
+            shouldRun
+          })
+
+          if (shouldRun) {
+            logger.log('Heartbeat due', {
+              id: item.id,
+              topic: item.topic,
+              frequency: item.schedule.frequency,
+              dueAtMs
+            })
+
+            const result = await runHeartbeat({
+              heartbeat: item,
+              contextFolderPath,
+              scheduledAtMs: dueAtMs,
+              trigger,
+              attemptNumber: 1,
+              heartbeatHistoryStore
+            })
+            processed.push({
+              id: item.id,
+              topic: item.topic,
+              result
+            })
+            continue
+          }
+
+          const pendingRetry = getLatestPendingRetry({
+            heartbeat: item,
+            nowMs,
+            heartbeatHistoryStore
+          })
+          const pendingRetryScheduledAtMs = pendingRetry
+            ? Date.parse(pendingRetry.scheduledAtUtc)
+            : NaN
+          const shouldRetry = (
+            pendingRetry &&
+            Number.isFinite(pendingRetryScheduledAtMs) &&
+            pendingRetryScheduledAtMs === item.lastAttemptedScheduledAt &&
+            pendingRetry.attemptNumber < MAX_HEARTBEAT_ATTEMPTS
+          )
+
+          logger.log('Heartbeat retry evaluation', {
+            heartbeatId: item.id,
+            topic: item.topic,
+            pendingRetryScheduledAtMs,
+            lastAttemptedScheduledAt: item.lastAttemptedScheduledAt,
+            attemptNumber: pendingRetry?.attemptNumber,
+            shouldRetry
+          })
+
+          if (!shouldRetry) {
+            continue
+          }
+
+          logger.log('Heartbeat retry due', {
             id: item.id,
             topic: item.topic,
-            timezone: scheduleTimezone
+            scheduledAtMs: pendingRetryScheduledAtMs,
+            previousAttemptNumber: pendingRetry.attemptNumber
           })
-          continue
+
+          const result = await runHeartbeat({
+            heartbeat: item,
+            contextFolderPath,
+            scheduledAtMs: pendingRetryScheduledAtMs,
+            trigger: 'retry',
+            attemptNumber: pendingRetry.attemptNumber + 1,
+            heartbeatHistoryStore
+          })
+          processed.push({
+            id: item.id,
+            topic: item.topic,
+            result
+          })
         }
 
-        const dueAtMs = computeLatestDueSlotMs({
-          frequency: item.schedule.frequency,
-          schedule: item.schedule,
-          timeZone: scheduleTimezone,
-          nowMs,
-          nowZoneParts: timezoneParts
-        })
-
-        const shouldRun = Number.isFinite(dueAtMs) && dueAtMs > item.lastAttemptedScheduledAt
-        logger.log('Heartbeat check evaluation', {
-          heartbeatId: item.id,
-          topic: item.topic,
-          dueAtMs,
-          lastAttemptedScheduledAt: item.lastAttemptedScheduledAt,
-          shouldRun
-        })
-
-        if (!shouldRun) {
-          continue
-        }
-
-        logger.log('Heartbeat due', {
-          id: item.id,
-          topic: item.topic,
-          frequency: item.schedule.frequency,
-          dueAtMs
-        })
-
-        const result = await runHeartbeat({
-          heartbeat: item,
-          contextFolderPath,
-          scheduledAtMs: dueAtMs,
+        return {
+          ok: true,
+          processed,
           trigger
-        })
-        processed.push({
-          id: item.id,
-          topic: item.topic,
-          result
-        })
-      }
-
-      return {
-        ok: true,
-        processed,
-        trigger
+        }
+      } finally {
+        if (heartbeatHistoryStore && typeof heartbeatHistoryStore.close === 'function') {
+          heartbeatHistoryStore.close()
+        }
       }
     } finally {
       isRunning = false
@@ -416,7 +532,8 @@ const createHeartbeatScheduler = ({
       heartbeat: target,
       contextFolderPath,
       scheduledAtMs,
-      trigger: 'manual'
+      trigger: 'manual',
+      attemptNumber: 1
     })
     return {
       ok: result.ok,

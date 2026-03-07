@@ -6,6 +6,8 @@ const path = require('node:path')
 
 const { createHeartbeatScheduler } = require('../../src/heartbeats/scheduler')
 const { ADAPTER_STATUS } = require('../../src/harness-adapters/types')
+const { HEARTBEAT_HISTORY_STATUS } = require('../../src/heartbeats/store')
+const { MAX_HEARTBEAT_ATTEMPTS } = require('../../src/heartbeats/constants')
 
 const createHeartbeat = (overrides = {}) => ({
   id: 'hb-1',
@@ -21,6 +23,44 @@ const createHeartbeat = (overrides = {}) => ({
   lastAttemptedScheduledAt: 0,
   ...overrides
 })
+
+const createHeartbeatHistoryStoreStub = ({
+  initialRows = []
+} = {}) => {
+  const rows = initialRows.map((row) => ({ ...row }))
+
+  return {
+    rows,
+    recordHeartbeatRun: (payload) => {
+      rows.push({
+        ...payload
+      })
+    },
+    getLatestPendingRetry: ({ heartbeatId, nowUtc }) => {
+      const latestRow = rows
+        .filter((row) => row.heartbeatId === heartbeatId)
+        .sort((left, right) => {
+          if (left.scheduledAtUtc === right.scheduledAtUtc) {
+            return (right.attemptNumber || 1) - (left.attemptNumber || 1)
+          }
+          return left.scheduledAtUtc < right.scheduledAtUtc ? 1 : -1
+        })[0] || null
+
+      if (
+        !latestRow ||
+        latestRow.status !== HEARTBEAT_HISTORY_STATUS.FAILED ||
+        typeof latestRow.nextRetryAtUtc !== 'string' ||
+        latestRow.nextRetryAtUtc.length === 0 ||
+        latestRow.nextRetryAtUtc > nowUtc
+      ) {
+        return null
+      }
+
+      return latestRow
+    },
+    close: () => {}
+  }
+}
 
 test('createHeartbeatScheduler requires dependencies', () => {
   assert.throws(
@@ -237,7 +277,7 @@ test('runDueHeartbeats normalizes invalid timezone and still evaluates schedule'
   fs.rmSync(root, { recursive: true, force: true })
 })
 
-test('runDueHeartbeats notifies through failure callback when heartbeat fails', async () => {
+test('runDueHeartbeats records retryable failures in heartbeat history without final notification', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-scheduler-'))
   const settings = {
     contextFolderPath: root,
@@ -246,11 +286,13 @@ test('runDueHeartbeats notifies through failure callback when heartbeat fails', 
     }
   }
   const notifications = []
+  const historyStore = createHeartbeatHistoryStoreStub()
   const scheduler = createHeartbeatScheduler({
     settingsLoader: () => settings,
     settingsSaver: ({ heartbeats }) => {
       settings.heartbeats = heartbeats
     },
+    heartbeatHistoryStoreFactory: () => historyStore,
     runner: {
       runPrompt: async () => ({
         status: ADAPTER_STATUS.ERROR,
@@ -267,9 +309,11 @@ test('runDueHeartbeats notifies through failure callback when heartbeat fails', 
   assert.equal(result.processed.length, 1)
   assert.equal(result.processed[0].result.status, 'error')
   assert.equal(result.processed[0].result.error, 'Runner unavailable')
-  assert.equal(notifications.length, 1)
-  assert.equal(notifications[0].topic, 'daily-topic')
-  assert.equal(notifications[0].message, 'Runner unavailable')
+  assert.equal(notifications.length, 0)
+  assert.equal(historyStore.rows.length, 1)
+  assert.equal(historyStore.rows[0].status, HEARTBEAT_HISTORY_STATUS.FAILED)
+  assert.equal(historyStore.rows[0].attemptNumber, 1)
+  assert.equal(historyStore.rows[0].nextRetryAtUtc, '2026-03-05T12:01:00.000Z')
 
   fs.rmSync(root, { recursive: true, force: true })
 })
@@ -310,6 +354,8 @@ test('runDueHeartbeats records failed runs in heartbeat history', async () => {
   assert.equal(recordedRuns[0].status, 'failed')
   assert.equal(recordedRuns[0].errorMessage, 'Runner unavailable')
   assert.equal(recordedRuns[0].outputPath, null)
+  assert.equal(recordedRuns[0].attemptNumber, 1)
+  assert.equal(recordedRuns[0].nextRetryAtUtc, '2026-03-05T12:01:00.000Z')
 
   fs.rmSync(root, { recursive: true, force: true })
 })
@@ -414,6 +460,132 @@ test('runDueHeartbeats skips heartbeat when due slot is not newer than last atte
   assert.equal(result.ok, true)
   assert.equal(result.processed.length, 0)
   assert.equal(runCalls, 0)
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
+test('runDueHeartbeats retries the latest failed scheduled slot once', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-scheduler-'))
+  const scheduledAtMs = Date.UTC(2026, 2, 5, 0, 0, 0)
+  const settings = {
+    contextFolderPath: root,
+    heartbeats: {
+      items: [createHeartbeat({ lastAttemptedScheduledAt: scheduledAtMs })]
+    }
+  }
+  const historyStore = createHeartbeatHistoryStoreStub({
+    initialRows: [
+      {
+        heartbeatId: 'hb-1',
+        topic: 'daily-topic',
+        runner: 'codex',
+        scheduledAtUtc: '2026-03-05T00:00:00.000Z',
+        startedAtUtc: '2026-03-05T00:00:05.000Z',
+        completedAtUtc: '2026-03-05T00:00:45.000Z',
+        status: HEARTBEAT_HISTORY_STATUS.FAILED,
+        attemptNumber: 1,
+        nextRetryAtUtc: '2026-03-05T00:01:00.000Z'
+      }
+    ]
+  })
+  let runCalls = 0
+  const scheduler = createHeartbeatScheduler({
+    settingsLoader: () => settings,
+    settingsSaver: ({ heartbeats }) => {
+      settings.heartbeats = heartbeats
+    },
+    heartbeatHistoryStoreFactory: () => historyStore,
+    runner: {
+      runPrompt: async () => {
+        runCalls += 1
+        return {
+          status: ADAPTER_STATUS.OK,
+          answer: 'retry succeeded'
+        }
+      }
+    },
+    nowFn: () => Date.UTC(2026, 2, 5, 12, 0, 0)
+  })
+
+  const firstResult = await scheduler.runDueHeartbeats()
+  const secondResult = await scheduler.runDueHeartbeats()
+
+  assert.equal(firstResult.ok, true)
+  assert.equal(firstResult.processed.length, 1)
+  assert.equal(firstResult.processed[0].result.status, 'ok')
+  assert.equal(secondResult.ok, true)
+  assert.equal(secondResult.processed.length, 0)
+  assert.equal(runCalls, 1)
+  assert.equal(historyStore.rows.length, 2)
+  assert.equal(historyStore.rows[1].scheduledAtUtc, '2026-03-05T00:00:00.000Z')
+  assert.equal(historyStore.rows[1].status, HEARTBEAT_HISTORY_STATUS.COMPLETED)
+  assert.equal(historyStore.rows[1].attemptNumber, MAX_HEARTBEAT_ATTEMPTS)
+  assert.equal(historyStore.rows[1].nextRetryAtUtc, null)
+
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
+test('runDueHeartbeats exhausts heartbeat retry after one additional failure', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-scheduler-'))
+  const scheduledAtMs = Date.UTC(2026, 2, 5, 0, 0, 0)
+  const settings = {
+    contextFolderPath: root,
+    heartbeats: {
+      items: [createHeartbeat({ lastAttemptedScheduledAt: scheduledAtMs })]
+    }
+  }
+  const historyStore = createHeartbeatHistoryStoreStub({
+    initialRows: [
+      {
+        heartbeatId: 'hb-1',
+        topic: 'daily-topic',
+        runner: 'codex',
+        scheduledAtUtc: '2026-03-05T00:00:00.000Z',
+        startedAtUtc: '2026-03-05T00:00:05.000Z',
+        completedAtUtc: '2026-03-05T00:00:45.000Z',
+        status: HEARTBEAT_HISTORY_STATUS.FAILED,
+        attemptNumber: 1,
+        nextRetryAtUtc: '2026-03-05T00:01:00.000Z'
+      }
+    ]
+  })
+  const notifications = []
+  let runCalls = 0
+  const scheduler = createHeartbeatScheduler({
+    settingsLoader: () => settings,
+    settingsSaver: ({ heartbeats }) => {
+      settings.heartbeats = heartbeats
+    },
+    heartbeatHistoryStoreFactory: () => historyStore,
+    runner: {
+      runPrompt: async () => {
+        runCalls += 1
+        return {
+          status: ADAPTER_STATUS.ERROR,
+          message: 'Still unavailable'
+        }
+      }
+    },
+    nowFn: () => Date.UTC(2026, 2, 5, 12, 0, 0),
+    onFailure: (payload) => notifications.push(payload)
+  })
+
+  const firstResult = await scheduler.runDueHeartbeats()
+  const secondResult = await scheduler.runDueHeartbeats()
+
+  assert.equal(firstResult.ok, true)
+  assert.equal(firstResult.processed.length, 1)
+  assert.equal(firstResult.processed[0].result.status, 'error')
+  assert.equal(runCalls, 1)
+  assert.equal(historyStore.rows.length, 2)
+  assert.equal(historyStore.rows[1].status, HEARTBEAT_HISTORY_STATUS.FAILED)
+  assert.equal(historyStore.rows[1].attemptNumber, 2)
+  assert.equal(historyStore.rows[1].nextRetryAtUtc, null)
+  assert.equal(notifications.length, 1)
+  assert.equal(notifications[0].attemptNumber, 2)
+  assert.equal(notifications[0].message, 'Still unavailable')
+  assert.equal(secondResult.ok, true)
+  assert.equal(secondResult.processed.length, 0)
+
   fs.rmSync(root, { recursive: true, force: true })
 })
 

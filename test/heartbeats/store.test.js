@@ -35,6 +35,12 @@ class FakeDatabase {
     if (typeof sql === 'string' && sql.includes('ADD COLUMN seen_at_utc')) {
       this.columns.push({ name: 'seen_at_utc' })
     }
+    if (typeof sql === 'string' && sql.includes('ADD COLUMN attempt_number')) {
+      this.columns.push({ name: 'attempt_number' })
+    }
+    if (typeof sql === 'string' && sql.includes('ADD COLUMN next_retry_at_utc')) {
+      this.columns.push({ name: 'next_retry_at_utc' })
+    }
   }
 
   prepare(sql) {
@@ -56,7 +62,9 @@ class FakeDatabase {
           status,
           seenAtUtc,
           outputPath,
-          errorMessage
+          errorMessage,
+          attemptNumber,
+          nextRetryAtUtc
         ) => {
           const row = {
             id: this.nextId,
@@ -69,12 +77,30 @@ class FakeDatabase {
             status,
             seenAtUtc,
             outputPath,
-            errorMessage
+            errorMessage,
+            attemptNumber,
+            nextRetryAtUtc
           }
           this.rows.push(row)
           this.nextId += 1
           return { lastInsertRowid: row.id }
         }
+      }
+    }
+
+    if (sql.includes('ORDER BY scheduled_at_utc DESC, attempt_number DESC, id DESC')) {
+      return {
+        get: (heartbeatId) => this.rows
+          .filter((row) => row.heartbeatId === heartbeatId)
+          .sort((left, right) => {
+            if (left.scheduledAtUtc === right.scheduledAtUtc) {
+              if ((left.attemptNumber || 1) === (right.attemptNumber || 1)) {
+                return right.id - left.id
+              }
+              return (right.attemptNumber || 1) - (left.attemptNumber || 1)
+            }
+            return left.scheduledAtUtc < right.scheduledAtUtc ? 1 : -1
+          })[0] || undefined
       }
     }
 
@@ -173,11 +199,19 @@ test('heartbeat history store adds seen_at_utc before creating unread index on o
   }).close()
 
   const alterIndex = fakeDb.execCalls.findIndex((sql) => sql.includes('ALTER TABLE heartbeats ADD COLUMN seen_at_utc TEXT'))
+  const attemptIndex = fakeDb.execCalls.findIndex((sql) => sql.includes('ALTER TABLE heartbeats ADD COLUMN attempt_number INTEGER NOT NULL DEFAULT 1'))
+  const retryColumnIndex = fakeDb.execCalls.findIndex((sql) => sql.includes('ALTER TABLE heartbeats ADD COLUMN next_retry_at_utc TEXT'))
   const unreadIndex = fakeDb.execCalls.findIndex((sql) => sql.includes('idx_heartbeats_seen_completed'))
+  const retryLookupIndex = fakeDb.execCalls.findIndex((sql) => sql.includes('idx_heartbeats_retry_lookup'))
 
   assert.notEqual(alterIndex, -1)
+  assert.notEqual(attemptIndex, -1)
+  assert.notEqual(retryColumnIndex, -1)
   assert.notEqual(unreadIndex, -1)
+  assert.notEqual(retryLookupIndex, -1)
   assert.ok(alterIndex < unreadIndex)
+  assert.ok(attemptIndex < retryLookupIndex)
+  assert.ok(retryColumnIndex < retryLookupIndex)
 
   fs.rmSync(root, { recursive: true, force: true })
 })
@@ -206,6 +240,61 @@ test('heartbeat history store reports unread rows and marks them seen', () => {
   )
   assert.equal(store.hasUnreadHeartbeats(), false)
   assert.equal(store.getRecentHeartbeats({ limit: 1 })[0].seenAtUtc, '2026-03-05T09:00:00.000Z')
+
+  store.close()
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
+test('heartbeat history store returns the latest due retry for a heartbeat', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-history-'))
+  const store = createHeartbeatHistoryStore({
+    contextFolderPath: root,
+    databaseFactory: () => new FakeDatabase()
+  })
+
+  store.recordHeartbeatRun({
+    heartbeatId: 'hb-1',
+    topic: 'daily-summary',
+    runner: 'codex',
+    scheduledAtUtc: '2026-03-05T08:00:00.000Z',
+    startedAtUtc: '2026-03-05T08:00:10.000Z',
+    completedAtUtc: '2026-03-05T08:01:00.000Z',
+    status: HEARTBEAT_HISTORY_STATUS.FAILED,
+    attemptNumber: 1,
+    nextRetryAtUtc: '2026-03-05T08:02:00.000Z'
+  })
+  store.recordHeartbeatRun({
+    heartbeatId: 'hb-1',
+    topic: 'daily-summary',
+    runner: 'codex',
+    scheduledAtUtc: '2026-03-04T08:00:00.000Z',
+    startedAtUtc: '2026-03-04T08:00:10.000Z',
+    completedAtUtc: '2026-03-04T08:01:00.000Z',
+    status: HEARTBEAT_HISTORY_STATUS.FAILED,
+    attemptNumber: 1,
+    nextRetryAtUtc: '2026-03-04T08:02:00.000Z'
+  })
+  store.recordHeartbeatRun({
+    heartbeatId: 'hb-2',
+    topic: 'retro',
+    runner: 'claude-code',
+    scheduledAtUtc: '2026-03-05T08:00:00.000Z',
+    startedAtUtc: '2026-03-05T08:00:10.000Z',
+    completedAtUtc: '2026-03-05T08:01:00.000Z',
+    status: HEARTBEAT_HISTORY_STATUS.FAILED,
+    attemptNumber: 1,
+    nextRetryAtUtc: '2026-03-05T08:02:00.000Z'
+  })
+
+  const retry = store.getLatestPendingRetry({
+    heartbeatId: 'hb-1',
+    nowUtc: '2026-03-05T08:03:00.000Z'
+  })
+
+  assert.equal(retry?.heartbeatId, 'hb-1')
+  assert.equal(retry?.scheduledAtUtc, '2026-03-05T08:00:00.000Z')
+  assert.equal(retry?.attemptNumber, 1)
+  assert.equal(retry?.nextRetryAtUtc, '2026-03-05T08:02:00.000Z')
 
   store.close()
   fs.rmSync(root, { recursive: true, force: true })
