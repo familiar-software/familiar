@@ -262,12 +262,14 @@ test('toast action open-familiar-log opens the configured path', async () => {
             title: 'Test',
             body: 'Heartbeat failed. for further information, check the logs',
             size: 'large',
+            duration: 10_000,
             actions: [{ label: 'Open logs', action: 'open-familiar-log', data: '/tmp/familiar.log' }],
             closable: true
         });
         await new Promise((resolve) => setImmediate(resolve));
 
         assert.equal(sentPayloads.length >= 1, true);
+        assert.equal(sentPayloads[sentPayloads.length - 1].duration, 10_000);
         assert.equal(openPathCalls.length, 0);
 
         assert.equal(typeof actionHandlers['toast-action'], 'function');

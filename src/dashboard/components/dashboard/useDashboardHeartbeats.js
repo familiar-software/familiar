@@ -9,7 +9,6 @@ import {
   HEARTBEAT_WEEKDAYS
 } from './dashboardConstants'
 import { resolveHeartbeatField } from './heartbeat-utils.cjs'
-import { buildHeartbeatFromCatalogTemplate } from './heartbeat-catalog-utils.cjs'
 import {
   isExecutableHeartbeatRunner,
   isHeartbeatRunnerAllowedBySkillInstaller,
@@ -257,32 +256,6 @@ export const useDashboardHeartbeats = (state) => {
     return saveHeartbeat({ ...target, enabled }, { showStatus: false })
   }, [heartbeats, messages.notFound, saveHeartbeat, setHeartbeatError])
 
-  const addCatalogHeartbeat = useCallback(async (template, runner) => {
-    const selectedRunner = toSafeString(runner)
-    if (!selectedRunner) {
-      const message = 'Select a runtime before adding this heartbeat.'
-      setHeartbeatError(message)
-      return { ok: false, message }
-    }
-
-    const payload = buildHeartbeatFromCatalogTemplate({
-      template,
-      existingItems: heartbeats,
-      fallbackTimezone: HEARTBEAT_DEFAULT_TIMEZONE,
-      selectedRunner
-    })
-
-    const result = await saveHeartbeat(payload)
-    if (result?.ok) {
-      console.log('Added heartbeat from catalog', {
-        templateTopic: template?.topic,
-        savedTopic: payload.topic,
-        runner: payload.runner
-      })
-    }
-    return result
-  }, [heartbeats, saveHeartbeat, setHeartbeatError])
-
   const runHeartbeatNow = useCallback(async (heartbeatId) => {
     if (!familiar || typeof familiar.runHeartbeatNow !== 'function') {
       const message = settingsErrors.bridgeUnavailableRestart || 'Bridge unavailable. Restart the app.'
@@ -358,7 +331,6 @@ export const useDashboardHeartbeats = (state) => {
   return {
     heartbeats,
     saveHeartbeat,
-    addCatalogHeartbeat,
     deleteHeartbeat,
     setHeartbeatEnabled,
     runHeartbeatNow,

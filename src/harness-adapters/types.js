@@ -6,7 +6,7 @@ const ADAPTER_STATUS = Object.freeze({
   ERROR: 'error'
 })
 
-const DEFAULT_TIMEOUT_MS = 120_000
+const DEFAULT_TIMEOUT_MS = 1_200_000
 const AVAILABILITY_TIMEOUT_MS = 3_000
 
 module.exports = {

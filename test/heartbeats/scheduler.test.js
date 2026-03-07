@@ -156,6 +156,47 @@ test('runDueHeartbeats runs due heartbeat and persists run metadata', async () =
   fs.rmSync(root, { recursive: true, force: true })
 })
 
+test('runDueHeartbeats records successful runs in heartbeat history', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-scheduler-'))
+  const settings = {
+    contextFolderPath: root,
+    heartbeats: {
+      items: [createHeartbeat()]
+    }
+  }
+  const recordedRuns = []
+  const scheduler = createHeartbeatScheduler({
+    settingsLoader: () => settings,
+    settingsSaver: ({ heartbeats }) => {
+      settings.heartbeats = heartbeats
+    },
+    heartbeatHistoryStoreFactory: () => ({
+      recordHeartbeatRun: (payload) => {
+        recordedRuns.push(payload)
+      },
+      close: () => {}
+    }),
+    runner: {
+      runPrompt: async () => ({
+        status: ADAPTER_STATUS.OK,
+        answer: 'result line'
+      })
+    },
+    nowFn: () => Date.UTC(2026, 2, 5, 12, 0, 0)
+  })
+
+  const result = await scheduler.runDueHeartbeats()
+
+  assert.equal(result.ok, true)
+  assert.equal(recordedRuns.length, 1)
+  assert.equal(recordedRuns[0].heartbeatId, 'hb-1')
+  assert.equal(recordedRuns[0].status, 'completed')
+  assert.equal(typeof recordedRuns[0].outputPath, 'string')
+  assert.equal(recordedRuns[0].errorMessage, null)
+
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
 test('runDueHeartbeats normalizes invalid timezone and still evaluates schedule', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-scheduler-'))
   let runCalls = 0
@@ -229,6 +270,46 @@ test('runDueHeartbeats notifies through failure callback when heartbeat fails', 
   assert.equal(notifications.length, 1)
   assert.equal(notifications[0].topic, 'daily-topic')
   assert.equal(notifications[0].message, 'Runner unavailable')
+
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
+test('runDueHeartbeats records failed runs in heartbeat history', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-scheduler-'))
+  const settings = {
+    contextFolderPath: root,
+    heartbeats: {
+      items: [createHeartbeat()]
+    }
+  }
+  const recordedRuns = []
+  const scheduler = createHeartbeatScheduler({
+    settingsLoader: () => settings,
+    settingsSaver: ({ heartbeats }) => {
+      settings.heartbeats = heartbeats
+    },
+    heartbeatHistoryStoreFactory: () => ({
+      recordHeartbeatRun: (payload) => {
+        recordedRuns.push(payload)
+      },
+      close: () => {}
+    }),
+    runner: {
+      runPrompt: async () => ({
+        status: ADAPTER_STATUS.ERROR,
+        message: 'Runner unavailable'
+      })
+    },
+    nowFn: () => Date.UTC(2026, 2, 5, 12, 0, 0)
+  })
+
+  const result = await scheduler.runDueHeartbeats()
+
+  assert.equal(result.ok, true)
+  assert.equal(recordedRuns.length, 1)
+  assert.equal(recordedRuns[0].status, 'failed')
+  assert.equal(recordedRuns[0].errorMessage, 'Runner unavailable')
+  assert.equal(recordedRuns[0].outputPath, null)
 
   fs.rmSync(root, { recursive: true, force: true })
 })

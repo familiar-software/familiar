@@ -11,14 +11,14 @@ const {
 } = require('../src/screen-stills/stills-markdown-worker')
 const { RetryableError } = require('../src/utils/retry')
 
-test('resolveMarkdownPath preserves .clipboard suffix from source still image', () => {
+test('resolveMarkdownPath preserves the source basename when changing extension to markdown', () => {
   const contextFolderPath = '/tmp/context'
-  const imagePath = '/tmp/context/familiar/stills/session-123/2026-02-20T14-22-33-123Z.clipboard.png'
+  const imagePath = '/tmp/context/familiar/stills/session-123/2026-02-20T14-22-33-123Z.png'
   const markdownPath = resolveMarkdownPath({ contextFolderPath, imagePath })
 
   assert.equal(
     markdownPath,
-    '/tmp/context/familiar/stills-markdown/session-123/2026-02-20T14-22-33-123Z.clipboard.md'
+    '/tmp/context/familiar/stills-markdown/session-123/2026-02-20T14-22-33-123Z.md'
   )
 })
 

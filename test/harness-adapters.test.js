@@ -6,6 +6,7 @@ const path = require('node:path')
 
 const { createCodexAdapter } = require('../src/harness-adapters/adapters/codex')
 const { createClaudeCodeAdapter } = require('../src/harness-adapters/adapters/claude-code')
+const { createCursorAdapter } = require('../src/harness-adapters/adapters/cursor')
 const { createHarnessRunner } = require('../src/harness-adapters/runner')
 const { ADAPTER_STATUS } = require('../src/harness-adapters/types')
 
@@ -159,6 +160,101 @@ test('claude-code adapter maps timed out execution to timeout status', async () 
   assert.equal(result.status, ADAPTER_STATUS.TIMEOUT)
 })
 
+test('cursor adapter runPrompt executes cursor-agent in print mode and returns parsed JSON answer', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-adapter-cursor-'))
+  const contextFolderPath = path.join(root, 'context')
+  fs.mkdirSync(contextFolderPath, { recursive: true })
+
+  let call = null
+  const runCommandImpl = async (input) => {
+    call = input
+    return {
+      ok: true,
+      code: 0,
+      signal: null,
+      stdout: JSON.stringify({
+        result: 'cursor final answer',
+        is_error: false
+      }),
+      stderr: '',
+      timedOut: false,
+      durationMs: 52,
+      error: null
+    }
+  }
+
+  const adapter = createCursorAdapter({
+    logger: createLogger(),
+    runCommandImpl,
+    now: () => 3_000
+  })
+
+  const result = await adapter.runPrompt({
+    requestId: 'req-3',
+    prompt: 'Summarize my familiar context',
+    contextFolderPath,
+    timeoutMs: 7_000
+  })
+
+  assert.equal(result.status, ADAPTER_STATUS.OK)
+  assert.equal(result.answer, 'cursor final answer')
+  assert.equal(result.meta.adapter, 'cursor')
+  assert.equal(call.command, 'cursor-agent')
+  assert.equal(call.cwd, path.dirname(contextFolderPath))
+  assert.deepEqual(call.args.slice(0, 3), ['-p', '--output-format', 'json'])
+  assert.match(call.args[call.args.length - 1], /Summarize my familiar context/)
+  assert.match(call.args[call.args.length - 1], /context folder/i)
+})
+
+test('cursor adapter returns error when cursor-agent output is malformed JSON', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-adapter-cursor-bad-json-'))
+  const contextFolderPath = path.join(root, 'context')
+  fs.mkdirSync(contextFolderPath, { recursive: true })
+
+  const adapter = createCursorAdapter({
+    logger: createLogger(),
+    runCommandImpl: async () => ({
+      ok: true,
+      code: 0,
+      signal: null,
+      stdout: '{not-json',
+      stderr: '',
+      timedOut: false,
+      durationMs: 22,
+      error: null
+    })
+  })
+
+  const result = await adapter.runPrompt({
+    prompt: 'hello',
+    contextFolderPath,
+    timeoutMs: 10
+  })
+
+  assert.equal(result.status, ADAPTER_STATUS.ERROR)
+  assert.match(result.message, /json/i)
+})
+
+test('cursor adapter checkAvailability maps ENOENT to unavailable', async () => {
+  const adapter = createCursorAdapter({
+    logger: createLogger(),
+    runCommandImpl: async () => ({
+      ok: false,
+      code: null,
+      signal: null,
+      stdout: '',
+      stderr: '',
+      timedOut: false,
+      durationMs: 4,
+      error: { code: 'ENOENT', message: 'spawn cursor-agent ENOENT' }
+    })
+  })
+
+  const availability = await adapter.checkAvailability()
+  assert.equal(availability.ok, false)
+  assert.equal(availability.status, ADAPTER_STATUS.UNAVAILABLE)
+})
+
 test('harness runner resolves context from settings and dispatches to adapter runPrompt', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-runner-context-'))
   const contextFolderPath = path.join(root, 'context')
@@ -189,13 +285,48 @@ test('harness runner resolves context from settings and dispatches to adapter ru
 
   const result = await runner.runPrompt({
     harness: 'claude-code',
-    requestId: 'req-3',
+    requestId: 'req-4',
     prompt: 'what did I do?'
   })
 
   assert.equal(result.status, ADAPTER_STATUS.OK)
   assert.equal(adapterInput.contextFolderPath, path.resolve(contextFolderPath))
   assert.equal(adapterInput.prompt, 'what did I do?')
+})
+
+test('harness runner dispatches cursor harness once adapter is registered', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-runner-cursor-'))
+  const contextFolderPath = path.join(root, 'context')
+  fs.mkdirSync(contextFolderPath, { recursive: true })
+
+  let adapterInput = null
+  const fakeAdapter = {
+    checkAvailability: async () => ({ ok: true }),
+    runPrompt: async (input) => {
+      adapterInput = input
+      return {
+        status: ADAPTER_STATUS.OK,
+        answer: 'cursor answer',
+        meta: { adapter: 'cursor' }
+      }
+    },
+    normalizeResult: (value) => value
+  }
+
+  const runner = createHarnessRunner({
+    logger: createLogger(),
+    adapters: { cursor: fakeAdapter },
+    settingsLoader: () => ({ contextFolderPath })
+  })
+
+  const result = await runner.runPrompt({
+    harness: 'cursor',
+    prompt: 'hello'
+  })
+
+  assert.equal(result.status, ADAPTER_STATUS.OK)
+  assert.equal(adapterInput.contextFolderPath, path.resolve(contextFolderPath))
+  assert.equal(adapterInput.prompt, 'hello')
 })
 
 test('harness runner returns unavailable for unsupported harness', async () => {
@@ -206,7 +337,7 @@ test('harness runner returns unavailable for unsupported harness', async () => {
   })
 
   const result = await runner.runPrompt({
-    harness: 'cursor',
+    harness: 'gemini',
     prompt: 'hello'
   })
 

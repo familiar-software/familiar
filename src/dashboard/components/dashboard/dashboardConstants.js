@@ -173,7 +173,7 @@ export const DEFAULT_SETTINGS = {
 export const HEARTBEAT_RUNNERS = [
   { value: 'codex', label: 'Codex' },
   { value: 'claude-code', label: 'Claude Code' },
-  { value: 'antigravity', label: 'Antigravity' }
+  { value: 'cursor', label: 'Cursor' }
 ]
 
 export const HEARTBEAT_FREQUENCIES = [

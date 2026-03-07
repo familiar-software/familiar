@@ -24,11 +24,16 @@ const {
 const {
     createTrayMenuController,
 } = require('./tray/refresh');
-const { initializeAutoUpdater, scheduleWeeklyUpdateCheck } = require('./updates');
+const { initializeAutoUpdater, scheduleRecurringUpdateCheck } = require('./updates');
 const { createScreenStillsController } = require('./screen-stills');
 const { createPresenceMonitor } = require('./screen-capture/presence');
 const { getScreenRecordingPermissionStatus } = require('./screen-capture/permissions');
-const { getTrayIconPathForMenuBar } = require('./tray/icon');
+const { createTrayIconFactory, getTrayIconPathForMenuBar } = require('./tray/icon');
+const {
+    hasUnreadHeartbeatRuns,
+    loadRecentHeartbeatRuns,
+    markAllHeartbeatRunsSeen
+} = require('./tray/heartbeats');
 const { shouldOpenSettingsOnReady } = require('./launch-intent');
 const { APP_MODE, setAppMode } = require('./app-mode');
 const { initializeProcessOwnership } = require('./startup/ownership');
@@ -39,7 +44,9 @@ const {
     resolveCleanupRetentionDays
 } = require('./storage/auto-session-cleanup');
 const { createHeartbeatScheduler } = require('./heartbeats/scheduler');
+const { createHeartbeatHistoryStore } = require('./heartbeats/store');
 const { buildHeartbeatFailureToastBody } = require('./heartbeats/failure-toast');
+const { openFileInTextEdit } = require('./utils/open-in-textedit');
 const { createRetentionChangeTrigger } = require('./storage/retention-change-trigger');
 const { moveFamiliarFolder } = require('./context-folder/move');
 const { createMoveContextFolderHandler } = require('./context-folder/move-handler');
@@ -49,6 +56,12 @@ const trayIconPath = path.join(__dirname, 'icon_white_owl.png');
 let tray = null;
 let trayHandlers = null;
 let trayMenuController = null;
+let refreshTrayIcon = () => {};
+let resolveTrayIconStateForE2E = () => ({
+    hasUnreadHeartbeats: false,
+    iconPath: trayIconPath,
+    isTemplateImage: process.platform === 'darwin'
+});
 let settingsWindow = null;
 let isQuitting = false;
 let screenStillsController = null;
@@ -64,6 +77,7 @@ let lastScreenCaptureSettings = {
     contextFolderPath: ''
 };
 const e2eToastEvents = [];
+const e2eTextEditOpenEvents = [];
 const E2E_TOAST_EVENT_LIMIT = 20;
 
 const parsePositiveInteger = (value) => {
@@ -411,18 +425,27 @@ const handleRecordingStateTransition = (transition) => {
 };
 
 const getTrayRecordingActionLabel = () => {
-    if (!trayHandlers) {
-        return '';
-    }
-    const recordingState = getCurrentScreenStillsState();
-    const template = buildTrayMenuTemplate({
-        ...trayHandlers,
-        recordingPaused: recordingState.manualPaused === true,
-        recordingState,
-    });
+    const template = getCurrentTrayMenuTemplate();
     return template && template[0] && typeof template[0].label === 'string'
         ? template[0].label
         : '';
+};
+
+const getCurrentTrayRecentHeartbeats = () => {
+    return loadRecentHeartbeatRuns({ logger: console });
+};
+
+const getCurrentTrayMenuTemplate = () => {
+    if (!trayHandlers) {
+        return [];
+    }
+    const recordingState = getCurrentScreenStillsState();
+    return buildTrayMenuTemplate({
+        ...trayHandlers,
+        recentHeartbeats: getCurrentTrayRecentHeartbeats(),
+        recordingPaused: recordingState.manualPaused === true,
+        recordingState,
+    });
 };
 
 const runCaptureActionAndRefreshTray = async (action) => {
@@ -455,6 +478,52 @@ const notifyHeartbeatRunStateChanged = (payload = {}) => {
         outputPath: typeof payload.outputPath === 'string' ? payload.outputPath : '',
         scheduledAtMs: Number.isFinite(payload.scheduledAtMs) ? payload.scheduledAtMs : null
     });
+};
+
+const openHeartbeatFromTray = async (entry = {}) => {
+    const status = typeof entry.status === 'string' ? entry.status.trim().toLowerCase() : '';
+    const outputPath = typeof entry.outputPath === 'string' ? entry.outputPath.trim() : '';
+    const targetPath = status === 'failed' ? resolveFamiliarLogPath() : outputPath;
+
+    if (!targetPath) {
+        console.error('Heartbeat tray open skipped: missing target path', {
+            heartbeatId: typeof entry.heartbeatId === 'string' ? entry.heartbeatId : '',
+            status
+        });
+        return;
+    }
+
+    try {
+        if (isE2E) {
+            e2eTextEditOpenEvents.push({
+                heartbeatId: typeof entry.heartbeatId === 'string' ? entry.heartbeatId : '',
+                status,
+                targetPath,
+                at: Date.now()
+            });
+            console.log('Captured TextEdit open for E2E', {
+                heartbeatId: typeof entry.heartbeatId === 'string' ? entry.heartbeatId : '',
+                status,
+                targetPath
+            });
+            return;
+        }
+
+        await openFileInTextEdit({ targetPath });
+
+        console.log('Opened heartbeat tray target', {
+            heartbeatId: typeof entry.heartbeatId === 'string' ? entry.heartbeatId : '',
+            status,
+            targetPath
+        });
+    } catch (error) {
+        console.error('Failed to open heartbeat tray target', {
+            heartbeatId: typeof entry.heartbeatId === 'string' ? entry.heartbeatId : '',
+            status,
+            targetPath,
+            message: error?.message || String(error)
+        });
+    }
 };
 
 const handleMoveContextFolder = createMoveContextFolderHandler({
@@ -555,35 +624,37 @@ function quitApp() {
 }
 
 function createTray() {
-    const getTrayIcon = () => {
-        const preferredPath = getTrayIconPathForMenuBar({
-            defaultIconPath: trayIconPath
+    const resolveTrayHasUnreadHeartbeats = ({ settings = null } = {}) =>
+        hasUnreadHeartbeatRuns({ settings, logger: console });
+    const createTrayIcon = createTrayIconFactory({
+        nativeImage,
+        logger: console
+    });
+    const getTrayIconState = ({ settings = null } = {}) => {
+        const hasUnreadHeartbeats = resolveTrayHasUnreadHeartbeats({ settings });
+        return {
+            hasUnreadHeartbeats,
+            iconPath: getTrayIconPathForMenuBar({
+                defaultIconPath: trayIconPath,
+                hasUnreadHeartbeats,
+                isDarkMode: nativeTheme.shouldUseDarkColors === true
+            }),
+            isTemplateImage: !hasUnreadHeartbeats && process.platform === 'darwin'
+        };
+    };
+    resolveTrayIconStateForE2E = getTrayIconState;
+
+    const getTrayIcon = ({ settings = null } = {}) => {
+        const trayIconState = getTrayIconState({ settings });
+        return createTrayIcon({
+            defaultIconPath: trayIconPath,
+            hasUnreadHeartbeats: trayIconState.hasUnreadHeartbeats,
+            isDarkMode: nativeTheme.shouldUseDarkColors === true
         });
-
-        const trayIconBase = nativeImage.createFromPath(preferredPath);
-        if (!trayIconBase.isEmpty()) {
-            const trayIcon = trayIconBase.resize({ width: 16, height: 16 });
-            if (process.platform === 'darwin') {
-                trayIcon.setTemplateImage(true);
-            }
-            return trayIcon;
-        }
-
-        if (preferredPath !== trayIconPath) {
-            console.warn(`Tray icon failed to load from ${preferredPath}; falling back to ${trayIconPath}`);
-            const fallbackTrayIcon = nativeImage.createFromPath(trayIconPath);
-            if (!fallbackTrayIcon.isEmpty()) {
-                return fallbackTrayIcon.resize({ width: 16, height: 16 });
-            }
-        } else {
-            console.error(`Tray icon failed to load from ${trayIconPath}`);
-        }
-
-        return nativeImage.createEmpty();
     };
 
-    const updateTrayIcon = () => {
-        const trayIcon = getTrayIcon();
+    const updateTrayIcon = ({ settings = null } = {}) => {
+        const trayIcon = getTrayIcon({ settings });
         if (trayIcon.isEmpty()) {
             console.error('Failed to resolve any tray icon image');
             return;
@@ -592,6 +663,7 @@ function createTray() {
             tray.setImage(trayIcon);
         }
     };
+    refreshTrayIcon = updateTrayIcon;
 
     const trayIcon = getTrayIcon();
     if (trayIcon.isEmpty()) {
@@ -607,6 +679,9 @@ function createTray() {
         onRecordingPause: () => {
             void handleRecordingToggleAction();
         },
+        onOpenHeartbeat: (entry) => {
+            void openHeartbeatFromTray(entry);
+        },
         onOpenSettings: () => openSettingsWindow({ reason: 'tray' }),
         onQuit: quitApp,
     };
@@ -614,7 +689,14 @@ function createTray() {
     trayMenuController = createTrayMenuController({
         tray,
         trayHandlers,
+        getRecentHeartbeats: ({ settings }) => loadRecentHeartbeatRuns({ settings, logger: console }),
         getRecordingState: getCurrentScreenStillsState,
+        onTrayMenuOpened: async ({ settings }) => {
+            const markedSeenCount = markAllHeartbeatRunsSeen({ settings, logger: console });
+            if (markedSeenCount > 0) {
+                updateTrayIcon({ settings });
+            }
+        }
     });
 
     trayMenuController.refreshTrayMenuFromSettings();
@@ -729,6 +811,89 @@ const registerMainProcessIpc = () => {
             status: getScreenStillsStatusPayload()
         };
     });
+
+    ipcMain.handle('e2e:tray:openMenu', async () => {
+        if (!isE2E) {
+            return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
+        }
+        if (!trayMenuController || typeof trayMenuController.handleTrayMenuOpen !== 'function') {
+            return { ok: false, message: 'Tray menu controller is unavailable.' };
+        }
+        await trayMenuController.handleTrayMenuOpen();
+        return {
+            ok: true,
+            iconState: resolveTrayIconStateForE2E()
+        };
+    });
+
+    ipcMain.handle('e2e:tray:getIconState', () => {
+        if (!isE2E) {
+            return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
+        }
+        return {
+            ok: true,
+            iconState: resolveTrayIconStateForE2E()
+        };
+    });
+
+    ipcMain.handle('e2e:tray:getMenuItems', () => {
+        if (!isE2E) {
+            return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
+        }
+        const items = getCurrentTrayMenuTemplate().map((item = {}) => ({
+            label: typeof item.label === 'string' ? item.label : '',
+            type: typeof item.type === 'string' ? item.type : 'normal',
+            enabled: item.enabled !== false
+        }));
+        return { ok: true, items };
+    });
+
+    ipcMain.handle('e2e:tray:getHeartbeats', () => {
+        if (!isE2E) {
+            return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
+        }
+        return { ok: true, items: getCurrentTrayRecentHeartbeats() };
+    });
+
+    ipcMain.handle('e2e:tray:clickHeartbeat', async (_event, payload = {}) => {
+        if (!isE2E) {
+            return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
+        }
+
+        const rowId = Number(payload?.rowId);
+        if (!Number.isFinite(rowId)) {
+            return { ok: false, message: 'rowId is required.' };
+        }
+
+        const target = getCurrentTrayRecentHeartbeats().find((entry) => Number(entry?.id) === rowId);
+        if (!target) {
+            return { ok: false, message: 'Heartbeat tray item not found.' };
+        }
+
+        await openHeartbeatFromTray(target);
+        return {
+            ok: true,
+            rowId,
+            heartbeatId: typeof target.heartbeatId === 'string' ? target.heartbeatId : '',
+            targetPath: typeof target.status === 'string' && target.status.toLowerCase() === 'failed'
+                ? resolveFamiliarLogPath()
+                : (typeof target.outputPath === 'string' ? target.outputPath : '')
+        };
+    });
+
+    ipcMain.handle('e2e:textedit:events', (_event, options = {}) => {
+        if (!isE2E) {
+            return { ok: false, message: 'TextEdit E2E action is only available in E2E mode.' };
+        }
+
+        const clear = options?.clear === true;
+        const events = [...e2eTextEditOpenEvents];
+        if (clear) {
+            e2eTextEditOpenEvents.length = 0;
+        }
+
+        return { ok: true, events };
+    });
 };
 
 if (isPrimaryInstance) {
@@ -793,9 +958,14 @@ if (isPrimaryInstance) {
         heartbeatScheduler = createHeartbeatScheduler({
             settingsLoader: loadSettings,
             settingsSaver: saveSettings,
+            heartbeatHistoryStoreFactory: createHeartbeatHistoryStore,
             logger: console,
             isCaptureActive: isCaptureActiveForHeartbeats,
             onHeartbeatRunStateChanged: (payload) => {
+                if (payload?.state === 'completed') {
+                    refreshTrayMenu();
+                    refreshTrayIcon();
+                }
                 notifyHeartbeatRunStateChanged(payload);
             },
             onFailure: (payload = {}) => {
@@ -809,6 +979,7 @@ if (isPrimaryInstance) {
                     body: message,
                     type: 'warning',
                     size: 'large',
+                    duration: 10_000,
                     actions: [
                         {
                             label: 'Open logs',
@@ -836,7 +1007,7 @@ if (isPrimaryInstance) {
             createTray();
             const updateState = initializeAutoUpdater({ isE2E, isCI });
             if (updateState.enabled) {
-                scheduleWeeklyUpdateCheck();
+                scheduleRecurringUpdateCheck();
             }
         } else if (isE2E) {
             console.log('E2E mode: running on non-macOS platform');

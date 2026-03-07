@@ -29,8 +29,7 @@ Free, open source, and offline. Nothing leaves your machine.
 
 - Settings: `~/.familiar/settings.json`
 - Captured still images: `<contextFolderPath>/familiar/stills/`
-- Clipboard image mirrors while recording: `<contextFolderPath>/familiar/stills/<sessionId>/<timestamp>.clipboard.<ext>`
-- Extracted markdown (including OCR output for clipboard images): `<contextFolderPath>/familiar/stills-markdown/`
+- Extracted markdown for captured still images: `<contextFolderPath>/familiar/stills-markdown/`
 - Clipboard text mirrors while recording: `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.clipboard.txt`
 - Before still markdown and clipboard text are written, Familiar runs `rg`-based redaction for password/API-key patterns. If the scanner fails twice, Familiar still saves the file and shows a one-time warning toast per recording session.
 

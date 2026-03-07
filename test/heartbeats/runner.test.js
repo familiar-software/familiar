@@ -19,6 +19,10 @@ const createHeartbeat = () => ({
   prompt: 'Summarize my week'
 })
 
+test('heartbeat default timeout is 20 minutes', () => {
+  assert.equal(DEFAULT_TIMEOUT_MS, 1_200_000)
+})
+
 test('createHeartbeatRunner appends no-followup suffix and passes adapter request fields', async () => {
   let input = null
   const runner = createHeartbeatRunner({

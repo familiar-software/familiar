@@ -2,7 +2,7 @@ const HEARTBEAT_POLL_INTERVAL_MS = 60_000
 const HEARTBEAT_TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
 const HEARTBEAT_DAY_OF_WEEK_VALUES = new Set([1, 2, 3, 4, 5, 6, 7])
 
-const HEARTBEAT_RUNNERS = new Set(['codex', 'claude-code'])
+const HEARTBEAT_RUNNERS = new Set(['codex', 'claude-code', 'cursor'])
 const HEARTBEAT_FREQUENCIES = new Set(['daily', 'weekly'])
 const WEEKDAY_LABELS = {
   Sun: 7,

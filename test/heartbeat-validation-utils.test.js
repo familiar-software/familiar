@@ -27,13 +27,14 @@ test('normalizeHarnessList normalizes and deduplicates configured harnesses', ()
 test('resolveRunnerSkillHarness maps heartbeat runners to Connect Agent harness keys', () => {
   assert.equal(resolveRunnerSkillHarness('codex'), 'codex')
   assert.equal(resolveRunnerSkillHarness('claude-code'), 'claude')
+  assert.equal(resolveRunnerSkillHarness('cursor'), 'cursor')
   assert.equal(resolveRunnerSkillHarness('antigravity'), 'antigravity')
-  assert.equal(resolveRunnerSkillHarness('cursor'), '')
 })
 
 test('isExecutableHeartbeatRunner only allows runners backed by adapters today', () => {
   assert.equal(isExecutableHeartbeatRunner('codex'), true)
   assert.equal(isExecutableHeartbeatRunner('claude-code'), true)
+  assert.equal(isExecutableHeartbeatRunner('cursor'), true)
   assert.equal(isExecutableHeartbeatRunner('antigravity'), false)
 })
 
@@ -44,5 +45,9 @@ test('isHeartbeatRunnerAllowedBySkillInstaller checks runner against configured 
 
   assert.equal(isHeartbeatRunnerAllowedBySkillInstaller({ runner: 'codex', skillInstaller }), true)
   assert.equal(isHeartbeatRunnerAllowedBySkillInstaller({ runner: 'claude-code', skillInstaller }), true)
+  assert.equal(isHeartbeatRunnerAllowedBySkillInstaller({
+    runner: 'cursor',
+    skillInstaller: { harness: ['cursor'] }
+  }), true)
   assert.equal(isHeartbeatRunnerAllowedBySkillInstaller({ runner: 'antigravity', skillInstaller }), false)
 })

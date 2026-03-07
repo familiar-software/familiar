@@ -11,6 +11,9 @@ const {
   createHeartbeatRunner
 } = require('./runner')
 const {
+  HEARTBEAT_HISTORY_STATUS
+} = require('./store')
+const {
   createDefaultFormatters,
   computeLatestDueSlotMs,
   readDatePartsByTimeZone
@@ -51,7 +54,8 @@ const createHeartbeatScheduler = ({
   checkIntervalMs = HEARTBEAT_POLL_INTERVAL_MS,
   isCaptureActive = () => true,
   onFailure = null,
-  onHeartbeatRunStateChanged = null
+  onHeartbeatRunStateChanged = null,
+  heartbeatHistoryStoreFactory = null
 } = {}) => {
   if (typeof settingsLoader !== 'function') {
     throw new Error('settingsLoader is required')
@@ -85,6 +89,47 @@ const createHeartbeatScheduler = ({
       ? settings.heartbeats.items
       : []
     return normalizeHeartbeats({ items, nowFn })
+  }
+
+  const recordHeartbeatHistory = ({
+    heartbeat,
+    contextFolderPath,
+    scheduledAtMs,
+    startedAtMs,
+    completedAtMs,
+    result
+  }) => {
+    if (typeof heartbeatHistoryStoreFactory !== 'function') {
+      return
+    }
+
+    let store = null
+    try {
+      store = heartbeatHistoryStoreFactory({ contextFolderPath, logger })
+      store.recordHeartbeatRun({
+        heartbeatId: heartbeat.id,
+        topic: heartbeat.topic,
+        runner: heartbeat.runner,
+        scheduledAtUtc: new Date(scheduledAtMs).toISOString(),
+        startedAtUtc: new Date(startedAtMs).toISOString(),
+        completedAtUtc: new Date(completedAtMs).toISOString(),
+        status: result.status === 'ok'
+          ? HEARTBEAT_HISTORY_STATUS.COMPLETED
+          : HEARTBEAT_HISTORY_STATUS.FAILED,
+        outputPath: result.status === 'ok' ? toSafeString(result.outputPath) : null,
+        errorMessage: result.status === 'ok' ? null : toSafeString(result.error)
+      })
+    } catch (error) {
+      logger.error('Failed to record heartbeat history', {
+        id: heartbeat.id,
+        topic: heartbeat.topic,
+        message: toSafeString(error?.message, 'Unknown heartbeat history error')
+      })
+    } finally {
+      if (store && typeof store.close === 'function') {
+        store.close()
+      }
+    }
   }
 
   const updateHeartbeatState = async ({ heartbeat, scheduledAtMs, result }) => {
@@ -132,6 +177,7 @@ const createHeartbeatScheduler = ({
     scheduledAtMs,
     trigger = 'manual'
   }) => {
+    const startedAtMs = nowFn()
     notifyRunState({
       id: heartbeat.id,
       topic: heartbeat.topic,
@@ -182,6 +228,15 @@ const createHeartbeatScheduler = ({
     await updateHeartbeatState({
       heartbeat,
       scheduledAtMs,
+      result
+    })
+
+    recordHeartbeatHistory({
+      heartbeat,
+      contextFolderPath,
+      scheduledAtMs,
+      startedAtMs,
+      completedAtMs: nowFn(),
       result
     })
 

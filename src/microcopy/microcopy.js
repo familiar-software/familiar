@@ -16,6 +16,9 @@ const microcopy = {
       clickToPauseFor10Min: 'Capturing (click to pause for 10 min)',
       startCapturing: 'Start Capturing'
     },
+    heartbeats: {
+      section: 'Heartbeats'
+    },
     actions: {
       settings: 'Settings',
       quit: 'Quit'
@@ -150,7 +153,7 @@ const microcopy = {
         'Yes. You can pause capture manually, and Familiar is designed to capture only while you’re actively using your computer (not while idle).',
       wizardFaqQuestionAudio: 'Does it record meetings/audio?',
       wizardFaqAnswerAudio:
-        'No. Familiar currently captures screen + clipboard context, not microphone audio or full meeting transcripts.',
+        'No. Familiar currently captures screen context and clipboard text, not microphone audio or full meeting transcripts.',
       wizardFaqQuestionScreenshotFrequency: 'How often does Familiar take a screenshot?',
       wizardFaqAnswerScreenshotFrequency:
         'When in "Low Power Mode", every 15 seconds. Otherwise, every 5 seconds.',

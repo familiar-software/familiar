@@ -63,6 +63,22 @@ test('normalizeHeartbeat drops entries with unsupported runner', () => {
   assert.equal(result, null)
 })
 
+test('normalizeHeartbeat keeps cursor as a supported runner', () => {
+  const result = normalizeHeartbeat({
+    id: 'hb-cursor',
+    topic: 'Cursor Digest',
+    prompt: 'summarize recent work',
+    runner: 'cursor',
+    schedule: {
+      frequency: 'daily',
+      time: '07:30',
+      timezone: 'UTC'
+    }
+  }, 10_000)
+
+  assert.equal(result?.runner, 'cursor')
+})
+
 test('normalizeHeartbeat requires valid weekly day', () => {
   const invalidWeekly = normalizeHeartbeat({
     id: 'hb-3',

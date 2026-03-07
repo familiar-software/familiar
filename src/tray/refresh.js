@@ -52,7 +52,9 @@ function createTrayMenuController({
     trayHandlers,
     loadSettingsFn = loadSettings,
     buildTrayMenuTemplateFn = buildTrayMenuTemplate,
+    getRecentHeartbeats = null,
     getRecordingState = null,
+    onTrayMenuOpened = null,
     menu = getElectronMenu(),
     recordingIndicatorIconFactory = null,
     logger = console,
@@ -76,7 +78,7 @@ function createTrayMenuController({
         return getRecordingState() || null;
     };
 
-    function updateTrayMenu({ recordingPaused } = {}) {
+    function updateTrayMenu({ recordingPaused, settings = null } = {}) {
         if (!menu) {
             logger.warn('Tray menu update skipped: menu unavailable');
             return;
@@ -98,9 +100,13 @@ function createTrayMenuController({
         const recordingStatusIcon = resolveRecordingIndicatorIcon({
             colorHex: recordingIndicator.trayColorHex
         });
+        const recentHeartbeats = typeof getRecentHeartbeats === 'function'
+            ? getRecentHeartbeats({ settings })
+            : [];
         const trayMenu = menu.buildFromTemplate(
             buildTrayMenuTemplateFn({
                 ...trayHandlers,
+                recentHeartbeats,
                 recordingPaused: isPaused,
                 recordingState,
                 recordingStatusIcon
@@ -119,20 +125,39 @@ function createTrayMenuController({
     }
 
     function refreshTrayMenuFromSettings() {
-        loadSettingsFn();
+        const settings = loadSettingsFn();
         updateTrayMenu({
+            settings,
             recordingPaused: resolveRecordingPaused(),
         });
+    }
+
+    async function handleTrayMenuOpen() {
+        const settings = loadSettingsFn();
+        updateTrayMenu({
+            settings,
+            recordingPaused: resolveRecordingPaused(),
+        });
+
+        if (typeof onTrayMenuOpened === 'function') {
+            try {
+                await onTrayMenuOpened({ settings });
+            } catch (error) {
+                logger.warn('Tray menu open side effects failed', {
+                    message: error?.message || String(error)
+                });
+            }
+        }
     }
 
     function registerTrayRefreshHandlers() {
         if (tray && typeof tray.on === 'function') {
             tray.on('click', () => {
-                refreshTrayMenuFromSettings();
+                void handleTrayMenuOpen();
             });
 
             tray.on('right-click', () => {
-                refreshTrayMenuFromSettings();
+                void handleTrayMenuOpen();
             });
         } else {
             logger.warn('Tray menu refresh handlers unavailable');
@@ -140,6 +165,7 @@ function createTrayMenuController({
     }
 
     return {
+        handleTrayMenuOpen,
         updateTrayMenu,
         refreshTrayMenuFromSettings,
         registerTrayRefreshHandlers,

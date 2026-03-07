@@ -1,8 +1,9 @@
-const EXECUTABLE_HEARTBEAT_RUNNERS = new Set(['codex', 'claude-code'])
+const EXECUTABLE_HEARTBEAT_RUNNERS = new Set(['codex', 'claude-code', 'cursor'])
 
 const HEARTBEAT_RUNNER_TO_SKILL_HARNESS = {
   codex: 'codex',
   'claude-code': 'claude',
+  cursor: 'cursor',
   antigravity: 'antigravity'
 }
 

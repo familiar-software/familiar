@@ -186,11 +186,11 @@ test(
 );
 
 test(
-    'scheduleWeeklyUpdateCheck schedules immediate startup delay when last check is older than a week',
+    'scheduleRecurringUpdateCheck schedules startup delay when last check is older than three days',
     { skip: process.platform !== 'darwin' },
     () => {
         const now = 2_000_000_000_000;
-        const eightDaysMs = 8 * 24 * 60 * 60 * 1000;
+        const fourDaysMs = 4 * 24 * 60 * 60 * 1000;
         const timeoutCalls = [];
         const intervalCalls = [];
 
@@ -213,19 +213,19 @@ test(
 
         const { restore } = stubModules({
             isPackaged: true,
-            loadSettingsValue: { updateLastCheckedAt: now - eightDaysMs },
+            loadSettingsValue: { updateLastCheckedAt: now - fourDaysMs },
         });
         try {
             resetUpdatesModule();
             const updates = require('../src/updates');
             updates.initializeAutoUpdater({ isE2E: false, isCI: false });
 
-            const scheduled = updates.scheduleWeeklyUpdateCheck({ delayMs: 10_000 });
+            const scheduled = updates.scheduleRecurringUpdateCheck({ delayMs: 10_000 });
             assert.equal(scheduled.scheduled, true);
             assert.equal(scheduled.delayMs, 10_000);
             assert.deepEqual(timeoutCalls, [10_000]);
             assert.equal(intervalCalls.length, 1);
-            assert.equal(intervalCalls[0], 7 * 24 * 60 * 60 * 1000);
+            assert.equal(intervalCalls[0], 3 * 24 * 60 * 60 * 1000);
         } finally {
             restore();
             resetUpdatesModule();
@@ -237,12 +237,12 @@ test(
 );
 
 test(
-    'scheduleWeeklyUpdateCheck delays until one-week gate when last check was recent',
+    'scheduleRecurringUpdateCheck delays until the three-day gate when last check was recent',
     { skip: process.platform !== 'darwin' },
     () => {
         const now = 2_000_000_000_000;
         const oneDayMs = 24 * 60 * 60 * 1000;
-        const expectedDelay = 6 * oneDayMs;
+        const expectedDelay = 2 * oneDayMs;
         const timeoutCalls = [];
 
         const originalNow = Date.now;
@@ -265,7 +265,7 @@ test(
             const updates = require('../src/updates');
             updates.initializeAutoUpdater({ isE2E: false, isCI: false });
 
-            const scheduled = updates.scheduleWeeklyUpdateCheck({ delayMs: 10_000 });
+            const scheduled = updates.scheduleRecurringUpdateCheck({ delayMs: 10_000 });
             assert.equal(scheduled.scheduled, true);
             assert.equal(scheduled.delayMs, expectedDelay);
             assert.deepEqual(timeoutCalls, [expectedDelay]);
