@@ -1,6 +1,6 @@
 ---
 name: familiar
-version: 1.0.2
+version: 1.0.3
 description: Use when the user references past on-screen activity, needs work summaries or status updates, wants to recall or reconstruct what happened, document, asks about decisions made, communication patterns, or time spent, or when brainstorming and planning would benefit from recent screen context.
 ---
 
