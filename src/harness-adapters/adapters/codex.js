@@ -2,11 +2,12 @@ const fs = require('node:fs/promises')
 const os = require('node:os')
 const path = require('node:path')
 
-const { runCommand } = require('../process-executor')
+const { runCommand } = require('../../utils/process-executor')
 const { wrapPrompt } = require('../prompt-wrap')
 const { resolveWorkspaceDir } = require('../context')
 const { classifyCommandFailureStatus, normalizeAdapterResult } = require('../result-utils')
 const { ADAPTER_STATUS, AVAILABILITY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } = require('../types')
+const { resolveExecutablePath } = require('../../utils/resolve-executable-path')
 
 const ADAPTER_NAME = 'codex'
 const TOOL_NAME = 'codex'
@@ -22,12 +23,26 @@ const createMeta = ({ startedAt, durationMs, workspaceDir } = {}) => ({
 const createCodexAdapter = ({
   logger = console,
   runCommandImpl = runCommand,
+  resolveExecutablePathImpl = resolveExecutablePath,
   sandboxMode = DEFAULT_CODEX_SANDBOX_MODE,
   now = () => Date.now()
 } = {}) => {
   const checkAvailability = async () => {
+    const executablePath = await resolveExecutablePathImpl(TOOL_NAME, {
+      logger,
+      runCommandImpl
+    })
+    if (!executablePath) {
+      return {
+        ok: false,
+        adapter: ADAPTER_NAME,
+        status: ADAPTER_STATUS.UNAVAILABLE,
+        message: 'Codex is unavailable.'
+      }
+    }
+
     const commandResult = await runCommandImpl({
-      command: 'codex',
+      command: executablePath,
       args: ['--version'],
       timeoutMs: AVAILABILITY_TIMEOUT_MS,
       logger
@@ -83,12 +98,33 @@ const createCodexAdapter = ({
       timeoutMs
     })
 
+    const executablePath = await resolveExecutablePathImpl(TOOL_NAME, {
+      logger,
+      runCommandImpl
+    })
+    if (!executablePath) {
+      logger.warn('Harness adapter codex executable resolution failed', {
+        requestId,
+        tool: TOOL_NAME
+      })
+      return normalizeResult({
+        status: ADAPTER_STATUS.UNAVAILABLE,
+        answer: '',
+        message: 'Codex is unavailable.',
+        meta: createMeta({
+          startedAt,
+          durationMs: 0,
+          workspaceDir: resolvedWorkspaceDir
+        })
+      })
+    }
+
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'familiar-codex-adapter-'))
     const answerPath = path.join(tempDir, 'answer.txt')
 
     try {
       const commandResult = await runCommandImpl({
-        command: 'codex',
+        command: executablePath,
         args: [
           'exec',
           '--sandbox',

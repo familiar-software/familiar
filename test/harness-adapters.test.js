@@ -20,6 +20,7 @@ test('codex adapter runPrompt executes codex with writable workspace sandbox and
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-adapter-codex-'))
   const contextFolderPath = path.join(root, 'context')
   fs.mkdirSync(contextFolderPath, { recursive: true })
+  const codexPath = '/Users/maximvovshin/.nvm/versions/node/v22.21.1/bin/codex'
 
   let call = null
   const runCommandImpl = async (input) => {
@@ -42,6 +43,7 @@ test('codex adapter runPrompt executes codex with writable workspace sandbox and
   const adapter = createCodexAdapter({
     logger: createLogger(),
     runCommandImpl,
+    resolveExecutablePathImpl: async () => codexPath,
     now: () => 1_000
   })
 
@@ -55,7 +57,7 @@ test('codex adapter runPrompt executes codex with writable workspace sandbox and
   assert.equal(result.status, ADAPTER_STATUS.OK)
   assert.equal(result.answer, 'codex final answer')
   assert.equal(result.meta.adapter, 'codex')
-  assert.equal(call.command, 'codex')
+  assert.equal(call.command, codexPath)
   assert.ok(call.args.includes('--sandbox'))
   assert.ok(call.args.includes('workspace-write'))
   assert.ok(call.args.includes('--skip-git-repo-check'))
@@ -70,6 +72,7 @@ test('codex adapter runPrompt executes codex with writable workspace sandbox and
 test('codex adapter checkAvailability maps ENOENT to unavailable', async () => {
   const adapter = createCodexAdapter({
     logger: createLogger(),
+    resolveExecutablePathImpl: async () => '/Users/maximvovshin/.nvm/versions/node/v22.21.1/bin/codex',
     runCommandImpl: async () => ({
       ok: false,
       code: null,
@@ -91,6 +94,7 @@ test('claude-code adapter runPrompt pipes wrapped prompt through stdin and retur
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-adapter-claude-'))
   const contextFolderPath = path.join(root, 'context')
   fs.mkdirSync(contextFolderPath, { recursive: true })
+  const claudePath = '/Users/maximvovshin/.claude/local/claude'
 
   let call = null
   const runCommandImpl = async (input) => {
@@ -110,6 +114,7 @@ test('claude-code adapter runPrompt pipes wrapped prompt through stdin and retur
   const adapter = createClaudeCodeAdapter({
     logger: createLogger(),
     runCommandImpl,
+    resolveExecutablePathImpl: async () => claudePath,
     now: () => 2_000
   })
 
@@ -123,7 +128,7 @@ test('claude-code adapter runPrompt pipes wrapped prompt through stdin and retur
   assert.equal(result.status, ADAPTER_STATUS.OK)
   assert.equal(result.answer, 'claude final answer')
   assert.equal(result.meta.adapter, 'claude-code')
-  assert.equal(call.command, 'claude')
+  assert.equal(call.command, claudePath)
   assert.equal(call.cwd, path.dirname(contextFolderPath))
   const addDirIndex = call.args.indexOf('--add-dir')
   assert.notEqual(addDirIndex, -1)
@@ -139,6 +144,7 @@ test('claude-code adapter maps timed out execution to timeout status', async () 
 
   const adapter = createClaudeCodeAdapter({
     logger: createLogger(),
+    resolveExecutablePathImpl: async () => '/Users/maximvovshin/.claude/local/claude',
     runCommandImpl: async () => ({
       ok: false,
       code: null,
@@ -164,6 +170,7 @@ test('cursor adapter runPrompt executes cursor-agent in print mode and returns p
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-adapter-cursor-'))
   const contextFolderPath = path.join(root, 'context')
   fs.mkdirSync(contextFolderPath, { recursive: true })
+  const cursorPath = '/Applications/Cursor.app/Contents/Resources/app/bin/cursor-agent'
 
   let call = null
   const runCommandImpl = async (input) => {
@@ -186,6 +193,7 @@ test('cursor adapter runPrompt executes cursor-agent in print mode and returns p
   const adapter = createCursorAdapter({
     logger: createLogger(),
     runCommandImpl,
+    resolveExecutablePathImpl: async () => cursorPath,
     now: () => 3_000
   })
 
@@ -199,7 +207,7 @@ test('cursor adapter runPrompt executes cursor-agent in print mode and returns p
   assert.equal(result.status, ADAPTER_STATUS.OK)
   assert.equal(result.answer, 'cursor final answer')
   assert.equal(result.meta.adapter, 'cursor')
-  assert.equal(call.command, 'cursor-agent')
+  assert.equal(call.command, cursorPath)
   assert.equal(call.cwd, path.dirname(contextFolderPath))
   assert.deepEqual(call.args.slice(0, 3), ['-p', '--output-format', 'json'])
   assert.match(call.args[call.args.length - 1], /Summarize my familiar context/)
@@ -213,6 +221,7 @@ test('cursor adapter returns error when cursor-agent output is malformed JSON', 
 
   const adapter = createCursorAdapter({
     logger: createLogger(),
+    resolveExecutablePathImpl: async () => '/Applications/Cursor.app/Contents/Resources/app/bin/cursor-agent',
     runCommandImpl: async () => ({
       ok: true,
       code: 0,
@@ -238,6 +247,7 @@ test('cursor adapter returns error when cursor-agent output is malformed JSON', 
 test('cursor adapter checkAvailability maps ENOENT to unavailable', async () => {
   const adapter = createCursorAdapter({
     logger: createLogger(),
+    resolveExecutablePathImpl: async () => '/Applications/Cursor.app/Contents/Resources/app/bin/cursor-agent',
     runCommandImpl: async () => ({
       ok: false,
       code: null,
@@ -253,6 +263,29 @@ test('cursor adapter checkAvailability maps ENOENT to unavailable', async () => 
   const availability = await adapter.checkAvailability()
   assert.equal(availability.ok, false)
   assert.equal(availability.status, ADAPTER_STATUS.UNAVAILABLE)
+})
+
+test('codex adapter returns unavailable when executable resolution fails', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-adapter-codex-missing-'))
+  const contextFolderPath = path.join(root, 'context')
+  fs.mkdirSync(contextFolderPath, { recursive: true })
+
+  const adapter = createCodexAdapter({
+    logger: createLogger(),
+    resolveExecutablePathImpl: async () => '',
+    runCommandImpl: async () => {
+      throw new Error('runCommandImpl should not be called when resolution fails')
+    }
+  })
+
+  const result = await adapter.runPrompt({
+    requestId: 'req-missing',
+    prompt: 'hello',
+    contextFolderPath
+  })
+
+  assert.equal(result.status, ADAPTER_STATUS.UNAVAILABLE)
+  assert.match(result.message, /unavailable/i)
 })
 
 test('harness runner resolves context from settings and dispatches to adapter runPrompt', async () => {

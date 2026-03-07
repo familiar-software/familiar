@@ -1,6 +1,6 @@
 const { spawn } = require('node:child_process')
 
-const { DEFAULT_TIMEOUT_MS } = require('./types')
+const { DEFAULT_TIMEOUT_MS } = require('../harness-adapters/types')
 
 const FORCE_KILL_GRACE_MS = 10 * 60 * 1000
 

@@ -1,8 +1,9 @@
-const { runCommand } = require('../process-executor')
+const { runCommand } = require('../../utils/process-executor')
 const { wrapPrompt } = require('../prompt-wrap')
 const { resolveWorkspaceDir } = require('../context')
 const { classifyCommandFailureStatus, normalizeAdapterResult } = require('../result-utils')
 const { ADAPTER_STATUS, AVAILABILITY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } = require('../types')
+const { resolveExecutablePath } = require('../../utils/resolve-executable-path')
 
 const ADAPTER_NAME = 'claude-code'
 const TOOL_NAME = 'claude'
@@ -17,11 +18,25 @@ const createMeta = ({ startedAt, durationMs, workspaceDir } = {}) => ({
 const createClaudeCodeAdapter = ({
   logger = console,
   runCommandImpl = runCommand,
+  resolveExecutablePathImpl = resolveExecutablePath,
   now = () => Date.now()
 } = {}) => {
   const checkAvailability = async () => {
+    const executablePath = await resolveExecutablePathImpl(TOOL_NAME, {
+      logger,
+      runCommandImpl
+    })
+    if (!executablePath) {
+      return {
+        ok: false,
+        adapter: ADAPTER_NAME,
+        status: ADAPTER_STATUS.UNAVAILABLE,
+        message: 'Claude Code is unavailable.'
+      }
+    }
+
     const commandResult = await runCommandImpl({
-      command: 'claude',
+      command: executablePath,
       args: ['--version'],
       timeoutMs: AVAILABILITY_TIMEOUT_MS,
       logger
@@ -77,8 +92,29 @@ const createClaudeCodeAdapter = ({
       timeoutMs
     })
 
+    const executablePath = await resolveExecutablePathImpl(TOOL_NAME, {
+      logger,
+      runCommandImpl
+    })
+    if (!executablePath) {
+      logger.warn('Harness adapter claude-code executable resolution failed', {
+        requestId,
+        tool: TOOL_NAME
+      })
+      return normalizeResult({
+        status: ADAPTER_STATUS.UNAVAILABLE,
+        answer: '',
+        message: 'Claude Code is unavailable.',
+        meta: createMeta({
+          startedAt,
+          durationMs: 0,
+          workspaceDir: resolvedWorkspaceDir
+        })
+      })
+    }
+
     const commandResult = await runCommandImpl({
-      command: 'claude',
+      command: executablePath,
       args: [
         '-p',
         '--output-format',

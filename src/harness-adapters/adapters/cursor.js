@@ -1,8 +1,9 @@
-const { runCommand } = require('../process-executor')
+const { runCommand } = require('../../utils/process-executor')
 const { wrapPrompt } = require('../prompt-wrap')
 const { resolveWorkspaceDir } = require('../context')
 const { classifyCommandFailureStatus, normalizeAdapterResult } = require('../result-utils')
 const { ADAPTER_STATUS, AVAILABILITY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } = require('../types')
+const { resolveExecutablePath } = require('../../utils/resolve-executable-path')
 
 const ADAPTER_NAME = 'cursor'
 const TOOL_NAME = 'cursor-agent'
@@ -64,11 +65,25 @@ const parseCursorAnswer = (stdout) => {
 const createCursorAdapter = ({
   logger = console,
   runCommandImpl = runCommand,
+  resolveExecutablePathImpl = resolveExecutablePath,
   now = () => Date.now()
 } = {}) => {
   const checkAvailability = async () => {
+    const executablePath = await resolveExecutablePathImpl(TOOL_NAME, {
+      logger,
+      runCommandImpl
+    })
+    if (!executablePath) {
+      return {
+        ok: false,
+        adapter: ADAPTER_NAME,
+        status: ADAPTER_STATUS.UNAVAILABLE,
+        message: 'Cursor is unavailable.'
+      }
+    }
+
     const commandResult = await runCommandImpl({
-      command: TOOL_NAME,
+      command: executablePath,
       args: ['--version'],
       timeoutMs: AVAILABILITY_TIMEOUT_MS,
       logger
@@ -124,9 +139,30 @@ const createCursorAdapter = ({
       timeoutMs
     })
 
+    const executablePath = await resolveExecutablePathImpl(TOOL_NAME, {
+      logger,
+      runCommandImpl
+    })
+    if (!executablePath) {
+      logger.warn('Harness adapter cursor executable resolution failed', {
+        requestId,
+        tool: TOOL_NAME
+      })
+      return normalizeResult({
+        status: ADAPTER_STATUS.UNAVAILABLE,
+        answer: '',
+        message: 'Cursor is unavailable.',
+        meta: createMeta({
+          startedAt,
+          durationMs: 0,
+          workspaceDir: resolvedWorkspaceDir
+        })
+      })
+    }
+
     try {
       const commandResult = await runCommandImpl({
-        command: TOOL_NAME,
+        command: executablePath,
         args: [
           '-p',
           '--output-format',
