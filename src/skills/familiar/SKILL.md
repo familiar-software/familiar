@@ -1,7 +1,7 @@
 ---
 name: familiar
 version: 1.0.2
-description: Locate, filter and analyze the user's past on-screen behavior when context is needed for brainstorming, documentation, planning, and productivity workflows.
+description: Use when the user references past on-screen activity, needs work summaries or status updates, wants to recall or reconstruct what happened, document, asks about decisions made, communication patterns, or time spent, or when brainstorming and planning would benefit from recent screen context.
 ---
 
 # Familiar Stills Markdown
@@ -45,13 +45,7 @@ window_title_raw: <raw title or unknown>
 window_title_norm: <normalized title or unknown>
 url: <url or unknown>
 ---
-# Layout Map
-SCREEN <width>x<height>
-GRID <cols>x<rows>
-[HEADER] (x1,y1)-(x2,y2) text: "..."
-[SIDEBAR] (x1,y1)-(x2,y2) text: "..."
-[CONTENT] (x1,y1)-(x2,y2) text: "..."
-[IMAGE] (x1,y1)-(x2,y2) desc: "..."
+
 
 # OCR
 - "Exact text line 1"
@@ -59,6 +53,8 @@ GRID <cols>x<rows>
 ```
 
 Treat literal `unknown` and `UNCLEAR` as missing data.
+
+Clipboard captures are stored alongside screen captures as `<captureTimestamp>.clipboard.txt` files in the same session folders. These contain text that was copied to the clipboard during that session.
 
 ## Working with a sequence of markdown files (important)
 
@@ -77,15 +73,15 @@ Treat literal `unknown` and `UNCLEAR` as missing data.
 - Window targeting: filter on `window_title_norm` or `window_title_raw`.
 - Web targeting: filter on `url`.
 - Text search: search in `# OCR` lines for exact phrases.
-- Layout semantics: match on `[HEADER]`, `[SIDEBAR]`, `[CONTENT]`, `[IMAGE]` blocks and their text or desc.
-- Display targeting: filter on `screen_resolution` or `grid`.
+- Clipboard search: search in `.clipboard.txt` files for copied text.
+- Display targeting: filter on `screen_resolution`.
 
 ## Retrieval Strategy
 
 1. Narrow to a time range first, target one or multiple sessions
 2. Select sessions by the timestamp.
 3. Read all of the relevant markdown files in the selected sessions, make sure you have them in the correct order
-4. Use `# OCR` for exact text matches and `Layout Map` for structure clues.
+4. Use `# OCR` for exact text matches and frontmatter for app/window context.
 5. try to avoid searching by keywords unless its really obvious that the user is asking you to find a very particular thing. if the request is a generic one (for example, "how did i do today? anything to improve?") then you need to read all of the relevant markdown files
 
 ## Guardrails
