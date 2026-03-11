@@ -28,6 +28,48 @@ const classifyCommandFailureStatus = ({ timedOut, error, stderr = '', stdout = '
   return ADAPTER_STATUS.ERROR
 }
 
+const trimMessage = (value) => (typeof value === 'string' ? value.trim() : '')
+
+const formatCommandFailureMessage = ({ toolName = 'Command', commandResult = {} } = {}) => {
+  const errorMessage = trimMessage(commandResult?.error?.message)
+  if (errorMessage) {
+    return errorMessage
+  }
+
+  const stderrMessage = trimMessage(commandResult?.stderr)
+  if (stderrMessage) {
+    return stderrMessage
+  }
+
+  const stdoutMessage = trimMessage(commandResult?.stdout)
+  if (stdoutMessage) {
+    return stdoutMessage
+  }
+
+  if (commandResult?.timedOut) {
+    const durationMs = Number(commandResult?.durationMs)
+    if (Number.isFinite(durationMs) && durationMs > 0) {
+      return `${toolName} timed out after ${durationMs}ms.`
+    }
+    return `${toolName} timed out.`
+  }
+
+  const details = []
+  if (Number.isInteger(commandResult?.code)) {
+    details.push(`exit code ${commandResult.code}`)
+  }
+  const signal = trimMessage(commandResult?.signal)
+  if (signal) {
+    details.push(`signal ${signal}`)
+  }
+
+  if (details.length > 0) {
+    return `${toolName} failed (${details.join(', ')}).`
+  }
+
+  return `${toolName} failed without an error message.`
+}
+
 const normalizeAdapterResult = ({ adapterName, rawResult } = {}) => {
   const raw = rawResult && typeof rawResult === 'object' ? rawResult : {}
   const status = VALID_STATUSES.has(raw.status) ? raw.status : ADAPTER_STATUS.ERROR
@@ -48,5 +90,6 @@ const normalizeAdapterResult = ({ adapterName, rawResult } = {}) => {
 
 module.exports = {
   classifyCommandFailureStatus,
+  formatCommandFailureMessage,
   normalizeAdapterResult
 }

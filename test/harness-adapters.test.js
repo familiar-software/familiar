@@ -63,7 +63,7 @@ test('codex adapter runPrompt executes codex with writable workspace sandbox and
   assert.ok(call.args.includes('--skip-git-repo-check'))
   const cdIndex = call.args.indexOf('--cd')
   assert.notEqual(cdIndex, -1)
-  assert.equal(call.args[cdIndex + 1], path.dirname(contextFolderPath))
+  assert.equal(call.args[cdIndex + 1], contextFolderPath)
   const wrappedPrompt = call.args[call.args.length - 1]
   assert.match(wrappedPrompt, /What happened today\?/)
   assert.match(wrappedPrompt, /context folder/i)
@@ -129,7 +129,7 @@ test('claude-code adapter runPrompt pipes wrapped prompt through stdin and retur
   assert.equal(result.answer, 'claude final answer')
   assert.equal(result.meta.adapter, 'claude-code')
   assert.equal(call.command, claudePath)
-  assert.equal(call.cwd, path.dirname(contextFolderPath))
+  assert.equal(call.cwd, contextFolderPath)
   const addDirIndex = call.args.indexOf('--add-dir')
   assert.notEqual(addDirIndex, -1)
   assert.equal(call.args[addDirIndex + 1], contextFolderPath)
@@ -164,6 +164,36 @@ test('claude-code adapter maps timed out execution to timeout status', async () 
   })
 
   assert.equal(result.status, ADAPTER_STATUS.TIMEOUT)
+})
+
+test('claude-code adapter reports concrete exit details when command fails without stderr', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-adapter-claude-exit-code-'))
+  const contextFolderPath = path.join(root, 'context')
+  fs.mkdirSync(contextFolderPath, { recursive: true })
+
+  const adapter = createClaudeCodeAdapter({
+    logger: createLogger(),
+    resolveExecutablePathImpl: async () => '/Users/maximvovshin/.claude/local/claude',
+    runCommandImpl: async () => ({
+      ok: false,
+      code: 23,
+      signal: null,
+      stdout: '',
+      stderr: '',
+      timedOut: false,
+      durationMs: 55,
+      error: null
+    })
+  })
+
+  const result = await adapter.runPrompt({
+    prompt: 'hello',
+    contextFolderPath,
+    timeoutMs: 10
+  })
+
+  assert.equal(result.status, ADAPTER_STATUS.ERROR)
+  assert.equal(result.message, 'Claude Code failed (exit code 23).')
 })
 
 test('cursor adapter runPrompt executes cursor-agent in print mode and returns parsed JSON answer', async () => {
@@ -208,7 +238,7 @@ test('cursor adapter runPrompt executes cursor-agent in print mode and returns p
   assert.equal(result.answer, 'cursor final answer')
   assert.equal(result.meta.adapter, 'cursor')
   assert.equal(call.command, cursorPath)
-  assert.equal(call.cwd, path.dirname(contextFolderPath))
+  assert.equal(call.cwd, contextFolderPath)
   assert.deepEqual(call.args.slice(0, 3), ['-p', '--output-format', 'json'])
   assert.match(call.args[call.args.length - 1], /Summarize my familiar context/)
   assert.match(call.args[call.args.length - 1], /context folder/i)

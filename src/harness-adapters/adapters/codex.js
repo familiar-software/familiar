@@ -5,7 +5,11 @@ const path = require('node:path')
 const { runCommand } = require('../../utils/process-executor')
 const { wrapPrompt } = require('../prompt-wrap')
 const { resolveWorkspaceDir } = require('../context')
-const { classifyCommandFailureStatus, normalizeAdapterResult } = require('../result-utils')
+const {
+  classifyCommandFailureStatus,
+  formatCommandFailureMessage,
+  normalizeAdapterResult
+} = require('../result-utils')
 const { ADAPTER_STATUS, AVAILABILITY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } = require('../types')
 const { resolveExecutablePath } = require('../../utils/resolve-executable-path')
 
@@ -57,7 +61,10 @@ const createCodexAdapter = ({
       ok: false,
       adapter: ADAPTER_NAME,
       status,
-      message: commandResult.error?.message || commandResult.stderr || 'Codex is unavailable.'
+      message: formatCommandFailureMessage({
+        toolName: 'Codex',
+        commandResult
+      })
     }
   }
 
@@ -152,7 +159,10 @@ const createCodexAdapter = ({
         return normalizeResult({
           status,
           answer: '',
-          message: commandResult.error?.message || commandResult.stderr || 'Codex command failed.',
+          message: formatCommandFailureMessage({
+            toolName: 'Codex',
+            commandResult
+          }),
           meta: createMeta({
             startedAt,
             durationMs: commandResult.durationMs,

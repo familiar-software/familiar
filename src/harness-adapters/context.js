@@ -44,7 +44,7 @@ const resolveWorkspaceDir = ({ contextFolderPath, workspaceDir } = {}) => {
   if (explicitWorkspaceDir) {
     return path.resolve(explicitWorkspaceDir)
   }
-  return path.dirname(path.resolve(contextFolderPath))
+  return path.resolve(contextFolderPath)
 }
 
 module.exports = {

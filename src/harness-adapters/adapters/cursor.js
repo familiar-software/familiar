@@ -1,7 +1,11 @@
 const { runCommand } = require('../../utils/process-executor')
 const { wrapPrompt } = require('../prompt-wrap')
 const { resolveWorkspaceDir } = require('../context')
-const { classifyCommandFailureStatus, normalizeAdapterResult } = require('../result-utils')
+const {
+  classifyCommandFailureStatus,
+  formatCommandFailureMessage,
+  normalizeAdapterResult
+} = require('../result-utils')
 const { ADAPTER_STATUS, AVAILABILITY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } = require('../types')
 const { resolveExecutablePath } = require('../../utils/resolve-executable-path')
 
@@ -98,7 +102,10 @@ const createCursorAdapter = ({
       ok: false,
       adapter: ADAPTER_NAME,
       status,
-      message: commandResult.error?.message || commandResult.stderr || 'Cursor is unavailable.'
+      message: formatCommandFailureMessage({
+        toolName: 'Cursor',
+        commandResult
+      })
     }
   }
 
@@ -186,7 +193,10 @@ const createCursorAdapter = ({
         return normalizeResult({
           status,
           answer: '',
-          message: commandResult.error?.message || commandResult.stderr || 'Cursor command failed.',
+          message: formatCommandFailureMessage({
+            toolName: 'Cursor',
+            commandResult
+          }),
           meta: createMeta({
             startedAt,
             durationMs: commandResult.durationMs,
