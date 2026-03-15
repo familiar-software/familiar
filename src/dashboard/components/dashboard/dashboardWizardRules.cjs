@@ -1,5 +1,12 @@
 const WIZARD_STEPS = [1, 2, 3, 4]
 
+const resolveInitialWizardStep = ({ settings = {} } = {}) => {
+  if (Boolean(settings.contextFolderPath)) {
+    return 2
+  }
+  return 1
+}
+
 const isWizardStepComplete = ({ step, settings = {}, isSkillInstalled = false, getHarnessesFromState }) => {
   switch (step) {
     case 1:
@@ -39,6 +46,7 @@ const isValidWizardStep = (step) => {
 
 module.exports = {
   WIZARD_STEPS,
+  resolveInitialWizardStep,
   isWizardStepComplete,
   nextWizardStep,
   previousWizardStep,

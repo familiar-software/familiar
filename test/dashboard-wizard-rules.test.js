@@ -2,11 +2,18 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 
 const {
+  resolveInitialWizardStep,
   isWizardStepComplete,
   nextWizardStep,
   previousWizardStep,
   isValidWizardStep
 } = require('../src/dashboard/components/dashboard/dashboardWizardRules.cjs')
+
+test('initial wizard step starts at permissions when context folder path is already set', () => {
+  assert.equal(resolveInitialWizardStep({ settings: { contextFolderPath: '/tmp/context' } }), 2)
+  assert.equal(resolveInitialWizardStep({ settings: { contextFolderPath: '' } }), 1)
+  assert.equal(resolveInitialWizardStep(), 1)
+})
 
 test('step 1 is complete only when context folder path is set', () => {
   assert.equal(

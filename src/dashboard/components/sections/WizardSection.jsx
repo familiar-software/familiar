@@ -62,6 +62,7 @@ export function WizardSection({
     .map(([harness, path]) => `${harness}: ${path}`)
     .join('\n')
   const displayedSkillStatus = skillStatusMessage || toDisplayText(wizardMessage)
+  const hasContextFolder = Boolean(wizardContextFolderPath)
 
   const wizardStepLabel = (step) => ({
     1: toDisplayText(html.wizardStepContext),
@@ -235,7 +236,7 @@ export function WizardSection({
       </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 scrollbar-slim">
-        <div className="max-w-[360px] mx-auto space-y-5" data-wizard-step="1" hidden={wizardStep !== 1}>
+        <div className="max-w-[520px] mx-auto space-y-5" data-wizard-step="1" hidden={wizardStep !== 1}>
           <div className="text-center space-y-1">
             <CardTitle>
               {toDisplayText(html.wizardChooseContextFolderTitle)}
@@ -251,51 +252,90 @@ export function WizardSection({
               {toDisplayText(html.wizardChooseContextFolderBestPractices)}
             </p>
           </div>
-          <section className="space-y-2">
-            <div className="flex items-center">
-              <Label htmlFor="wizard-context-folder-path" className="section-label">
-                {toDisplayText(html.wizardContextFolder)}
-              </Label>
-            </div>
-            <div className="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
-              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
-                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
-                </svg>
+          {hasContextFolder ? (
+            <section className="space-y-2">
+              <div className="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
+                  </svg>
+                </div>
+                <Input
+                  id="wizard-context-folder-path"
+                  data-setting="context-folder-path"
+                  type="text"
+                  aria-label={toDisplayText(html.wizardContextFolder)}
+                  placeholder={toDisplayText(html.wizardContextFolderPlaceholderNoFolderSelected)}
+                  readOnly
+                  value={wizardContextFolderPath || displayedContextFolderPath || mc.general?.unknown}
+                  className="flex-1 bg-transparent text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
+                />
+                <Button
+                  id="wizard-context-folder-choose"
+                  data-action="context-folder-choose"
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="px-2.5 py-1.5 text-[14px] font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    void pickContextFolder(false)
+                  }}
+                >
+                  {toDisplayText(html.wizardContextFolderChange)}
+                </Button>
               </div>
-              <Input
-                id="wizard-context-folder-path"
-                data-setting="context-folder-path"
-                type="text"
-                placeholder={toDisplayText(html.wizardContextFolderPlaceholderNoFolderSelected)}
-                readOnly
-                value={wizardContextFolderPath || displayedContextFolderPath || mc.general?.unknown}
-                className="flex-1 bg-transparent text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
-              />
+              <p
+                id="wizard-context-folder-error"
+                data-setting-error="context-folder-error"
+                className={`text-[14px] text-red-600 dark:text-red-400 ${toDisplayText(storageError) ? '' : 'hidden'}`}
+                role="alert"
+                aria-live="polite"
+              >
+                {toDisplayText(storageError)}
+              </p>
+            </section>
+          ) : (
+            <section className="space-y-2">
               <Button
                 id="wizard-context-folder-choose"
                 data-action="context-folder-choose"
                 type="button"
                 variant="outline"
-                size="sm"
-                className="px-2.5 py-1.5 text-[14px] font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group w-full min-h-20 h-auto rounded-[24px] border-zinc-200/90 dark:border-zinc-700 bg-zinc-50/90 dark:bg-zinc-900/90 px-5 py-4 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                 onClick={() => {
                   void pickContextFolder(false)
                 }}
               >
-                {toDisplayText(html.wizardContextFolderChange)}
+                <span className="grid w-full grid-cols-[48px_minmax(0,1fr)_48px] items-center gap-4">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border border-indigo-200 bg-indigo-50 text-indigo-600 transition-colors group-hover:border-indigo-300 group-hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 dark:group-hover:bg-indigo-900/70">
+                    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z" />
+                      <path d="M7 12.5h10" />
+                    </svg>
+                  </span>
+                  <span className="min-w-0 text-center">
+                    <span className="block whitespace-nowrap text-[16px] font-semibold leading-none tracking-tight text-zinc-900 dark:text-zinc-100">
+                      {toDisplayText(html.wizardContextFolderSetCta)}
+                    </span>
+                  </span>
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-400 transition-colors group-hover:border-indigo-200 group-hover:text-indigo-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500 dark:group-hover:border-indigo-700 dark:group-hover:text-indigo-300">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6" />
+                    </svg>
+                  </span>
+                </span>
               </Button>
-            </div>
-            <p
-              id="wizard-context-folder-error"
-              data-setting-error="context-folder-error"
-              className={`text-[14px] text-red-600 dark:text-red-400 ${toDisplayText(storageError) ? '' : 'hidden'}`}
-              role="alert"
-              aria-live="polite"
-            >
-              {toDisplayText(storageError)}
-            </p>
-          </section>
+              <p
+                id="wizard-context-folder-error"
+                data-setting-error="context-folder-error"
+                className={`text-[14px] text-red-600 dark:text-red-400 ${toDisplayText(storageError) ? '' : 'hidden'}`}
+                role="alert"
+                aria-live="polite"
+              >
+                {toDisplayText(storageError)}
+              </p>
+            </section>
+          )}
         </div>
 
         <div className="max-w-[360px] mx-auto space-y-5" data-wizard-step="2" hidden={wizardStep !== 2}>
@@ -605,7 +645,7 @@ export function WizardSection({
             disabled={wizardStep < 4 || !canAdvance}
             hidden={wizardStep < 4}
           >
-            {toDisplayText(mc.actions?.wizardDone)}
+            {toDisplayText(mc.dashboard?.actions?.wizardDone)}
           </Button>
         </div>
       </div>

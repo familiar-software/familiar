@@ -116,6 +116,7 @@ const microcopy = {
       wizardChooseContextFolderBestPractices:
         'Use the same folder with which you usually work with agents.',
       wizardContextFolder: 'Context Folder',
+      wizardContextFolderSetCta: 'Set your context folder',
       wizardContextFolderPlaceholderNoFolderSelected: 'No folder selected',
       wizardContextFolderChange: 'Change',
       wizardEnableCapturingTitle: 'Enable capturing',

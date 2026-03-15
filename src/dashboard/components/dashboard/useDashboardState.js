@@ -8,9 +8,11 @@ import {
 } from './dashboardUtils'
 import { useTimedMessage } from '../hooks/useTimedMessage'
 import dashboardShellNavigationRules from './dashboardShellNavigationRules.cjs'
+import dashboardWizardRules from './dashboardWizardRules.cjs'
 
 export const useDashboardState = ({ familiar, microcopy = {}, formatters = null }) => {
   const { resolveInitialActiveSection } = dashboardShellNavigationRules
+  const { resolveInitialWizardStep } = dashboardWizardRules
   const mc = buildDashboardShellMicrocopy(microcopy)
   const wizardHarnessNameMap = mc.dashboard.wizardSkill.harnessNames
   const wizardHarnessOptions = HARNESS_OPTIONS.map((entry) => ({
@@ -239,10 +241,11 @@ const [settings, setSettings] = useState(DEFAULT_SETTINGS)
       }
       setSettings(nextSettings)
       setIsWizardCompleted(nextSettings.wizardCompleted)
+      setWizardStep(resolveInitialWizardStep({ settings: nextSettings }))
       setActiveSection(resolveInitialActiveSection(nextSettings.wizardCompleted))
       return nextSettings
     },
-    [normalizeHarnesses, setActiveSection]
+    [normalizeHarnesses, resolveInitialWizardStep, setActiveSection]
   )
 
   const saveSettings = useCallback(async (payload) => {
