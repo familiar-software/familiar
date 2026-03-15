@@ -2,15 +2,13 @@
    <img src="./src/icon.png" width="96" alt="Familiar icon" />
 </p>
 
-<h1 align="center">Familiar: Invite AI to sit next to you.</h1>
+<h1 align="center">Familiar: Let AI update itself.</h1>
 
 <p align="center">
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue" alt="GPL-3.0 License" /></a>
 </p>
 
-Familiar turns everything on your screen and clipboard into context for your existing AI.
-
-Free, open source, and offline. Nothing leaves your machine.
+Familiar watches you work so your AI can create its own skills and update its knowledge. Free, open source, local, and offline.
 
 ## Website
 
