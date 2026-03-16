@@ -30,4 +30,3 @@ test('writeExtractionFile writes markdown with newline', async () => {
     assert.ok(saved.endsWith('\n'));
     assert.ok(saved.includes('Screenshot Extraction'));
 });
-

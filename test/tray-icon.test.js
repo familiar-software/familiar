@@ -36,7 +36,7 @@ test('uses the configured icon path when unread badge is disabled', () => {
   assert.equal(iconPath, defaultIconPath)
 })
 
-test('uses the black owl icon for unread badge in light mode', () => {
+test('uses the green owl icon for unread badge in light mode', () => {
   const iconPath = getTrayIconPathForMenuBar({
     defaultIconPath,
     hasUnreadHeartbeats: true,

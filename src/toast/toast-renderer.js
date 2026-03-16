@@ -31,7 +31,6 @@ const bodyEl = document.getElementById('body')
 const iconEl = document.getElementById('icon')
 const closeBtn = document.getElementById('close-btn')
 const actionsEl = document.getElementById('actions')
-const progressBarEl = document.getElementById('toast-progress-bar')
 
 ipcRenderer.on('toast-data', (_event, {
   title,
@@ -75,25 +74,6 @@ ipcRenderer.on('toast-data', (_event, {
     closeBtn.classList.add('hidden')
   }
 
-  // for now disabled the progress bar
-
-  // // dynamically set the progress bar for the toast
-  // if (progressBarEl) {
-  //   const durationMs = Number(duration)
-  //   if (Number.isFinite(durationMs) && durationMs > 0) {
-  //     progressBarEl.style.transition = 'none'
-  //     progressBarEl.style.width = '0%'
-  //     void progressBarEl.offsetWidth
-  //     progressBarEl.style.transition = `width ${durationMs}ms linear`
-  //     requestAnimationFrame(() => {
-  //       progressBarEl.style.width = '100%'
-  //     })
-  //   } else {
-  //     progressBarEl.style.transition = 'none'
-  //     progressBarEl.style.width = '0%'
-  //   }
-  // }
-
   // Render action buttons
   actionsEl.innerHTML = ''
   if (actions.length > 0) {
@@ -125,15 +105,6 @@ ipcRenderer.on('toast-data', (_event, {
     actionsEl.classList.add('hidden')
   }
 
-  // IMPORTANT: after DOM updates & layout, measure actual height and ask main to resize the window
-  // Two rAFs makes sure layout is fully computed after class changes + button insertion.
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const rect = toastEl.getBoundingClientRect()
-      const desiredHeight = Math.ceil(rect.height)
-      ipcRenderer.send('toast-resize', { height: desiredHeight })
-    })
-  })
 })
 
 closeBtn.addEventListener('click', () => {
