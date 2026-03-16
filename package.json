@@ -24,12 +24,11 @@
     "dev": "npm run rebuild:electron && tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
     "rebuild:node": "npm rebuild better-sqlite3",
     "rebuild:electron": "npm_config_runtime=electron npm_config_target=40.0.0 npm_config_disturl=https://electronjs.org/headers npm rebuild better-sqlite3 --build-from-source",
-    "test": "npm run rebuild:node && find test -name \"*.test.js\" -not -path \"*/e2e/*\" -not -path \"*/modelProviderTests/*\" -print0 | xargs -0 node --test",
+    "test": "npm run rebuild:node && find test -name \"*.test.js\" -not -path \"*/e2e/*\" -print0 | xargs -0 node --test",
     "test:unit:timed": "npm run rebuild:node && node scripts/run-unit-tests-with-timeout.js",
-    "test:modelProviderTests": "npm run rebuild:node && find test/modelProviderTests -name \"*.test.js\" -print0 | xargs -0 node --test",
     "test:e2e": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run react:build:dashboard && npm run rebuild:electron && playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:all": "npm run test && npm run test:modelProviderTests && npm run test:e2e && npm run test:unit:timed"
+    "test:all": "npm run test && npm run test:e2e && npm run test:unit:timed"
   },
   "repository": "https://github.com/familiar-software/familiar",
   "keywords": [

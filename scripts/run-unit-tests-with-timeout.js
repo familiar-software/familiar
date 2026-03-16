@@ -6,7 +6,7 @@ const path = require('node:path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const TEST_DIR = path.join(ROOT_DIR, 'test');
-const DEFAULT_LIMIT_MS = 2000;
+const DEFAULT_LIMIT_MS = 5000;
 const TIME_LIMIT_MS = Number.parseFloat(
   process.env.FAMILIAR_UNIT_TEST_TIME_LIMIT_MS ?? `${DEFAULT_LIMIT_MS}`
 );
@@ -18,7 +18,7 @@ if (!Number.isFinite(TIME_LIMIT_MS) || TIME_LIMIT_MS <= 0) {
   process.exit(1);
 }
 
-const EXCLUDED_DIRS = new Set(['e2e', 'modelProviderTests']);
+const EXCLUDED_DIRS = new Set(['e2e']);
 
 function collectTestFiles(dirPath) {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });

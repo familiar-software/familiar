@@ -28,12 +28,6 @@ Familiar watches you work so your AI can create its own skills and update its kn
 git clone https://github.com/familiar-software/familiar.git
 cd familiar
 npm install
-npm start
-```
-
-Create local macOS build artifacts:
-
-```bash
 npm run dist:mac
 ```
 
@@ -53,7 +47,6 @@ For development contributions:
 ```bash
 npm test
 npm run test:unit:timed
-npm run test:modelProviderTests
 npm run test:e2e
 ```
 
