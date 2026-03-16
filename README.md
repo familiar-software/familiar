@@ -28,7 +28,7 @@ Free, open source, and offline. Nothing leaves your machine.
 
 ```bash
 git clone https://github.com/familiar-software/familiar.git
-cd familiar/code/desktopapp
+cd familiar
 npm install
 npm start
 ```
@@ -39,7 +39,7 @@ Create local macOS build artifacts:
 npm run dist:mac
 ```
 
-`npm run dist:mac*` includes `npm run build:rg-bundle`, which prepares `code/desktopapp/scripts/bin/rg/*` and packages it into Electron resources at `resources/rg/`.
+`npm run dist:mac*` includes `npm run build:rg-bundle`, which prepares `scripts/bin/rg/*` and packages it into Electron resources at `resources/rg/`.
 
 `build-rg-bundle.sh` downloads official ripgrep binaries when missing (or copies from `FAMILIAR_RG_DARWIN_ARM64_SOURCE` / `FAMILIAR_RG_DARWIN_X64_SOURCE` if provided). The binaries are generated locally and are not committed.
 
