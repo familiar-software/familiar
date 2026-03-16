@@ -26,7 +26,7 @@ Familiar watches you work so your AI can create its own skills and update its kn
 
 ```bash
 git clone https://github.com/familiar-software/familiar.git
-cd familiar/code/desktopapp
+cd familiar
 npm install
 npm start
 ```
