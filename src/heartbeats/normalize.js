@@ -108,6 +108,7 @@ const normalizeHeartbeat = (raw, nowMs) => {
     topic,
     prompt: prompt.trim(),
     runner,
+    outputFolderPath: toSafeString(rawItem.outputFolderPath),
     schedule: {
       frequency,
       dayOfWeek: dayOfWeek || 1,
@@ -120,7 +121,8 @@ const normalizeHeartbeat = (raw, nowMs) => {
     lastAttemptedScheduledAt: toSafeNumber(rawItem.lastAttemptedScheduledAt, 0),
     lastRunAt: toSafeNumber(rawItem.lastRunAt, 0),
     lastRunStatus: toSafeString(rawItem.lastRunStatus, ''),
-    lastRunError: toSafeString(rawItem.lastRunError, '')
+    lastRunError: toSafeString(rawItem.lastRunError, ''),
+    outputPath: toSafeString(rawItem.outputPath, '')
   }
 }
 

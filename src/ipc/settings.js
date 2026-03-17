@@ -2,7 +2,12 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { loadSettings, saveSettings, validateContextFolderPath } = require('../settings');
+const {
+  loadSettings,
+  saveSettings,
+  validateContextFolderPath,
+  validateWritableDirectoryPath
+} = require('../settings');
 const { normalizeStringArray } = require('../utils/list');
 const {
   getScreenRecordingPermissionStatus,
@@ -148,6 +153,7 @@ function registerSettingsHandlers(options = {}) {
     ipcMain.handle('settings:get', handleGetSettings);
     ipcMain.handle('settings:save', handleSaveSettings);
     ipcMain.handle('settings:pickContextFolder', handlePickContextFolder);
+    ipcMain.handle('settings:pickHeartbeatOutputFolder', handlePickHeartbeatOutputFolder);
     ipcMain.handle('settings:moveContextFolder', handleMoveContextFolder);
     ipcMain.handle('settings:listInstalledApps', handleListInstalledApps);
     ipcMain.handle('settings:getInstalledAppIcon', handleGetInstalledAppIcon);
@@ -372,29 +378,37 @@ async function handleGetInstalledAppIcon(_event, payload) {
     }
 }
 
-async function handlePickContextFolder(event) {
-    if (process.env.FAMILIAR_E2E === '1' && process.env.FAMILIAR_E2E_CONTEXT_PATH) {
-        const testPath = process.env.FAMILIAR_E2E_CONTEXT_PATH;
-        const validation = validateContextFolderPath(testPath);
+async function pickDirectory(event, {
+    title,
+    e2ePathEnvVar,
+    e2eInvalidLogLabel,
+    e2eSelectedLogLabel,
+    openLogLabel,
+    cancelLogLabel,
+    selectedLogLabel
+} = {}) {
+    if (process.env.FAMILIAR_E2E === '1' && e2ePathEnvVar) {
+        const testPath = process.env[e2ePathEnvVar];
+        const validation = validateWritableDirectoryPath(testPath);
         if (!validation.ok) {
-            console.warn('E2E mode: invalid context folder path', {
+            console.warn(e2eInvalidLogLabel || 'E2E mode: invalid directory path', {
                 path: testPath,
                 message: validation.message,
             });
             return { canceled: true, error: validation.message };
         }
 
-        console.log('E2E mode: returning context folder path', { path: validation.path });
+        console.log(e2eSelectedLogLabel || 'E2E mode: returning directory path', { path: validation.path });
         return { canceled: false, path: validation.path };
     }
 
     const parentWindow = BrowserWindow.fromWebContents(event.sender);
     const openDialogOptions = {
-        title: 'Select Context Folder',
+        title: typeof title === 'string' && title.trim().length > 0 ? title : 'Select Folder',
         properties: ['openDirectory'],
     };
 
-    console.log('Opening context folder picker');
+    console.log(openLogLabel || 'Opening folder picker');
     if (parentWindow) {
         parentWindow.show();
         parentWindow.focus();
@@ -412,12 +426,36 @@ async function handlePickContextFolder(event) {
     }
 
     if (result.canceled || result.filePaths.length === 0) {
-        console.log('Context folder picker canceled');
+        console.log(cancelLogLabel || 'Folder picker canceled');
         return { canceled: true };
     }
 
-    console.log('Context folder selected', { path: result.filePaths[0] });
+    console.log(selectedLogLabel || 'Folder selected', { path: result.filePaths[0] });
     return { canceled: false, path: result.filePaths[0] };
+}
+
+async function handlePickContextFolder(event) {
+    return pickDirectory(event, {
+        title: 'Select Context Folder',
+        e2ePathEnvVar: 'FAMILIAR_E2E_CONTEXT_PATH',
+        e2eInvalidLogLabel: 'E2E mode: invalid context folder path',
+        e2eSelectedLogLabel: 'E2E mode: returning context folder path',
+        openLogLabel: 'Opening context folder picker',
+        cancelLogLabel: 'Context folder picker canceled',
+        selectedLogLabel: 'Context folder selected'
+    });
+}
+
+async function handlePickHeartbeatOutputFolder(event) {
+    return pickDirectory(event, {
+        title: 'Select Heartbeat Output Folder',
+        e2ePathEnvVar: 'FAMILIAR_E2E_HEARTBEAT_OUTPUT_PATH',
+        e2eInvalidLogLabel: 'E2E mode: invalid heartbeat output folder path',
+        e2eSelectedLogLabel: 'E2E mode: returning heartbeat output folder path',
+        openLogLabel: 'Opening heartbeat output folder picker',
+        cancelLogLabel: 'Heartbeat output folder picker canceled',
+        selectedLogLabel: 'Heartbeat output folder selected'
+    });
 }
 
 function handleCheckScreenRecordingPermission() {

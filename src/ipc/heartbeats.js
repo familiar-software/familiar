@@ -3,53 +3,82 @@ const path = require('node:path')
 const fs = require('node:fs')
 
 const { loadSettings } = require('../settings')
-const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, HEARTBEATS_DIR_NAME } = require('../const')
+const { validateWritableDirectoryPath } = require('../settings')
+const { resolveHeartbeatTopicFolderPath } = require('../heartbeats/output-folder-path')
 
-const resolveHeartbeatsFolderPath = () => {
+const findHeartbeatById = (heartbeatId) => {
   const settings = loadSettings() || {}
-  const contextFolderPath = typeof settings.contextFolderPath === 'string' ? settings.contextFolderPath.trim() : ''
-  if (!contextFolderPath) {
-    return { ok: false, message: 'Context folder is not set.' }
-  }
-  const heartbeatsFolderPath = path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, HEARTBEATS_DIR_NAME)
-  return { ok: true, path: heartbeatsFolderPath }
+  const items = settings?.heartbeats && Array.isArray(settings.heartbeats.items)
+    ? settings.heartbeats.items
+    : []
+  return items.find((entry) => entry?.id === heartbeatId) || null
 }
 
-const handleOpenHeartbeatsFolder = async () => {
+const resolveHeartbeatOutputFolderPath = ({ heartbeatId } = {}) => {
+  const settings = loadSettings() || {}
+  const target = findHeartbeatById(heartbeatId)
+  if (!target) {
+    return { ok: false, message: 'Heartbeat not found.' }
+  }
+
+  const topicFolder = resolveHeartbeatTopicFolderPath({
+    heartbeat: target,
+    contextFolderPath: settings?.contextFolderPath
+  })
+  if (!topicFolder.path) {
+    return { ok: false, message: 'Context folder is not set.' }
+  }
+
+  if (topicFolder.source === 'custom') {
+    const validation = validateWritableDirectoryPath(target.outputFolderPath, {
+      requiredMessage: 'Output folder is required.'
+    })
+    if (!validation.ok) {
+      return { ok: false, message: validation.message }
+    }
+  }
+
+  return {
+    ok: true,
+    path: topicFolder.path
+  }
+}
+
+const handleOpenHeartbeatOutputFolder = async (_event, payload = {}) => {
   try {
-    const folder = resolveHeartbeatsFolderPath()
+    const folder = resolveHeartbeatOutputFolderPath({ heartbeatId: payload?.heartbeatId })
     if (!folder.ok) {
       return folder
     }
     try {
       fs.mkdirSync(folder.path, { recursive: true })
     } catch (error) {
-      console.error('Failed to ensure heartbeats folder exists', {
+      console.error('Failed to ensure heartbeat output folder exists', {
         path: folder.path,
         message: error?.message || String(error)
       })
-      return { ok: false, message: 'Unable to create heartbeats folder.' }
+      return { ok: false, message: 'Unable to create heartbeat output folder.' }
     }
 
     const openResult = await shell.openPath(folder.path)
     if (openResult) {
-      console.error('Failed to open heartbeats folder', {
+      console.error('Failed to open heartbeat output folder', {
         path: folder.path,
         message: openResult
       })
-      return { ok: false, message: 'Failed to open heartbeats folder.' }
+      return { ok: false, message: 'Failed to open heartbeat output folder.' }
     }
 
-    console.log('Opened heartbeats folder', { path: folder.path })
+    console.log('Opened heartbeat output folder', { path: folder.path })
     return { ok: true }
   } catch (error) {
-    console.error('Failed to open heartbeats folder', error)
-    return { ok: false, message: 'Failed to open heartbeats folder.' }
+    console.error('Failed to open heartbeat output folder', error)
+    return { ok: false, message: 'Failed to open heartbeat output folder.' }
   }
 }
 
 function registerHeartbeatsHandlers({ runHeartbeatNow } = {}) {
-  ipcMain.handle('heartbeats:openFolder', handleOpenHeartbeatsFolder)
+  ipcMain.handle('heartbeats:openOutputFolder', handleOpenHeartbeatOutputFolder)
   ipcMain.handle('heartbeats:runNow', async (_event, payload = {}) => {
     if (typeof runHeartbeatNow !== 'function') {
       return { ok: false, message: 'Heartbeat scheduler is unavailable.' }

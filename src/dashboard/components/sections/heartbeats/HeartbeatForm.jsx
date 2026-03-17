@@ -1,5 +1,6 @@
 import React from 'react'
 
+import { Button } from '../../ui/button'
 import {
   Card,
   CardContent,
@@ -17,6 +18,8 @@ export function HeartbeatForm({
   mc,
   draft,
   setDraft,
+  pickOutputFolder,
+  displayedOutputFolderPath,
   formError,
   timezoneOptions,
   runnerLookup,
@@ -69,6 +72,32 @@ export function HeartbeatForm({
                   setDraft((previous) => ({ ...previous, prompt: event.target.value }))
                 }}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="heartbeat-output-folder"
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400"
+              >
+                {formCopy.outputFolderLabel}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="heartbeat-output-folder"
+                  readOnly
+                  value={displayedOutputFolderPath || ''}
+                  placeholder={formCopy.outputFolderPlaceholder}
+                />
+                <Button
+                  id="heartbeat-output-folder-pick"
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void pickOutputFolder?.()
+                  }}
+                >
+                  {draft.outputFolderPath ? formCopy.outputFolderChangeAction : formCopy.outputFolderPickAction}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

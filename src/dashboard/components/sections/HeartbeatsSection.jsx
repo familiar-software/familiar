@@ -15,9 +15,19 @@ import {
   nowMinutes
 } from './heartbeats/heartbeatsSectionUtils'
 
+const resolveDefaultOutputFolderPath = (contextFolderPath) => {
+  const safeContextFolderPath = typeof contextFolderPath === 'string' ? contextFolderPath.trim() : ''
+  if (!safeContextFolderPath) {
+    return ''
+  }
+
+  return `${safeContextFolderPath.replace(/\/+$/, '')}/familiar/heartbeats`
+}
+
 const createEmptyDraft = ({ runnerLookup, frequencyLookup, weekdayLookup }) => ({
   topic: '',
   prompt: '',
+  outputFolderPath: '',
   runner: runnerLookup[0]?.value || 'codex',
   frequency: frequencyLookup[0]?.value || 'daily',
   dayOfWeek: weekdayLookup[0]?.value || '1',
@@ -36,8 +46,9 @@ export function HeartbeatsSection({
   saveHeartbeat,
   deleteHeartbeat,
   setHeartbeatEnabled,
+  pickHeartbeatOutputFolder,
   runHeartbeatNow,
-  openHeartbeatsFolder,
+  openHeartbeatOutputFolder,
   runningHeartbeatIds
 }) {
   const heartbeatsCopy = mc?.dashboard?.heartbeats || {}
@@ -85,6 +96,7 @@ export function HeartbeatsSection({
     setDraft({
       topic: entry.topic || '',
       prompt: entry.prompt || '',
+      outputFolderPath: entry.outputFolderPath || '',
       runner: entry.runner || runnerLookup[0]?.value || 'codex',
       frequency: entry.schedule?.frequency || frequencyLookup[0]?.value || 'daily',
       dayOfWeek: String(entry.schedule?.dayOfWeek || weekdayLookup[0]?.value || '1'),
@@ -121,7 +133,6 @@ export function HeartbeatsSection({
       setFormError(heartbeatMessages.promptRequired)
       return
     }
-
     setIsFormSubmitting(true)
     setFormError('')
 
@@ -129,6 +140,7 @@ export function HeartbeatsSection({
       id: editingId,
       topic: draft.topic.trim(),
       prompt: draft.prompt.trim(),
+      outputFolderPath: draft.outputFolderPath.trim(),
       runner: draft.runner,
       frequency: draft.frequency,
       dayOfWeek: Number.parseInt(draft.dayOfWeek, 10),
@@ -168,35 +180,40 @@ export function HeartbeatsSection({
     void runHeartbeatNow?.(id)
   }
 
-  const onOpenFolder = () => {
-    if (!hasContextFolder) {
+  const onOpenOutputFolder = (id) => {
+    if (!id) {
       return
     }
-    void openHeartbeatsFolder?.()
+    void openHeartbeatOutputFolder?.(id)
+  }
+
+  const onPickOutputFolder = async () => {
+    const result = await pickHeartbeatOutputFolder?.()
+    if (!result || result.ok !== true) {
+      if (!result?.canceled && result?.message) {
+        setFormError(result.message)
+      }
+      return
+    }
+
+    setFormError('')
+    setDraft((previous) => ({
+      ...previous,
+      outputFolderPath: result.path
+    }))
   }
 
   return (
     <section id="section-heartbeats" className="space-y-5 max-w-[680px]">
       <div className="flex items-start justify-end gap-3">
-        <div className="flex gap-2">
-          <Button
-            id="heartbeats-open-folder"
-            onClick={onOpenFolder}
-            disabled={!hasContextFolder}
-            variant="outline"
-            size="sm"
-          >
-            {heartbeatsCopy.openFolder}
-          </Button>
-          <Button
-            id="heartbeats-add"
-            variant="default"
-            size="sm"
-            onClick={openNewForm}
-          >
-            + {heartbeatsCopy.add}
-          </Button>
-        </div>
+        <Button
+          id="heartbeats-add"
+          variant="default"
+          size="sm"
+          onClick={openNewForm}
+        >
+          + {heartbeatsCopy.add}
+        </Button>
       </div>
 
       <div className={`text-[14px] ${toDisplayText(heartbeatMessage) ? '' : 'hidden'}`}>
@@ -216,6 +233,7 @@ export function HeartbeatsSection({
         openDuplicateForm={openDuplicateForm}
         onDelete={onDelete}
         onRunNow={onRunNow}
+        onOpenOutputFolder={onOpenOutputFolder}
         toDisplayText={toDisplayText}
         weekdayLookup={weekdayLookup}
       />
@@ -229,6 +247,8 @@ export function HeartbeatsSection({
         save={save}
         onClose={closeForm}
         isSubmitting={isFormSubmitting}
+        pickOutputFolder={onPickOutputFolder}
+        displayedOutputFolderPath={draft.outputFolderPath || resolveDefaultOutputFolderPath(settings?.contextFolderPath)}
         formError={formError}
         timezoneOptions={timezoneOptions}
         runnerLookup={runnerLookup}

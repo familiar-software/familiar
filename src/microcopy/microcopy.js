@@ -271,7 +271,7 @@ const microcopy = {
       completeStepToContinue: 'Complete this step to continue.'
     },
     heartbeats: {
-      openFolder: 'Open Heartbeats Folder',
+      openOutputFolder: 'Open Output Folder',
       add: 'Add Heartbeat',
       deleteConfirm: 'Delete this heartbeat?',
       emptyState: 'No heartbeats yet. Set one up to turn raw context into periodic insights.',
@@ -301,6 +301,10 @@ const microcopy = {
         promptLabel: 'Prompt',
         promptPlaceholder:
           'Review the last 24 hours and summarize the most important work, blockers, and next actions.',
+        outputFolderLabel: 'Output folder',
+        outputFolderPlaceholder: 'Choose where this heartbeat should be saved',
+        outputFolderPickAction: 'Choose folder',
+        outputFolderChangeAction: 'Change folder',
         runSettingsTitle: 'Run settings',
         runSettingsDescription: 'Choose the runner, cadence, and timing for this heartbeat.',
         runnerLabel: 'Runner',
@@ -313,6 +317,7 @@ const microcopy = {
       },
       list: {
         unnamed: 'Unnamed heartbeat',
+        missingOutputFolder: 'Choose an output folder to enable this heartbeat.',
         didntRunYet: 'didnt run yet',
         failedAtTemplate: 'Failed at {{dateText}}',
         skippedAtTemplate: 'Skipped at {{dateText}}',
@@ -324,6 +329,7 @@ const microcopy = {
         failedToSave: 'Failed to save heartbeat.',
         noTopic: 'Topic is required and must match letters, numbers, underscore, or hyphen.',
         noPrompt: 'Prompt is required.',
+        outputFolderRequired: 'Choose an output folder for this heartbeat.',
         invalidTime: 'Time must be HH:mm.',
         invalidTimezone: 'Please select a valid timezone.',
         runnerNotConfigured: 'Only allowed for options picked in "Connect Agent".',

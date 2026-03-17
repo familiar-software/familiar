@@ -26,6 +26,7 @@ export function HeartbeatList({
   openDuplicateForm,
   onDelete,
   onRunNow,
+  onOpenOutputFolder,
   toDisplayText,
   weekdayLookup
 }) {
@@ -42,8 +43,11 @@ export function HeartbeatList({
   }
 
   return (
-    <div className="space-y-2">
+      <div className="space-y-2">
       {heartbeatItems.map((entry) => {
+        const canResolveOutputFolder = Boolean(
+          (typeof entry.outputFolderPath === 'string' && entry.outputFolderPath.trim().length > 0) || hasContextFolder
+        )
         const frequencyLabel = resolveFrequencyLabel(entry.schedule?.frequency)
         const dayLabel =
           entry.schedule?.frequency === 'weekly'
@@ -93,7 +97,10 @@ export function HeartbeatList({
                   )}
                 </p>
                 {entry.lastRunError ? (
-                  <p className="text-[14px] text-red-500 dark:text-red-400" title={entry.lastRunError}>
+                  <p
+                    className="text-[14px] text-red-500 dark:text-red-400"
+                    title={entry.lastRunError}
+                  >
                     {entry.lastRunError}
                   </p>
                 ) : null}
@@ -121,9 +128,19 @@ export function HeartbeatList({
                   onClick={() => {
                     onRunNow(entry.id)
                   }}
-                  disabled={!entry.id || !hasContextFolder || Boolean(runningHeartbeatIds?.[entry.id])}
+                  disabled={!entry.id || !hasContextFolder || !canResolveOutputFolder || Boolean(runningHeartbeatIds?.[entry.id])}
                 >
                   {heartbeatsCopy.runNow}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    onOpenOutputFolder(entry.id)
+                  }}
+                  disabled={!entry.id || !canResolveOutputFolder}
+                >
+                  {heartbeatsCopy.openOutputFolder}
                 </Button>
               </ButtonGroup>
               <div className="flex flex-wrap items-center gap-2">

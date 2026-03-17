@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('familiar', {
   listInstalledApps: () => ipcRenderer.invoke('settings:listInstalledApps'),
   getInstalledAppIcon: (payload) => ipcRenderer.invoke('settings:getInstalledAppIcon', payload || {}),
   pickContextFolder: () => ipcRenderer.invoke('settings:pickContextFolder'),
+  pickHeartbeatOutputFolder: () => ipcRenderer.invoke('settings:pickHeartbeatOutputFolder'),
   moveContextFolder: (payload) => ipcRenderer.invoke('settings:moveContextFolder', payload),
   saveSettings: (payload) => {
     const data = typeof payload === 'string' ? { contextFolderPath: payload } : payload
@@ -54,7 +55,7 @@ contextBridge.exposeInMainWorld('familiar', {
     return () => ipcRenderer.removeListener('settings:window-opened', listener)
   },
   openStillsFolder: () => ipcRenderer.invoke('stills:openFolder'),
-  openHeartbeatsFolder: () => ipcRenderer.invoke('heartbeats:openFolder'),
+  openHeartbeatOutputFolder: (payload) => ipcRenderer.invoke('heartbeats:openOutputFolder', payload || {}),
   runHeartbeatNow: (payload) => ipcRenderer.invoke('heartbeats:runNow', payload || {}),
   deleteFilesAt: ({ requestedAtMs, deleteWindow } = {}) =>
     ipcRenderer.invoke('storage:deleteFiles', { requestedAtMs, deleteWindow }),

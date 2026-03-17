@@ -28,6 +28,7 @@ test('normalizeHeartbeat drops invalid items and enforces required fields', () =
     id: 'hb-1',
     topic: 'Team Weekly',
     prompt: '  summarize the week ',
+    outputFolderPath: '/tmp/heartbeats-output',
     runner: 'codex',
     schedule: {
       frequency: 'daily',
@@ -40,6 +41,7 @@ test('normalizeHeartbeat drops invalid items and enforces required fields', () =
   assert.equal(result.topic, 'team-weekly')
   assert.equal(result.prompt, 'summarize the week')
   assert.equal(result.runner, 'codex')
+  assert.equal(result.outputFolderPath, '/tmp/heartbeats-output')
   assert.equal(result.schedule.frequency, 'daily')
   assert.equal(result.schedule.time, '07:30')
   assert.equal(result.schedule.timezone, 'UTC')

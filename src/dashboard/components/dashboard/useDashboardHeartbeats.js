@@ -129,6 +129,7 @@ export const useDashboardHeartbeats = (state) => {
     const topic = normalizeHeartbeatTopic(payload.topic)
     const prompt = toSafeString(payload.prompt)
     const runner = toSafeString(payload.runner)
+    const outputFolderPath = toSafeString(payload.outputFolderPath)
     const frequency = resolveHeartbeatField(payload, 'frequency')
     const time = resolveHeartbeatField(payload, 'time')
     const timezone = resolveHeartbeatField(payload, 'timezone', HEARTBEAT_DEFAULT_TIMEZONE)
@@ -206,6 +207,7 @@ export const useDashboardHeartbeats = (state) => {
       topic,
       prompt,
       runner,
+      outputFolderPath,
       schedule: {
         frequency,
         dayOfWeek: frequency === 'weekly' ? dayOfWeek : 1,
@@ -258,6 +260,33 @@ export const useDashboardHeartbeats = (state) => {
     return saveHeartbeat({ ...target, enabled }, { showStatus: false })
   }, [heartbeats, messages.notFound, saveHeartbeat, setHeartbeatError])
 
+  const pickHeartbeatOutputFolder = useCallback(async () => {
+    if (!familiar || typeof familiar.pickHeartbeatOutputFolder !== 'function') {
+      const message = settingsErrors.bridgeUnavailableRestart
+      setHeartbeatError(message)
+      return { ok: false, message }
+    }
+
+    try {
+      const result = await familiar.pickHeartbeatOutputFolder()
+      if (!result || result.canceled || !result.path) {
+        return {
+          ok: false,
+          canceled: true,
+          message: result?.error || ''
+        }
+      }
+
+      setHeartbeatError('')
+      return { ok: true, path: result.path }
+    } catch (error) {
+      console.error('Failed to pick heartbeat output folder', error)
+      const message = settingsErrors.failedToOpenFolderPicker
+      setHeartbeatError(message)
+      return { ok: false, message }
+    }
+  }, [familiar, setHeartbeatError, settingsErrors.bridgeUnavailableRestart, settingsErrors.failedToOpenFolderPicker])
+
   const runHeartbeatNow = useCallback(async (heartbeatId) => {
     if (!familiar || typeof familiar.runHeartbeatNow !== 'function') {
       const message = settingsErrors.bridgeUnavailableRestart
@@ -301,20 +330,21 @@ export const useDashboardHeartbeats = (state) => {
     return { ok: true, heartbeatId }
   }, [errors.failedToRunNow, errors.requiredContextFolder, familiar, heartbeats, saveHeartbeat, saveHeartbeat, setHeartbeatError, setHeartbeatMessage, settings?.contextFolderPath, setSettings])
 
-  const openHeartbeatsFolder = useCallback(async () => {
-    if (!familiar || typeof familiar.openHeartbeatsFolder !== 'function') {
+  const openHeartbeatOutputFolder = useCallback(async (heartbeatId) => {
+    if (!familiar || typeof familiar.openHeartbeatOutputFolder !== 'function') {
       const message = settingsErrors.bridgeUnavailableRestart
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
-    if (!settings?.contextFolderPath) {
-      const message = errors.requiredContextFolder
+    const target = toSafeItems(heartbeats).find((entry) => entry.id === heartbeatId)
+    if (!target) {
+      const message = messages.notFound
       setHeartbeatError(message)
       return { ok: false, message }
     }
 
-    const result = await familiar.openHeartbeatsFolder()
+    const result = await familiar.openHeartbeatOutputFolder({ heartbeatId })
     if (!result || result.ok !== true) {
       const message = result?.message || errors.failedToOpenFolder
       setHeartbeatError(message)
@@ -323,7 +353,7 @@ export const useDashboardHeartbeats = (state) => {
     setHeartbeatMessage('')
     setHeartbeatError('')
     return { ok: true }
-  }, [errors.failedToOpenFolder, errors.requiredContextFolder, familiar, setHeartbeatError, setHeartbeatMessage, settings?.contextFolderPath, setSettings])
+  }, [errors.failedToOpenFolder, familiar, heartbeats, messages.notFound, setHeartbeatError, setHeartbeatMessage])
 
   const clearHeartbeatFeedback = useCallback(() => {
     setHeartbeatMessage('')
@@ -335,8 +365,9 @@ export const useDashboardHeartbeats = (state) => {
     saveHeartbeat,
     deleteHeartbeat,
     setHeartbeatEnabled,
+    pickHeartbeatOutputFolder,
     runHeartbeatNow,
-    openHeartbeatsFolder,
+    openHeartbeatOutputFolder,
     clearHeartbeatFeedback,
     runningHeartbeatIds
   }

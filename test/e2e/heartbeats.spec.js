@@ -41,6 +41,7 @@ const expectStoredHeartbeat = async (settingsPath, expected) => {
       return {
         topic: storedHeartbeat.topic,
         prompt: storedHeartbeat.prompt,
+        outputFolderPath: storedHeartbeat.outputFolderPath,
         runner: storedHeartbeat.runner,
         frequency: storedHeartbeat.schedule?.frequency,
         time: storedHeartbeat.schedule?.time,
@@ -67,6 +68,13 @@ const saveHeartbeatForm = async (window) => {
   await saveButton.scrollIntoViewIfNeeded()
   await expect(saveButton).toBeVisible()
   await saveButton.click()
+}
+
+const chooseHeartbeatOutputFolder = async (window) => {
+  const pickButton = window.locator('#heartbeat-output-folder-pick')
+  await pickButton.scrollIntoViewIfNeeded()
+  await expect(pickButton).toBeVisible()
+  await pickButton.click()
 }
 
 const confirmHeartbeatDelete = async (window) => {
@@ -118,6 +126,7 @@ const confirmHeartbeatDelete = async (window) => {
 test('heartbeats editing flow updates settings for create, edit, disable, and delete', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-context-e2e-'))
+  const outputPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-output-e2e-'))
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-settings-e2e-'))
   const settingsPath = path.join(settingsDir, 'settings.json')
   const initialSettings = {
@@ -139,6 +148,7 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
       ...process.env,
       FAMILIAR_E2E: '1',
       FAMILIAR_E2E_CONTEXT_PATH: contextPath,
+      FAMILIAR_E2E_HEARTBEAT_OUTPUT_PATH: outputPath,
       FAMILIAR_SETTINGS_DIR: settingsDir
     }
   })
@@ -167,6 +177,8 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toBeVisible()
     await window.locator('#heartbeat-topic').fill(createdTopic)
     await window.locator('#heartbeat-prompt').fill(createdPrompt)
+    await chooseHeartbeatOutputFolder(window)
+    await expect(window.locator('#heartbeat-output-folder')).toHaveValue(outputPath)
     await window.locator('#heartbeat-time').fill(createdTime)
     await saveHeartbeatForm(window)
     await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toHaveCount(0)
@@ -175,6 +187,7 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     await expectStoredHeartbeat(settingsPath, {
       topic: storedCreatedTopic,
       prompt: createdPrompt,
+      outputFolderPath: outputPath,
       runner: 'codex',
       frequency: 'daily',
       time: createdTime,
@@ -193,6 +206,7 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toBeVisible()
     await window.locator('#heartbeat-topic').fill('blocked cursor heartbeat')
     await window.locator('#heartbeat-prompt').fill('This should be rejected because Cursor is not enabled.')
+    await chooseHeartbeatOutputFolder(window)
     await window.locator('#heartbeat-runner').selectOption('cursor')
     await saveHeartbeatForm(window)
     await expect(window.getByText(invalidRunnerError).first()).toBeVisible()
@@ -205,6 +219,7 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     await expect(window.getByRole('dialog', { name: 'Edit Heartbeat' })).toBeVisible()
     await window.locator('#heartbeat-topic').fill(editedTopic)
     await window.locator('#heartbeat-prompt').fill(editedPrompt)
+    await expect(window.locator('#heartbeat-output-folder')).toHaveValue(outputPath)
     await window.locator('#heartbeat-time').fill(editedTime)
     await saveHeartbeatForm(window)
     await expect(window.getByRole('dialog', { name: 'Edit Heartbeat' })).toHaveCount(0)
@@ -212,6 +227,7 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     await expectStoredHeartbeat(settingsPath, {
       topic: editedTopic,
       prompt: editedPrompt,
+      outputFolderPath: outputPath,
       runner: 'codex',
       frequency: 'daily',
       time: editedTime,
@@ -232,6 +248,7 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
     await expectStoredHeartbeat(settingsPath, {
       topic: editedTopic,
       prompt: editedPrompt,
+      outputFolderPath: outputPath,
       runner: 'codex',
       frequency: 'daily',
       time: editedTime,
@@ -252,6 +269,7 @@ test('heartbeats editing flow updates settings for create, edit, disable, and de
 test('cursor heartbeats keep the selected runner in storage and in the list badge', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-cursor-context-e2e-'))
+  const outputPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-cursor-output-e2e-'))
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-cursor-settings-e2e-'))
   const settingsPath = path.join(settingsDir, 'settings.json')
   const initialSettings = {
@@ -273,6 +291,7 @@ test('cursor heartbeats keep the selected runner in storage and in the list badg
       ...process.env,
       FAMILIAR_E2E: '1',
       FAMILIAR_E2E_CONTEXT_PATH: contextPath,
+      FAMILIAR_E2E_HEARTBEAT_OUTPUT_PATH: outputPath,
       FAMILIAR_SETTINGS_DIR: settingsDir
     }
   })
@@ -293,6 +312,7 @@ test('cursor heartbeats keep the selected runner in storage and in the list badg
     await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toBeVisible()
     await window.locator('#heartbeat-topic').fill(createdTopic)
     await window.locator('#heartbeat-prompt').fill(createdPrompt)
+    await chooseHeartbeatOutputFolder(window)
     await window.locator('#heartbeat-runner').selectOption('cursor')
     await window.locator('#heartbeat-time').fill(createdTime)
     await saveHeartbeatForm(window)
@@ -301,6 +321,7 @@ test('cursor heartbeats keep the selected runner in storage and in the list badg
     await expectStoredHeartbeat(settingsPath, {
       topic: 'cursor_heartbeat',
       prompt: createdPrompt,
+      outputFolderPath: outputPath,
       runner: 'cursor',
       frequency: 'daily',
       time: createdTime,
@@ -334,6 +355,7 @@ test('heartbeats tab refetches settings every time it is opened', async () => {
           topic: 'initial_topic',
           prompt: 'Initial prompt',
           runner: 'codex',
+          outputFolderPath: contextPath,
           enabled: true,
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -403,6 +425,7 @@ test('heartbeats tab refetches settings every time it is opened', async () => {
 test('heartbeat run appears in tray and tray click opens the output file in TextEdit', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-run-context-e2e-'))
+  const outputPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-run-output-e2e-'))
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-heartbeats-run-settings-e2e-'))
   const settingsPath = path.join(settingsDir, 'settings.json')
   const initialSettings = {
@@ -424,6 +447,7 @@ test('heartbeat run appears in tray and tray click opens the output file in Text
       ...process.env,
       FAMILIAR_E2E: '1',
       FAMILIAR_E2E_CONTEXT_PATH: contextPath,
+      FAMILIAR_E2E_HEARTBEAT_OUTPUT_PATH: outputPath,
       FAMILIAR_SETTINGS_DIR: settingsDir,
       FAMILIAR_E2E_HEARTBEAT_MOCK: '1',
       FAMILIAR_E2E_HEARTBEAT_MOCK_TEXT: '# Daily summary\n\nMock heartbeat output from E2E.'
@@ -446,6 +470,7 @@ test('heartbeat run appears in tray and tray click opens the output file in Text
     await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toBeVisible()
     await window.locator('#heartbeat-topic').fill(createdTopic)
     await window.locator('#heartbeat-prompt').fill(createdPrompt)
+    await chooseHeartbeatOutputFolder(window)
     await window.locator('#heartbeat-time').fill(createdTime)
     await saveHeartbeatForm(window)
     await expect(window.getByRole('dialog', { name: 'New Heartbeat' })).toHaveCount(0)
@@ -460,6 +485,7 @@ test('heartbeat run appears in tray and tray click opens the output file in Text
     expect(runResult?.ok).toBe(true)
     expect(runResult?.status).toBe('ok')
     expect(typeof runResult?.outputPath).toBe('string')
+    expect(runResult.outputPath.startsWith(path.join(outputPath, createdHeartbeat.topic))).toBe(true)
 
     await expect.poll(async () => {
       const trayIconState = await window.evaluate(() => window.familiar.getTrayIconStateForE2E())

@@ -13,6 +13,7 @@ const createHeartbeat = (overrides = {}) => ({
   id: 'hb-1',
   topic: 'daily-topic',
   prompt: 'Summarize',
+  outputFolderPath: os.tmpdir(),
   runner: 'codex',
   schedule: {
     frequency: 'daily',
@@ -84,6 +85,67 @@ test('runDueHeartbeats throws when context folder is unavailable', async () => {
     () => scheduler.runDueHeartbeats(),
     /Context folder path is required\./
   )
+})
+
+test('runHeartbeatNow fails clearly when heartbeat output folder is missing', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-scheduler-'))
+  const missingOutputFolderPath = path.join(root, 'deleted-output-root')
+  const settings = {
+    contextFolderPath: root,
+    heartbeats: {
+      items: [createHeartbeat({ id: 'hb-now', outputFolderPath: missingOutputFolderPath })]
+    }
+  }
+  const scheduler = createHeartbeatScheduler({
+    settingsLoader: () => settings,
+    settingsSaver: ({ heartbeats }) => {
+      settings.heartbeats = heartbeats
+    },
+    runner: {
+      runPrompt: async () => ({
+        status: ADAPTER_STATUS.OK,
+        answer: 'result line'
+      })
+    }
+  })
+
+  const result = await scheduler.runHeartbeatNow({ heartbeatId: 'hb-now' })
+
+  assert.equal(result.ok, false)
+  assert.equal(result.status, 'error')
+  assert.equal(result.message, 'Selected output folder does not exist.')
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
+test('runHeartbeatNow falls back to Familiar heartbeats folder when outputFolderPath is blank', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-scheduler-'))
+  const settings = {
+    contextFolderPath: root,
+    heartbeats: {
+      items: [createHeartbeat({ id: 'hb-now', outputFolderPath: '' })]
+    }
+  }
+  const scheduler = createHeartbeatScheduler({
+    settingsLoader: () => settings,
+    settingsSaver: ({ heartbeats }) => {
+      settings.heartbeats = heartbeats
+    },
+    runner: {
+      runPrompt: async () => ({
+        status: ADAPTER_STATUS.OK,
+        answer: 'result line'
+      })
+    }
+  })
+
+  const result = await scheduler.runHeartbeatNow({ heartbeatId: 'hb-now' })
+
+  assert.equal(result.ok, true)
+  assert.equal(
+    result.outputPath.includes(path.join(root, 'familiar', 'heartbeats', 'daily-topic')),
+    true
+  )
+  fs.rmSync(root, { recursive: true, force: true })
 })
 
 test('runDueHeartbeats skips heartbeat checks when capture is not active', async () => {

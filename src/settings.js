@@ -237,12 +237,16 @@ const saveSettings = (settings, options = {}) => {
     return settingsPath;
 };
 
-const validateContextFolderPath = (contextFolderPath) => {
-    if (typeof contextFolderPath !== 'string' || contextFolderPath.trim().length === 0) {
-        return { ok: false, message: 'Context Folder Path is required.' };
+const validateWritableDirectoryPath = (directoryPath, options = {}) => {
+    const requiredMessage = typeof options.requiredMessage === 'string' && options.requiredMessage.trim().length > 0
+        ? options.requiredMessage
+        : 'Directory path is required.';
+
+    if (typeof directoryPath !== 'string' || directoryPath.trim().length === 0) {
+        return { ok: false, message: requiredMessage };
     }
 
-    const resolvedPath = path.resolve(contextFolderPath);
+    const resolvedPath = path.resolve(directoryPath);
 
     try {
         if (!fs.existsSync(resolvedPath)) {
@@ -261,9 +265,15 @@ const validateContextFolderPath = (contextFolderPath) => {
     }
 };
 
+const validateContextFolderPath = (contextFolderPath) =>
+    validateWritableDirectoryPath(contextFolderPath, {
+        requiredMessage: 'Context Folder Path is required.'
+    });
+
 module.exports = {
     loadSettings,
     saveSettings,
+    validateWritableDirectoryPath,
     validateContextFolderPath,
     resolveSettingsDir,
     resolveSettingsPath,

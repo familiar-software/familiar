@@ -251,6 +251,35 @@ test('saveSettings persists alwaysRecordWhenActive', () => {
   assert.equal(loaded.alwaysRecordWhenActive, true)
 })
 
+test('saveSettings preserves heartbeat outputFolderPath values', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+  const outputFolderPath = path.join(tempRoot, 'heartbeat-output')
+  fs.mkdirSync(outputFolderPath)
+
+  saveSettings({
+    heartbeats: {
+      items: [
+        {
+          id: 'hb-1',
+          topic: 'daily_summary',
+          prompt: 'Summarize',
+          runner: 'codex',
+          outputFolderPath,
+          schedule: {
+            frequency: 'daily',
+            time: '09:00',
+            timezone: 'UTC'
+          }
+        }
+      ]
+    }
+  }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.heartbeats.items[0].outputFolderPath, outputFolderPath)
+})
+
 test('saveSettings persists normalized capturePrivacy.blacklistedApps', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

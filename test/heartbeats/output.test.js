@@ -10,10 +10,6 @@ const {
   writeHeartbeatOutput,
   persistHeartbeatOutput
 } = require('../../src/heartbeats/output')
-const {
-  FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
-  HEARTBEATS_DIR_NAME
-} = require('../../src/const')
 
 test('createTimestampForFilename creates deterministic timezone-aware filenames', () => {
   const timestampMs = Date.parse('2026-03-05T08:09:00Z')
@@ -36,9 +32,9 @@ test('createTimestampForFilename creates deterministic timezone-aware filenames'
 })
 
 test('resolveHeartbeatOutputPath builds correct topic folder and runner filename', () => {
-  const contextFolderPath = '/tmp/heartbeats'
+  const outputFolderPath = '/tmp/heartbeats'
   const result = resolveHeartbeatOutputPath({
-    contextFolderPath,
+    outputFolderPath,
     topic: 'daily-topic',
     timestampMs: Date.parse('2026-03-05T08:09:00Z'),
     runner: 'claude code',
@@ -56,7 +52,7 @@ test('resolveHeartbeatOutputPath builds correct topic folder and runner filename
 
   assert.equal(
     result.directory,
-    path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, HEARTBEATS_DIR_NAME, 'daily-topic')
+    path.join(outputFolderPath, 'daily-topic')
   )
   assert.equal(result.filename.includes('daily-topic.md'), true)
   assert.equal(result.filename.includes('claude-code'), true)
@@ -68,6 +64,7 @@ test('writeHeartbeatOutput creates directories and appends newline for non-empty
   const outputPath = path.join(root, 'nested', 'result.md')
 
   const filePath = await writeHeartbeatOutput({
+    outputFolderPath: root,
     outputPath,
     content: 'hello world'
   })
@@ -82,6 +79,7 @@ test('persistHeartbeatOutput writes heartbeat content and returns markdown path'
   const heartbeat = {
     id: 'hb-1',
     topic: 'daily-topic',
+    outputFolderPath: root,
     runner: 'codex',
     schedule: {
       timezone: 'UTC'
@@ -90,7 +88,6 @@ test('persistHeartbeatOutput writes heartbeat content and returns markdown path'
   const result = await persistHeartbeatOutput({
     heartbeat,
     scheduledAtMs: Date.UTC(2026, 2, 5, 8, 9, 0),
-    contextFolderPath: root,
     output: 'captured heartbeat output',
     fallbackFormatter: new Intl.DateTimeFormat('en-GB', {
       year: 'numeric',
@@ -112,12 +109,12 @@ test('persistHeartbeatOutput writes heartbeat content and returns markdown path'
 
 test('persistHeartbeatOutput handles write failures and returns error', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-output-'))
-  const blockedBase = path.join(root, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME)
-  fs.writeFileSync(blockedBase, 'file-blocking-folder')
+  const missingRoot = path.join(root, 'missing-output-root')
 
   const heartbeat = {
     id: 'hb-2',
     topic: 'failing-topic',
+    outputFolderPath: missingRoot,
     runner: 'codex',
     schedule: {
       timezone: 'UTC'
@@ -126,7 +123,6 @@ test('persistHeartbeatOutput handles write failures and returns error', async ()
   const result = await persistHeartbeatOutput({
     heartbeat,
     scheduledAtMs: Date.UTC(2026, 2, 5, 8, 9, 0),
-    contextFolderPath: root,
     output: 'should fail',
     fallbackFormatter: new Intl.DateTimeFormat('en-GB', {
       year: 'numeric',
@@ -143,7 +139,39 @@ test('persistHeartbeatOutput handles write failures and returns error', async ()
   assert.equal(result.status, 'error')
   assert.equal(
     result.outputPath,
-    path.join(root, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, HEARTBEATS_DIR_NAME, 'failing-topic')
+    path.join(missingRoot, 'failing-topic')
   )
-  assert.equal(result.error.length > 0, true)
+  assert.equal(result.error, 'Selected output folder does not exist.')
+})
+
+test('persistHeartbeatOutput falls back to Familiar heartbeats folder when outputFolderPath is missing', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'heartbeat-output-default-'))
+  const heartbeat = {
+    id: 'hb-3',
+    topic: 'default-topic',
+    outputFolderPath: '',
+    runner: 'codex',
+    schedule: {
+      timezone: 'UTC'
+    }
+  }
+
+  const result = await persistHeartbeatOutput({
+    heartbeat,
+    scheduledAtMs: Date.UTC(2026, 2, 5, 8, 9, 0),
+    contextFolderPath: root,
+    output: 'default heartbeat output',
+    fallbackFormatter: new Intl.DateTimeFormat('en-GB', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: 'UTC'
+    })
+  })
+
+  assert.equal(result.ok, true)
+  assert.equal(result.outputPath.includes(path.join(root, 'familiar', 'heartbeats', 'default-topic')), true)
 })

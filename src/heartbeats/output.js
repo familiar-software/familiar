@@ -1,9 +1,12 @@
 const path = require('node:path')
+const fs = require('node:fs')
 const outputFs = require('node:fs/promises')
-const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, HEARTBEATS_DIR_NAME } = require('../const')
 const {
   toSafeString
 } = require('./utils')
+const {
+  resolveHeartbeatOutputFolderRoot
+} = require('./output-folder-path')
 const {
   safeZonePartsTime
 } = require('./schedule')
@@ -56,6 +59,8 @@ const createTimestampForFilename = ({ timestampMs, timezone, fallbackFormatter }
 }
 
 const resolveHeartbeatOutputPath = ({
+  outputFolderPath,
+  heartbeat,
   contextFolderPath,
   topic,
   timestampMs,
@@ -63,16 +68,54 @@ const resolveHeartbeatOutputPath = ({
   timezone,
   fallbackFormatter
 }) => {
-  const baseFolder = path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, HEARTBEATS_DIR_NAME, topic)
+  const resolvedOutputFolder = toSafeString(outputFolderPath)
+    ? {
+        path: toSafeString(outputFolderPath),
+        source: 'custom'
+      }
+    : resolveHeartbeatOutputFolderRoot({ heartbeat, contextFolderPath })
+  const outputRootPath = resolvedOutputFolder.path
+  const baseFolder = path.join(outputRootPath, topic)
   const runnerPart = toSafeString(runner, 'unknown').replace(/\W+/g, '-').slice(0, 32)
   const fileTimestamp = createTimestampForFilename({ timestampMs, timezone, fallbackFormatter })
   return {
     directory: baseFolder,
-    filename: `${fileTimestamp}_${runnerPart}_${toSafeString(topic)}.md`
+    filename: `${fileTimestamp}_${runnerPart}_${toSafeString(topic)}.md`,
+    outputFolderPath: outputRootPath,
+    outputFolderSource: resolvedOutputFolder.source
   }
 }
 
-const writeHeartbeatOutput = async ({ outputPath, content }) => {
+const validateHeartbeatOutputRoot = async ({ outputFolderPath, outputFolderSource }) => {
+  const targetRoot = toSafeString(outputFolderPath)
+  if (!targetRoot) {
+    throw new Error('Choose an output folder for this heartbeat before running it.')
+  }
+
+  if (outputFolderSource !== 'custom') {
+    return targetRoot
+  }
+
+  let stats = null
+  try {
+    stats = await outputFs.stat(targetRoot)
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error('Selected output folder does not exist.')
+    }
+    throw error
+  }
+
+  if (!stats.isDirectory()) {
+    throw new Error('Selected output folder is not a directory.')
+  }
+
+  await outputFs.access(targetRoot, fs.constants.R_OK | fs.constants.W_OK)
+  return targetRoot
+}
+
+const writeHeartbeatOutput = async ({ outputFolderPath, outputFolderSource, outputPath, content }) => {
+  await validateHeartbeatOutputRoot({ outputFolderPath, outputFolderSource })
   const outputDirectory = path.dirname(outputPath)
   await outputFs.mkdir(outputDirectory, { recursive: true })
   const nextContent = content === '' ? '' : `${content}\n`
@@ -90,6 +133,7 @@ const persistHeartbeatOutput = async ({
   fallbackFormatter
 }) => {
   const target = resolveHeartbeatOutputPath({
+    heartbeat,
     contextFolderPath,
     topic: heartbeat.topic,
     timestampMs: scheduledAtMs,
@@ -100,7 +144,12 @@ const persistHeartbeatOutput = async ({
 
   try {
     const outputPath = path.join(target.directory, target.filename)
-    await writeHeartbeatOutput({ outputPath, content: output })
+    await writeHeartbeatOutput({
+      outputFolderPath: target.outputFolderPath,
+      outputFolderSource: target.outputFolderSource,
+      outputPath,
+      content: output
+    })
     logger.log('Heartbeat output written', {
       id: heartbeat.id,
       topic: heartbeat.topic,
