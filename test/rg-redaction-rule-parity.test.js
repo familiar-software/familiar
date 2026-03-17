@@ -160,6 +160,12 @@ const CASES = Object.freeze([
     expected: '[REDACTED:auth_bearer]'
   },
   {
+    ruleId: 'jwt_like_token',
+    positive: 'token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+    negative: 'token: eyJ-short.jwt',
+    expected: 'token: [REDACTED:jwt_like_token]'
+  },
+  {
     ruleId: 'generic_api_assignment',
     positive: 'api_key = "abcDEF1234567890XYZ_+-/="',
     negative: 'api_key = short',

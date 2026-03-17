@@ -191,6 +191,47 @@ test('scanAndRedactContent redacts all lines covered by a multiline rg match eve
   }
 })
 
+test('scanAndRedactContent redacts split bearer/JWT token lines from OCR output', async () => {
+  const { stubPath } = writeStubRgBinary({
+    scriptBody: [
+      'let input = "";',
+      'process.stdin.setEncoding("utf8");',
+      'process.stdin.on("data", (chunk) => { input += chunk; });',
+      'process.stdin.on("end", () => {',
+      '  const lines = input.split(/\\n/);',
+      '  for (let i = 0; i < lines.length; i += 1) {',
+      '    const line = lines[i];',
+      '    if (line.toLowerCase().includes("authorization") || line.includes("eyJ")) {',
+      '      process.stdout.write(JSON.stringify({ type: "match", data: { line_number: i + 1, submatches: [{ match: { text: "x" }, start: 0, end: 1 }] } }) + "\\n");',
+      '    }',
+      '  }',
+      '  process.exit(0);',
+      '});'
+    ].join('\n')
+  })
+
+  const prior = process.env.FAMILIAR_RG_BINARY
+  process.env.FAMILIAR_RG_BINARY = stubPath
+
+  try {
+    const content = [
+      '--header "Authorization: Bearer"',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
+    ].join('\n')
+
+    const result = await scanAndRedactContent({ content })
+
+    assert.match(result.content, /\[REDACTED:jwt_like_token\]/)
+    assert.doesNotMatch(result.content, /eyJhbGciOiJIUzI1Ni/)
+  } finally {
+    if (prior === undefined) {
+      delete process.env.FAMILIAR_RG_BINARY
+    } else {
+      process.env.FAMILIAR_RG_BINARY = prior
+    }
+  }
+})
+
 test('resolveRgBinaryPath uses env override when present', async () => {
   const { stubPath } = writeStubRgBinary({
     scriptBody: 'process.exit(0);'

@@ -88,6 +88,14 @@ const RULES = Object.freeze([
     action: 'redact'
   },
   {
+    id: 'jwt_like_token',
+    rgPattern: String.raw`\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b`,
+    jsPattern: String.raw`\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
     id: 'generic_api_assignment',
     rgPattern: String.raw`(?i)\b(?:api[_-]?key|access[_-]?token|auth[_-]?token|secret[_-]?key|client[_-]?secret|token)\b\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]{12,}["']?`,
     jsPattern: String.raw`\b(?:api[_-]?key|access[_-]?token|auth[_-]?token|secret[_-]?key|client[_-]?secret|token)\b\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]{12,}["']?`,
