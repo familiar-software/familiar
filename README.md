@@ -5,16 +5,24 @@
 <h1 align="center">Familiar: Let AI update itself.</h1>
 
 <p align="center">
-  <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue" alt="GPL-3.0 License" /></a>
+  <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
 </p>
 
-Familiar watches you work so your AI can create its own skills and update its knowledge. Free, open source, local, and offline.
+Familiar watches you work so your AI can create its own skills and update its knowledge. **Free, open source, local, and offline**.
 
-## Website
+## What happens to my data?
 
-**[looksfamiliar.org](https://looksfamiliar.org)**
+**You control your data**
+Familiar is designed to be local & offline.
+This means that all of the data is stored locally on your machine and only you can access it.
 
-## Where Familiar writes data
+## Doesn't it use a lot of resources?
+
+Familiar is efficient in the resources it uses.
+Running Familiar for more than two months will results in less than 1 GB of storage.
+Familiar has a "low power mode" for cases when you're unplugged.
+
+## Additional Details
 
 - Settings: `~/.familiar/settings.json`
 - Captured still images: `<contextFolderPath>/familiar/stills/`
@@ -34,20 +42,3 @@ npm run dist:mac
 `npm run dist:mac*` includes `npm run build:rg-bundle`, which prepares `scripts/bin/rg/*` and packages it into Electron resources at `resources/rg/`.
 
 `build-rg-bundle.sh` downloads official ripgrep binaries when missing (or copies from `FAMILIAR_RG_DARWIN_ARM64_SOURCE` / `FAMILIAR_RG_DARWIN_X64_SOURCE` if provided). The binaries are generated locally and are not committed.
-
-## Contributing
-
-### Microcopy source of truth
-
-- User-facing app microcopy is centralized in `src/microcopy/index.js`.
-- Update copy there instead of editing scattered strings across tray/dashboard modules.
-
-For development contributions:
-
-```bash
-npm test
-npm run test:unit:timed
-npm run test:e2e
-```
-
-Open a PR with a clear description, tests for behavior changes, and any relevant README/docs updates.
