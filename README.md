@@ -9,7 +9,7 @@
 </p>
 
 Familiar watches you work so your AI can create its own skills and update its knowledge.
-**Familir is free, open source, local, and offline**.
+**Free, open source, local, and offline**.
 
 ## What happens to my data?
 
