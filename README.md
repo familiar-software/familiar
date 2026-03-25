@@ -8,7 +8,8 @@
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
 </p>
 
-Familiar watches you work so your AI can create its own skills and update its knowledge. **Free, open source, local, and offline**.
+Familiar watches you work so your AI can create its own skills and update its knowledge.
+**Familir is free, open source, local, and offline**.
 
 ## What happens to my data?
 
