@@ -21,7 +21,7 @@ export function CardHeader({ className = '', ...props }) {
 export function CardTitle({ className = '', ...props }) {
   return (
     <h3
-      className={cn('text-[16px] font-semibold leading-none tracking-tight', className)}
+      className={cn('text-[16px] font-semibold leading-none tracking-tight text-zinc-900 dark:text-zinc-100', className)}
       {...props}
     />
   )

@@ -9,6 +9,7 @@ const {
 
 test('dashboard shell uses an explicit dark canvas behind all sections', () => {
   assert.equal(dashboardShellRootClassName.includes('dark:bg-[#111]'), true)
+  assert.equal(dashboardShellRootClassName.includes('dark:text-zinc-100'), true)
 })
 
 test('dashboard sidebar uses an opaque dark surface instead of a translucent slab', () => {

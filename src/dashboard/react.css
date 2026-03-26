@@ -453,6 +453,112 @@ body {
 }
 
 @media (prefers-color-scheme: dark) {
+  body {
+    background: #111111;
+    color: #f4f4f5;
+  }
+
+  .react-fallback {
+    color: #f4f4f5;
+  }
+
+  .react-fallback p,
+  .react-header p,
+  .react-small,
+  .react-skill-picker-note,
+  .react-install-guide-subtitle {
+    color: #a1a1aa;
+  }
+
+  .react-shell {
+    background: #111111;
+    color: #f4f4f5;
+  }
+
+  .react-sidebar {
+    border-right-color: #27272a;
+    background: #111111;
+  }
+
+  .react-brand {
+    border-bottom-color: #27272a;
+  }
+
+  .react-nav-item {
+    color: #a1a1aa;
+  }
+
+  .react-nav-item.is-active,
+  .react-nav-item:hover {
+    background: rgba(24, 24, 27, 0.9);
+    color: #f4f4f5;
+  }
+
+  .react-main {
+    background: linear-gradient(180deg, #111111, #18181b 320px);
+  }
+
+  .react-message.success {
+    background: rgba(6, 78, 59, 0.35);
+    color: #6ee7b7;
+  }
+
+  .react-message.error {
+    background: rgba(127, 29, 29, 0.35);
+    color: #fca5a5;
+  }
+
+  .react-card,
+  .react-install-guide-card {
+    border-color: #27272a;
+    background: #18181b;
+    color: #f4f4f5;
+  }
+
+  .react-card p,
+  .react-inline,
+  .react-inline-status,
+  .react-text-list,
+  .react-help-text,
+  .react-code,
+  .react-install-guide-steps {
+    color: #d4d4d8;
+  }
+
+  .react-help-text-error {
+    color: #f87171;
+  }
+
+  .react-btn-subtle {
+    background: #27272a;
+    border-color: #3f3f46;
+    color: #e4e4e7;
+  }
+
+  .react-input,
+  .react-select {
+    border-color: #3f3f46;
+    background: #18181b;
+    color: #f4f4f5;
+  }
+
+  .react-skill-picker-option-card {
+    border-color: #3f3f46;
+    color: #e4e4e7;
+  }
+
+  .react-skill-picker-option-card:hover {
+    background: rgba(39, 39, 42, 0.6);
+  }
+
+  .react-skill-picker-icon--light-chip {
+    background: #ffffff;
+  }
+
+  .react-progress-bar-wrap {
+    background: #27272a;
+  }
+
   #recording-always-record-when-active:checked + .wizard-capture-toggle-card .wizard-capture-toggle-icon {
     background-color: color-mix(in oklab, var(--color-indigo-900) 50%, transparent);
     color: var(--color-indigo-400);

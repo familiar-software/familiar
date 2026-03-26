@@ -65,7 +65,7 @@ export function DialogHeader({ className = '', ...props }) {
 }
 
 export function DialogTitle({ className = '', ...props }) {
-  return <h2 className={cn('text-[18px] font-semibold', className)} {...props} />
+  return <h2 className={cn('text-[18px] font-semibold text-zinc-950 dark:text-zinc-100', className)} {...props} />
 }
 
 export function DialogDescription({ className = '', ...props }) {

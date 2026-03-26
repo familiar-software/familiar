@@ -1,4 +1,5 @@
-const dashboardShellRootClassName = 'relative h-full min-h-screen w-full flex bg-white dark:bg-[#111]'
+const dashboardShellRootClassName =
+  'relative h-full min-h-screen w-full flex bg-white text-zinc-900 dark:bg-[#111] dark:text-zinc-100'
 
 const dashboardSidebarClassName = [
   'w-[190px] h-full flex-none flex flex-col border-r border-zinc-200 bg-zinc-50/90',
