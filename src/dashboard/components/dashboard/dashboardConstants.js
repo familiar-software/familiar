@@ -91,8 +91,7 @@ export const DEFAULT_MICROCOPY = {
         claude: 'Claude Code',
         codex: 'Codex',
         antigravity: 'Antigravity',
-        cursor: 'Cursor',
-        claudeCowork: 'Claude Cowork'
+        cursor: 'Cursor'
       },
       messages: {
         installerUnavailableRestart: 'Skill installer unavailable. Restart the app.',
@@ -103,16 +102,12 @@ export const DEFAULT_MICROCOPY = {
         pathUnavailable: '(path unavailable)',
         installPathsHeader: 'Install paths:',
         chooseHarnessFirst: 'Choose at least one harness first.',
-        claudeCoworkGuideUnavailableRestart: 'Claude Cowork guide unavailable. Restart the app.',
-        failedToOpenClaudeCoworkGuide: 'Failed to open Claude Cowork guide.',
         installing: 'Installing...',
-        openedClaudeCoworkGuide: 'Opened Claude Cowork guide.',
         failedToInstallSkill: 'Failed to connect agent.',
         installedAndFailedTemplate:
           'Installed for {{succeededHarnesses}}. Failed for {{failedHarnesses}}: {{message}}',
         installedAndAdditionalFailureTemplate:
-          'Installed for {{succeededHarnesses}}. {{message}}',
-        openedClaudeCoworkGuideCombinedTemplate: '{{status}} Opened Claude Cowork guide.'
+          'Installed for {{succeededHarnesses}}. {{message}}'
       }
     },
     wizard: {
@@ -156,9 +151,6 @@ export const STORAGE_DELETE_PRESETS = [
   { value: '7d', label: '7 days' },
   { value: 'all', label: 'all time' }
 ]
-
-export const CLOUD_COWORK_GUIDE_URL =
-  'https://github.com/familiar-software/familiar-claude-cowork-skill'
 
 export const DEFAULT_SETTINGS = {
   appVersion: '',

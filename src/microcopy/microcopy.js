@@ -119,29 +119,10 @@ const microcopy = {
       wizardInstallSkillTitle: 'Choose where you work',
       wizardInstallSkillDescription: "Familiar's skill will be installed in the tools you choose",
       wizardHarnessClaudeCode: 'Claude Code',
-      wizardHarnessClaudeCowork: 'Claude Cowork',
       wizardHarnessCodex: 'Codex',
       wizardHarnessAntigravity: 'Antigravity',
       wizardHarnessCursor: 'Cursor',
       wizardCursorRestartNote: 'Restart Cursor for the skill to take effect.',
-      wizardClaudeCoworkGuideTitle: 'Claude Cowork install guide',
-      wizardClaudeCoworkGuideSubtitle: 'Use marketplace installation in Cowork.',
-      wizardClaudeCoworkGuideStep1: 'Open Settings from the top left corner (or press: ⌘ + , ).',
-      wizardClaudeCoworkGuideStep2: 'Go to Capabilities.',
-      wizardClaudeCoworkGuideStep3: 'Toggle on Allow network egress.',
-      wizardClaudeCoworkGuideStep4: 'Go back to the Cowork landing page (chat view).',
-      wizardClaudeCoworkGuideStep5: 'Click plus sign (+) -> Plugins -> Add Plugin.',
-      wizardClaudeCoworkGuideStep6: 'Go to Personal tab.',
-      wizardClaudeCoworkGuideStep7: 'Click plus sign (+) -> Add marketplace from GitHub.',
-      wizardClaudeCoworkGuideStep8:
-        'Paste https://github.com/familiar-software/familiar-claude-cowork-skill.',
-      wizardClaudeCoworkGuideStep9: 'Click Sync.',
-      wizardClaudeCoworkGuideStep10: 'Open the added marketplace and install the Familiar skill.',
-      wizardClaudeCoworkGuideStep11:
-        'Go back to the Cowork landing page and choose a work folder that contains Familiar context.',
-      wizardClaudeCoworkGuideStep12: 'Start a new Cowork session and invoke /familiar ....',
-      wizardClaudeCoworkGuideCopyLink: 'Copy Link',
-      wizardClaudeCoworkGuideDone: 'Done',
       wizardAllSetTitle: "You're all set",
       wizardAllSetDescription:
         'Familiar is ready. It will capture what matters and make it available to your agents.',
@@ -302,8 +283,7 @@ const microcopy = {
         claude: 'Claude Code',
         codex: 'Codex',
         antigravity: 'Antigravity',
-        cursor: 'Cursor',
-        claudeCowork: 'Claude Cowork'
+        cursor: 'Cursor'
       },
       messages: {
         installerUnavailableRestart: 'Skill installer unavailable. Restart the app.',
@@ -314,20 +294,12 @@ const microcopy = {
         pathUnavailable: '(path unavailable)',
         installPathsHeader: 'Install paths:',
         chooseHarnessFirst: 'Choose at least one harness first.',
-        claudeCoworkGuideUnavailableRestart: 'Claude Cowork guide unavailable. Restart the app.',
-        failedToOpenClaudeCoworkGuide: 'Failed to open Claude Cowork guide.',
         installing: 'Installing...',
-        openedClaudeCoworkGuide: 'Opened Claude Cowork guide.',
         failedToInstallSkill: 'Failed to connect agent.',
         installedAndFailedTemplate:
           'Installed for {{succeededHarnesses}}. Failed for {{failedHarnesses}}: {{message}}',
-        installedAndAdditionalFailureTemplate: 'Installed for {{succeededHarnesses}}. {{message}}',
-        openedClaudeCoworkGuideCombinedTemplate: '{{status}} Opened Claude Cowork guide.'
+        installedAndAdditionalFailureTemplate: 'Installed for {{succeededHarnesses}}. {{message}}'
       }
-    },
-    claudeCoworkGuide: {
-      marketplaceLinkCopied: 'Marketplace link copied.',
-      failedToCopyLink: 'Failed to copy link.'
     },
     storageUsage: {
       errors: {

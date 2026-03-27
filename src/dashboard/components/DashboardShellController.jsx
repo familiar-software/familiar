@@ -153,11 +153,6 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
           handleHarnessChange: skills.handleHarnessChange,
           skillMessage: core.skillMessage,
           skillError: core.skillError,
-          wizardClaudeCoworkGuideVisible: core.claudeCoworkGuideVisible,
-          copyClaudeCoworkGuideLink: skills.copyClaudeCoworkGuideLink,
-          claudeCoworkGuideMessage: core.claudeCoworkGuideMessage,
-          claudeCoworkGuideError: core.claudeCoworkGuideError,
-          hideClaudeCoworkGuide: skills.hideClaudeCoworkGuide,
           wizardMessage: core.wizardMessage,
           recordingStatus: core.recordingStatus
         }}
@@ -199,12 +194,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
           skillInstallPaths: core.skillInstallPaths,
           isSkillInstalled: core.isSkillInstalled,
           skillMessage: core.skillMessage,
-          skillError: core.skillError,
-          wizardClaudeCoworkGuideVisible: core.claudeCoworkGuideVisible,
-          copyClaudeCoworkGuideLink: skills.copyClaudeCoworkGuideLink,
-          claudeCoworkGuideMessage: core.claudeCoworkGuideMessage,
-          claudeCoworkGuideError: core.claudeCoworkGuideError,
-          hideClaudeCoworkGuide: skills.hideClaudeCoworkGuide
+          skillError: core.skillError
         }}
         storageSectionProps={{
           mc: core.mc,

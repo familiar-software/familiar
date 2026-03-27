@@ -6,7 +6,6 @@ import { CardTitle } from '../ui/card'
 import { Label } from '../ui/label'
 import { Select } from '../ui/select'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion'
-import { CLOUD_COWORK_GUIDE_URL } from '../dashboard/dashboardConstants'
 
 export function WizardSection({
   mc,
@@ -32,11 +31,6 @@ export function WizardSection({
   handleHarnessChange,
   skillMessage,
   skillError,
-  wizardClaudeCoworkGuideVisible,
-  copyClaudeCoworkGuideLink,
-  claudeCoworkGuideMessage,
-  claudeCoworkGuideError,
-  hideClaudeCoworkGuide,
   isSkillInstalled,
   wizardMessage,
   recordingStatus
@@ -54,7 +48,6 @@ export function WizardSection({
       ? mc.dashboard.stills.permissionsGranted
       : mc.dashboard.settingsActions.checkPermissions
   const skillStatusMessage = toDisplayText(skillMessage)
-    || (wizardClaudeCoworkGuideVisible ? toDisplayText(claudeCoworkGuideMessage) : '')
   const canAdvance = isWizardStepComplete(wizardStep)
   const selectedSet = new Set(selectedHarnesses)
   const pathInstallText = Object.entries(skillInstallPaths || {})
@@ -70,21 +63,6 @@ export function WizardSection({
     3: toDisplayText(html.wizardStepInstallSkill),
     4: toDisplayText(html.wizardStepComplete)
   }[step] || '')
-
-  const wizardClaudeCoworkGuideSteps = [
-    toDisplayText(html.wizardClaudeCoworkGuideStep1),
-    toDisplayText(html.wizardClaudeCoworkGuideStep2),
-    toDisplayText(html.wizardClaudeCoworkGuideStep3),
-    toDisplayText(html.wizardClaudeCoworkGuideStep4),
-    toDisplayText(html.wizardClaudeCoworkGuideStep5),
-    toDisplayText(html.wizardClaudeCoworkGuideStep6),
-    toDisplayText(html.wizardClaudeCoworkGuideStep7),
-    toDisplayText(html.wizardClaudeCoworkGuideStep8),
-    toDisplayText(html.wizardClaudeCoworkGuideStep9),
-    toDisplayText(html.wizardClaudeCoworkGuideStep10),
-    toDisplayText(html.wizardClaudeCoworkGuideStep11),
-    toDisplayText(html.wizardClaudeCoworkGuideStep12)
-  ]
 
   const wizardFaq = [
     {
@@ -443,7 +421,7 @@ export function WizardSection({
                       <span className="skill-picker-icon" aria-hidden="true">
                         <img
                           src={
-                            entry.value === 'claude' || entry.value === 'cloud-cowork'
+                            entry.value === 'claude'
                               ? './assets/skill-icons/claude-code.svg'
                               : entry.value === 'codex'
                                 ? './assets/skill-icons/codex.svg'
@@ -457,9 +435,7 @@ export function WizardSection({
                       <span className="skill-picker-label">
                         {entry.value === 'claude'
                           ? toDisplayText(html.wizardHarnessClaudeCode)
-                          : entry.value === 'cloud-cowork'
-                            ? toDisplayText(html.wizardHarnessClaudeCowork)
-                            : entry.value === 'codex'
+                          : entry.value === 'codex'
                               ? toDisplayText(html.wizardHarnessCodex)
                               : entry.value === 'antigravity'
                                 ? toDisplayText(html.wizardHarnessAntigravity)
@@ -505,76 +481,6 @@ export function WizardSection({
             >
               {toDisplayText(skillError)}
             </p>
-
-            <div
-              id="wizard-cloud-cowork-guide"
-              data-cloud-cowork-guide
-              className={`react-install-guide-overlay ${wizardClaudeCoworkGuideVisible ? '' : 'react-hidden'}`}
-              role="dialog"
-              aria-modal="true"
-              hidden={!wizardClaudeCoworkGuideVisible}
-              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-            >
-              <div className="w-full max-w-[520px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3 shadow-lg">
-                <div className="space-y-1">
-                  <CardTitle>
-                    {toDisplayText(html.wizardClaudeCoworkGuideTitle)}
-                  </CardTitle>
-                  <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
-                    {toDisplayText(html.wizardClaudeCoworkGuideSubtitle)}
-                  </p>
-                </div>
-                <ol className="text-[14px] text-zinc-600 dark:text-zinc-300 space-y-1 list-decimal pl-4">
-                  {wizardClaudeCoworkGuideSteps.map((entry) => (
-                    <li key={entry}>{entry}</li>
-                  ))}
-                </ol>
-                <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
-                  {CLOUD_COWORK_GUIDE_URL}
-                </p>
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <Button
-                    id="wizard-cloud-cowork-copy-link"
-                    data-action="cloud-cowork-copy-link"
-                    type="button"
-                    variant="outline"
-                    className="px-3 py-1.5 text-[14px] font-semibold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-                    onClick={() => {
-                      void copyClaudeCoworkGuideLink()
-                    }}
-                  >
-                    {toDisplayText(html.wizardClaudeCoworkGuideCopyLink)}
-                  </Button>
-                  <Button
-                    id="wizard-cloud-cowork-done"
-                    data-action="cloud-cowork-guide-done"
-                    type="button"
-                    variant="outline"
-                    className="px-3 py-1.5 text-[14px] font-semibold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 hover:border-indigo-700 rounded-md text-white transition-colors cursor-pointer"
-                    onClick={hideClaudeCoworkGuide}
-                  >
-                    {toDisplayText(html.wizardClaudeCoworkGuideDone)}
-                  </Button>
-                </div>
-                <p
-                  id="wizard-cloud-cowork-guide-status"
-                  data-cloud-cowork-guide-status
-                  className={`text-[14px] text-emerald-600 dark:text-emerald-400 ${toDisplayText(claudeCoworkGuideMessage) ? '' : 'hidden'}`}
-                  aria-live="polite"
-                >
-                  {toDisplayText(claudeCoworkGuideMessage)}
-                </p>
-                <p
-                  id="wizard-cloud-cowork-guide-error"
-                  data-cloud-cowork-guide-error
-                  className={`text-[14px] text-red-600 dark:text-red-400 ${toDisplayText(claudeCoworkGuideError) ? '' : 'hidden'}`}
-                  role="alert"
-                  aria-live="polite"
-                >
-                  {toDisplayText(claudeCoworkGuideError)}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 

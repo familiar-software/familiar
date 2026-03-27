@@ -1,14 +1,10 @@
 import React from 'react'
 
-import { CardTitle } from '../ui/card'
-import { Button } from '../ui/button'
 import { Checkbox } from '../ui/checkbox'
 import { Label } from '../ui/label'
-import { CLOUD_COWORK_GUIDE_URL } from '../dashboard/dashboardConstants'
 
 const skillIcons = {
   claude: './assets/skill-icons/claude-code.svg',
-  'cloud-cowork': './assets/skill-icons/claude-code.svg',
   codex: './assets/skill-icons/codex.svg',
   antigravity: './assets/skill-icons/antigravity.svg',
   cursor: './assets/skill-icons/cursor.svg'
@@ -31,22 +27,12 @@ export function InstallSkillSection({
   isSkillInstalled,
   toDisplayText,
   skillMessage,
-  skillError,
-  wizardClaudeCoworkGuideVisible,
-  copyClaudeCoworkGuideLink,
-  claudeCoworkGuideMessage,
-  claudeCoworkGuideError,
-  hideClaudeCoworkGuide
+  skillError
 }) {
   const htmlCopy = mc?.dashboard?.html || {}
-  const claudeCoworkGuideSteps = Array.from({ length: 12 }, (_unused, index) =>
-    toDisplayText(htmlCopy[`wizardClaudeCoworkGuideStep${index + 1}`])
-  ).filter(Boolean)
   const selectedSet = new Set(selectedHarnesses)
   const isCursorSelected = selectedSet.has('cursor')
-  const statusText =
-    toDisplayText(skillMessage)
-    || (wizardClaudeCoworkGuideVisible ? toDisplayText(claudeCoworkGuideMessage) : '')
+  const statusText = toDisplayText(skillMessage)
   const pathText = isSkillInstalled ? '' : getFormattedInstallPaths(skillInstallPaths)
 
   return (
@@ -93,57 +79,6 @@ export function InstallSkillSection({
           {toDisplayText(skillError)}
         </p>
       ) : null}
-
-      <div
-        id="settings-cloud-cowork-guide"
-        className={`react-install-guide-overlay ${wizardClaudeCoworkGuideVisible ? '' : 'react-hidden'}`}
-        role="dialog"
-        aria-modal="true"
-        data-cloud-cowork-guide
-      >
-        <div className="react-install-guide-card">
-          <div className="react-install-guide-title-wrap">
-            <CardTitle>{toDisplayText(htmlCopy.wizardClaudeCoworkGuideTitle)}</CardTitle>
-            <p className="react-install-guide-subtitle">{toDisplayText(htmlCopy.wizardClaudeCoworkGuideSubtitle)}</p>
-          </div>
-          <ol className="react-install-guide-steps">
-            {claudeCoworkGuideSteps.map((entry) => (
-              <li key={entry}>{entry}</li>
-            ))}
-          </ol>
-          <p className="react-inline-status">{CLOUD_COWORK_GUIDE_URL}</p>
-          <div className="react-section-actions">
-            <Button
-              id="settings-cloud-cowork-copy-link"
-              className="react-btn"
-              variant="outline"
-              type="button"
-              onClick={() => {
-                void copyClaudeCoworkGuideLink()
-              }}
-            >
-              {toDisplayText(htmlCopy.wizardClaudeCoworkGuideCopyLink)}
-            </Button>
-            <Button
-              id="settings-cloud-cowork-done"
-              className="react-btn react-btn-subtle"
-              variant="outline"
-              type="button"
-              onClick={hideClaudeCoworkGuide}
-            >
-              {toDisplayText(htmlCopy.wizardClaudeCoworkGuideDone)}
-            </Button>
-          </div>
-          {toDisplayText(claudeCoworkGuideMessage) ? (
-            <p className="react-help-text">{toDisplayText(claudeCoworkGuideMessage)}</p>
-          ) : null}
-          {toDisplayText(claudeCoworkGuideError) ? (
-            <p className="react-help-text react-help-text-error">
-              {toDisplayText(claudeCoworkGuideError)}
-            </p>
-          ) : null}
-        </div>
-      </div>
     </section>
   )
 }

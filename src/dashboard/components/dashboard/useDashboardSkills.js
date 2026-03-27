@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { CLOUD_COWORK_GUIDE_URL } from './dashboardConstants'
 
 const trimString = (value) => (typeof value === 'string' ? value.trim() : '')
 
@@ -13,11 +12,7 @@ export const useDashboardSkills = (state) => {
     setSkillInstallPaths,
     setSkillMessage,
     setSkillError,
-    setClaudeCoworkGuideVisible,
-    setClaudeCoworkGuideMessage,
-    setClaudeCoworkGuideError,
     getInstallableHarnesses,
-    getManualHarnesses,
     setManualHarnessSelection,
     getHarnessLabel,
     normalizeHarnesses,
@@ -108,7 +103,9 @@ export const useDashboardSkills = (state) => {
           )
         } else {
           setSkillMessage(
-            displayFormatters.wizardSkillInstalledFor(installableHarnesses.map((entry) => getHarnessLabel(entry)).join(', '))
+            displayFormatters.wizardSkillInstalledFor(
+              installableHarnesses.map((entry) => getHarnessLabel(entry)).join(', ')
+            )
           )
         }
       } else {
@@ -133,13 +130,14 @@ export const useDashboardSkills = (state) => {
       return { ok: false }
     }
   }, [
+    displayFormatters,
     familiar,
-    getInstallableHarnesses,
     getHarnessLabel,
+    getInstallableHarnesses,
     mc.dashboard.wizardSkill.messages.failedToCheckSkillInstallation,
-    mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
-    mc.dashboard.wizardSkill.messages.installed,
     mc.dashboard.wizardSkill.messages.installPathsHeader,
+    mc.dashboard.wizardSkill.messages.installed,
+    mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
     mc.dashboard.wizardSkill.messages.pathUnavailable,
     normalizeHarnesses,
     persistSkillInstaller,
@@ -150,77 +148,23 @@ export const useDashboardSkills = (state) => {
     setSkillMessage
   ])
 
-  const openClaudeCoworkGuide = useCallback(() => {
-    setClaudeCoworkGuideError('')
-    setClaudeCoworkGuideMessage('')
-    setClaudeCoworkGuideVisible(true)
-    setClaudeCoworkGuideMessage(mc.dashboard.wizardSkill.messages.openedClaudeCoworkGuide)
-    setSkillMessage(mc.dashboard.wizardSkill.messages.openedClaudeCoworkGuide)
-    return true
-  }, [
-    mc.dashboard.wizardSkill.messages.openedClaudeCoworkGuide,
-    setClaudeCoworkGuideError,
-    setClaudeCoworkGuideMessage,
-    setClaudeCoworkGuideVisible,
-    setSkillMessage
-  ])
-
-  const copyClaudeCoworkGuideLink = useCallback(async () => {
-    if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(CLOUD_COWORK_GUIDE_URL)
-      setClaudeCoworkGuideMessage('Copied.')
-    } catch (_error) {
-      setClaudeCoworkGuideError('Failed to copy link.')
-    }
-  }, [setClaudeCoworkGuideError, setClaudeCoworkGuideMessage])
-
-  const hideClaudeCoworkGuide = useCallback(() => {
-    setClaudeCoworkGuideVisible(false)
-  }, [setClaudeCoworkGuideVisible])
-
-    const installSelectedHarnesses = useCallback(async (nextSelectedHarnesses = selectedHarnesses) => {
+  const installSelectedHarnesses = useCallback(async (nextSelectedHarnesses = selectedHarnesses) => {
     const selected = normalizeHarnesses(nextSelectedHarnesses)
     const installableHarnesses = getInstallableHarnesses(selected)
-    const manualHarnesses = getManualHarnesses(selected)
 
     if (selected.length === 0) {
       setSkillError(mc.dashboard.wizardSkill.messages.chooseHarnessFirst)
       return
     }
-    if (installableHarnesses.length > 0 && typeof familiar?.installSkill !== 'function') {
+    if (typeof familiar?.installSkill !== 'function') {
       setSkillError(mc.dashboard.wizardSkill.messages.installerUnavailableRestart)
-      return
-    }
-    if (manualHarnesses.length > 0 && typeof window === 'undefined') {
-      setSkillError(mc.dashboard.wizardSkill.messages.claudeCoworkGuideUnavailableRestart)
       return
     }
 
     setSkillError('')
     setSkillMessage('')
-
-    let openedGuide = false
-    let guideError = ''
-    if (manualHarnesses.length > 0) {
-      const guideResult = await openClaudeCoworkGuide()
-      openedGuide = Boolean(guideResult)
-      if (!guideResult) {
-        guideError = mc.dashboard.wizardSkill.messages.failedToOpenClaudeCoworkGuide
-      }
-    }
-    if (installableHarnesses.length === 0) {
-      if (openedGuide) {
-        setIsSkillInstalled(true)
-        setSkillMessage(mc.dashboard.wizardSkill.messages.openedClaudeCoworkGuide)
-      }
-      await persistSkillInstaller([], {})
-      return
-    }
-
     setSkillMessage(mc.dashboard.wizardSkill.messages.installing)
+
     try {
       const results = await Promise.all(
         installableHarnesses.map(async (harness) => ({
@@ -237,30 +181,26 @@ export const useDashboardSkills = (state) => {
           installPaths[harness] = result.path
         }
       })
+      setSkillInstallPaths(installPaths)
 
-      if (failed.length === 0 && (manualHarnesses.length === 0 || openedGuide)) {
+      if (failed.length === 0) {
         setIsSkillInstalled(true)
-        if (installableHarnesses.length === 0 && manualHarnesses.length > 0) {
-          setSkillMessage(mc.dashboard.wizardSkill.messages.openedClaudeCoworkGuide)
-          return
-        }
 
-        let nextStatus = ''
         if (installableHarnesses.length === 1) {
           const nextPath = installPaths[installableHarnesses[0]]
-          nextStatus = nextPath
-            ? displayFormatters.wizardSkillInstalledAt(nextPath)
-            : mc.dashboard.wizardSkill.messages.installed
+          setSkillMessage(
+            nextPath
+              ? displayFormatters.wizardSkillInstalledAt(nextPath)
+              : mc.dashboard.wizardSkill.messages.installed
+          )
         } else {
-          nextStatus = displayFormatters.wizardSkillInstalledFor(
-            installableHarnesses.map((harness) => getHarnessLabel(harness)).join(', ')
+          setSkillMessage(
+            displayFormatters.wizardSkillInstalledFor(
+              installableHarnesses.map((harness) => getHarnessLabel(harness)).join(', ')
+            )
           )
         }
-        setSkillMessage(
-          manualHarnesses.length > 0
-            ? displayFormatters.wizardSkillOpenedClaudeCoworkGuideCombined(nextStatus).trim()
-            : nextStatus
-        )
+
         await persistSkillInstaller(installableHarnesses, installPaths)
         return
       }
@@ -281,44 +221,29 @@ export const useDashboardSkills = (state) => {
         )
         return
       }
-      if (succeededHarnesses.length > 0 && manualHarnesses.length > 0 && !openedGuide) {
-        setSkillError(
-          displayFormatters.wizardSkillInstalledAndAdditionalFailure({
-            succeededHarnesses: succeededHarnesses.join(', '),
-            message: guideError || failedMessage
-          })
-        )
-        return
-      }
-      setSkillError(guideError || failedMessage)
-      return
-    } catch (_error) {
-      console.error('Failed to install skill')
+
+      setSkillError(failedMessage)
+    } catch (error) {
+      console.error('Failed to install skill', error)
       setSkillError(mc.dashboard.wizardSkill.messages.failedToInstallSkill)
-      return
     }
   }, [
+    displayFormatters,
     familiar,
     getHarnessLabel,
-    getManualHarnesses,
     getInstallableHarnesses,
     mc.dashboard.wizardSkill.messages.chooseHarnessFirst,
-    mc.dashboard.wizardSkill.messages.claudeCoworkGuideUnavailableRestart,
     mc.dashboard.wizardSkill.messages.failedToInstallSkill,
-    mc.dashboard.wizardSkill.messages.failedToOpenClaudeCoworkGuide,
-    mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
+    mc.dashboard.wizardSkill.messages.installing,
     mc.dashboard.wizardSkill.messages.installed,
-    mc.dashboard.wizardSkill.messages.openedClaudeCoworkGuide,
-    mc.dashboard.wizardSkill.messages.openedClaudeCoworkGuideCombinedTemplate,
-    selectedHarnesses,
-    displayFormatters,
+    mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
     normalizeHarnesses,
-    openClaudeCoworkGuide,
     persistSkillInstaller,
+    selectedHarnesses,
     setIsSkillInstalled,
     setSkillError,
-    setSkillMessage,
-    selectedHarnesses
+    setSkillInstallPaths,
+    setSkillMessage
   ])
 
   const handleHarnessChange = useCallback(async (event) => {
@@ -334,27 +259,16 @@ export const useDashboardSkills = (state) => {
       nextHarnesses.delete(nextValue)
     }
     const nextArray = Array.from(nextHarnesses)
+
     setManualHarnessSelection(true)
     setSelectedHarnesses(nextArray)
     setSkillError('')
+    setSkillInstallPaths({})
     setSkillMessage('')
     setIsSkillInstalled(false)
 
     if (nextArray.length === 0) {
-      await persistSkillInstaller([])
-      return
-    }
-
-    const manualHarnesses = getManualHarnesses(nextArray)
-    const installableHarnesses = getInstallableHarnesses(nextArray)
-    if (manualHarnesses.length > 0 && installableHarnesses.length === 0) {
-      const guideResult = await openClaudeCoworkGuide()
-      setIsSkillInstalled(Boolean(guideResult))
-      if (guideResult) {
-        await persistSkillInstaller([], {})
-      } else {
-        setSkillError(mc.dashboard.wizardSkill.messages.failedToOpenClaudeCoworkGuide)
-      }
+      await persistSkillInstaller([], {})
       return
     }
 
@@ -364,25 +278,19 @@ export const useDashboardSkills = (state) => {
     }
   }, [
     checkSkillInstallStatus,
-    getInstallableHarnesses,
-    getManualHarnesses,
-    setManualHarnessSelection,
     installSelectedHarnesses,
-    selectedHarnesses,
-    openClaudeCoworkGuide,
     persistSkillInstaller,
+    selectedHarnesses,
     setIsSkillInstalled,
+    setManualHarnessSelection,
     setSelectedHarnesses,
     setSkillError,
-    setSkillMessage,
-    mc.dashboard.wizardSkill.messages.failedToOpenClaudeCoworkGuide
+    setSkillInstallPaths,
+    setSkillMessage
   ])
 
   return {
     checkSkillInstallStatus,
-    openClaudeCoworkGuide,
-    copyClaudeCoworkGuideLink,
-    hideClaudeCoworkGuide,
     installSelectedHarnesses,
     handleHarnessChange
   }

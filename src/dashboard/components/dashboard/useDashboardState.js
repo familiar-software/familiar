@@ -58,9 +58,6 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
   const [storageError, setStorageError] = useTimedMessage('')
   const [skillMessage, setSkillMessage] = useTimedMessage('')
   const [skillError, setSkillError] = useTimedMessage('')
-  const [claudeCoworkGuideVisible, setClaudeCoworkGuideVisible] = useState(false)
-  const [claudeCoworkGuideMessage, setClaudeCoworkGuideMessage] = useTimedMessage('')
-  const [claudeCoworkGuideError, setClaudeCoworkGuideError] = useTimedMessage('')
   const [updateMessage, setUpdateMessage] = useTimedMessage('')
   const [updateError, setUpdateError] = useTimedMessage('')
   const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false)
@@ -156,10 +153,6 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
       formatTemplate(mc.dashboard.wizardSkill.messages.installedAndAdditionalFailureTemplate, {
         succeededHarnesses,
         message
-      }),
-    wizardSkillOpenedClaudeCoworkGuideCombined: (status) =>
-      formatTemplate(mc.dashboard.wizardSkill.messages.openedClaudeCoworkGuideCombinedTemplate, {
-        status
       })
   }
   const displayFormatters = formatters || localFormatters
@@ -175,14 +168,8 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
   )
 
   const normalizeHarnesses = useCallback((value) => normalizeHarnessArray(value), [])
-  const getManualHarnesses = useCallback(
-    (value) =>
-      normalizeHarnesses(value).filter((entry) => entry === 'cloud-cowork'),
-    [normalizeHarnesses]
-  )
   const getInstallableHarnesses = useCallback(
-    (value) =>
-      normalizeHarnesses(value).filter((entry) => entry !== 'cloud-cowork'),
+    (value) => normalizeHarnesses(value),
     [normalizeHarnesses]
   )
   const getHarnessLabel = useCallback(
@@ -295,12 +282,6 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
     setSkillMessage,
     skillError,
     setSkillError,
-    claudeCoworkGuideVisible,
-    setClaudeCoworkGuideVisible,
-    claudeCoworkGuideMessage,
-    setClaudeCoworkGuideMessage,
-    claudeCoworkGuideError,
-    setClaudeCoworkGuideError,
     updateMessage,
     setUpdateMessage,
     updateError,
@@ -338,7 +319,6 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
     localFormatters,
     displayFormatters,
     normalizeHarnesses,
-    getManualHarnesses,
     getInstallableHarnesses,
     getHarnessLabel,
     getRecorderPath,
