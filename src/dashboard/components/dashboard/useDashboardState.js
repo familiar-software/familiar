@@ -30,7 +30,7 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
     disabledLabel: 'Capture disabled'
   }
 
-const [settings, setSettings] = useState(DEFAULT_SETTINGS)
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [recordingStatus, setRecordingStatus] = useState({
     state: 'disabled',
     manualPaused: false,
@@ -72,9 +72,6 @@ const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [storageDeleteMessage, setStorageDeleteMessage] = useTimedMessage('')
   const [storageDeleteError, setStorageDeleteError] = useTimedMessage('')
-  const [heartbeatMessage, setHeartbeatMessage] = useTimedMessage('')
-  const [heartbeatError, setHeartbeatError] = useTimedMessage('')
-  const [runningHeartbeatIds, setRunningHeartbeatIds] = useState({})
   const [contextFolderMoveInProgress, setContextFolderMoveInProgress] = useState(false)
   const [updatesState, setUpdatesState] = useState({ percent: 0, visible: false, label: '' })
   const [statusBusy, setStatusBusy] = useState(false)
@@ -234,10 +231,7 @@ const [settings, setSettings] = useState(DEFAULT_SETTINGS)
         },
         storageAutoCleanupRetentionDays:
           resolveAutoCleanupRetentionDays(next.storageAutoCleanupRetentionDays),
-        wizardCompleted: next.wizardCompleted === true,
-        heartbeats: {
-          items: Array.isArray(next?.heartbeats?.items) ? next.heartbeats.items : DEFAULT_SETTINGS.heartbeats.items
-        }
+        wizardCompleted: next.wizardCompleted === true
       }
       setSettings(nextSettings)
       setIsWizardCompleted(nextSettings.wizardCompleted)
@@ -327,12 +321,6 @@ const [settings, setSettings] = useState(DEFAULT_SETTINGS)
     setStorageDeleteMessage,
     storageDeleteError,
     setStorageDeleteError,
-    heartbeatMessage,
-    setHeartbeatMessage,
-    heartbeatError,
-    setHeartbeatError,
-    runningHeartbeatIds,
-    setRunningHeartbeatIds,
     contextFolderMoveInProgress,
     setContextFolderMoveInProgress,
     updatesState,

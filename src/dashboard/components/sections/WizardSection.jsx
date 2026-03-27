@@ -88,32 +88,56 @@ export function WizardSection({
 
   const wizardFaq = [
     {
+      question: toDisplayText(html.wizardFaqQuestionHowItWorks),
+      answer: toDisplayText(html.wizardFaqAnswerHowItWorks)
+    },
+    {
+      question: toDisplayText(html.wizardFaqQuestionData),
+      answer: toDisplayText(html.wizardFaqAnswerData)
+    },
+    {
       question: toDisplayText(html.wizardFaqQuestionSensitiveData),
       answer: toDisplayText(html.wizardFaqAnswerSensitiveData)
     },
     {
-      question: toDisplayText(html.wizardFaqQuestionLeavesComputer),
-      answer: toDisplayText(html.wizardFaqAnswerLeavesComputer)
+      question: toDisplayText(html.wizardFaqQuestionRetention),
+      answer: toDisplayText(html.wizardFaqAnswerRetention)
     },
     {
       question: toDisplayText(html.wizardFaqQuestionStorage),
       answer: toDisplayText(html.wizardFaqAnswerStorage)
     },
     {
-      question: toDisplayText(html.wizardFaqQuestionPerformance),
-      answer: toDisplayText(html.wizardFaqAnswerPerformance)
+      question: toDisplayText(html.wizardFaqQuestionBattery),
+      answer: toDisplayText(html.wizardFaqAnswerBattery)
     },
     {
-      question: toDisplayText(html.wizardFaqQuestionPauseIdle),
-      answer: toDisplayText(html.wizardFaqAnswerPauseIdle)
+      question: toDisplayText(html.wizardFaqQuestionScreenshotFrequency),
+      answer: toDisplayText(html.wizardFaqAnswerScreenshotFrequency)
+    },
+    {
+      question: toDisplayText(html.wizardFaqQuestionMonitors),
+      answer: toDisplayText(html.wizardFaqAnswerMonitors)
+    },
+    {
+      question: toDisplayText(html.wizardFaqQuestionAgents),
+      answer: toDisplayText(html.wizardFaqAnswerAgents)
+    },
+    {
+      question: toDisplayText(html.wizardFaqQuestionNoise),
+      answer: toDisplayText(html.wizardFaqAnswerNoise)
     },
     {
       question: toDisplayText(html.wizardFaqQuestionAudio),
       answer: toDisplayText(html.wizardFaqAnswerAudio)
     },
     {
-      question: toDisplayText(html.wizardFaqQuestionScreenshotFrequency),
-      answer: toDisplayText(html.wizardFaqAnswerScreenshotFrequency)
+      question: toDisplayText(html.wizardFaqQuestionFree),
+      answer: toDisplayText(html.wizardFaqAnswerFree)
+    },
+    {
+      question: toDisplayText(html.wizardFaqQuestionWhyOwl),
+      answer: toDisplayText(html.wizardFaqAnswerWhyOwl)
     },
   ]
 

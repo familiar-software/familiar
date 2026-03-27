@@ -153,7 +153,6 @@ function registerSettingsHandlers(options = {}) {
     ipcMain.handle('settings:get', handleGetSettings);
     ipcMain.handle('settings:save', handleSaveSettings);
     ipcMain.handle('settings:pickContextFolder', handlePickContextFolder);
-    ipcMain.handle('settings:pickHeartbeatOutputFolder', handlePickHeartbeatOutputFolder);
     ipcMain.handle('settings:moveContextFolder', handleMoveContextFolder);
     ipcMain.handle('settings:listInstalledApps', handleListInstalledApps);
     ipcMain.handle('settings:getInstalledAppIcon', handleGetInstalledAppIcon);
@@ -175,9 +174,6 @@ function handleGetSettings() {
         const wizardCompleted = settings.wizardCompleted === true;
         const skillInstallerHarness = normalizeSkillInstallerHarnesses(settings?.skillInstaller || {});
         const skillInstallerInstallPath = normalizeSkillInstallerPaths(settings?.skillInstaller || {}, skillInstallerHarness);
-        const heartbeats = settings?.heartbeats && typeof settings.heartbeats === 'object'
-            ? settings.heartbeats
-            : { items: [] };
         const capturePrivacy = normalizeCapturePrivacySettings(settings?.capturePrivacy);
         let validationMessage = '';
 
@@ -202,7 +198,6 @@ function handleGetSettings() {
                 harness: skillInstallerHarness,
                 installPath: skillInstallerInstallPath,
             },
-            heartbeats,
             capturePrivacy,
             appVersion
         };
@@ -215,7 +210,6 @@ function handleGetSettings() {
             storageAutoCleanupRetentionDays: resolveAutoCleanupRetentionDays(undefined),
             wizardCompleted: false,
             skillInstaller: { harness: [], installPath: [] },
-            heartbeats: { items: [] },
             capturePrivacy: normalizeCapturePrivacySettings(),
             appVersion
         };
@@ -228,7 +222,6 @@ function handleSaveSettings(_event, payload) {
     const hasStorageAutoCleanupRetentionDays = Object.prototype.hasOwnProperty.call(payload || {}, 'storageAutoCleanupRetentionDays');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(payload || {}, 'wizardCompleted');
     const hasSkillInstaller = Object.prototype.hasOwnProperty.call(payload || {}, 'skillInstaller');
-    const hasHeartbeats = Object.prototype.hasOwnProperty.call(payload || {}, 'heartbeats');
     const hasCapturePrivacy = Object.prototype.hasOwnProperty.call(payload || {}, 'capturePrivacy');
     const settingsPayload = {};
 
@@ -238,7 +231,6 @@ function handleSaveSettings(_event, payload) {
         !hasStorageAutoCleanupRetentionDays &&
         !hasWizardCompleted &&
         !hasSkillInstaller
-        && !hasHeartbeats
         && !hasCapturePrivacy
     ) {
         return { ok: false, message: 'No settings provided.' };
@@ -286,12 +278,6 @@ function handleSaveSettings(_event, payload) {
             harness: harnesses,
             installPath: harnesses.map((harness) => resolveHarnessSkillPath(harness)),
         };
-    }
-
-    if (hasHeartbeats) {
-        const raw = payload?.heartbeats;
-        const items = raw && typeof raw === 'object' && Array.isArray(raw.items) ? raw.items : [];
-        settingsPayload.heartbeats = { items };
     }
 
     if (hasCapturePrivacy) {
@@ -443,18 +429,6 @@ async function handlePickContextFolder(event) {
         openLogLabel: 'Opening context folder picker',
         cancelLogLabel: 'Context folder picker canceled',
         selectedLogLabel: 'Context folder selected'
-    });
-}
-
-async function handlePickHeartbeatOutputFolder(event) {
-    return pickDirectory(event, {
-        title: 'Select Heartbeat Output Folder',
-        e2ePathEnvVar: 'FAMILIAR_E2E_HEARTBEAT_OUTPUT_PATH',
-        e2eInvalidLogLabel: 'E2E mode: invalid heartbeat output folder path',
-        e2eSelectedLogLabel: 'E2E mode: returning heartbeat output folder path',
-        openLogLabel: 'Opening heartbeat output folder picker',
-        cancelLogLabel: 'Heartbeat output folder picker canceled',
-        selectedLogLabel: 'Heartbeat output folder selected'
     });
 }
 

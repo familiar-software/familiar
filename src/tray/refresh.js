@@ -24,7 +24,6 @@ function createTrayMenuController({
     trayHandlers,
     loadSettingsFn = loadSettings,
     buildTrayMenuTemplateFn = buildTrayMenuTemplate,
-    getRecentHeartbeats = null,
     getRecordingState = null,
     onTrayMenuOpened = null,
     menu = getElectronMenu(),
@@ -63,12 +62,8 @@ function createTrayMenuController({
         const recordingStatusIcon = resolveRecordingIndicatorIcon({
             colorHex: recordingIndicator.trayColorHex
         });
-        const recentHeartbeats = typeof getRecentHeartbeats === 'function'
-            ? getRecentHeartbeats({ settings })
-            : [];
         return buildTrayMenuTemplateFn({
             ...trayHandlers,
-            recentHeartbeats,
             recordingPaused: isPaused,
             recordingState,
             recordingStatusIcon

@@ -3,8 +3,11 @@ const assert = require('node:assert/strict')
 
 const { buildDashboardNavigation } = require('../src/dashboard/components/dashboard/DashboardShellNavigation')
 
-test('includes heartbeats in dashboard navigation', () => {
+test('includes the expected dashboard navigation sections', () => {
   const navigation = buildDashboardNavigation({})
 
-  assert.equal(navigation.some((entry) => entry.id === 'heartbeats'), true)
+  assert.deepEqual(
+    navigation.map((entry) => entry.id),
+    ['wizard', 'storage', 'recording', 'install-skill']
+  )
 })

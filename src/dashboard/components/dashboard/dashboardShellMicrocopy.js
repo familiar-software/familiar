@@ -46,17 +46,6 @@ export const buildDashboardShellMicrocopy = (microcopy = {}) => ({
     storageUsage: {
       ...(microcopy.dashboard?.storageUsage || {})
     },
-    heartbeats: {
-      ...(microcopy.dashboard?.heartbeats || {}),
-      messages: {
-        ...(microcopy.dashboard?.heartbeats?.messages || {}),
-        statusSaving: microcopy.dashboard?.settings?.statusSaving,
-        statusSaved: microcopy.dashboard?.settings?.statusSaved
-      },
-      errors: {
-        ...(microcopy.dashboard?.heartbeats?.errors || {})
-      }
-    },
     sections: {
       ...(microcopy.dashboard?.sections || {})
     }

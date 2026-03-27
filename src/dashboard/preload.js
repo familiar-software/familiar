@@ -11,7 +11,6 @@ contextBridge.exposeInMainWorld('familiar', {
   listInstalledApps: () => ipcRenderer.invoke('settings:listInstalledApps'),
   getInstalledAppIcon: (payload) => ipcRenderer.invoke('settings:getInstalledAppIcon', payload || {}),
   pickContextFolder: () => ipcRenderer.invoke('settings:pickContextFolder'),
-  pickHeartbeatOutputFolder: () => ipcRenderer.invoke('settings:pickHeartbeatOutputFolder'),
   moveContextFolder: (payload) => ipcRenderer.invoke('settings:moveContextFolder', payload),
   saveSettings: (payload) => {
     const data = typeof payload === 'string' ? { contextFolderPath: payload } : payload
@@ -30,10 +29,7 @@ contextBridge.exposeInMainWorld('familiar', {
   openTrayMenuForE2E: () => ipcRenderer.invoke('e2e:tray:openMenu'),
   getTrayIconStateForE2E: () => ipcRenderer.invoke('e2e:tray:getIconState'),
   getTrayMenuItemsForE2E: () => ipcRenderer.invoke('e2e:tray:getMenuItems'),
-  getTrayHeartbeatsForE2E: () => ipcRenderer.invoke('e2e:tray:getHeartbeats'),
-  clickTrayHeartbeatForE2E: (payload) => ipcRenderer.invoke('e2e:tray:clickHeartbeat', payload || {}),
   getToastEventsForE2E: (options) => ipcRenderer.invoke('e2e:toast:events', options || {}),
-  getTextEditOpenEventsForE2E: (options) => ipcRenderer.invoke('e2e:textedit:events', options || {}),
   onAlwaysRecordWhenActiveChanged: (handler) => {
     const listener = (_event, payload) => handler(payload)
     ipcRenderer.on('settings:alwaysRecordWhenActiveChanged', listener)
@@ -44,19 +40,12 @@ contextBridge.exposeInMainWorld('familiar', {
     ipcRenderer.on('settings:screenStillsStateChanged', listener)
     return () => ipcRenderer.removeListener('settings:screenStillsStateChanged', listener)
   },
-  onHeartbeatRunStateChanged: (handler) => {
-    const listener = (_event, payload) => handler(payload)
-    ipcRenderer.on('settings:heartbeatRunStateChanged', listener)
-    return () => ipcRenderer.removeListener('settings:heartbeatRunStateChanged', listener)
-  },
   onSettingsWindowOpened: (handler) => {
     const listener = (_event, payload) => handler(payload)
     ipcRenderer.on('settings:window-opened', listener)
     return () => ipcRenderer.removeListener('settings:window-opened', listener)
   },
   openStillsFolder: () => ipcRenderer.invoke('stills:openFolder'),
-  openHeartbeatOutputFolder: (payload) => ipcRenderer.invoke('heartbeats:openOutputFolder', payload || {}),
-  runHeartbeatNow: (payload) => ipcRenderer.invoke('heartbeats:runNow', payload || {}),
   deleteFilesAt: ({ requestedAtMs, deleteWindow } = {}) =>
     ipcRenderer.invoke('storage:deleteFiles', { requestedAtMs, deleteWindow }),
   getStorageUsageBreakdown: () => ipcRenderer.invoke('storage:getUsageBreakdown'),

@@ -65,12 +65,6 @@ export function DashboardShellLayout({
       )
     }
 
-    if (id === 'heartbeats') {
-      return (
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 4.97l-1.06-0.36a5.5 5.5 0 1 0-7.78 7.78L12 21.17l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
-      )
-    }
-
     if (id === 'install-skill' || id === 'installSkill') {
       return (
         <>

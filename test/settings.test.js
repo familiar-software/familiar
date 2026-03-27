@@ -251,11 +251,11 @@ test('saveSettings persists alwaysRecordWhenActive', () => {
   assert.equal(loaded.alwaysRecordWhenActive, true)
 })
 
-test('saveSettings preserves heartbeat outputFolderPath values', () => {
+test('saveSettings drops legacy heartbeats when rewriting settings', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')
-  const outputFolderPath = path.join(tempRoot, 'heartbeat-output')
-  fs.mkdirSync(outputFolderPath)
+  const contextDir = path.join(tempRoot, 'context')
+  fs.mkdirSync(contextDir)
 
   saveSettings({
     heartbeats: {
@@ -265,7 +265,7 @@ test('saveSettings preserves heartbeat outputFolderPath values', () => {
           topic: 'daily_summary',
           prompt: 'Summarize',
           runner: 'codex',
-          outputFolderPath,
+          outputFolderPath: path.join(tempRoot, 'heartbeat-output'),
           schedule: {
             frequency: 'daily',
             time: '09:00',
@@ -275,9 +275,11 @@ test('saveSettings preserves heartbeat outputFolderPath values', () => {
       ]
     }
   }, { settingsDir })
+  saveSettings({ contextFolderPath: contextDir }, { settingsDir })
 
   const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.heartbeats.items[0].outputFolderPath, outputFolderPath)
+  assert.equal(Object.prototype.hasOwnProperty.call(loaded, 'heartbeats'), false)
+  assert.equal(loaded.contextFolderPath, contextDir)
 })
 
 test('saveSettings persists normalized capturePrivacy.blacklistedApps', () => {

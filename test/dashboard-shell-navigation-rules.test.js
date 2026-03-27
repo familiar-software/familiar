@@ -55,7 +55,7 @@ test('blocks missing section target while wizard is incomplete', () => {
 test('blocks unavailable section target when section is omitted from navigation', () => {
   const result = resolveSectionSelection({
     isWizardCompleted: true,
-    nextSection: 'heartbeats',
+    nextSection: 'missing-section',
     availableSectionIds: ['storage', 'recording', 'install-skill']
   })
   assert.equal(result.allowed, false)

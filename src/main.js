@@ -16,7 +16,7 @@ const { loadSettings, saveSettings, validateContextFolderPath } = require('./set
 const { buildTrayMenuTemplate } = require('./menu');
 const { ensureFamiliarSkillAlignment } = require('./skills/familiar-skill-alignment');
 const { initLogging } = require('./logger');
-const { showToast, hideToast } = require('./toast');
+const { showToast } = require('./toast');
 const {
     createRecordingOffReminder,
     DEFAULT_RECORDING_OFF_REMINDER_DELAY_MS
@@ -29,12 +29,6 @@ const { createScreenStillsController } = require('./screen-stills');
 const { createPresenceMonitor } = require('./screen-capture/presence');
 const { getScreenRecordingPermissionStatus } = require('./screen-capture/permissions');
 const { createTrayIconFactory, getTrayIconPathForMenuBar } = require('./tray/icon');
-const {
-    hasUnreadHeartbeatRuns,
-    loadRecentHeartbeatRuns,
-    markAllHeartbeatRunsSeen,
-    markHeartbeatRunOpened
-} = require('./tray/heartbeats');
 const { shouldOpenSettingsOnReady } = require('./launch-intent');
 const { APP_MODE, setAppMode } = require('./app-mode');
 const { initializeProcessOwnership } = require('./startup/ownership');
@@ -44,18 +38,6 @@ const {
     DEFAULT_CHECK_INTERVAL_MS,
     resolveCleanupRetentionDays
 } = require('./storage/auto-session-cleanup');
-const { createHeartbeatScheduler } = require('./heartbeats/scheduler');
-const { createHeartbeatHistoryStore } = require('./heartbeats/store');
-const {
-    buildHeartbeatFailureToastBody,
-    getHeartbeatFailureToastActionLabel
-} = require('./heartbeats/failure-toast');
-const {
-    OPEN_HEARTBEAT_FAILURE_DETAILS_ACTION,
-    openHeartbeatFailureDetails
-} = require('./heartbeats/failure-details');
-const { openHeartbeatRunTarget } = require('./heartbeats/open-run-target');
-const { openFileInTextEdit } = require('./utils/open-in-textedit');
 const { createRetentionChangeTrigger } = require('./storage/retention-change-trigger');
 const { moveFamiliarFolder } = require('./context-folder/move');
 const { createMoveContextFolderHandler } = require('./context-folder/move-handler');
@@ -67,7 +49,6 @@ let trayHandlers = null;
 let trayMenuController = null;
 let refreshTrayIcon = () => {};
 let resolveTrayIconStateForE2E = () => ({
-    hasUnreadHeartbeats: false,
     iconPath: trayIconPath,
     isTemplateImage: process.platform === 'darwin'
 });
@@ -79,14 +60,12 @@ let recordingShutdownInProgress = false;
 let recordingOffReminder = null;
 let autoSessionCleanupScheduler = null;
 let retentionChangeTrigger = null;
-let heartbeatScheduler = null;
 let redactionWarningShownForCurrentRecordingSession = false;
 let lastScreenCaptureSettings = {
     enabled: null,
     contextFolderPath: ''
 };
 const e2eToastEvents = [];
-const e2eTextEditOpenEvents = [];
 const E2E_TOAST_EVENT_LIMIT = 20;
 
 const parsePositiveInteger = (value) => {
@@ -396,11 +375,6 @@ const getCurrentScreenStillsState = () => {
     };
 };
 
-const isCaptureActiveForHeartbeats = () => {
-    const recordingState = getCurrentScreenStillsState();
-    return recordingState.state === 'recording' || recordingState.state === 'idleGrace';
-};
-
 const getScreenStillsStatusPayload = () => {
     const state = getCurrentScreenStillsState();
     const isRecording = state.state === 'recording' || state.state === 'idleGrace';
@@ -436,10 +410,6 @@ const getTrayRecordingActionLabel = () => {
         : '';
 };
 
-const getCurrentTrayRecentHeartbeats = () => {
-    return loadRecentHeartbeatRuns({ logger: console });
-};
-
 const getCurrentTrayMenuTemplate = () => {
     if (!trayHandlers) {
         return [];
@@ -453,7 +423,6 @@ const getCurrentTrayMenuTemplate = () => {
     const recordingState = getCurrentScreenStillsState();
     return buildTrayMenuTemplate({
         ...trayHandlers,
-        recentHeartbeats: getCurrentTrayRecentHeartbeats(),
         recordingPaused: recordingState.manualPaused === true,
         recordingState,
     });
@@ -469,62 +438,6 @@ const runCaptureActionAndRefreshTray = async (action) => {
 const notifyAlwaysRecordWhenActiveChanged = ({ enabled } = {}) => {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
         settingsWindow.webContents.send('settings:alwaysRecordWhenActiveChanged', { enabled });
-    }
-};
-
-const notifyHeartbeatRunStateChanged = (payload = {}) => {
-    if (!settingsWindow || settingsWindow.isDestroyed()) {
-        return;
-    }
-    if (!payload || typeof payload !== 'object') {
-        return;
-    }
-    settingsWindow.webContents.send('settings:heartbeatRunStateChanged', {
-        id: typeof payload.id === 'string' ? payload.id : '',
-        topic: typeof payload.topic === 'string' ? payload.topic : '',
-        state: payload.state || '',
-        trigger: typeof payload.trigger === 'string' ? payload.trigger : '',
-        status: typeof payload.status === 'string' ? payload.status : '',
-        error: typeof payload.error === 'string' ? payload.error : '',
-        outputPath: typeof payload.outputPath === 'string' ? payload.outputPath : '',
-        scheduledAtMs: Number.isFinite(payload.scheduledAtMs) ? payload.scheduledAtMs : null
-    });
-};
-
-const openHeartbeatFromTray = async (entry = {}) => {
-    const rowId = Number(entry?.id);
-
-    try {
-        const openResult = await openHeartbeatRunTarget({
-            entry,
-            isE2E,
-            e2eTextEditOpenEvents,
-            logger: console,
-            openFileInTextEditFn: openFileInTextEdit,
-            openHeartbeatFailureDetailsFn: openHeartbeatFailureDetails
-        });
-        if (!openResult?.ok) {
-            return openResult;
-        }
-
-        if (Number.isFinite(rowId) && rowId > 0) {
-            const settings = loadSettings();
-            const markedOpenedCount = markHeartbeatRunOpened({
-                settings,
-                logger: console,
-                rowId
-            });
-            if (markedOpenedCount > 0) {
-                trayMenuController?.refreshTrayMenuFromSettings?.();
-            }
-        }
-        return openResult;
-    } catch (error) {
-        console.error('Failed to open heartbeat tray target', {
-            heartbeatId: typeof entry.heartbeatId === 'string' ? entry.heartbeatId : '',
-            message: error?.message || String(error)
-        });
-        return { ok: false, message: error?.message || 'Failed to open heartbeat tray target.' };
     }
 };
 
@@ -626,37 +539,31 @@ function quitApp() {
 }
 
 function createTray() {
-    const resolveTrayHasUnreadHeartbeats = ({ settings = null } = {}) =>
-        hasUnreadHeartbeatRuns({ settings, logger: console });
     const createTrayIcon = createTrayIconFactory({
         nativeImage,
         logger: console
     });
-    const getTrayIconState = ({ settings = null } = {}) => {
-        const hasUnreadHeartbeats = resolveTrayHasUnreadHeartbeats({ settings });
+    const getTrayIconState = () => {
         return {
-            hasUnreadHeartbeats,
             iconPath: getTrayIconPathForMenuBar({
                 defaultIconPath: trayIconPath,
-                hasUnreadHeartbeats,
                 isDarkMode: nativeTheme.shouldUseDarkColors === true
             }),
-            isTemplateImage: !hasUnreadHeartbeats && process.platform === 'darwin'
+            isTemplateImage: process.platform === 'darwin'
         };
     };
     resolveTrayIconStateForE2E = getTrayIconState;
 
-    const getTrayIcon = ({ settings = null } = {}) => {
-        const trayIconState = getTrayIconState({ settings });
+    const getTrayIcon = () => {
+        const trayIconState = getTrayIconState();
         return createTrayIcon({
             defaultIconPath: trayIconPath,
-            hasUnreadHeartbeats: trayIconState.hasUnreadHeartbeats,
             isDarkMode: nativeTheme.shouldUseDarkColors === true
         });
     };
 
-    const updateTrayIcon = ({ settings = null } = {}) => {
-        const trayIcon = getTrayIcon({ settings });
+    const updateTrayIcon = () => {
+        const trayIcon = getTrayIcon();
         if (trayIcon.isEmpty()) {
             console.error('Failed to resolve any tray icon image');
             return;
@@ -681,9 +588,6 @@ function createTray() {
         onRecordingPause: () => {
             void handleRecordingToggleAction();
         },
-        onOpenHeartbeat: (entry) => {
-            void openHeartbeatFromTray(entry);
-        },
         onOpenSettings: () => openSettingsWindow({ reason: 'tray' }),
         onQuit: quitApp,
     };
@@ -691,14 +595,7 @@ function createTray() {
     trayMenuController = createTrayMenuController({
         tray,
         trayHandlers,
-        getRecentHeartbeats: ({ settings }) => loadRecentHeartbeatRuns({ settings, logger: console }),
-        getRecordingState: getCurrentScreenStillsState,
-        onTrayMenuOpened: async ({ settings }) => {
-            const markedSeenCount = markAllHeartbeatRunsSeen({ settings, logger: console });
-            if (markedSeenCount > 0) {
-                updateTrayIcon({ settings });
-            }
-        }
+        getRecordingState: getCurrentScreenStillsState
     });
 
     trayMenuController.refreshTrayMenuFromSettings();
@@ -711,26 +608,11 @@ function createTray() {
 const registerMainProcessIpc = () => {
     registerIpcHandlers({
         onSettingsSaved: handleMainSettingsSaved,
-        onMoveContextFolder: handleMoveContextFolder,
-        runHeartbeatNow: (payload) => heartbeatScheduler?.runHeartbeatNow?.(payload)
+        onMoveContextFolder: handleMoveContextFolder
     });
 
     ipcMain.on('microcopy:get-sync', (event) => {
         event.returnValue = microcopy;
-    });
-
-    ipcMain.on('toast-action', (_event, payload = {}) => {
-        if (payload?.action !== OPEN_HEARTBEAT_FAILURE_DETAILS_ACTION) {
-            return;
-        }
-
-        hideToast();
-        void openHeartbeatFailureDetails({
-            data: payload?.data,
-            isE2E,
-            e2eTextEditOpenEvents,
-            logger: console
-        });
     });
 
     ipcMain.handle('screenStills:getStatus', () => {
@@ -858,61 +740,6 @@ const registerMainProcessIpc = () => {
         }));
         return { ok: true, items };
     });
-
-    ipcMain.handle('e2e:tray:getHeartbeats', () => {
-        if (!isE2E) {
-            return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
-        }
-        return { ok: true, items: getCurrentTrayRecentHeartbeats() };
-    });
-
-    ipcMain.handle('e2e:tray:clickHeartbeat', async (_event, payload = {}) => {
-        if (!isE2E) {
-            return { ok: false, message: 'Tray E2E action is only available in E2E mode.' };
-        }
-
-        const rowId = Number(payload?.rowId);
-        if (!Number.isFinite(rowId)) {
-            return { ok: false, message: 'rowId is required.' };
-        }
-
-        const target = getCurrentTrayRecentHeartbeats().find((entry) => Number(entry?.id) === rowId);
-        if (!target) {
-            return { ok: false, message: 'Heartbeat tray item not found.' };
-        }
-
-        const openResult = await openHeartbeatFromTray(target);
-        if (!openResult?.ok) {
-            return {
-                ok: false,
-                rowId,
-                heartbeatId: typeof target.heartbeatId === 'string' ? target.heartbeatId : '',
-                message: openResult?.message || 'Failed to open heartbeat run.'
-            };
-        }
-        return {
-            ok: true,
-            rowId,
-            heartbeatId: typeof target.heartbeatId === 'string' ? target.heartbeatId : '',
-            targetPath: typeof openResult?.targetPath === 'string' ? openResult.targetPath : '',
-            text: typeof openResult?.text === 'string' ? openResult.text : '',
-            mode: typeof openResult?.mode === 'string' ? openResult.mode : ''
-        };
-    });
-
-    ipcMain.handle('e2e:textedit:events', (_event, options = {}) => {
-        if (!isE2E) {
-            return { ok: false, message: 'TextEdit E2E action is only available in E2E mode.' };
-        }
-
-        const clear = options?.clear === true;
-        const events = [...e2eTextEditOpenEvents];
-        if (clear) {
-            e2eTextEditOpenEvents.length = 0;
-        }
-
-        return { ok: true, events };
-    });
 };
 
 if (isPrimaryInstance) {
@@ -974,45 +801,6 @@ if (isPrimaryInstance) {
         });
         autoSessionCleanupScheduler.start();
 
-        heartbeatScheduler = createHeartbeatScheduler({
-            settingsLoader: loadSettings,
-            settingsSaver: saveSettings,
-            heartbeatHistoryStoreFactory: createHeartbeatHistoryStore,
-            logger: console,
-            isCaptureActive: isCaptureActiveForHeartbeats,
-            onHeartbeatRunStateChanged: (payload) => {
-                if (payload?.state === 'completed') {
-                    refreshTrayMenu();
-                    refreshTrayIcon();
-                }
-                notifyHeartbeatRunStateChanged(payload);
-            },
-            onFailure: (payload = {}) => {
-                const title = 'Heartbeat failed'
-                const topic = typeof payload.topic === 'string' && payload.topic.trim().length > 0
-                    ? payload.topic
-                    : 'Heartbeat'
-                const message = buildHeartbeatFailureToastBody(topic)
-                maybeE2EToast({
-                    title,
-                    body: message,
-                    type: 'warning',
-                    size: 'large',
-                    duration: 10_000,
-                    actions: [
-                        {
-                            label: getHeartbeatFailureToastActionLabel(),
-                            action: OPEN_HEARTBEAT_FAILURE_DETAILS_ACTION,
-                            data: {
-                                message: payload.message
-                            }
-                        }
-                    ]
-                })
-            }
-        });
-        heartbeatScheduler.start();
-
         let wasOpenedAtLogin = false;
 
         if (process.platform === 'darwin') {
@@ -1059,7 +847,6 @@ if (isPrimaryInstance) {
 
 app.on('before-quit', (event) => {
     autoSessionCleanupScheduler?.stop?.();
-    heartbeatScheduler?.stop?.();
     if (recordingOffReminder && typeof recordingOffReminder.stopReminder === 'function') {
         recordingOffReminder.stopReminder();
     }

@@ -26,29 +26,6 @@ const createHarnessRunner = ({
   adapters = createHarnessAdapters({ logger }),
   settingsLoader = loadSettings
 } = {}) => {
-  const maybeResolveE2EHeartbeatMock = ({ harness, requestId } = {}) => {
-    if (process.env.FAMILIAR_E2E_HEARTBEAT_MOCK !== '1') {
-      return null
-    }
-    if (typeof requestId !== 'string' || !requestId.startsWith('heartbeat-')) {
-      return null
-    }
-
-    logger.log('Harness adapter runPrompt using E2E heartbeat mock', {
-      harness,
-      requestId
-    })
-
-    return {
-      status: ADAPTER_STATUS.OK,
-      answer: process.env.FAMILIAR_E2E_HEARTBEAT_MOCK_TEXT || 'Mock heartbeat output',
-      meta: {
-        adapter: typeof harness === 'string' ? harness : ''
-      },
-      message: ''
-    }
-  }
-
   const getAdapterByHarness = (harness) => {
     const key = typeof harness === 'string' ? harness.trim().toLowerCase() : ''
     return adapters[key] || null
@@ -72,11 +49,6 @@ const createHarnessRunner = ({
     senderMetadata = null,
     workspaceDir = ''
   } = {}) => {
-    const e2eHeartbeatMockResult = maybeResolveE2EHeartbeatMock({ harness, requestId })
-    if (e2eHeartbeatMockResult) {
-      return e2eHeartbeatMockResult
-    }
-
     const adapter = getAdapterByHarness(harness)
     if (!adapter) {
       return createUnavailableResult({

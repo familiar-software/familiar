@@ -16,9 +16,6 @@ const microcopy = {
       clickToPauseFor10Min: 'Capturing (click to pause for 10 min)',
       startCapturing: 'Start Capturing'
     },
-    heartbeats: {
-      section: 'Heartbeats'
-    },
     actions: {
       settings: 'Settings',
       quit: 'Quit'
@@ -30,12 +27,6 @@ const microcopy = {
     permissionNeeded: 'Permission needed',
     capturing: 'Capturing',
     idle: 'Idle'
-  },
-  heartbeats: {
-    failureToast: {
-      bodyTemplate: 'heartbeat {{topic}} failed. expand failures for details.',
-      expandFailures: 'Expand Failures'
-    }
   },
   dashboard: {
     errors: {
@@ -121,15 +112,15 @@ const microcopy = {
       wizardContextFolderChange: 'Change',
       wizardEnableCapturingTitle: 'Enable capturing',
       wizardEnableCapturingDescription:
-        'Captures a still while you are active, and stops when idle. Requires Screen Recording permission.',
+        'Allow Familiar to capture your screen.',
       wizardCheckPermissions: 'Check Permissions',
       wizardEnableFamiliarInScreenRecording: 'Enable Familiar In Screen Recording',
       wizardAfterEnablingRestartFamiliar: 'After enabling capturing, restart Familiar',
       wizardCaptureWhileActive: 'Capture while active',
       wizardActionRequiredToProceed: 'Action required to proceed',
       wizardCapturingIsEnabled: 'Capturing is enabled',
-      wizardInstallSkillTitle: 'Set up Familiar in your tools',
-      wizardInstallSkillDescription: 'Pick where Familiar should be available',
+      wizardInstallSkillTitle: 'Choose where you work',
+      wizardInstallSkillDescription: "Familiar's skill will be installed in the tools you choose",
       wizardHarnessClaudeCode: 'Claude Code',
       wizardHarnessClaudeCowork: 'Claude Cowork',
       wizardHarnessCodex: 'Codex',
@@ -156,30 +147,51 @@ const microcopy = {
       wizardClaudeCoworkGuideDone: 'Done',
       wizardAllSetTitle: "You're all set",
       wizardAllSetDescription:
-        'Your context folder and capturing preferences are configured, and the skill install completed.',
+        'Familiar is ready. It will capture what matters and make it available to your agents.',
       wizardFaqTitle: 'FAQ',
       wizardFaqScrollHint: 'Scroll down to see all FAQs',
+      wizardFaqQuestionHowItWorks: 'How does Familiar work?',
+      wizardFaqAnswerHowItWorks:
+        'Familiar is a macOS desktop app. It runs in the background and takes screenshots while you work. Those screenshots are converted into markdown files. When you invoke the Familiar skill, your agent reads the relevant markdown files to answer your question.',
+      wizardFaqQuestionData: 'What happens to my data?',
+      wizardFaqAnswerData:
+        "All data stays on your machine. We don't have access to any of it.",
       wizardFaqQuestionSensitiveData: 'Will it capture passwords or embarrassing searches?',
       wizardFaqAnswerSensitiveData:
-        'Passwords & API keys are skipped from clipboard.\nCommon patterns of passwords, api keys and payment methods are scanned for each screenshot and are either redacted or completely dropped.',
-      wizardFaqQuestionLeavesComputer: 'Does anything leave my computer?',
-      wizardFaqAnswerLeavesComputer:
-        'You control your data. Familiar does NOT share any information.',
-      wizardFaqQuestionStorage: 'How much space does it take?',
+        'Familiar has two layers of protection. First, Familiar allows you to blacklist apps so nothing is captured while they are visible. Second, it automatically redacts passwords, API keys, and credit card numbers from the text conversion.',
+      wizardFaqQuestionRetention: 'How far back does it retain information?',
+      wizardFaqAnswerRetention:
+        'Markdown files are kept indefinitely. Screenshots are deleted after 2 days, though this is configurable.',
+      wizardFaqQuestionStorage: "Doesn't all the context take too much space?",
       wizardFaqAnswerStorage:
-        'Overtime storage will grow to no more than 3GB. Familias has cleanup mechanisms built in, and is designed to generate information of months with minimal bloat.',
-      wizardFaqQuestionPerformance: 'Will it slow down my Mac or battery?',
-      wizardFaqAnswerPerformance:
-        "There is some overhead (periodic screenshots + OCR), but there shouldn't be any noticeable impact on modern day macs.",
-      wizardFaqQuestionPauseIdle: 'Can I pause it / does it stop when I’m idle?',
-      wizardFaqAnswerPauseIdle:
-        'Yes. You can pause capture manually, and Familiar is designed to capture only while you’re actively using your computer (not while idle).',
-      wizardFaqQuestionAudio: 'Does it record meetings/audio?',
-      wizardFaqAnswerAudio:
-        'No. Familiar currently captures screen context and clipboard text, not microphone audio or full meeting transcripts.',
-      wizardFaqQuestionScreenshotFrequency: 'How often does Familiar take a screenshot?',
+        'Familiar is optimized to take minimal space on disk. You can run it for months without noticing the storage impact.',
+      wizardFaqQuestionBattery: 'What about battery life?',
+      wizardFaqAnswerBattery:
+        'Familiar is optimized to minimize battery usage. If your Mac is unplugged, it switches to low power mode and captures less context to preserve battery life.',
+      wizardFaqQuestionScreenshotFrequency: 'How often does it take a screenshot?',
       wizardFaqAnswerScreenshotFrequency:
-        'When in "Low Power Mode", every 15 seconds. Otherwise, every 5 seconds.',
+        "Every few seconds, and only while you're active on your computer.",
+      wizardFaqQuestionMonitors:
+        'Does it support multiple monitors? Which screen gets captured?',
+      wizardFaqAnswerMonitors:
+        'Familiar captures only the monitor your mouse cursor is on. If your mouse is on the left screen, the right screen is not captured.',
+      wizardFaqQuestionAgents: 'What AI agents does it work with?',
+      wizardFaqAnswerAgents:
+        'At the moment, Familiar works with AI agents that run on a local filesystem, like Claude Cowork, Claude Code, Cursor, Codex Antigravity, and OpenClaw.',
+      wizardFaqQuestionNoise:
+        'How does it cut through noise and surface only what matters?',
+      wizardFaqAnswerNoise:
+        "Models from leading providers are getting better at extracting valuable information from large amounts of data. They are already capable of ingesting Familiar's context and pulling out what you're looking for.",
+      wizardFaqQuestionAudio:
+        'Does Familiar capture audio or transcribe meetings or calls?',
+      wizardFaqAnswerAudio:
+        "Not at the moment. We're hearing a lot of demand for this and want to be thoughtful about it. For now, we're focused on visual content.",
+      wizardFaqQuestionFree: 'Is Familiar free?',
+      wizardFaqAnswerFree:
+        'Yes. Familiar will stay open source and free to use.',
+      wizardFaqQuestionWhyOwl: 'Why an owl?',
+      wizardFaqAnswerWhyOwl:
+        'An owl is a common "familiar," a companion spirit in folklore. We also aspire to use this to make AI a little wiser.',
       wizardBack: 'Back',
       wizardNext: 'Next',
       wizardDone: 'Done'
@@ -198,9 +210,6 @@ const microcopy = {
       },
       storage: {
         title: 'Storage'
-      },
-      heartbeats: {
-        title: 'Heartbeats'
       },
       installSkill: {
         title: 'Connect Agent'
@@ -269,82 +278,6 @@ const microcopy = {
     },
     wizard: {
       completeStepToContinue: 'Complete this step to continue.'
-    },
-    heartbeats: {
-      openOutputFolder: 'Open Output Folder',
-      add: 'Add Heartbeat',
-      deleteConfirm: 'Delete this heartbeat?',
-      emptyState: 'No heartbeats yet. Set one up to turn raw context into periodic insights.',
-      enabled: 'Enabled',
-      paused: 'Paused',
-      running: 'Running',
-      runNow: 'Run now',
-      edit: 'Edit',
-      duplicate: 'Duplicate',
-      delete: 'Delete',
-      cancel: 'Cancel',
-      save: 'Save heartbeat',
-      saving: 'Saving...',
-      dialog: {
-        newTitle: 'New Heartbeat',
-        editTitle: 'Edit Heartbeat',
-        closeAriaLabel: 'Close heartbeat form',
-        runnerFallback: 'Runner',
-        scheduleFallback: 'Schedule'
-      },
-      form: {
-        summarizeTitle: 'What to summarize',
-        summarizeDescription:
-          'Name the heartbeat and define the exact brief the agent should produce.',
-        topicLabel: 'Topic',
-        topicPlaceholder: 'Daily summary',
-        promptLabel: 'Prompt',
-        promptPlaceholder:
-          'Review the last 24 hours and summarize the most important work, blockers, and next actions.',
-        outputFolderLabel: 'Output folder',
-        outputFolderPlaceholder: 'Choose where this heartbeat should be saved',
-        outputFolderPickAction: 'Choose folder',
-        outputFolderChangeAction: 'Change folder',
-        runSettingsTitle: 'Run settings',
-        runSettingsDescription: 'Choose the runner, cadence, and timing for this heartbeat.',
-        runnerLabel: 'Runner',
-        frequencyLabel: 'Frequency',
-        timeLabel: 'Time',
-        dayOfWeekLabel: 'Day of week',
-        timezoneLabel: 'Timezone',
-        enabledTitle: 'Enabled',
-        enabledDescription: 'Run this heartbeat automatically on its schedule.'
-      },
-      list: {
-        unnamed: 'Unnamed heartbeat',
-        missingOutputFolder: 'Choose an output folder to enable this heartbeat.',
-        didntRunYet: 'didnt run yet',
-        failedAtTemplate: 'Failed at {{dateText}}',
-        skippedAtTemplate: 'Skipped at {{dateText}}',
-        lastRunAtTemplate: 'Last run at {{dateText}}'
-      },
-      messages: {
-        topicRequired: 'Topic is required.',
-        promptRequired: 'Prompt is required.',
-        failedToSave: 'Failed to save heartbeat.',
-        noTopic: 'Topic is required and must match letters, numbers, underscore, or hyphen.',
-        noPrompt: 'Prompt is required.',
-        outputFolderRequired: 'Choose an output folder for this heartbeat.',
-        invalidTime: 'Time must be HH:mm.',
-        invalidTimezone: 'Please select a valid timezone.',
-        runnerNotConfigured: 'Only allowed for options picked in "Connect Agent".',
-        unsupportedRunner: 'Unsupported heartbeat runner.',
-        unsupportedFrequency: 'Unsupported heartbeat frequency.',
-        invalidWeeklySchedule: 'Invalid weekly schedule.',
-        notFound: 'Heartbeat not found.',
-        completed: 'Heartbeat completed.'
-      },
-      errors: {
-        duplicateTopic: 'A heartbeat already exists with this topic.',
-        requiredContextFolder: 'Set a context folder before running or opening heartbeats.',
-        failedToOpenFolder: 'Failed to open heartbeats folder.',
-        failedToRunNow: 'Failed to run heartbeat.'
-      }
     },
     settingsActions: {
       openFolder: 'Open in Finder',

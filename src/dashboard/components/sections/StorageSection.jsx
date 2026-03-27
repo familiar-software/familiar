@@ -87,83 +87,87 @@ export function StorageSection({
 
   return (
     <section id="section-storage" className="space-y-4 max-w-[520px] flex flex-col flex-1">
-      <section className="space-y-2">
-        <CardTitle>{toDisplayText(htmlCopy.storageContextFolder)}</CardTitle>
-        <div
-          id="context-folder-picker-surface"
-          data-action="context-folder-picker-surface"
-          role="button"
-          tabIndex={isPickerDisabled ? -1 : 0}
-          title={contextFolderTitle}
-          className="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg cursor-pointer focus:outline-none"
-          onClick={handleStoragePickerActivation}
-          onKeyDown={(event) => {
-            if (isPickerDisabled) {
-              return
-            }
-            if (event.key !== 'Enter' && event.key !== ' ') {
-              return
-            }
-            event.preventDefault()
-            handleStoragePickerActivation(event)
-          }}
-        >
+      <Card>
+        <CardHeader>
+          <CardTitle>{toDisplayText(htmlCopy.storageContextFolder)}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
           <div
-            className="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              aria-hidden="true"
-            >
-              <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
-            </svg>
-          </div>
-          <Input
-            id="context-folder-path"
-            data-setting="context-folder-path"
-            type="text"
-            placeholder={toDisplayText(htmlCopy.storageContextFolderPlaceholderNoFolderSelected)}
-            readOnly
-            value={storagePathValue}
-            className="flex-1 min-w-0 bg-transparent text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 truncate cursor-pointer"
-          />
-          <Button
-            id="recording-move-folder"
-            data-action="storage-open-folder"
-            title=""
-            size="sm"
-            variant="outline"
-            disabled={isPickerDisabled}
-            onClick={(event) => {
-              event.stopPropagation()
-              void pickContextFolder(true)
+            id="context-folder-picker-surface"
+            data-action="context-folder-picker-surface"
+            role="button"
+            tabIndex={isPickerDisabled ? -1 : 0}
+            title={contextFolderTitle}
+            className="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg cursor-pointer focus:outline-none"
+            onClick={handleStoragePickerActivation}
+            onKeyDown={(event) => {
+              if (isPickerDisabled) {
+                return
+              }
+              if (event.key !== 'Enter' && event.key !== ' ') {
+                return
+              }
+              event.preventDefault()
+              handleStoragePickerActivation(event)
             }}
           >
-            {moveFolderLabel}
-          </Button>
-        </div>
-        <span
-          id="context-folder-status"
-          data-setting-status="context-folder-status"
-          className={`text-[14px] text-emerald-600 dark:text-emerald-400 ${storageUsageStatusText ? '' : 'hidden'}`}
-          aria-live="polite"
-        >
-          {storageUsageStatusText}
-        </span>
-        <p
-          id="context-folder-error"
-          data-setting-error="context-folder-error"
-          className={`text-[14px] text-red-600 dark:text-red-400 ${contextFolderErrorText ? '' : 'hidden'}`}
-          role="alert"
-          aria-live="polite"
-        >
-          {contextFolderErrorText}
-        </p>
-      </section>
+            <div
+              className="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden="true"
+              >
+                <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
+              </svg>
+            </div>
+            <Input
+              id="context-folder-path"
+              data-setting="context-folder-path"
+              type="text"
+              placeholder={toDisplayText(htmlCopy.storageContextFolderPlaceholderNoFolderSelected)}
+              readOnly
+              value={storagePathValue}
+              className="flex-1 min-w-0 bg-transparent text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 truncate cursor-pointer"
+            />
+            <Button
+              id="recording-move-folder"
+              data-action="storage-open-folder"
+              title=""
+              size="sm"
+              variant="outline"
+              disabled={isPickerDisabled}
+              onClick={(event) => {
+                event.stopPropagation()
+                void pickContextFolder(true)
+              }}
+            >
+              {moveFolderLabel}
+            </Button>
+          </div>
+          <span
+            id="context-folder-status"
+            data-setting-status="context-folder-status"
+            className={`text-[14px] text-emerald-600 dark:text-emerald-400 ${storageUsageStatusText ? '' : 'hidden'}`}
+            aria-live="polite"
+          >
+            {storageUsageStatusText}
+          </span>
+          <p
+            id="context-folder-error"
+            data-setting-error="context-folder-error"
+            className={`text-[14px] text-red-600 dark:text-red-400 ${contextFolderErrorText ? '' : 'hidden'}`}
+            role="alert"
+            aria-live="polite"
+          >
+            {contextFolderErrorText}
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

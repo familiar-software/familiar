@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react'
-import {
-  mergeHeartbeatsIntoSettings,
-  shouldRefreshHeartbeatsOnSectionOpen
-} from './heartbeat-refresh-utils.cjs'
+import { useCallback, useEffect } from 'react'
 
 export const useDashboardLifecycle = (state, options = {}) => {
   const {
     familiar,
-    activeSection,
     mc,
     applySettingsDefaults,
     hasLoadedSettingsRef,
@@ -25,12 +20,10 @@ export const useDashboardLifecycle = (state, options = {}) => {
     setStorageUsageLoaded,
     setRecordingStatus,
     setSettings,
-    normalizeHarnesses,
-    setRunningHeartbeatIds
+    normalizeHarnesses
   } = state
 
   const onInitialHarnessesLoaded = options.onInitialHarnessesLoaded || (() => Promise.resolve({ ok: true }))
-  const previousActiveSectionRef = useRef(activeSection)
 
   const refreshStorageUsage = useCallback(async () => {
     if (!familiar || typeof familiar.getStorageUsageBreakdown !== 'function') {
@@ -89,21 +82,6 @@ export const useDashboardLifecycle = (state, options = {}) => {
       console.error('Failed to load recording status', error)
     }
   }, [familiar, setRecordingStatus])
-
-  const refreshHeartbeats = useCallback(async () => {
-    if (!familiar || typeof familiar.getSettings !== 'function') {
-      return { ok: false, reason: 'bridgeUnavailable' }
-    }
-
-    try {
-      const result = await familiar.getSettings()
-      setSettings((previous) => mergeHeartbeatsIntoSettings(previous, result))
-      return { ok: true }
-    } catch (error) {
-      console.error('Failed to refresh heartbeats', error)
-      return { ok: false, error }
-    }
-  }, [familiar, setSettings])
 
   const loadSettings = useCallback(async () => {
     if (hasLoadedSettingsRef.current) {
@@ -204,31 +182,6 @@ export const useDashboardLifecycle = (state, options = {}) => {
     })
   }, [setRecordingStatus])
 
-  const applyHeartbeatRunStateFromPayload = useCallback((payload = {}) => {
-    const heartbeatId = typeof payload.id === 'string' ? payload.id : ''
-    if (!heartbeatId) {
-      return
-    }
-    const heartbeatRunState = payload.state
-    if (heartbeatRunState === 'running') {
-      setRunningHeartbeatIds((previous = {}) => ({
-        ...previous,
-        [heartbeatId]: true
-      }))
-      return
-    }
-    if (heartbeatRunState === 'completed') {
-      setRunningHeartbeatIds((previous = {}) => {
-        if (!previous[heartbeatId]) {
-          return previous
-        }
-        const next = { ...previous }
-        delete next[heartbeatId]
-        return next
-      })
-    }
-  }, [setRunningHeartbeatIds])
-
   useEffect(() => {
     mountedRef.current = true
     void loadSettings()
@@ -257,10 +210,6 @@ export const useDashboardLifecycle = (state, options = {}) => {
       typeof familiar?.onScreenStillsStateChanged === 'function'
         ? familiar.onScreenStillsStateChanged(applyRecordingStatusFromPayload)
         : null
-    const unsubscribeHeartbeatRunState =
-      typeof familiar?.onHeartbeatRunStateChanged === 'function'
-        ? familiar.onHeartbeatRunStateChanged(applyHeartbeatRunStateFromPayload)
-        : null
 
     return () => {
       mountedRef.current = false
@@ -274,13 +223,9 @@ export const useDashboardLifecycle = (state, options = {}) => {
       if (unsubscribeScreenStillsState) {
         unsubscribeScreenStillsState()
       }
-      if (unsubscribeHeartbeatRunState) {
-        unsubscribeHeartbeatRunState()
-      }
     }
   }, [
     familiar,
-    applyHeartbeatRunStateFromPayload,
     applyRecordingStatusFromPayload,
     loadSettings,
     mountedRef,
@@ -289,21 +234,9 @@ export const useDashboardLifecycle = (state, options = {}) => {
     setSettings
   ])
 
-  useEffect(() => {
-    const previousSection = previousActiveSectionRef.current
-    previousActiveSectionRef.current = activeSection
-
-    if (!shouldRefreshHeartbeatsOnSectionOpen({ previousSection, activeSection })) {
-      return
-    }
-
-    void refreshHeartbeats()
-  }, [activeSection, refreshHeartbeats])
-
   return {
     refreshStorageUsage,
     refreshRecordingStatus,
-    refreshHeartbeats,
     loadSettings,
     refreshStorageUsageFromWindowOpen
   }

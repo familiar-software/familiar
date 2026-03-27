@@ -4,7 +4,6 @@ const { registerUpdateHandlers } = require('./updates');
 const { registerSkillHandlers } = require('./skills');
 const { registerLogsHandlers } = require('./logs');
 const { registerStorageHandlers } = require('./storage');
-const { registerHeartbeatsHandlers } = require('./heartbeats');
 
 /**
  * Registers all IPC handlers for the main process.
@@ -19,9 +18,6 @@ function registerIpcHandlers(options = {}) {
     registerSkillHandlers();
     registerLogsHandlers();
     registerStorageHandlers();
-    registerHeartbeatsHandlers({
-        runHeartbeatNow: options.runHeartbeatNow
-    });
 }
 
 module.exports = {
@@ -32,5 +28,4 @@ module.exports = {
     registerSkillHandlers,
     registerLogsHandlers,
     registerStorageHandlers,
-    registerHeartbeatsHandlers,
 };
