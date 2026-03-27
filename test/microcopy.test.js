@@ -34,20 +34,24 @@ test('getMicrocopyValue resolves configured copy', () => {
     'Scroll down to see all FAQs'
   )
   assert.equal(
-    getMicrocopyValue('dashboard.html.wizardChooseContextFolderBestPracticesLabel'),
-    'Best Practices:'
+    getMicrocopyValue('dashboard.html.wizardChooseContextFolderTitle'),
+    'Choose where Familiar stores the captured context'
   )
   assert.equal(
-    getMicrocopyValue('dashboard.html.wizardChooseContextFolderBestPractices'),
-    'Use the same folder with which you usually work with agents.'
+    getMicrocopyValue('dashboard.html.wizardChooseContextFolderDescription'),
+    'Familiar will create a new folder at that destination called "familiar"'
+  )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardContextFolderSetCta'),
+    'Choose folder'
   )
   assert.equal(
     getMicrocopyValue('dashboard.html.wizardFaqQuestionScreenshotFrequency'),
-    'How often does Familiar take a screenshot?'
+    'How often does it take a screenshot?'
   )
   assert.equal(
     getMicrocopyValue('dashboard.html.wizardFaqAnswerScreenshotFrequency'),
-    'When in "Low Power Mode", every 15 seconds. Otherwise, every 5 seconds.'
+    "Every few seconds, and only while you're active on your computer."
   )
 })
 

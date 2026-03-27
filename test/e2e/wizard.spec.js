@@ -4,9 +4,6 @@ const path = require('node:path')
 const { test, expect } = require('playwright/test')
 const { _electron: electron } = require('playwright')
 const { getMicrocopyValue } = require('../../src/microcopy')
-const {
-  CLOUD_COWORK_GUIDE_URL
-} = require('../../src/dashboard/components/dashboard/dashboardConstants')
 
 const microcopyText = (copyPath) => {
   const value = getMicrocopyValue(copyPath)
@@ -19,16 +16,12 @@ const microcopyText = (copyPath) => {
 const copy = Object.freeze({
   storageTitle: microcopyText('dashboard.sections.storage.title'),
   wizardSectionTitle: microcopyText('dashboard.sections.wizard.title'),
-  wizardHeaderTitle: microcopyText('dashboard.html.wizardHeaderTitle'),
-  wizardHeaderSubtitle: microcopyText('dashboard.html.wizardHeaderSubtitle'),
   wizardStepContext: microcopyText('dashboard.html.wizardStepContext'),
   wizardStepPermissions: microcopyText('dashboard.html.wizardStepPermissions'),
   wizardStepInstallSkill: microcopyText('dashboard.html.wizardStepInstallSkill'),
   wizardStepComplete: microcopyText('dashboard.html.wizardStepComplete'),
   wizardChooseContextFolderTitle: microcopyText('dashboard.html.wizardChooseContextFolderTitle'),
   wizardChooseContextFolderDescription: microcopyText('dashboard.html.wizardChooseContextFolderDescription'),
-  wizardChooseContextFolderBestPracticesLabel: microcopyText('dashboard.html.wizardChooseContextFolderBestPracticesLabel'),
-  wizardChooseContextFolderBestPractices: microcopyText('dashboard.html.wizardChooseContextFolderBestPractices'),
   wizardContextFolder: microcopyText('dashboard.html.wizardContextFolder'),
   wizardContextFolderSetCta: microcopyText('dashboard.html.wizardContextFolderSetCta'),
   wizardContextFolderChange: microcopyText('dashboard.html.wizardContextFolderChange'),
@@ -38,12 +31,9 @@ const copy = Object.freeze({
   wizardInstallSkillTitle: microcopyText('dashboard.html.wizardInstallSkillTitle'),
   wizardInstallSkillDescription: microcopyText('dashboard.html.wizardInstallSkillDescription'),
   wizardHarnessClaudeCode: microcopyText('dashboard.html.wizardHarnessClaudeCode'),
-  wizardHarnessClaudeCowork: microcopyText('dashboard.html.wizardHarnessClaudeCowork'),
   wizardHarnessCodex: microcopyText('dashboard.html.wizardHarnessCodex'),
   wizardHarnessAntigravity: microcopyText('dashboard.html.wizardHarnessAntigravity'),
   wizardHarnessCursor: microcopyText('dashboard.html.wizardHarnessCursor'),
-  wizardClaudeCoworkGuideStep7: microcopyText('dashboard.html.wizardClaudeCoworkGuideStep7'),
-  wizardClaudeCoworkGuideStep8: microcopyText('dashboard.html.wizardClaudeCoworkGuideStep8'),
   wizardAllSetTitle: microcopyText('dashboard.html.wizardAllSetTitle'),
   wizardAllSetDescription: microcopyText('dashboard.html.wizardAllSetDescription'),
   wizardFaqTitle: microcopyText('dashboard.html.wizardFaqTitle'),
@@ -53,8 +43,7 @@ const copy = Object.freeze({
   wizardNext: microcopyText('dashboard.html.wizardNext'),
   wizardDone: microcopyText('dashboard.html.wizardDone'),
   wizardSkillInstalled: microcopyText('dashboard.wizardSkill.messages.installed'),
-  wizardSkillInstalledAtTemplate: microcopyText('dashboard.wizardSkill.messages.installedAtTemplate'),
-  wizardSkillOpenedClaudeCoworkGuide: microcopyText('dashboard.wizardSkill.messages.openedClaudeCoworkGuide')
+  wizardSkillInstalledAtTemplate: microcopyText('dashboard.wizardSkill.messages.installedAtTemplate')
 })
 
 const wizardSkillInstalledAtPrefix = copy.wizardSkillInstalledAtTemplate.split('{{path}}')[0].trimEnd()
@@ -91,8 +80,6 @@ const launchElectron = (options = {}) => {
 }
 
 const expectWizardChrome = async (window) => {
-  await expect(window.locator('#section-wizard')).toContainText(copy.wizardHeaderTitle)
-  await expect(window.locator('#section-wizard')).toContainText(copy.wizardHeaderSubtitle)
   await expect(window.locator('[data-wizard-step-label="1"]')).toHaveText(copy.wizardStepContext)
   await expect(window.locator('[data-wizard-step-label="2"]')).toHaveText(copy.wizardStepPermissions)
   await expect(window.locator('[data-wizard-step-label="3"]')).toHaveText(copy.wizardStepInstallSkill)
@@ -106,8 +93,6 @@ const expectWizardContextStepCopy = async (window, { hasContextFolder }) => {
   await expect(wizardStepOne).toBeVisible()
   await expect(wizardStepOne).toContainText(copy.wizardChooseContextFolderTitle)
   await expect(wizardStepOne).toContainText(copy.wizardChooseContextFolderDescription)
-  await expect(wizardStepOne).toContainText(copy.wizardChooseContextFolderBestPracticesLabel)
-  await expect(wizardStepOne).toContainText(copy.wizardChooseContextFolderBestPractices)
   if (hasContextFolder) {
     await expect(window.locator('#wizard-context-folder-choose')).toContainText(copy.wizardContextFolderChange)
     return
@@ -132,7 +117,6 @@ const expectWizardSkillsStepCopy = async (window) => {
   await expect(wizardStepThree).toContainText(copy.wizardInstallSkillTitle)
   await expect(wizardStepThree).toContainText(copy.wizardInstallSkillDescription)
   await expect(wizardStepThree).toContainText(copy.wizardHarnessClaudeCode)
-  await expect(wizardStepThree).toContainText(copy.wizardHarnessClaudeCowork)
   await expect(wizardStepThree).toContainText(copy.wizardHarnessCodex)
   await expect(wizardStepThree).toContainText(copy.wizardHarnessAntigravity)
   await expect(wizardStepThree).toContainText(copy.wizardHarnessCursor)
@@ -178,31 +162,6 @@ const installWizardSkill = async (window) => {
     await codexHarnessOption.click()
   }
   await expect(skillStatus).toContainText(wizardSkillInstalledAtPrefix)
-}
-
-const openClaudeCoworkGuide = async (window) => {
-  const wizardStepThree = window.locator('[data-wizard-step="3"]')
-  const skillStatus = window.locator('#wizard-skill-status')
-  const claudeCoworkOption = wizardStepThree.locator('.skill-picker-option', { hasText: copy.wizardHarnessClaudeCowork })
-  const claudeCoworkHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="cloud-cowork"]')
-  const guideContainer = window.locator('#wizard-cloud-cowork-guide')
-  const guideDoneButton = window.locator('#wizard-cloud-cowork-done')
-
-  await expectWizardSkillsStepCopy(window)
-  await expect(wizardStepThree).toBeVisible()
-  if (!(await claudeCoworkHarness.isChecked())) {
-    await claudeCoworkOption.click()
-  }
-
-  await expect(guideContainer).toBeVisible()
-  await expect(guideContainer).toContainText(copy.wizardClaudeCoworkGuideStep7)
-  await expect(guideContainer).toContainText(copy.wizardClaudeCoworkGuideStep8)
-  await expect(guideContainer).toContainText(CLOUD_COWORK_GUIDE_URL)
-  await expect(skillStatus).toContainText(copy.wizardSkillOpenedClaudeCoworkGuide)
-  await expect(skillStatus).not.toContainText(wizardSkillInstalledAtPrefix)
-  await expect(guideDoneButton).toBeVisible()
-  await guideDoneButton.click()
-  await expect(guideContainer).toBeHidden()
 }
 
 const expectAutoInstallAllowsAdvance = async (window, nextButton) => {
@@ -403,43 +362,6 @@ test('wizard hides wizard tab after Done', async () => {
     await expect(window.locator('#section-title')).toHaveText(copy.storageTitle)
     await expect(window.getByRole('tab', { name: copy.wizardSectionTitle })).toBeHidden()
     await expect(window.locator('[data-wizard-step="1"]')).toBeHidden()
-  } finally {
-    await (await electronApp).close()
-  }
-})
-
-test('wizard Claude Cowork path opens marketplace guide and does not use local install path messaging', async () => {
-  const appRoot = path.join(__dirname, '../..')
-  const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
-  const { electronApp, settingsDir } = launchElectron({
-    contextPath,
-    env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
-  })
-
-  try {
-    const window = await (await electronApp).firstWindow()
-    await window.waitForLoadState('domcontentloaded')
-
-    await expectWizardChrome(window)
-    await expectWizardContextStepCopy(window, { hasContextFolder: false })
-    await window.locator('#wizard-context-folder-choose').click()
-    await expectWizardContextStepCopy(window, { hasContextFolder: true })
-    const nextButton = window.locator('#wizard-next')
-
-    await nextButton.click()
-    await expectWizardPermissionsStepCopy(window)
-    await completeWizardPermissionsStep(window, nextButton)
-    await expectWizardSkillsStepCopy(window)
-
-    await openClaudeCoworkGuide(window)
-    await expect(nextButton).toBeEnabled()
-    await nextButton.click()
-    await expectWizardCompleteStepCopy(window, window.locator('#wizard-done'))
-
-    const settingsPath = path.join(settingsDir, 'settings.json')
-    const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
-    expect(stored.skillInstaller?.harness ?? []).toEqual([])
-    expect(stored.skillInstaller?.installPath ?? []).toEqual([])
   } finally {
     await (await electronApp).close()
   }

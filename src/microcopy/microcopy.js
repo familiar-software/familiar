@@ -100,14 +100,11 @@ const microcopy = {
       wizardStepPermissions: 'Permissions',
       wizardStepInstallSkill: 'Skills',
       wizardStepComplete: 'Complete',
-      wizardChooseContextFolderTitle: 'Choose your context folder',
+      wizardChooseContextFolderTitle: 'Choose where Familiar stores the captured context',
       wizardChooseContextFolderDescription:
-        'Familiar stores everything inside <Context Folder>/familiar/.',
-      wizardChooseContextFolderBestPracticesLabel: 'Best Practices:',
-      wizardChooseContextFolderBestPractices:
-        'Use the same folder with which you usually work with agents.',
+        'Familiar will create a new folder at that destination called "familiar"',
       wizardContextFolder: 'Context Folder',
-      wizardContextFolderSetCta: 'Set your context folder',
+      wizardContextFolderSetCta: 'Choose folder',
       wizardContextFolderPlaceholderNoFolderSelected: 'No folder selected',
       wizardContextFolderChange: 'Change',
       wizardEnableCapturingTitle: 'Enable capturing',
@@ -177,7 +174,7 @@ const microcopy = {
         'Familiar captures only the monitor your mouse cursor is on. If your mouse is on the left screen, the right screen is not captured.',
       wizardFaqQuestionAgents: 'What AI agents does it work with?',
       wizardFaqAnswerAgents:
-        'At the moment, Familiar works with AI agents that run on a local filesystem, like Claude Cowork, Claude Code, Cursor, Codex Antigravity, and OpenClaw.',
+        'At the moment, Familiar works with AI agents that run on a local filesystem, like Claude Code, Cursor, Codex Antigravity, and OpenClaw.',
       wizardFaqQuestionNoise:
         'How does it cut through noise and surface only what matters?',
       wizardFaqAnswerNoise:

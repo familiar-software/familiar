@@ -146,8 +146,7 @@ export const HARNESS_OPTIONS = [
   { value: 'claude', label: 'Claude Code' },
   { value: 'codex', label: 'Codex' },
   { value: 'antigravity', label: 'Antigravity' },
-  { value: 'cursor', label: 'Cursor' },
-  { value: 'cloud-cowork', label: 'Claude Cowork' }
+  { value: 'cursor', label: 'Cursor' }
 ]
 
 export const STORAGE_DELETE_PRESETS = [

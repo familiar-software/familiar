@@ -163,17 +163,6 @@ export function WizardSection({
 
   return (
       <section id="section-wizard" className="relative flex-1 flex flex-col min-h-0">
-        <div className="flex-none px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
-          <div className="w-full text-center">
-            <CardTitle>
-              {toDisplayText(html.wizardHeaderTitle)}
-            </CardTitle>
-            <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
-              {toDisplayText(html.wizardHeaderSubtitle)}
-            </p>
-          </div>
-        </div>
-
       <div className="flex-none px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800/40">
         <div className="flex items-center justify-between relative">
           <div className="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="1">
@@ -268,13 +257,6 @@ export function WizardSection({
             <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
               {toDisplayText(html.wizardChooseContextFolderDescription)}
             </p>
-            <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
-              <span className="font-semibold text-zinc-700 dark:text-zinc-200">
-                {toDisplayText(html.wizardChooseContextFolderBestPracticesLabel)}
-              </span>
-              {' '}
-              {toDisplayText(html.wizardChooseContextFolderBestPractices)}
-            </p>
           </div>
           {hasContextFolder ? (
             <section className="space-y-2">
@@ -338,7 +320,7 @@ export function WizardSection({
                     </svg>
                   </span>
                   <span className="min-w-0 text-center">
-                    <span className="block whitespace-nowrap text-[16px] font-semibold leading-none tracking-tight text-zinc-900 dark:text-zinc-100">
+                    <span className="block whitespace-nowrap text-[16px] leading-none tracking-tight text-zinc-900 dark:text-zinc-100">
                       {toDisplayText(html.wizardContextFolderSetCta)}
                     </span>
                   </span>

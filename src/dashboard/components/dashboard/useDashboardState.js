@@ -15,12 +15,10 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
   const { resolveInitialWizardStep } = dashboardWizardRules
   const mc = buildDashboardShellMicrocopy(microcopy)
   const wizardHarnessNameMap = mc.dashboard.wizardSkill.harnessNames
+  const supportedHarnessValues = new Set(HARNESS_OPTIONS.map((entry) => entry.value))
   const wizardHarnessOptions = HARNESS_OPTIONS.map((entry) => ({
     ...entry,
-    label:
-      entry.value === 'cloud-cowork'
-        ? wizardHarnessNameMap.claudeCowork
-        : wizardHarnessNameMap[entry.value] || entry.label
+    label: wizardHarnessNameMap[entry.value] || entry.label
   }))
   const recordingCopy = mc.dashboard?.recording || {
     startLabel: 'Start capture',
@@ -201,7 +199,7 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
       if (value === 'cursor') {
         return wizardHarnessNameMap.cursor
       }
-      return wizardHarnessNameMap.claudeCowork
+      return value
     },
     [wizardHarnessNameMap]
   )
@@ -212,7 +210,7 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
       const nextHarnesses = normalizeHarnesses([
         ...(normalizeHarnesses(skillInstaller.harness)),
         ...(normalizeHarnesses(skillInstaller.harnesses))
-      ])
+      ]).filter((entry) => supportedHarnessValues.has(entry))
       if (!hasManualHarnessSelectionRef.current) {
         setSelectedHarnesses(nextHarnesses)
       }
@@ -239,7 +237,7 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
       setActiveSection(resolveInitialActiveSection(nextSettings.wizardCompleted))
       return nextSettings
     },
-    [normalizeHarnesses, resolveInitialWizardStep, setActiveSection]
+    [normalizeHarnesses, resolveInitialWizardStep, setActiveSection, supportedHarnessValues]
   )
 
   const saveSettings = useCallback(async (payload) => {
