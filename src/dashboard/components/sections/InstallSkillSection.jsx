@@ -36,7 +36,7 @@ export function InstallSkillSection({
   const pathText = isSkillInstalled ? '' : getFormattedInstallPaths(skillInstallPaths)
 
   return (
-    <section className="react-card react-install-tab">
+    <section className="react-install-tab space-y-3">
       <div className="react-skill-picker-options">
         {wizardHarnessOptions.map((entry) => (
           <Label key={entry.value} className="react-skill-picker-option">

@@ -1,4 +1,4 @@
-const WIZARD_STEPS = [1, 2, 3, 4]
+const WIZARD_STEPS = [1, 2, 3, 4, 5]
 
 const resolveInitialWizardStep = ({ settings = {} } = {}) => {
   if (Boolean(settings.contextFolderPath)) {
@@ -18,7 +18,9 @@ const isWizardStepComplete = ({ step, settings = {}, isSkillInstalled = false, g
       return Array.isArray(harnesses) && harnesses.length > 0 && isSkillInstalled
     }
     case 4:
-      return Boolean(isSkillInstalled)
+      return true
+    case 5:
+      return true
     default:
       return false
   }
@@ -29,7 +31,7 @@ const nextWizardStep = (step) => {
   if (!Number.isFinite(parsed)) {
     return 1
   }
-  return Math.min(4, Math.max(1, Math.round(parsed) + 1))
+  return Math.min(5, Math.max(1, Math.round(parsed) + 1))
 }
 
 const previousWizardStep = (step) => {

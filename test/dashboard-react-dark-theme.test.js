@@ -6,12 +6,12 @@ const path = require('node:path')
 const reactCssPath = path.join(__dirname, '../src/dashboard/react.css')
 const reactCss = fs.readFileSync(reactCssPath, 'utf8')
 
-test('legacy dashboard stylesheet defines dark surfaces for install card and shell', () => {
+test('legacy dashboard stylesheet defines dark surfaces for install guide card and shell', () => {
   assert.match(reactCss, /@media \(prefers-color-scheme: dark\)/)
   assert.match(reactCss, /\.react-shell\s*\{\s*background: #111111;\s*color: #f4f4f5;/)
   assert.match(
     reactCss,
-    /\.react-card,\s*\.react-install-guide-card\s*\{\s*border-color: #27272a;\s*background: #18181b;\s*color: #f4f4f5;/
+    /\.react-install-guide-card\s*\{\s*border-color: #27272a;\s*background: #18181b;\s*color: #f4f4f5;/
   )
 })
 

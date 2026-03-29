@@ -94,11 +94,12 @@ const microcopy = {
       installSkillAriaLabelInstallSkillSettings: 'Install skill settings',
       wizardAriaLabelSetupWizard: 'Setup wizard',
       wizardHeaderTitle: 'Setup Wizard',
-      wizardHeaderSubtitle: 'Guided setup in four steps.',
+      wizardHeaderSubtitle: 'Guided setup in five steps.',
       wizardHeaderComplete: 'Setup complete',
       wizardStepContext: 'Context',
       wizardStepPermissions: 'Permissions',
       wizardStepInstallSkill: 'Skills',
+      wizardStepFirstUsecase: 'Showcase',
       wizardStepComplete: 'Complete',
       wizardChooseContextFolderTitle: 'Choose where Familiar stores the captured context',
       wizardChooseContextFolderDescription:
@@ -123,6 +124,14 @@ const microcopy = {
       wizardHarnessAntigravity: 'Antigravity',
       wizardHarnessCursor: 'Cursor',
       wizardCursorRestartNote: 'Restart Cursor for the skill to take effect.',
+      wizardFirstUsecaseTitle: 'You can already try your first Familiar use case!',
+      wizardFirstUsecaseDescription:
+        'Open your AI agent, invoke Familiar, and ask what you did in the last 5 minutes.',
+      wizardFirstUsecaseCommand: '/familiar what have I done in the last 5 minutes',
+      wizardFirstUsecaseHowItWorks:
+        'Familiar reads the recent context it has been capturing and returns a grounded answer in your agent.',
+      wizardFirstUsecaseGifAlt:
+        'Demo showing how to ask Familiar what you did in the last 5 minutes from your AI agent.',
       wizardAllSetTitle: "You're all set",
       wizardAllSetDescription:
         'Familiar is ready. It will capture what matters and make it available to your agents.',
@@ -177,7 +186,7 @@ const microcopy = {
     sections: {
       wizard: {
         title: 'Setup Wizard',
-        subtitle: 'Guided setup in four steps.'
+        subtitle: 'Guided setup in five steps.'
       },
       updates: {
         title: 'Updates',

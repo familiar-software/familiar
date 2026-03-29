@@ -19,6 +19,7 @@ const copy = Object.freeze({
   wizardStepContext: microcopyText('dashboard.html.wizardStepContext'),
   wizardStepPermissions: microcopyText('dashboard.html.wizardStepPermissions'),
   wizardStepInstallSkill: microcopyText('dashboard.html.wizardStepInstallSkill'),
+  wizardStepFirstUsecase: microcopyText('dashboard.html.wizardStepFirstUsecase'),
   wizardStepComplete: microcopyText('dashboard.html.wizardStepComplete'),
   wizardChooseContextFolderTitle: microcopyText('dashboard.html.wizardChooseContextFolderTitle'),
   wizardChooseContextFolderDescription: microcopyText('dashboard.html.wizardChooseContextFolderDescription'),
@@ -34,6 +35,7 @@ const copy = Object.freeze({
   wizardHarnessCodex: microcopyText('dashboard.html.wizardHarnessCodex'),
   wizardHarnessAntigravity: microcopyText('dashboard.html.wizardHarnessAntigravity'),
   wizardHarnessCursor: microcopyText('dashboard.html.wizardHarnessCursor'),
+  wizardFirstUsecaseTitle: microcopyText('dashboard.html.wizardFirstUsecaseTitle'),
   wizardAllSetTitle: microcopyText('dashboard.html.wizardAllSetTitle'),
   wizardAllSetDescription: microcopyText('dashboard.html.wizardAllSetDescription'),
   wizardFaqTitle: microcopyText('dashboard.html.wizardFaqTitle'),
@@ -47,6 +49,17 @@ const copy = Object.freeze({
 })
 
 const wizardSkillInstalledAtPrefix = copy.wizardSkillInstalledAtTemplate.split('{{path}}')[0].trimEnd()
+
+const launchElectronWithRetry = async (launchOptions) => {
+  try {
+    return await electron.launch(launchOptions)
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes('Process failed to launch')) {
+      throw error
+    }
+    return electron.launch(launchOptions)
+  }
+}
 
 const launchElectron = (options = {}) => {
   const appRoot = path.join(__dirname, '../..')
@@ -64,7 +77,7 @@ const launchElectron = (options = {}) => {
     appRoot,
     settingsDir,
     skillHomeDir,
-    electronApp: electron.launch({
+    electronApp: launchElectronWithRetry({
       args: launchArgs,
       cwd: appRoot,
       env: {
@@ -83,7 +96,8 @@ const expectWizardChrome = async (window) => {
   await expect(window.locator('[data-wizard-step-label="1"]')).toHaveText(copy.wizardStepContext)
   await expect(window.locator('[data-wizard-step-label="2"]')).toHaveText(copy.wizardStepPermissions)
   await expect(window.locator('[data-wizard-step-label="3"]')).toHaveText(copy.wizardStepInstallSkill)
-  await expect(window.locator('[data-wizard-step-label="4"]')).toHaveText(copy.wizardStepComplete)
+  await expect(window.locator('[data-wizard-step-label="4"]')).toHaveText(copy.wizardStepFirstUsecase)
+  await expect(window.locator('[data-wizard-step-label="5"]')).toHaveText(copy.wizardStepComplete)
   await expect(window.locator('#wizard-back')).toContainText(copy.wizardBack)
 }
 
@@ -122,16 +136,36 @@ const expectWizardSkillsStepCopy = async (window) => {
   await expect(wizardStepThree).toContainText(copy.wizardHarnessCursor)
 }
 
-const expectWizardCompleteStepCopy = async (window, doneButton) => {
+const expectWizardFirstUsecaseStepCopy = async (window, nextButton) => {
   const wizardStepFour = window.locator('[data-wizard-step="4"]')
 
   await expect(wizardStepFour).toBeVisible()
-  await expect(wizardStepFour).toContainText(copy.wizardAllSetTitle)
-  await expect(wizardStepFour).toContainText(copy.wizardAllSetDescription)
-  await expect(wizardStepFour).toContainText(copy.wizardFaqTitle)
-  await expect(wizardStepFour).toContainText(copy.wizardFaqScrollHint)
-  await expect(wizardStepFour).toContainText(copy.wizardFaqQuestionSensitiveData)
+  await expect(wizardStepFour).toContainText(copy.wizardFirstUsecaseTitle)
+  await expect(wizardStepFour.locator('#wizard-first-usecase-gif')).toBeVisible()
+  await expect(wizardStepFour.locator('#wizard-first-usecase-gif')).toHaveAttribute('src', /familiar-first-usecase\.gif$/)
+  await expect(nextButton).toContainText(copy.wizardNext)
+  await expect(nextButton).toBeEnabled()
+}
+
+const expectWizardCompleteStepCopy = async (window, doneButton) => {
+  const wizardStepFive = window.locator('[data-wizard-step="5"]')
+
+  await expect(wizardStepFive).toBeVisible()
+  await expect(wizardStepFive).toContainText(copy.wizardAllSetTitle)
+  await expect(wizardStepFive).toContainText(copy.wizardAllSetDescription)
+  await expect(wizardStepFive).toContainText(copy.wizardFaqTitle)
+  await expect(wizardStepFive).toContainText(copy.wizardFaqScrollHint)
+  await expect(wizardStepFive).toContainText(copy.wizardFaqQuestionSensitiveData)
   await expect(doneButton).toContainText(copy.wizardDone)
+}
+
+const goToFinalWizardStep = async (window, nextButton) => {
+  await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
+  await expect(nextButton).toBeEnabled()
+  await nextButton.click()
+  await expectWizardFirstUsecaseStepCopy(window, nextButton)
+  await nextButton.click()
+  await expect(window.locator('[data-wizard-step="5"]')).toBeVisible()
 }
 
 const completeWizardPermissionsStep = async (window, nextButton) => {
@@ -177,13 +211,6 @@ const expectAutoInstallAllowsAdvance = async (window, nextButton) => {
 
   await expect(window.locator('#wizard-skill-status')).toContainText(wizardSkillInstalledAtPrefix)
   await expect(nextButton).toBeEnabled()
-}
-
-const goToFinalWizardStep = async (window, nextButton) => {
-  await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
-  await expect(nextButton).toBeEnabled()
-  await nextButton.click()
-  await expect(window.locator('[data-wizard-step="4"]')).toBeVisible()
 }
 
 test('wizard happy flow completes setup and routes to Storage', async () => {
@@ -322,6 +349,8 @@ test('wizard install step auto-installs selected harness and allows continuing',
     await expectAutoInstallAllowsAdvance(window, nextButton)
     await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
     await expect(nextButton).toBeEnabled()
+    await nextButton.click()
+    await expectWizardFirstUsecaseStepCopy(window, nextButton)
     await nextButton.click()
     await expectWizardCompleteStepCopy(window, window.locator('#wizard-done'))
   } finally {

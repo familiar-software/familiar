@@ -7,6 +7,8 @@ import { Label } from '../ui/label'
 import { Select } from '../ui/select'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion'
 
+const FIRST_USECASE_GIF_PATH = './assets/familiar-first-usecase.gif'
+
 export function WizardSection({
   mc,
   displayedContextFolderPath,
@@ -61,7 +63,8 @@ export function WizardSection({
     1: toDisplayText(html.wizardStepContext),
     2: toDisplayText(html.wizardStepPermissions),
     3: toDisplayText(html.wizardStepInstallSkill),
-    4: toDisplayText(html.wizardStepComplete)
+    4: toDisplayText(html.wizardStepFirstUsecase),
+    5: toDisplayText(html.wizardStepComplete)
   }[step] || '')
 
   const wizardFaq = [
@@ -151,7 +154,7 @@ export function WizardSection({
               1
             </div>
             <span
-              className={`text-[14px] font-medium ${getStepLabelClassName(1)}`}
+              className={`max-w-[76px] text-center leading-tight text-[14px] font-medium ${getStepLabelClassName(1)}`}
               data-wizard-step-label="1"
             >
               {wizardStepLabel(1)}
@@ -173,7 +176,7 @@ export function WizardSection({
               2
             </div>
             <span
-              className={`text-[14px] font-medium ${getStepLabelClassName(2)}`}
+              className={`max-w-[76px] text-center leading-tight text-[14px] font-medium ${getStepLabelClassName(2)}`}
               data-wizard-step-label="2"
             >
               {wizardStepLabel(2)}
@@ -195,7 +198,7 @@ export function WizardSection({
               3
             </div>
             <span
-              className={`text-[14px] font-medium ${getStepLabelClassName(3)}`}
+              className={`max-w-[76px] text-center leading-tight text-[14px] font-medium ${getStepLabelClassName(3)}`}
               data-wizard-step-label="3"
             >
               {wizardStepLabel(3)}
@@ -217,10 +220,32 @@ export function WizardSection({
               4
             </div>
             <span
-              className={`text-[14px] font-medium ${getStepLabelClassName(4)}`}
+              className={`max-w-[76px] text-center leading-tight text-[14px] font-medium ${getStepLabelClassName(4)}`}
               data-wizard-step-label="4"
             >
               {wizardStepLabel(4)}
+            </span>
+          </div>
+          <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 mx-2 relative">
+            <div
+              className="absolute inset-y-0 left-0 bg-indigo-600 transition-all"
+              data-wizard-step-connector="4"
+              style={{ width: wizardStep > 4 ? '100%' : '0%' }}
+            />
+          </div>
+
+          <div className="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="5">
+            <div
+              className={`w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-[14px] font-semibold flex items-center justify-center ${getCircleClassName(5)}`}
+              data-wizard-step-circle="5"
+            >
+              5
+            </div>
+            <span
+              className={`max-w-[76px] text-center leading-tight text-[14px] font-medium ${getStepLabelClassName(5)}`}
+              data-wizard-step-label="5"
+            >
+              {wizardStepLabel(5)}
             </span>
           </div>
         </div>
@@ -484,7 +509,25 @@ export function WizardSection({
           </div>
         </div>
 
-        <div className="max-w-[360px] mx-auto space-y-5" data-wizard-step="4" hidden={wizardStep !== 4}>
+        <div className="max-w-[520px] mx-auto space-y-5" data-wizard-step="4" hidden={wizardStep !== 4}>
+          <div className="text-center">
+            <CardTitle>
+              {toDisplayText(html.wizardFirstUsecaseTitle)}
+            </CardTitle>
+          </div>
+          <section className="space-y-3">
+            <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+              <img
+                id="wizard-first-usecase-gif"
+                src={FIRST_USECASE_GIF_PATH}
+                alt={toDisplayText(html.wizardFirstUsecaseGifAlt)}
+                className="block w-full h-auto"
+              />
+            </div>
+          </section>
+        </div>
+
+        <div className="max-w-[360px] mx-auto space-y-5" data-wizard-step="5" hidden={wizardStep !== 5}>
           <div className="text-center space-y-2">
             <CardTitle>
               {toDisplayText(html.wizardAllSetTitle)}
@@ -542,20 +585,20 @@ export function WizardSection({
           <Button
             id="wizard-next"
             type="button"
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-[14px] font-medium text-white shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow-md hover:shadow-indigo-500/20 active:translate-y-px transition-all ${wizardStep >= 4 ? 'hidden' : ''}`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-[14px] font-medium text-white shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow-md hover:shadow-indigo-500/20 active:translate-y-px transition-all ${wizardStep >= 5 ? 'hidden' : ''}`}
             onClick={goWizardNext}
-            disabled={wizardStep >= 4 || !canAdvance}
-            hidden={wizardStep >= 4}
+            disabled={wizardStep >= 5 || !canAdvance}
+            hidden={wizardStep >= 5}
           >
             {toDisplayText(html.wizardNext)}
           </Button>
           <Button
             id="wizard-done"
             type="button"
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-[14px] font-medium text-white shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow-md hover:shadow-indigo-500/20 active:translate-y-px transition-all ${wizardStep >= 4 ? '' : 'hidden'}`}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-[14px] font-medium text-white shadow-sm shadow-indigo-200 dark:shadow-none hover:shadow-md hover:shadow-indigo-500/20 active:translate-y-px transition-all ${wizardStep >= 5 ? '' : 'hidden'}`}
             onClick={completeWizard}
-            disabled={wizardStep < 4 || !canAdvance}
-            hidden={wizardStep < 4}
+            disabled={wizardStep < 5 || !canAdvance}
+            hidden={wizardStep < 5}
           >
             {toDisplayText(mc.dashboard?.actions?.wizardDone)}
           </Button>

@@ -99,10 +99,10 @@ test('step 3 ignores non-array harness state and requires installed state', () =
   )
 })
 
-test('step 4 requires skill installed', () => {
+test('step 4 is an informational step and is always complete', () => {
   assert.equal(
     isWizardStepComplete({ step: 4, settings: {}, isSkillInstalled: false, getHarnessesFromState: () => ['codex'] }),
-    false
+    true
   )
   assert.equal(
     isWizardStepComplete({ step: 4, settings: {}, isSkillInstalled: true, getHarnessesFromState: () => [] }),
@@ -110,15 +110,23 @@ test('step 4 requires skill installed', () => {
   )
 })
 
+test('step 5 is the final completion step and is always complete', () => {
+  assert.equal(
+    isWizardStepComplete({ step: 5, settings: {}, isSkillInstalled: false, getHarnessesFromState: () => [] }),
+    true
+  )
+})
+
 test('nextWizardStep advances within bounds', () => {
   assert.equal(nextWizardStep(1), 2)
-  assert.equal(nextWizardStep(4), 4)
+  assert.equal(nextWizardStep(4), 5)
+  assert.equal(nextWizardStep(5), 5)
   assert.equal(nextWizardStep(0), 1)
   assert.equal(nextWizardStep('bad'), 1)
 })
 
 test('previousWizardStep moves backward within bounds', () => {
-  assert.equal(previousWizardStep(4), 3)
+  assert.equal(previousWizardStep(5), 4)
   assert.equal(previousWizardStep(1), 1)
   assert.equal(previousWizardStep(0), 1)
   assert.equal(previousWizardStep('bad'), 1)
@@ -127,7 +135,8 @@ test('previousWizardStep moves backward within bounds', () => {
 test('isValidWizardStep recognizes legal wizard steps', () => {
   assert.equal(isValidWizardStep(1), true)
   assert.equal(isValidWizardStep(4), true)
-  assert.equal(isValidWizardStep(5), false)
+  assert.equal(isValidWizardStep(5), true)
+  assert.equal(isValidWizardStep(6), false)
   assert.equal(isValidWizardStep('bad'), false)
 })
 

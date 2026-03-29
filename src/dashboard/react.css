@@ -129,23 +129,6 @@ body {
   color: #991b1b;
 }
 
-.react-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #ffffff;
-  padding: 14px;
-}
-
-.react-card h3 {
-  margin: 0 0 6px;
-}
-
-.react-card p {
-  margin: 0;
-  color: #334155;
-  font-size: 13px;
-}
-
 .react-text-list {
   margin: 12px 0 0;
   padding-left: 18px;
@@ -508,14 +491,12 @@ body {
     color: #fca5a5;
   }
 
-  .react-card,
   .react-install-guide-card {
     border-color: #27272a;
     background: #18181b;
     color: #f4f4f5;
   }
 
-  .react-card p,
   .react-inline,
   .react-inline-status,
   .react-text-list,

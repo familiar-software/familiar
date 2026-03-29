@@ -95,7 +95,7 @@ test('completion succeeds and requests storage navigation', async () => {
 
 test('completion succeeds when microcopy is missing', async () => {
   const result = await resolveWizardCompletion({
-    wizardStep: 4,
+    wizardStep: 5,
     isWizardStepComplete: () => true,
     saveSettings: async () => ({ ok: true }),
     mc: {}
