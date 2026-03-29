@@ -510,10 +510,13 @@ export function WizardSection({
         </div>
 
         <div className="max-w-[520px] mx-auto space-y-5" data-wizard-step="4" hidden={wizardStep !== 4}>
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <CardTitle>
               {toDisplayText(html.wizardFirstUsecaseTitle)}
             </CardTitle>
+            <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
+              {toDisplayText(html.wizardFirstUsecaseDescription)}
+            </p>
           </div>
           <section className="space-y-3">
             <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">

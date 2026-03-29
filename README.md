@@ -2,18 +2,19 @@
    <img src="./src/icon.png" width="96" alt="Familiar icon" />
 </p>
 
-<h1 align="center">Familiar: Let AI update itself.</h1>
+<h1 align="center">Familiar: Get AI to know you.</h1>
 
 <p align="center">
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
 </p>
 
-Familiar watches you work so your AI can create its own skills and update its knowledge.
-**Free, open source, local, and offline**.
+Familiar captures all of the important context on your screen.
+Get your favorite agent up to speed in no time.
 
 ## What happens to my data?
 
 **You control your data**
+
 Familiar is designed to be local & offline.
 This means that all of the data is stored locally on your machine and only you can access it.
 

@@ -126,7 +126,7 @@ const microcopy = {
       wizardCursorRestartNote: 'Restart Cursor for the skill to take effect.',
       wizardFirstUsecaseTitle: 'You can already try your first Familiar use case!',
       wizardFirstUsecaseDescription:
-        'Open your AI agent, invoke Familiar, and ask what you did in the last 5 minutes.',
+        "Open one of the tools where you intalled Familiar's skill and type the following:",
       wizardFirstUsecaseCommand: '/familiar what have I done in the last 5 minutes',
       wizardFirstUsecaseHowItWorks:
         'Familiar reads the recent context it has been capturing and returns a grounded answer in your agent.',
