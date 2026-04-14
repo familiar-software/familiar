@@ -254,6 +254,9 @@ export function RecordingSection({
                   <span className="wizard-capture-toggle-subtitle-off text-[14px] text-zinc-500 dark:text-zinc-400 block peer-checked:hidden transition-opacity">
                     {toDisplayText(htmlCopy.recordingActionRequiredToProceed)}
                   </span>
+                  <span className="wizard-capture-toggle-subtitle-on text-[14px] text-indigo-600 dark:text-indigo-400 hidden transition-opacity">
+                    {toDisplayText(htmlCopy.recordingCapturingIsEnabled)}
+                  </span>
                 </div>
               </div>
               <div className="wizard-capture-toggle-switch relative w-12 h-6 rounded-full bg-zinc-300 dark:bg-zinc-700 transition-colors duration-300 ease-in-out peer-checked:bg-indigo-600 shadow-inner group-hover:bg-zinc-400 dark:group-hover:bg-zinc-600 peer-checked:group-hover:bg-indigo-700">
