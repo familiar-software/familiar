@@ -190,6 +190,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
           permissionCheckState: capture.permissionCheckState,
           permissionFlowState: permissionFlow.permissionFlowState,
           openPermissionSettings: permissionFlow.openSystemSettings,
+          openStorageInFinder: () => familiar?.openStorageInFinder?.(),
           wizardHarnessOptions: core.wizardHarnessOptions,
           selectedHarnesses: core.selectedHarnesses,
           skillInstallPaths: core.skillInstallPaths,

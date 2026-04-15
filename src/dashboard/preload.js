@@ -1,9 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron')
+const os = require('node:os')
 
 contextBridge.exposeInMainWorld('familiar', {
   platform: process.platform,
   electronVersion: process.versions.electron,
   nodeVersion: process.versions.node,
+  homedir: os.homedir(),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   checkScreenRecordingPermission: () => ipcRenderer.invoke('settings:checkScreenRecordingPermission'),
   requestScreenRecordingPermission: () => ipcRenderer.invoke('settings:requestScreenRecordingPermission'),
