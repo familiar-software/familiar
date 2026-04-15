@@ -15,6 +15,29 @@ test('initial wizard step starts at permissions when context folder path is alre
   assert.equal(resolveInitialWizardStep(), 1)
 })
 
+test('initial wizard step advances past steps that are already complete', () => {
+  // Context + recording satisfied -> skip step 2 and land on step 3
+  assert.equal(
+    resolveInitialWizardStep({
+      settings: { contextFolderPath: '/tmp/context', alwaysRecordWhenActive: true },
+      isSkillInstalled: false,
+      getHarnessesFromState: () => []
+    }),
+    3
+  )
+
+  // Context + recording + harness + skill satisfied -> step 4 (informational)
+  // which is always complete, so we should land on step 5 (final).
+  assert.equal(
+    resolveInitialWizardStep({
+      settings: { contextFolderPath: '/tmp/context', alwaysRecordWhenActive: true },
+      isSkillInstalled: true,
+      getHarnessesFromState: () => ['codex']
+    }),
+    5
+  )
+})
+
 test('step 1 is complete only when context folder path is set', () => {
   assert.equal(
     isWizardStepComplete({

@@ -1,10 +1,26 @@
 const WIZARD_STEPS = [1, 2, 3, 4, 5]
 
-const resolveInitialWizardStep = ({ settings = {} } = {}) => {
-  if (Boolean(settings.contextFolderPath)) {
-    return 2
+// Walk forward from step 1, returning the first step that isn't yet
+// complete. Keeps users from being trapped on a step they've already
+// satisfied (e.g. permissions granted in a previous session) while
+// still parking them at the first incomplete step if any remain.
+const resolveInitialWizardStep = ({
+  settings = {},
+  isSkillInstalled = false,
+  getHarnessesFromState = () => []
+} = {}) => {
+  for (const step of WIZARD_STEPS) {
+    const complete = isWizardStepComplete({
+      step,
+      settings,
+      isSkillInstalled,
+      getHarnessesFromState
+    })
+    if (!complete) {
+      return step
+    }
   }
-  return 1
+  return WIZARD_STEPS[WIZARD_STEPS.length - 1]
 }
 
 const isWizardStepComplete = ({ step, settings = {}, isSkillInstalled = false, getHarnessesFromState }) => {
