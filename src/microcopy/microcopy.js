@@ -96,12 +96,12 @@ const microcopy = {
       wizardHeaderTitle: 'Setup Wizard',
       wizardHeaderSubtitle: 'Guided setup in five steps.',
       wizardHeaderComplete: 'Setup complete',
-      wizardStepContext: 'Context',
+      wizardStepContext: 'Storage',
       wizardStepPermissions: 'Permissions',
       wizardStepInstallSkill: 'Skills',
       wizardStepFirstUsecase: 'Showcase',
       wizardStepComplete: 'Complete',
-      wizardChooseContextFolderTitle: 'Where Familiar stores your data',
+      wizardChooseContextFolderTitle: 'Where Familiar stores context for your AI',
       wizardChooseContextFolderDescription:
         'Familiar will create a new folder at that destination called "familiar"',
       wizardContextFolder: 'Context Folder',
@@ -109,12 +109,10 @@ const microcopy = {
       wizardContextFolderPlaceholderNoFolderSelected: 'No folder selected',
       wizardContextFolderChange: 'Change',
       wizardContextFolderWhatBody:
-        "Every few seconds while you're active, Familiar saves a screenshot and a short markdown summary of what's on screen to this folder. Open it in Finder and watch it happen.",
+        'Familiar takes a screenshot every few seconds and converts it to a text file (same for your clipboard). Open in Finder and watch it live:',
       wizardContextFolderPrivacyBody:
-        'Everything stays on your Mac. Markdown files are kept; screenshots auto-delete after 2 days (change this in Settings → Storage). You can delete anything manually.',
-      wizardContextFolderSpaceBody:
-        'Familiar is storage-efficient — months of use without noticing.',
-      wizardContextFolderShowInFinder: 'Show in Finder',
+        "Familiar deletes the image file after 2 days, while keeping the markdown file (you can change this in Settings). You can also delete anything manually — it's all files on your computer.",
+      wizardContextFolderShowInFinder: 'Watch it happening live',
       wizardContextFolderAdvanced: 'Advanced: choose a different location',
       wizardContextFolderAdvancedNote:
         'Familiar will create a "familiar" folder inside your chosen location.',

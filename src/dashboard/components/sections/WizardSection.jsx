@@ -277,25 +277,33 @@ export function WizardSection({
             </CardTitle>
           </div>
           <section className="space-y-4" data-component-source="context-folder">
+            <p
+              data-role="context-folder-what"
+              className="text-[14px] leading-relaxed text-zinc-600 dark:text-zinc-300"
+            >
+              {toDisplayText(html.wizardContextFolderWhatBody)}
+            </p>
+
             <div
-              className="flex items-center gap-3 px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg"
+              className="input-ring flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg"
               data-role="storage-path-display"
             >
-              <div className="flex items-center justify-center w-9 h-9 shrink-0 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-indigo-600 dark:text-indigo-300">
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400">
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z" />
                 </svg>
               </div>
-              <div className="flex-1 min-w-0">
-                <span
-                  id="wizard-context-folder-path"
-                  data-setting="context-folder-path"
-                  className="block truncate text-[14px] font-mono font-medium text-zinc-900 dark:text-zinc-100"
-                  title={storageDirAbsolute || ''}
-                >
-                  {storageDirDisplay || toDisplayText(html.wizardContextFolderPlaceholderNoFolderSelected)}
-                </span>
-              </div>
+              <Input
+                id="wizard-context-folder-path"
+                data-setting="context-folder-path"
+                type="text"
+                aria-label={toDisplayText(html.wizardContextFolder)}
+                placeholder={toDisplayText(html.wizardContextFolderPlaceholderNoFolderSelected)}
+                readOnly
+                value={storageDirDisplay || ''}
+                title={storageDirAbsolute || ''}
+                className="flex-1 bg-transparent text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
+              />
               <Button
                 id="wizard-context-folder-show-in-finder"
                 data-action="open-storage-in-finder"
@@ -314,17 +322,12 @@ export function WizardSection({
               </Button>
             </div>
 
-            <div className="space-y-3 text-[14px] leading-relaxed text-zinc-600 dark:text-zinc-300">
-              <p data-role="context-folder-what">
-                {toDisplayText(html.wizardContextFolderWhatBody)}
-              </p>
-              <p data-role="context-folder-privacy">
-                {toDisplayText(html.wizardContextFolderPrivacyBody)}
-              </p>
-              <p data-role="context-folder-space">
-                {toDisplayText(html.wizardContextFolderSpaceBody)}
-              </p>
-            </div>
+            <p
+              data-role="context-folder-privacy"
+              className="text-[14px] leading-relaxed text-zinc-600 dark:text-zinc-300"
+            >
+              {toDisplayText(html.wizardContextFolderPrivacyBody)}
+            </p>
 
             <p
               id="wizard-context-folder-error"
@@ -337,18 +340,18 @@ export function WizardSection({
             </p>
 
             {!isContextAdvancedExpanded ? (
-              <div className="pt-2 text-center">
+              <div className="pt-6 text-center">
                 <button
                   type="button"
                   data-action="context-folder-advanced-toggle"
-                  className="text-[13px] font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200 underline-offset-4 hover:underline focus:outline-none cursor-pointer"
+                  className="text-[12px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 underline-offset-4 hover:underline focus:outline-none cursor-pointer"
                   onClick={() => setIsContextAdvancedExpanded(true)}
                 >
                   {toDisplayText(html.wizardContextFolderAdvanced)}
                 </button>
               </div>
             ) : (
-              <div className="pt-3 space-y-2 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="mt-6 pt-4 space-y-2 border-t border-zinc-200 dark:border-zinc-800">
                 <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
                   {toDisplayText(html.wizardContextFolderAdvancedNote)}
                 </p>
