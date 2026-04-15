@@ -62,8 +62,8 @@ export function WizardSection({
   const hasContextFolder = Boolean(wizardContextFolderPath)
 
   const wizardStepLabel = (step) => ({
-    1: toDisplayText(html.wizardStepContext),
-    2: toDisplayText(html.wizardStepPermissions),
+    1: toDisplayText(html.wizardStepPermissions),
+    2: toDisplayText(html.wizardStepContext),
     3: toDisplayText(html.wizardStepInstallSkill),
     4: toDisplayText(html.wizardStepFirstUsecase),
     5: toDisplayText(html.wizardStepComplete)
@@ -254,7 +254,7 @@ export function WizardSection({
       </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 scrollbar-slim">
-        <div className="max-w-[520px] mx-auto space-y-5" data-wizard-step="1" hidden={wizardStep !== 1}>
+        <div className="max-w-[520px] mx-auto space-y-5" data-wizard-step="2" hidden={wizardStep !== 2}>
           <div className="text-center space-y-1">
             <CardTitle>
               {toDisplayText(html.wizardChooseContextFolderTitle)}
@@ -349,7 +349,7 @@ export function WizardSection({
           )}
         </div>
 
-        <div className="max-w-[360px] mx-auto space-y-5" data-wizard-step="2" hidden={wizardStep !== 2}>
+        <div className="max-w-[360px] mx-auto space-y-5" data-wizard-step="1" hidden={wizardStep !== 1}>
           <div className="text-center space-y-1">
             <CardTitle>
               {toDisplayText(html.wizardEnableCapturingTitle)}

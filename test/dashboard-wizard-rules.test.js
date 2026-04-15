@@ -9,14 +9,16 @@ const {
   isValidWizardStep
 } = require('../src/dashboard/components/dashboard/dashboardWizardRules.cjs')
 
-test('initial wizard step starts at permissions when context folder path is already set', () => {
-  assert.equal(resolveInitialWizardStep({ settings: { contextFolderPath: '/tmp/context' } }), 2)
-  assert.equal(resolveInitialWizardStep({ settings: { contextFolderPath: '' } }), 1)
+test('initial wizard step starts at context when permissions already granted', () => {
+  // Step 1 = permissions; if alwaysRecordWhenActive is true (i.e. macOS
+  // screen-recording grant persisted), advance to step 2 (context).
+  assert.equal(resolveInitialWizardStep({ settings: { alwaysRecordWhenActive: true } }), 2)
+  assert.equal(resolveInitialWizardStep({ settings: { alwaysRecordWhenActive: false } }), 1)
   assert.equal(resolveInitialWizardStep(), 1)
 })
 
 test('initial wizard step advances past steps that are already complete', () => {
-  // Context + recording satisfied -> skip step 2 and land on step 3
+  // Permissions + context satisfied -> skip steps 1 & 2 and land on step 3
   assert.equal(
     resolveInitialWizardStep({
       settings: { contextFolderPath: '/tmp/context', alwaysRecordWhenActive: true },
@@ -26,8 +28,8 @@ test('initial wizard step advances past steps that are already complete', () => 
     3
   )
 
-  // Context + recording + harness + skill satisfied -> step 4 (informational)
-  // which is always complete, so we should land on step 5 (final).
+  // Permissions + context + harness + skill satisfied -> step 4 is always
+  // complete (informational), so we should land on step 5 (final).
   assert.equal(
     resolveInitialWizardStep({
       settings: { contextFolderPath: '/tmp/context', alwaysRecordWhenActive: true },
@@ -38,31 +40,10 @@ test('initial wizard step advances past steps that are already complete', () => 
   )
 })
 
-test('step 1 is complete only when context folder path is set', () => {
+test('step 1 (permissions) is complete only when capture while active is true', () => {
   assert.equal(
     isWizardStepComplete({
       step: 1,
-      settings: { contextFolderPath: '' },
-      isSkillInstalled: false,
-      getHarnessesFromState: () => []
-    }),
-    false
-  )
-  assert.equal(
-    isWizardStepComplete({
-      step: 1,
-      settings: { contextFolderPath: '/tmp/context' },
-      isSkillInstalled: false,
-      getHarnessesFromState: () => []
-    }),
-    true
-  )
-})
-
-test('step 2 is complete only when capture while active is true', () => {
-  assert.equal(
-    isWizardStepComplete({
-      step: 2,
       settings: { alwaysRecordWhenActive: false },
       isSkillInstalled: false,
       getHarnessesFromState: () => []
@@ -71,8 +52,29 @@ test('step 2 is complete only when capture while active is true', () => {
   )
   assert.equal(
     isWizardStepComplete({
-      step: 2,
+      step: 1,
       settings: { alwaysRecordWhenActive: true },
+      isSkillInstalled: false,
+      getHarnessesFromState: () => []
+    }),
+    true
+  )
+})
+
+test('step 2 (context) is complete only when context folder path is set', () => {
+  assert.equal(
+    isWizardStepComplete({
+      step: 2,
+      settings: { contextFolderPath: '' },
+      isSkillInstalled: false,
+      getHarnessesFromState: () => []
+    }),
+    false
+  )
+  assert.equal(
+    isWizardStepComplete({
+      step: 2,
+      settings: { contextFolderPath: '/tmp/context' },
       isSkillInstalled: false,
       getHarnessesFromState: () => []
     }),

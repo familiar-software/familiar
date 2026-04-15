@@ -26,9 +26,15 @@ const resolveInitialWizardStep = ({
 const isWizardStepComplete = ({ step, settings = {}, isSkillInstalled = false, getHarnessesFromState }) => {
   switch (step) {
     case 1:
-      return Boolean(settings.contextFolderPath)
-    case 2:
+      // Permissions: capturing requires the OS-granted Screen Recording
+      // permission, which we record as alwaysRecordWhenActive once the
+      // user has granted (see useWizardPermissionFlow).
       return Boolean(settings.alwaysRecordWhenActive)
+    case 2:
+      // Context: where Familiar stores screenshots/markdown. Auto-defaults
+      // to $HOME on step entry so most users see ~/familiar/ and just
+      // click Next.
+      return Boolean(settings.contextFolderPath)
     case 3: {
       const harnesses = typeof getHarnessesFromState === 'function' ? getHarnessesFromState() : []
       return Array.isArray(harnesses) && harnesses.length > 0 && isSkillInstalled
