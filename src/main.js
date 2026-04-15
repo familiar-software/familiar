@@ -111,6 +111,15 @@ const maybeE2EToast = (payload = {}) => {
 
 const isE2E = process.env.FAMILIAR_E2E === '1';
 const isCI = process.env.CI === 'true' || process.env.CI === '1';
+
+// Dev isolation: when FAMILIAR_SETTINGS_DIR is set, namespace the app
+// name and Chromium userData dir so the dev build takes its own
+// single-instance lock and can run alongside the packaged Familiar.
+if (process.env.FAMILIAR_SETTINGS_DIR) {
+    app.setName('familiar-desktop-dev');
+    app.setPath('userData', path.join(process.env.FAMILIAR_SETTINGS_DIR, 'electron-userdata'));
+}
+
 const { isPrimaryInstance, hasOpenSettingsLaunchArg } = initializeProcessOwnership({
     app,
     isE2E,
@@ -485,12 +494,18 @@ function createSettingsWindow() {
         fullscreenable: false,
         minimizable: false,
         show: false,
-        title: 'Familiar Settings',
+        title: process.env.FAMILIAR_SETTINGS_DIR ? 'Familiar Settings — DEV BUILD' : 'Familiar Settings',
         webPreferences: {
             preload: path.join(__dirname, 'dashboard', 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
         },
+    });
+
+    const windowTitle = process.env.FAMILIAR_SETTINGS_DIR ? 'Familiar Settings — DEV BUILD' : 'Familiar Settings';
+    window.on('page-title-updated', (event) => {
+        event.preventDefault();
+        window.setTitle(windowTitle);
     });
 
     window.loadFile(dashboardHtmlPath);
