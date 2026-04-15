@@ -30,7 +30,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test && npm run test:e2e && npm run test:unit:timed",
     "dev:reset-wizard": "node scripts/dev-reset-wizard.js",
-    "dev:replay-wizard": "node scripts/dev-reset-wizard.js && npm run dev"
+    "dev:replay-wizard": "node scripts/dev-reset-wizard.js && npm run dev",
+    "dev:fresh-loop": "bash scripts/dev-fresh-loop.sh"
   },
   "repository": "https://github.com/familiar-software/familiar",
   "keywords": [

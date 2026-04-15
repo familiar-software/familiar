@@ -216,7 +216,8 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
         },
         storageAutoCleanupRetentionDays:
           resolveAutoCleanupRetentionDays(next.storageAutoCleanupRetentionDays),
-        wizardCompleted: next.wizardCompleted === true
+        wizardCompleted: next.wizardCompleted === true,
+        homedir: typeof next.homedir === 'string' ? next.homedir : ''
       }
       setSettings(nextSettings)
       setIsWizardCompleted(nextSettings.wizardCompleted)

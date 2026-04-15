@@ -203,7 +203,8 @@ function handleGetSettings() {
                 installPath: skillInstallerInstallPath,
             },
             capturePrivacy,
-            appVersion
+            appVersion,
+            homedir: os.homedir()
         };
     } catch (error) {
         console.error('Failed to load settings', error);

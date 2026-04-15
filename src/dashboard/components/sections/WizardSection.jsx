@@ -64,9 +64,8 @@ export function WizardSection({
   const [isContextAdvancedExpanded, setIsContextAdvancedExpanded] = useState(false)
   // Compose the absolute storage dir (<parent>/familiar/) and a friendly
   // display version that abbreviates $HOME to "~". Renderer can't import
-  // node:os; preload exposes window.familiar.homedir for this.
-  const familiarBridge = typeof window !== 'undefined' ? window.familiar : null
-  const homedir = (familiarBridge && typeof familiarBridge.homedir === 'string') ? familiarBridge.homedir : ''
+  // node:os; main process attaches homedir to the settings IPC payload.
+  const homedir = typeof settings?.homedir === 'string' ? settings.homedir : ''
   const contextParent = wizardContextFolderPath || displayedContextFolderPath || ''
   const storageDirAbsolute = contextParent ? `${contextParent.replace(/\/$/, '')}/familiar` : ''
   const storageDirDisplay = (() => {

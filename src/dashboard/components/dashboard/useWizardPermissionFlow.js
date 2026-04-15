@@ -81,7 +81,7 @@ export const useWizardPermissionFlow = ({
   // On step entry (or re-entry): do a silent check. If already granted,
   // jump straight to the granted banner. Otherwise sit in ready.
   useEffect(() => {
-    if (wizardStep !== 2) {
+    if (wizardStep !== 1) {
       activeRef.current = false
       clearPoll()
       clearNudge()
@@ -108,7 +108,7 @@ export const useWizardPermissionFlow = ({
   // the common macOS dance where granting screen recording kills the app
   // and the user comes back manually.
   useEffect(() => {
-    if (wizardStep !== 2) return undefined
+    if (wizardStep !== 1) return undefined
     const handleFocus = () => {
       if (!activeRef.current) return
       runSilentCheck().then(applyResult)
