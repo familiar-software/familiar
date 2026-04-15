@@ -62,12 +62,12 @@ export function WizardSection({
   const displayedSkillStatus = skillStatusMessage || toDisplayText(wizardMessage)
   const hasContextFolder = Boolean(wizardContextFolderPath)
   const [isContextAdvancedExpanded, setIsContextAdvancedExpanded] = useState(false)
-  // Compose the absolute storage dir (<parent>/familiar/) and a friendly
-  // display version that abbreviates $HOME to "~". Renderer can't import
-  // node:os; main process attaches homedir to the settings IPC payload.
+  // wizardContextFolderPath is already <parent>/familiar (the storage
+  // dir) — see toWizardContextFolderPath in useDashboardState. Friendly
+  // display abbreviates $HOME to "~". Renderer can't import node:os;
+  // main process attaches homedir to the settings IPC payload.
   const homedir = typeof settings?.homedir === 'string' ? settings.homedir : ''
-  const contextParent = wizardContextFolderPath || displayedContextFolderPath || ''
-  const storageDirAbsolute = contextParent ? `${contextParent.replace(/\/$/, '')}/familiar` : ''
+  const storageDirAbsolute = (wizardContextFolderPath || '').replace(/\/$/, '')
   const storageDirDisplay = (() => {
     if (!storageDirAbsolute) return ''
     if (homedir && storageDirAbsolute === homedir) return '~'
