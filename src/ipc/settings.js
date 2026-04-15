@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -20,6 +20,7 @@ const {
   normalizeCapturePrivacySettings
 } = require('../screen-stills/capture-privacy');
 const { listInstalledApps, getInstalledAppIconDataUrl } = require('../apps/installed-apps');
+const { getStorageDir } = require('../const');
 
 let onSettingsSaved = null;
 let onMoveContextFolder = null;
@@ -159,6 +160,7 @@ function registerSettingsHandlers(options = {}) {
     ipcMain.handle('settings:checkScreenRecordingPermission', handleCheckScreenRecordingPermission);
     ipcMain.handle('settings:requestScreenRecordingPermission', handleRequestScreenRecordingPermission);
     ipcMain.handle('settings:openScreenRecordingSettings', handleOpenScreenRecordingSettings);
+    ipcMain.handle('settings:openStorageInFinder', handleOpenStorageInFinder);
     console.log('Settings IPC handlers registered');
 }
 
@@ -466,6 +468,41 @@ async function handleOpenScreenRecordingSettings() {
         console.warn('Failed to open Screen Recording settings', { message: result.message || 'unknown-error' });
     }
     return result;
+}
+
+// Open the storage dir (<contextFolderPath>/familiar) in Finder so the
+// user can see exactly where Familiar writes screenshots and markdown.
+// Creates the dir on demand — by the time we reach this handler from
+// the onboarding wizard, contextFolderPath is set, but the storage
+// subdir may not yet exist on disk.
+async function handleOpenStorageInFinder() {
+    try {
+        const settings = loadSettings();
+        const contextFolderPath = typeof settings?.contextFolderPath === 'string' ? settings.contextFolderPath : '';
+        if (!contextFolderPath) {
+            return { ok: false, message: 'Context folder is not set yet.' };
+        }
+        const storageDir = getStorageDir(contextFolderPath);
+        if (!storageDir) {
+            return { ok: false, message: 'Could not resolve storage directory.' };
+        }
+        try {
+            fs.mkdirSync(storageDir, { recursive: true });
+        } catch (error) {
+            console.warn('Failed to create storage dir before opening in Finder', { storageDir, message: error?.message });
+            return { ok: false, message: error?.message || 'Failed to create storage directory.' };
+        }
+        const errorMessage = await shell.openPath(storageDir);
+        if (errorMessage) {
+            console.warn('shell.openPath returned an error', { storageDir, errorMessage });
+            return { ok: false, message: errorMessage };
+        }
+        console.log('Opened storage dir in Finder', { storageDir });
+        return { ok: true, storageDir };
+    } catch (error) {
+        console.error('Failed to open storage dir in Finder', error);
+        return { ok: false, message: error?.message || 'Failed to open storage directory.' };
+    }
 }
 
 async function handleMoveContextFolder(_event, payload) {

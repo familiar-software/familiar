@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('familiar', {
   listInstalledApps: () => ipcRenderer.invoke('settings:listInstalledApps'),
   getInstalledAppIcon: (payload) => ipcRenderer.invoke('settings:getInstalledAppIcon', payload || {}),
   pickContextFolder: () => ipcRenderer.invoke('settings:pickContextFolder'),
+  openStorageInFinder: () => ipcRenderer.invoke('settings:openStorageInFinder'),
   moveContextFolder: (payload) => ipcRenderer.invoke('settings:moveContextFolder', payload),
   saveSettings: (payload) => {
     const data = typeof payload === 'string' ? { contextFolderPath: payload } : payload
