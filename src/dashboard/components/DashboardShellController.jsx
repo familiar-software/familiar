@@ -13,6 +13,7 @@ import { useDashboardState } from './dashboard/useDashboardState'
 import { useDashboardStorage } from './dashboard/useDashboardStorage'
 import { useDashboardUpdates } from './dashboard/useDashboardUpdates'
 import { useDashboardWizard } from './dashboard/useDashboardWizard'
+import { useWizardPermissionFlow } from './dashboard/useWizardPermissionFlow'
 import {
   resolveRecordingIndicatorVisuals,
   formatBytes,
@@ -77,6 +78,20 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     core.setWizardMessage,
     storage
   ])
+
+  const handlePermissionGranted = useCallback(async () => {
+    core.setWizardError('')
+    const ok = await storage.setAlwaysRecord(true)
+    if (!ok) {
+      core.setWizardError(core.mc.dashboard.settings.errors.failedToSaveSetting)
+    }
+  }, [core, storage])
+
+  const permissionFlow = useWizardPermissionFlow({
+    familiar,
+    wizardStep: core.wizardStep,
+    onGranted: handlePermissionGranted
+  })
 
   const navigation = buildDashboardNavigation(core.mc)
   const availableSectionIds = navigation.map((entry) => entry.id)
@@ -147,6 +162,8 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
           checkPermissions: checkWizardPermissions,
           openScreenRecordingSettings: capture.openScreenRecordingSettings,
           permissionCheckState: capture.permissionCheckState,
+          permissionFlowState: permissionFlow.permissionFlowState,
+          openPermissionSettings: permissionFlow.openSystemSettings,
           wizardHarnessOptions: core.wizardHarnessOptions,
           selectedHarnesses: core.selectedHarnesses,
           skillInstallPaths: core.skillInstallPaths,

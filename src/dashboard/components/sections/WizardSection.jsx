@@ -27,6 +27,8 @@ export function WizardSection({
   pickContextFolder,
   checkPermissions,
   openScreenRecordingSettings,
+  permissionFlowState = 'checking',
+  openPermissionSettings,
   wizardHarnessOptions,
   selectedHarnesses,
   skillInstallPaths,
@@ -357,49 +359,54 @@ export function WizardSection({
             </p>
           </div>
           <div data-component-source="permissions" className="space-y-5">
-            <section className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  id="wizard-check-permissions"
-                  data-action="check-permissions"
-                  type="button"
-                  variant="outline"
-                  className="px-3 py-2 text-[14px] font-semibold bg-transparent border border-indigo-600 hover:border-indigo-700 rounded-lg text-indigo-600 hover:text-indigo-700 focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => {
-                    void checkPermissions()
-                  }}
-                  disabled={isCheckingPermissions}
-                >
-                  {checkPermissionsLabel}
-                </Button>
-                <Button
-                  id="wizard-open-screen-recording-settings"
-                  data-action="open-screen-recording-settings"
-                  type="button"
-                  variant="outline"
-                  className="px-3 py-2 text-[14px] font-semibold bg-white dark:bg-zinc-800 border border-indigo-300 dark:border-indigo-700 rounded-lg text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 focus:outline-none transition-colors cursor-pointer hidden"
-                  onClick={openScreenRecordingSettings}
-                  hidden={!isPermissionCheckDenied}
-                >
-                  {openScreenRecordingLabel}
-                </Button>
-              </div>
+            <section className="space-y-3" data-permission-flow-state={permissionFlowState}>
+              {permissionFlowState === 'checking' && (
+                <p className="text-[14px] text-zinc-500 dark:text-zinc-400 text-center">
+                  {toDisplayText(html.wizardPermissionChecking)}
+                </p>
+              )}
+              {permissionFlowState === 'ready' && (
+                <div className="flex justify-center">
+                  <Button
+                    id="wizard-open-screen-recording-settings"
+                    data-action="open-screen-recording-settings"
+                    type="button"
+                    className="px-4 py-2 text-[14px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (typeof openPermissionSettings === 'function') {
+                        void openPermissionSettings()
+                      } else {
+                        void openScreenRecordingSettings?.()
+                      }
+                    }}
+                  >
+                    {toDisplayText(html.wizardPermissionOpenSettings)}
+                  </Button>
+                </div>
+              )}
+              {(permissionFlowState === 'waiting' || permissionFlowState === 'nudge') && (
+                <div className="space-y-2 text-center">
+                  <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
+                    {toDisplayText(html.wizardPermissionWaiting)}
+                  </p>
+                  <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
+                    {toDisplayText(
+                      permissionFlowState === 'nudge'
+                        ? html.wizardPermissionNudgeHint
+                        : html.wizardPermissionWaitingHint
+                    )}
+                  </p>
+                </div>
+              )}
+              {permissionFlowState === 'granted' && (
+                <div className="flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[14px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                    <path d="m5 12 5 5L20 7" />
+                  </svg>
+                  <span>{toDisplayText(html.wizardPermissionGranted)}</span>
+                </div>
+              )}
             </section>
-            <p
-              id="wizard-open-screen-recording-settings-note"
-              data-open-screen-recording-settings-note
-              className={`text-[14px] font-semibold text-zinc-500 dark:text-zinc-400 ${isPermissionCheckDenied ? '' : 'hidden'}`}
-            >
-              {toDisplayText(html.wizardAfterEnablingRestartFamiliar)}
-            </p>
-            <section
-              id="wizard-recording-toggle-section"
-              data-role="permission-recording-toggle-section"
-              data-permission-toggle-visibility="hidden"
-              className="hidden"
-              hidden
-              aria-hidden="true"
-            />
             <p
               id="wizard-always-record-when-active-error"
               data-setting-error="always-record-when-active-error"
