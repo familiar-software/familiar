@@ -35,7 +35,7 @@ test('getMicrocopyValue resolves configured copy', () => {
   )
   assert.equal(
     getMicrocopyValue('dashboard.html.wizardChooseContextFolderTitle'),
-    'Choose where Familiar stores the captured context'
+    'Where Familiar stores your data'
   )
   assert.equal(
     getMicrocopyValue('dashboard.html.wizardChooseContextFolderDescription'),

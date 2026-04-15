@@ -260,6 +260,13 @@ const validateContextFolderPath = (contextFolderPath) =>
         requiredMessage: 'Context Folder Path is required.'
     });
 
+// The default parent directory for Familiar's storage. With this default,
+// the storage dir resolves to ~/familiar/ — sibling of the hidden
+// ~/.familiar/ settings dir, easy to find in Finder, no decision required
+// from the user. Advanced users can override by picking a different
+// folder via the wizard.
+const resolveDefaultContextFolderPath = () => os.homedir();
+
 module.exports = {
     loadSettings,
     saveSettings,
@@ -267,4 +274,5 @@ module.exports = {
     validateContextFolderPath,
     resolveSettingsDir,
     resolveSettingsPath,
+    resolveDefaultContextFolderPath,
 };

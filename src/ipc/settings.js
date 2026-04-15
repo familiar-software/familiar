@@ -6,7 +6,8 @@ const {
   loadSettings,
   saveSettings,
   validateContextFolderPath,
-  validateWritableDirectoryPath
+  validateWritableDirectoryPath,
+  resolveDefaultContextFolderPath
 } = require('../settings');
 const { normalizeStringArray } = require('../utils/list');
 const {
@@ -161,6 +162,7 @@ function registerSettingsHandlers(options = {}) {
     ipcMain.handle('settings:requestScreenRecordingPermission', handleRequestScreenRecordingPermission);
     ipcMain.handle('settings:openScreenRecordingSettings', handleOpenScreenRecordingSettings);
     ipcMain.handle('settings:openStorageInFinder', handleOpenStorageInFinder);
+    ipcMain.handle('settings:applyDefaultContextFolder', handleApplyDefaultContextFolder);
     console.log('Settings IPC handlers registered');
 }
 
@@ -502,6 +504,48 @@ async function handleOpenStorageInFinder() {
     } catch (error) {
         console.error('Failed to open storage dir in Finder', error);
         return { ok: false, message: error?.message || 'Failed to open storage directory.' };
+    }
+}
+
+// Idempotent: if contextFolderPath is already set we leave it alone.
+// Otherwise sets it to $HOME (sibling of ~/.familiar/) and creates the
+// storage subdir on disk so "Show in Finder" can open something.
+async function handleApplyDefaultContextFolder() {
+    try {
+        const settings = loadSettings();
+        const existing = typeof settings?.contextFolderPath === 'string' ? settings.contextFolderPath.trim() : '';
+        if (existing) {
+            return { ok: true, contextFolderPath: existing, applied: false };
+        }
+        const defaultPath = resolveDefaultContextFolderPath();
+        const validation = validateContextFolderPath(defaultPath);
+        if (!validation.ok) {
+            console.warn('Default context folder path is not writable', { defaultPath, message: validation.message });
+            return { ok: false, message: validation.message };
+        }
+        try {
+            saveSettings({ contextFolderPath: defaultPath });
+        } catch (error) {
+            console.error('Failed to save default context folder', error);
+            return { ok: false, message: error?.message || 'Failed to save default context folder.' };
+        }
+        try {
+            fs.mkdirSync(getStorageDir(defaultPath), { recursive: true });
+        } catch (error) {
+            console.warn('Failed to create default storage dir', { storageDir: getStorageDir(defaultPath), message: error?.message });
+        }
+        if (typeof onSettingsSaved === 'function') {
+            try {
+                onSettingsSaved({ contextFolderPath: defaultPath });
+            } catch (error) {
+                console.warn('onSettingsSaved threw after applying default context folder', error);
+            }
+        }
+        console.log('Applied default context folder', { contextFolderPath: defaultPath });
+        return { ok: true, contextFolderPath: defaultPath, applied: true };
+    } catch (error) {
+        console.error('Failed to apply default context folder', error);
+        return { ok: false, message: error?.message || 'Failed to apply default context folder.' };
     }
 }
 

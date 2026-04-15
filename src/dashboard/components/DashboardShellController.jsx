@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 
 import { DashboardShellLayout } from './layout/DashboardShellLayout'
 import { DashboardShellSectionContent } from './sections/DashboardShellSectionContent'
@@ -78,6 +78,32 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     core.setWizardMessage,
     storage
   ])
+
+  // Auto-default contextFolderPath to $HOME the first time the user
+  // lands on the Context step. Idempotent on the IPC side; we still
+  // guard with a ref so we don't spam invocations on every re-render.
+  const defaultAppliedRef = useRef(false)
+  useEffect(() => {
+    if (core.wizardStep !== 2) return
+    if (defaultAppliedRef.current) return
+    if (core.settings?.contextFolderPath) {
+      defaultAppliedRef.current = true
+      return
+    }
+    if (typeof familiar?.applyDefaultContextFolder !== 'function') return
+    defaultAppliedRef.current = true
+    familiar
+      .applyDefaultContextFolder()
+      .then((result) => {
+        if (result?.ok && result?.contextFolderPath) {
+          core.setSettings?.((prev) => ({ ...(prev || {}), contextFolderPath: result.contextFolderPath }))
+        }
+      })
+      .catch((error) => {
+        defaultAppliedRef.current = false
+        console.error('applyDefaultContextFolder failed', error)
+      })
+  }, [core, familiar])
 
   const handlePermissionGranted = useCallback(async () => {
     core.setWizardError('')

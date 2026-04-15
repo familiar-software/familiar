@@ -101,13 +101,23 @@ const microcopy = {
       wizardStepInstallSkill: 'Skills',
       wizardStepFirstUsecase: 'Showcase',
       wizardStepComplete: 'Complete',
-      wizardChooseContextFolderTitle: 'Choose where Familiar stores the captured context',
+      wizardChooseContextFolderTitle: 'Where Familiar stores your data',
       wizardChooseContextFolderDescription:
         'Familiar will create a new folder at that destination called "familiar"',
       wizardContextFolder: 'Context Folder',
       wizardContextFolderSetCta: 'Choose folder',
       wizardContextFolderPlaceholderNoFolderSelected: 'No folder selected',
       wizardContextFolderChange: 'Change',
+      wizardContextFolderWhatBody:
+        "Every few seconds while you're active, Familiar saves a screenshot and a short markdown summary of what's on screen to this folder. Open it in Finder and watch it happen.",
+      wizardContextFolderPrivacyBody:
+        'Everything stays on your Mac. Markdown files are kept; screenshots auto-delete after 2 days (change this in Settings → Storage). You can delete anything manually.',
+      wizardContextFolderSpaceBody:
+        'Familiar is storage-efficient — months of use without noticing.',
+      wizardContextFolderShowInFinder: 'Show in Finder',
+      wizardContextFolderAdvanced: 'Advanced: choose a different location',
+      wizardContextFolderAdvancedNote:
+        'Familiar will create a "familiar" folder inside your chosen location.',
       wizardEnableCapturingTitle: 'Enable capturing',
       wizardEnableCapturingDescription:
         'Allow Familiar to capture your screen.',
