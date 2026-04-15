@@ -129,7 +129,7 @@ const createClaudeCodeAdapter = ({
         '--permission-mode',
         'plan',
         '--add-dir',
-        contextFolderPath
+        resolvedWorkspaceDir
       ],
       cwd: resolvedWorkspaceDir,
       input: wrappedPrompt,

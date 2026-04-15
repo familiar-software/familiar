@@ -2,6 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const { loadSettings } = require('../settings')
+const { getStorageDir } = require('../const')
 
 const resolveContextFolderPath = ({
   contextFolderPath,
@@ -39,10 +40,18 @@ const validateContextFolderPath = ({ contextFolderPath } = {}) => {
   return { ok: true, contextFolderPath: resolvedPath }
 }
 
+// Default harness cwd is the STORAGE dir (<parent>/familiar/), not the
+// parent itself. This keeps scheduled tasks scoped to Familiar's own
+// content and avoids incidental access to whatever else the user has
+// next to their familiar/ folder.
 const resolveWorkspaceDir = ({ contextFolderPath, workspaceDir } = {}) => {
   const explicitWorkspaceDir = typeof workspaceDir === 'string' ? workspaceDir.trim() : ''
   if (explicitWorkspaceDir) {
     return path.resolve(explicitWorkspaceDir)
+  }
+  const storageDir = getStorageDir(contextFolderPath)
+  if (storageDir) {
+    return path.resolve(storageDir)
   }
   return path.resolve(contextFolderPath)
 }

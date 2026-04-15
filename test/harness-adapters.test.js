@@ -9,6 +9,7 @@ const { createClaudeCodeAdapter } = require('../src/harness-adapters/adapters/cl
 const { createCursorAdapter } = require('../src/harness-adapters/adapters/cursor')
 const { createHarnessRunner } = require('../src/harness-adapters/runner')
 const { ADAPTER_STATUS } = require('../src/harness-adapters/types')
+const { getStorageDir } = require('../src/const')
 
 const createLogger = () => ({
   log: () => {},
@@ -63,7 +64,7 @@ test('codex adapter runPrompt executes codex with writable workspace sandbox and
   assert.ok(call.args.includes('--skip-git-repo-check'))
   const cdIndex = call.args.indexOf('--cd')
   assert.notEqual(cdIndex, -1)
-  assert.equal(call.args[cdIndex + 1], contextFolderPath)
+  assert.equal(call.args[cdIndex + 1], getStorageDir(contextFolderPath))
   const wrappedPrompt = call.args[call.args.length - 1]
   assert.match(wrappedPrompt, /What happened today\?/)
   assert.match(wrappedPrompt, /context folder/i)
@@ -129,10 +130,10 @@ test('claude-code adapter runPrompt pipes wrapped prompt through stdin and retur
   assert.equal(result.answer, 'claude final answer')
   assert.equal(result.meta.adapter, 'claude-code')
   assert.equal(call.command, claudePath)
-  assert.equal(call.cwd, contextFolderPath)
+  assert.equal(call.cwd, getStorageDir(contextFolderPath))
   const addDirIndex = call.args.indexOf('--add-dir')
   assert.notEqual(addDirIndex, -1)
-  assert.equal(call.args[addDirIndex + 1], contextFolderPath)
+  assert.equal(call.args[addDirIndex + 1], getStorageDir(contextFolderPath))
   assert.match(call.input, /Summarize my day/)
   assert.match(call.input, /context folder/i)
 })
@@ -238,7 +239,7 @@ test('cursor adapter runPrompt executes cursor-agent in print mode and returns p
   assert.equal(result.answer, 'cursor final answer')
   assert.equal(result.meta.adapter, 'cursor')
   assert.equal(call.command, cursorPath)
-  assert.equal(call.cwd, contextFolderPath)
+  assert.equal(call.cwd, getStorageDir(contextFolderPath))
   assert.deepEqual(call.args.slice(0, 3), ['-p', '--output-format', 'json'])
   assert.match(call.args[call.args.length - 1], /Summarize my familiar context/)
   assert.match(call.args[call.args.length - 1], /context folder/i)
