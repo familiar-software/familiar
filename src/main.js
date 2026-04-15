@@ -767,6 +767,30 @@ if (isPrimaryInstance) {
             return;
         }
 
+        // If the user has already advanced past the context-folder step and
+        // the OS says Screen Recording is granted, silently mirror that into
+        // alwaysRecordWhenActive so the wizard doesn't trap them on step 2
+        // after a macOS-triggered relaunch. Only applies while the wizard is
+        // still in progress, so we never toggle recording for users who have
+        // completed onboarding.
+        try {
+            const bootSettings = loadSettings();
+            const wizardStillInProgress = bootSettings?.wizardCompleted !== true;
+            const hasContextFolder = Boolean(bootSettings?.contextFolderPath);
+            const hasAlwaysRecord = bootSettings?.alwaysRecordWhenActive === true;
+            if (
+                wizardStillInProgress
+                && hasContextFolder
+                && !hasAlwaysRecord
+                && getScreenRecordingPermissionStatus() === 'granted'
+            ) {
+                saveSettings({ ...bootSettings, alwaysRecordWhenActive: true });
+                console.log('Hydrated alwaysRecordWhenActive=true from OS permission at startup');
+            }
+        } catch (error) {
+            console.error('Failed to hydrate recording state from OS permission', error);
+        }
+
         await ensureFamiliarSkillAlignment();
 
         const shouldInitializeRecording = process.platform === 'darwin' || isE2E;
