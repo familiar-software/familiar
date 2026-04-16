@@ -72,7 +72,7 @@ test('completion fails when save result returns {ok: false}', async () => {
   assert.equal(result.persist, false)
 })
 
-test('completion succeeds and requests storage navigation', async () => {
+test('completion succeeds and requests complete-screen navigation', async () => {
   const saveCalls = []
   const result = await resolveWizardCompletion({
     wizardStep: 2,
@@ -86,7 +86,7 @@ test('completion succeeds and requests storage navigation', async () => {
 
   assert.equal(result.ok, true)
   assert.equal(result.persist, true)
-  assert.equal(result.nextSection, 'storage')
+  assert.equal(result.nextSection, 'complete')
   assert.equal(result.completed, true)
   assert.equal(result.message, 'Wizard completed.')
   assert.equal(result.clearError, true)
