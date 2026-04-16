@@ -1,5 +1,6 @@
 import React from 'react'
 
+import { CompleteSection } from './CompleteSection'
 import { InstallSkillSection } from './InstallSkillSection'
 import { RecordingSection } from './RecordingSection'
 import { StorageSection } from './StorageSection'
@@ -16,6 +17,10 @@ export function DashboardShellSectionContent({
 }) {
   if (activeSection === 'wizard') {
     return <WizardSection mc={mc} toDisplayText={toDisplayText} {...wizardSectionProps} />
+  }
+
+  if (activeSection === 'complete') {
+    return <CompleteSection mc={mc} toDisplayText={toDisplayText} />
   }
 
   if (activeSection === 'recording') {

@@ -32,6 +32,8 @@ export function DashboardShellLayout({
   updatesState
 }) {
   const isWizardSection = activeSection === 'wizard'
+  const isCompleteSection = activeSection === 'complete'
+  const isChromelessSection = isWizardSection || isCompleteSection
   const appLabel = toDisplayText(appName)
   const updatesLabel = toDisplayText(updateMessage)
   const updatesErrorText = toDisplayText(updateError)
@@ -92,7 +94,7 @@ export function DashboardShellLayout({
     <div className={dashboardShellRootClassName}>
       <Sidebar
         id="settings-sidebar"
-        className={isWizardCompleted ? '' : 'hidden'}
+        className={isWizardCompleted && !isCompleteSection ? '' : 'hidden'}
       >
         <SidebarHeader>
           <img src="../icon.png" alt="" className="w-5 h-5 rounded-md object-cover shadow-sm" />
@@ -193,7 +195,7 @@ export function DashboardShellLayout({
         <h1 id="section-title" className="sr-only">
           {toDisplayText(sectionTitle)}
         </h1>
-        {isWizardSection ? (
+        {isChromelessSection ? (
           children
         ) : (
           <section className="flex-1 p-6 space-y-6 scrollbar-slim overflow-y-auto">

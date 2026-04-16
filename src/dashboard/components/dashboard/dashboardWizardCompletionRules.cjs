@@ -65,7 +65,7 @@ const resolveWizardCompletion = async ({
   return {
     ok: true,
     persist: true,
-    nextSection: 'storage',
+    nextSection: 'complete',
     completed: true,
     message: 'Wizard completed.',
     clearError: true,
