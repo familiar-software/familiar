@@ -245,7 +245,7 @@ export function WizardSection({
   return (
       <section id="section-wizard" className="relative flex-1 flex flex-col min-h-0">
       <div className="flex-none px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800/40">
-        <div className="flex items-center justify-between relative">
+        <div className="flex items-center justify-between relative px-6">
           <div className="flex flex-col items-center gap-1.5 relative z-10" data-wizard-step-indicator="1">
             <div
               className={`w-7 h-7 rounded-full border border-zinc-200 dark:border-zinc-700 text-[14px] font-semibold flex items-center justify-center ${getCircleClassName(1)}`}
