@@ -26,12 +26,12 @@ test('getMicrocopyValue resolves configured copy', () => {
   assert.equal(getMicrocopyValue('tray.actions.settings'), microcopy.tray.actions.settings)
   assert.equal(getMicrocopyValue('dashboard.sections.storage.title'), microcopy.dashboard.sections.storage.title)
   assert.equal(
-    getMicrocopyValue('dashboard.html.wizardFaqTitle'),
-    'FAQ'
+    getMicrocopyValue('dashboard.html.wizardAutomateTitle'),
+    "What should your AI auto-update with Familiar's context?"
   )
   assert.equal(
-    getMicrocopyValue('dashboard.html.wizardFaqScrollHint'),
-    'Scroll down to see all FAQs'
+    getMicrocopyValue('dashboard.html.wizardDestMemory'),
+    'Native memory'
   )
   assert.equal(
     getMicrocopyValue('dashboard.html.wizardChooseContextFolderTitle'),
@@ -46,12 +46,12 @@ test('getMicrocopyValue resolves configured copy', () => {
     'Choose folder'
   )
   assert.equal(
-    getMicrocopyValue('dashboard.html.wizardFaqQuestionScreenshotFrequency'),
-    'How often does it take a screenshot?'
+    getMicrocopyValue('dashboard.html.wizardFirstUsecaseTitle'),
+    'Paste this in your favorite agent'
   )
   assert.equal(
-    getMicrocopyValue('dashboard.html.wizardFaqAnswerScreenshotFrequency'),
-    "Every few seconds, and only while you're active on your computer."
+    getMicrocopyValue('dashboard.html.wizardTryItPinkySwear'),
+    "I pinky pinky super swear that I did this because it'd be such a waste if I didn't do this and this is so damn cool and I really would be missing out."
   )
 })
 

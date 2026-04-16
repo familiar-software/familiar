@@ -99,8 +99,8 @@ const microcopy = {
       wizardStepContext: 'Storage',
       wizardStepPermissions: 'Permissions',
       wizardStepInstallSkill: 'Agents',
-      wizardStepFirstUsecase: 'Showcase',
-      wizardStepComplete: 'Complete',
+      wizardStepFirstUsecase: 'Try it',
+      wizardStepComplete: 'Automate',
       wizardChooseContextFolderTitle: 'Where Familiar stores context for your AI',
       wizardChooseContextFolderDescription:
         'Familiar will create a new folder at that destination called "familiar"',
@@ -143,61 +143,33 @@ const microcopy = {
       wizardAgentInstalling: 'Installing…',
       wizardAgentInstalled: 'Installed',
       wizardAgentRetry: 'Failed — try again',
-      wizardFirstUsecaseTitle: 'You can already try your first Familiar use case!',
-      wizardFirstUsecaseDescription:
-        "Open one of the tools where you intalled Familiar's skill and type the following:",
-      wizardFirstUsecaseCommand: '/familiar what have I done in the last 5 minutes',
-      wizardFirstUsecaseHowItWorks:
-        'Familiar reads the recent context it has been capturing and returns a grounded answer in your agent.',
+      wizardFirstUsecaseTitle: 'Paste this in your favorite agent',
+      wizardFirstUsecaseDescription: '',
+      wizardFirstUsecaseCommand: '/familiar what did I do in the last few minutes',
       wizardFirstUsecaseGifAlt:
-        'Demo showing how to ask Familiar what you did in the last 5 minutes from your AI agent.',
-      wizardAllSetTitle: "You're all set",
-      wizardAllSetDescription:
-        'Familiar is ready. It will capture what matters and make it available to your agents.',
-      wizardFaqTitle: 'FAQ',
-      wizardFaqScrollHint: 'Scroll down to see all FAQs',
-      wizardFaqQuestionHowItWorks: 'How does Familiar work?',
-      wizardFaqAnswerHowItWorks:
-        'Familiar is a macOS desktop app. It runs in the background and takes screenshots while you work. Those screenshots are converted into markdown files. When you invoke the Familiar skill, your agent reads the relevant markdown files to answer your question.',
-      wizardFaqQuestionData: 'What happens to my data?',
-      wizardFaqAnswerData:
-        "All data stays on your machine. We don't have access to any of it.",
-      wizardFaqQuestionSensitiveData: 'Will it capture passwords or embarrassing searches?',
-      wizardFaqAnswerSensitiveData:
-        'Familiar has two layers of protection. First, Familiar allows you to blacklist apps so nothing is captured while they are visible. Second, it automatically redacts passwords, API keys, and credit card numbers from the text conversion.',
-      wizardFaqQuestionRetention: 'How far back does it retain information?',
-      wizardFaqAnswerRetention:
-        'Markdown files are kept indefinitely. Screenshots are deleted after 2 days, though this is configurable.',
-      wizardFaqQuestionStorage: "Doesn't all the context take too much space?",
-      wizardFaqAnswerStorage:
-        'Familiar is optimized to take minimal space on disk. You can run it for months without noticing the storage impact.',
-      wizardFaqQuestionBattery: 'What about battery life?',
-      wizardFaqAnswerBattery:
-        'Familiar is optimized to minimize battery usage. If your Mac is unplugged, it switches to low power mode and captures less context to preserve battery life.',
-      wizardFaqQuestionScreenshotFrequency: 'How often does it take a screenshot?',
-      wizardFaqAnswerScreenshotFrequency:
-        "Every few seconds, and only while you're active on your computer.",
-      wizardFaqQuestionMonitors:
-        'Does it support multiple monitors? Which screen gets captured?',
-      wizardFaqAnswerMonitors:
-        'Familiar captures only the monitor your mouse cursor is on. If your mouse is on the left screen, the right screen is not captured.',
-      wizardFaqQuestionAgents: 'What AI agents does it work with?',
-      wizardFaqAnswerAgents:
-        'At the moment, Familiar works with AI agents that run on a local filesystem, like Claude Code, Cursor, Codex Antigravity, and OpenClaw.',
-      wizardFaqQuestionNoise:
-        'How does it cut through noise and surface only what matters?',
-      wizardFaqAnswerNoise:
-        "Models from leading providers are getting better at extracting valuable information from large amounts of data. They are already capable of ingesting Familiar's context and pulling out what you're looking for.",
-      wizardFaqQuestionAudio:
-        'Does Familiar capture audio or transcribe meetings or calls?',
-      wizardFaqAnswerAudio:
-        "Not at the moment. We're hearing a lot of demand for this and want to be thoughtful about it. For now, we're focused on visual content.",
-      wizardFaqQuestionFree: 'Is Familiar free?',
-      wizardFaqAnswerFree:
-        'Yes. Familiar will stay open source and free to use.',
-      wizardFaqQuestionWhyOwl: 'Why an owl?',
-      wizardFaqAnswerWhyOwl:
-        'An owl is a common "familiar," a companion spirit in folklore. We also aspire to use this to make AI a little wiser.',
+        'Demo showing how to ask Familiar what you did recently from your AI agent.',
+      wizardTryItPinkySwear:
+        "I pinky pinky super swear that I did this because it'd be such a waste if I didn't do this and this is so damn cool and I really would be missing out.",
+      wizardAutomateTitle: "What should your AI auto-update with Familiar's context?",
+      wizardAutomateDescription: '',
+      wizardDestMemory: 'Native memory',
+      wizardDestMemoryDesc: 'Your agent remembers what you do without you telling it',
+      wizardDestSkills: 'Custom skills',
+      wizardDestSkillsDesc: 'Your skills evolve as your work does',
+      wizardDestKnowledgeBase: 'Personal knowledge base',
+      wizardDestKnowledgeBaseDesc:
+        'A wiki, vault, or second brain stays current automatically',
+      wizardDestManual: 'Just use the skill and /familiar slash command',
+      wizardDestManualDesc: '',
+      wizardDestKnowledgeBaseChoose: 'Choose',
+      wizardDestKnowledgeBasePlaceholder: 'No folder selected',
+      wizardAutomatePromptLabel: 'Paste this as a <link> in your agent:',
+      wizardAutomateCopy: 'Copy',
+      wizardAutomateCopied: 'Copied',
+      wizardAutomateHelpHeading: 'Paste this as a scheduled task in your agent:',
+      wizardAutomateHelpLink: 'How to set up',
+      wizardAutomateManualOnlyNote:
+        'No scheduled task needed — just call /familiar in your agent whenever you want context. You can always set up automation later in Settings.',
       wizardBack: 'Back',
       wizardNext: 'Next',
       wizardDone: 'Done'
