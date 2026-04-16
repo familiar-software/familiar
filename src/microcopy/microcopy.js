@@ -143,6 +143,7 @@ const microcopy = {
       wizardAgentInstall: 'Install skill',
       wizardAgentInstalling: 'Installing…',
       wizardAgentInstalled: 'Installed',
+      wizardAgentInstalledNeedsRestart: 'Installed, needs restart',
       wizardAgentRetry: 'Failed — try again',
       wizardFirstUsecaseTitle: 'Paste this in your favorite agent',
       wizardFirstUsecaseDescription: '',

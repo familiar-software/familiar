@@ -572,13 +572,19 @@ export function WizardSection({
                 const isInstalled = Boolean(skillInstallPaths && skillInstallPaths[harness])
                 const isInstalling = installingAgents.has(harness)
                 const hasError = Boolean(agentErrors[harness])
+                const needsRestartPrompt =
+                  isInstalled &&
+                  RESTART_REQUIRED_HARNESSES.has(harness) &&
+                  !restartConfirmed.has(harness)
                 const statusText = isInstalling
                   ? toDisplayText(html.wizardAgentInstalling)
-                  : isInstalled
-                    ? toDisplayText(html.wizardAgentInstalled)
-                    : hasError
-                      ? toDisplayText(html.wizardAgentRetry)
-                      : toDisplayText(html.wizardAgentInstall)
+                  : needsRestartPrompt
+                    ? toDisplayText(html.wizardAgentInstalledNeedsRestart)
+                    : isInstalled
+                      ? toDisplayText(html.wizardAgentInstalled)
+                      : hasError
+                        ? toDisplayText(html.wizardAgentRetry)
+                        : toDisplayText(html.wizardAgentInstall)
                 const statusClass = isInstalled
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : hasError
