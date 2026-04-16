@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-// Drives the step-2 UX state machine of the onboarding wizard.
+// Drives the Permissions-step UX state machine of the onboarding wizard.
+// Permissions is step 1 in the current order (Permissions -> Context ->
+// Agents -> Try it -> Automate).
 //
 //   checking -> initial peek on step entry (no OS prompt)
 //   ready    -> permission is not granted; show the "Open System Settings" CTA
@@ -8,8 +10,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 //   nudge    -> 30s elapsed in waiting with no grant; surface a hint
 //   granted  -> OS says granted; show the success banner, enable Next
 //
-// Runs only while the wizard is on step 2. Cleans up its own polling and
-// timers on step change, unmount, and window blur.
+// Runs only while the wizard is on the Permissions step. Cleans up its
+// own polling and timers on step change, unmount, and window blur.
 const POLL_INTERVAL_MS = 2000
 const NUDGE_AFTER_MS = 30000
 

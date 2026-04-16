@@ -290,7 +290,7 @@ export const useDashboardSkills = (state) => {
   ])
 
   // Per-row install for the redesigned Agents wizard step. Installs a
-  // single harness, enforces a 2-second minimum so the spinner reads as
+  // single harness, enforces a 1-second minimum so the spinner reads as
   // a real action, and returns {ok, path?, message?} so the caller can
   // drive per-row UI (Installed ✓ / Failed — try again) without sharing
   // global skillMessage/skillError state.
