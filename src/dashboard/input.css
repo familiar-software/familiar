@@ -98,6 +98,26 @@
   .agent-row:focus-visible .agent-row-status-idle {
     opacity: 1;
   }
+
+  /* Step 4 "Try it" — pinky swear checkbox label.
+     Styled to look like legal fine print at first glance but reads
+     as something casual and fun. */
+  .pinky-swear-label {
+    font-style: italic;
+  }
+
+  /* Destination picker rows (step 5 "Automate") */
+  .destination-row {
+    cursor: pointer;
+  }
+  .destination-row:hover {
+    background-color: var(--color-zinc-50);
+  }
+  @media (prefers-color-scheme: dark) {
+    .destination-row:hover {
+      background-color: var(--color-zinc-900);
+    }
+  }
 }
 
 @layer utilities {
