@@ -195,6 +195,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
           selectedHarnesses: core.selectedHarnesses,
           skillInstallPaths: core.skillInstallPaths,
           handleHarnessChange: skills.handleHarnessChange,
+          installAgent: skills.installAgent,
           skillMessage: core.skillMessage,
           skillError: core.skillError,
           wizardMessage: core.wizardMessage,

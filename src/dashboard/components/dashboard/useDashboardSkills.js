@@ -289,9 +289,77 @@ export const useDashboardSkills = (state) => {
     setSkillMessage
   ])
 
+  // Per-row install for the redesigned Agents wizard step. Installs a
+  // single harness, enforces a 2-second minimum so the spinner reads as
+  // a real action, and returns {ok, path?, message?} so the caller can
+  // drive per-row UI (Installed ✓ / Failed — try again) without sharing
+  // global skillMessage/skillError state.
+  const installAgent = useCallback(async (harness) => {
+    const normalized = trimString(harness)
+    if (!normalized) {
+      return { ok: false, message: 'invalid harness' }
+    }
+    if (typeof familiar?.installSkill !== 'function') {
+      return {
+        ok: false,
+        message: mc.dashboard.wizardSkill.messages.installerUnavailableRestart
+      }
+    }
+
+    const minimumDuration = new Promise((resolve) => setTimeout(resolve, 1000))
+    const installPromise = (async () => {
+      try {
+        return await familiar.installSkill({ harness: normalized })
+      } catch (error) {
+        console.error('Failed to install skill', error)
+        return {
+          ok: false,
+          message: mc.dashboard.wizardSkill.messages.failedToInstallSkill
+        }
+      }
+    })()
+    const [result] = await Promise.all([installPromise, minimumDuration])
+
+    if (!result || !result.ok) {
+      return {
+        ok: false,
+        message: (result && result.message)
+          || mc.dashboard.wizardSkill.messages.failedToInstallSkill
+      }
+    }
+
+    const nextSelected = Array.from(new Set([...selectedHarnesses, normalized]))
+    setSelectedHarnesses(nextSelected)
+    setManualHarnessSelection(true)
+    // Keep the aggregate isSkillInstalled flag truthy once any agent has
+    // been installed; the wizard rule no longer consults it, but other
+    // consumers (Settings, telemetry) still read it.
+    setIsSkillInstalled(true)
+
+    let mergedPaths = {}
+    setSkillInstallPaths((prev) => {
+      mergedPaths = { ...(prev || {}), [normalized]: result.path || '' }
+      return mergedPaths
+    })
+    await persistSkillInstaller(nextSelected, mergedPaths)
+
+    return { ok: true, path: result.path || '' }
+  }, [
+    familiar,
+    mc.dashboard.wizardSkill.messages.failedToInstallSkill,
+    mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
+    persistSkillInstaller,
+    selectedHarnesses,
+    setIsSkillInstalled,
+    setManualHarnessSelection,
+    setSelectedHarnesses,
+    setSkillInstallPaths
+  ])
+
   return {
     checkSkillInstallStatus,
     installSelectedHarnesses,
-    handleHarnessChange
+    handleHarnessChange,
+    installAgent
   }
 }
