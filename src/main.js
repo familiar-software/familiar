@@ -4,7 +4,8 @@ const {
     Tray,
     nativeImage,
     ipcMain,
-    nativeTheme
+    nativeTheme,
+    shell
 } = require('electron');
 const { existsSync } = require('node:fs');
 const path = require('node:path');
@@ -521,6 +522,15 @@ function createSettingsWindow() {
 
     window.on('closed', () => {
         settingsWindow = null;
+    });
+
+    // Open external links (target="_blank") in the system browser
+    // instead of navigating the Electron window.
+    window.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('https://') || url.startsWith('http://')) {
+            shell.openExternal(url);
+        }
+        return { action: 'deny' };
     });
 
     console.log('Settings window created');

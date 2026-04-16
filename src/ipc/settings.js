@@ -155,6 +155,7 @@ function registerSettingsHandlers(options = {}) {
     ipcMain.handle('settings:get', handleGetSettings);
     ipcMain.handle('settings:save', handleSaveSettings);
     ipcMain.handle('settings:pickContextFolder', handlePickContextFolder);
+    ipcMain.handle('settings:pickDirectory', handlePickDirectory);
     ipcMain.handle('settings:moveContextFolder', handleMoveContextFolder);
     ipcMain.handle('settings:listInstalledApps', handleListInstalledApps);
     ipcMain.handle('settings:getInstalledAppIcon', handleGetInstalledAppIcon);
@@ -434,6 +435,15 @@ async function handlePickContextFolder(event) {
         openLogLabel: 'Opening context folder picker',
         cancelLogLabel: 'Context folder picker canceled',
         selectedLogLabel: 'Context folder selected'
+    });
+}
+
+async function handlePickDirectory(event) {
+    return pickDirectory(event, {
+        title: 'Select Folder',
+        openLogLabel: 'Opening generic folder picker',
+        cancelLogLabel: 'Generic folder picker canceled',
+        selectedLogLabel: 'Folder selected (generic)'
     });
 }
 

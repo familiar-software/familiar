@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('familiar', {
   listInstalledApps: () => ipcRenderer.invoke('settings:listInstalledApps'),
   getInstalledAppIcon: (payload) => ipcRenderer.invoke('settings:getInstalledAppIcon', payload || {}),
   pickContextFolder: () => ipcRenderer.invoke('settings:pickContextFolder'),
+  pickDirectory: () => ipcRenderer.invoke('settings:pickDirectory'),
   openStorageInFinder: () => ipcRenderer.invoke('settings:openStorageInFinder'),
   applyDefaultContextFolder: () => ipcRenderer.invoke('settings:applyDefaultContextFolder'),
   moveContextFolder: (payload) => ipcRenderer.invoke('settings:moveContextFolder', payload),
