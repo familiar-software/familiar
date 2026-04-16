@@ -174,7 +174,14 @@ const microcopy = {
         'No scheduled task needed — just call /familiar in your agent whenever you want context. You can always set up automation later in Settings.',
       wizardBack: 'Back',
       wizardNext: 'Next',
-      wizardDone: 'Done'
+      wizardDone: 'Done',
+      completeHeadline: "You're all set.",
+      completeMenuBarPointer: 'Familiar lives up there now',
+      completeTryBody: 'Open your favorite agent and type',
+      completeTryCommand: '/familiar',
+      completeIdeasLinkLabel: 'Not sure what to ask? See some ideas people use Familiar for',
+      completeIdeasLinkHref: 'https://www.looksfamiliar.org/#use-cases',
+      completeCloseCta: 'Close this window and head to your favorite agent'
     },
     sections: {
       wizard: {
