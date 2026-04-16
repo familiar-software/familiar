@@ -89,6 +89,29 @@ export function WizardSection({
       })
     }
   }
+  // ── Step 3: restart-confirmation state ──
+  // Cursor and Antigravity only pick up newly-installed skills after a
+  // full restart. Once the user installs one of these we show an inline
+  // "I've restarted X" checkbox and gate the Next button on all
+  // restart-required installs being confirmed.
+  const RESTART_REQUIRED_HARNESSES = new Set(['cursor', 'antigravity'])
+  const [restartConfirmed, setRestartConfirmed] = useState(() => new Set())
+  const toggleRestartConfirmed = (harness, checked) => {
+    setRestartConfirmed((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(harness)
+      else next.delete(harness)
+      return next
+    })
+  }
+  const restartNoteForHarness = (harness) => {
+    switch (harness) {
+      case 'cursor': return html.wizardCursorRestartNote
+      case 'antigravity': return html.wizardAntigravityRestartNote
+      default: return ''
+    }
+  }
+
   // ── Step 4: "Try it" state ──
   const [pinkySwearChecked, setPinkySwearChecked] = useState(false)
   const [tryItCopied, setTryItCopied] = useState(false)
@@ -165,13 +188,27 @@ export function WizardSection({
   }
 
   // Override canAdvance for steps with local gating
-  const canAdvanceStep = wizardStep === 4
-    ? pinkySwearChecked
-    : wizardStep === 5
-      ? hasSelectedDestination
-      : canAdvance
+  const installedHarnessValues = wizardHarnessOptions
+    ? wizardHarnessOptions
+        .filter((entry) => skillInstallPaths && skillInstallPaths[entry.value])
+        .map((entry) => entry.value)
+    : []
+  const installedRestartRequired = installedHarnessValues.filter((value) =>
+    RESTART_REQUIRED_HARNESSES.has(value)
+  )
+  const allRestartsConfirmed = installedRestartRequired.every((value) =>
+    restartConfirmed.has(value)
+  )
+  const canAdvanceStep = wizardStep === 3
+    ? allRestartsConfirmed
+    : wizardStep === 4
+      ? pinkySwearChecked
+      : wizardStep === 5
+        ? hasSelectedDestination
+        : canAdvance
 
   const handleNext = () => {
+    if (wizardStep === 3 && !allRestartsConfirmed) return
     if (wizardStep === 4 && !pinkySwearChecked) return
     goWizardNext()
   }
@@ -566,6 +603,7 @@ export function WizardSection({
                       // (class defined in input.css — more reliable than
                       // fighting Tailwind v4 group-hover detection).
                       : 'text-zinc-500 dark:text-zinc-400 agent-row-status-idle'
+                const showRestartCheckbox = RESTART_REQUIRED_HARNESSES.has(harness) && isInstalled
                 return (
                   <li key={harness}>
                     <button
@@ -583,11 +621,6 @@ export function WizardSection({
                       </span>
                       <span className="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100">
                         {labelForHarness(harness)}
-                        {harness === 'cursor' && isInstalled && (
-                          <span className="block text-[12px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                            {toDisplayText(wizardSkillMessages.cursorRestartNote)}
-                          </span>
-                        )}
                       </span>
                       <span
                         className={`${statusClass} text-[13px] flex items-center gap-1.5`}
@@ -608,6 +641,18 @@ export function WizardSection({
                         {statusText}
                       </span>
                     </button>
+                    {showRestartCheckbox && (
+                      <label className="flex items-center gap-2 pl-[3.25rem] pr-4 pb-3 pt-0 text-[12px] text-zinc-500 dark:text-zinc-400 cursor-pointer select-none bg-white dark:bg-zinc-950">
+                        <input
+                          type="checkbox"
+                          data-restart-confirm={harness}
+                          checked={restartConfirmed.has(harness)}
+                          onChange={(e) => toggleRestartConfirmed(harness, e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span>{toDisplayText(restartNoteForHarness(harness))}</span>
+                      </label>
+                    )}
                   </li>
                 )
               })}
