@@ -328,8 +328,13 @@ export const useDashboardSkills = (state) => {
       }
     }
 
-    const nextSelected = Array.from(new Set([...selectedHarnesses, normalized]))
-    setSelectedHarnesses(nextSelected)
+    // Functional updater so two rapid installAgent calls in flight don't
+    // stomp each other with a stale closure copy of selectedHarnesses.
+    let nextSelected = []
+    setSelectedHarnesses((prev) => {
+      nextSelected = Array.from(new Set([...(prev || []), normalized]))
+      return nextSelected
+    })
     setManualHarnessSelection(true)
     // Keep the aggregate isSkillInstalled flag truthy once any agent has
     // been installed; the wizard rule no longer consults it, but other
@@ -349,7 +354,6 @@ export const useDashboardSkills = (state) => {
     mc.dashboard.wizardSkill.messages.failedToInstallSkill,
     mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
     persistSkillInstaller,
-    selectedHarnesses,
     setIsSkillInstalled,
     setManualHarnessSelection,
     setSelectedHarnesses,
