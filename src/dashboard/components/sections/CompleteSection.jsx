@@ -1,15 +1,75 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 
-import { Button } from '../ui/button'
+// Hand-drawn-feeling arrow that sweeps from down near the headline
+// up-and-right toward the menu bar that lives above the window.
+// Two separate paths (body + chevron) give it that "drawn in strokes"
+// vibe; rounded caps soften the ends.
+function SweepingArrow({ className = '' }) {
+  // A tall, diagonal sweep: the tail starts near the text area (lower-left
+  // of the SVG, which lands to the right of the centered paragraph), the
+  // body bows OUT to the right as it rises, then pulls up into a near-
+  // vertical approach to the tip in the top-right corner of the window.
+  // The chevron is two separate strokes so it reads as hand-drawn.
+  return (
+    <svg
+      className={`pointer-events-none absolute top-2 right-2 ${className}`}
+      width="300"
+      height="210"
+      viewBox="0 0 300 210"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* body: same curve as before, truncated at t=0.2 (20% off the tail) via De Casteljau so the tip + approach are identical */}
+      <path d="M 129 187 C 249 162 282 92 282 22" strokeWidth="2.5" />
+      {/* chevron opens downward from the tip */}
+      <path d="M 260 42 L 281 21" strokeWidth="2.5" />
+      <path d="M 282 22 L 298 44" strokeWidth="2.5" />
+    </svg>
+  )
+}
 
 export function CompleteSection({ mc, toDisplayText }) {
+  const canvasRef = useRef(null)
+
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined
+    const canvas = canvasRef.current
+    if (!canvas || typeof window === 'undefined') return undefined
+
     const prefersReducedMotion =
-      typeof window.matchMedia === 'function'
-        && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (prefersReducedMotion) return undefined
+
+    let fire
+    try {
+      fire = confetti.create(canvas, { resize: true, useWorker: false })
+    } catch {
+      return undefined
+    }
+
+    // Flat 2D owls, comfortable readable size. scalar on the shape MUST
+    // match scalar on the confetti call or the emoji bitmap renders blurry.
+    const OWL_SCALAR = 2.6
+    let owlShape
+    try {
+      owlShape = confetti.shapeFromText({ text: '🦉', scalar: OWL_SCALAR })
+    } catch {
+      owlShape = undefined
+    }
+
+    const common = {
+      scalar: OWL_SCALAR,
+      flat: true,          // no 3D tumble — owls stay face-on, just drift in 2D
+      gravity: 0.4,        // float down slowly
+      startVelocity: 26,   // launch gently
+      decay: 0.94,         // hang in the air even longer
+      ticks: 900,          // each particle lives ~4x longer than default
+      ...(owlShape ? { shapes: [owlShape] } : {})
+    }
 
     let cancelled = false
     const timeouts = []
@@ -17,38 +77,26 @@ export function CompleteSection({ mc, toDisplayText }) {
       const id = setTimeout(() => {
         if (cancelled) return
         try {
-          confetti(options)
+          fire(options)
         } catch {
-          // confetti may be unavailable in degraded environments; ignore
+          // ignore render failures
         }
       }, delayMs)
       timeouts.push(id)
     }
 
-    let owlShape
-    try {
-      owlShape = confetti.shapeFromText({ text: '🦉', scalar: 2 })
-    } catch {
-      return undefined
-    }
-
-    const common = {
-      shapes: [owlShape],
-      scalar: 2,
-      gravity: 1,
-      ticks: 220,
-      disableForReducedMotion: true
-    }
-
-    scheduleBurst(0,   { ...common, particleCount: 60, spread: 100, origin: { x: 0.5,  y: 0.55 } })
-    scheduleBurst(150, { ...common, particleCount: 40, spread: 80,  origin: { x: 0.15, y: 0.6  } })
-    scheduleBurst(300, { ...common, particleCount: 40, spread: 80,  origin: { x: 0.85, y: 0.6  } })
+    // Four bursts over ~1.5s — center, left, right, center — alternating
+    // origins so owls fall from all over while still being a brief moment.
+    scheduleBurst(0,    { ...common, particleCount: 28, spread: 110, origin: { x: 0.5,  y: 0.48 } })
+    scheduleBurst(500,  { ...common, particleCount: 18, spread: 80,  origin: { x: 0.18, y: 0.55 } })
+    scheduleBurst(1000, { ...common, particleCount: 18, spread: 80,  origin: { x: 0.82, y: 0.55 } })
+    scheduleBurst(1500, { ...common, particleCount: 22, spread: 100, origin: { x: 0.5,  y: 0.52 } })
 
     return () => {
       cancelled = true
       for (const id of timeouts) clearTimeout(id)
       try {
-        confetti.reset()
+        fire.reset()
       } catch {
         // noop
       }
@@ -57,17 +105,32 @@ export function CompleteSection({ mc, toDisplayText }) {
 
   const htmlCopy = mc?.dashboard?.html || {}
   const headline = toDisplayText(htmlCopy.completeHeadline)
-  const menuBarPointer = toDisplayText(htmlCopy.completeMenuBarPointer)
+  const closeLink = toDisplayText(htmlCopy.completeCloseLink)
   const tryBody = toDisplayText(htmlCopy.completeTryBody)
   const tryCommand = toDisplayText(htmlCopy.completeTryCommand)
+  const notSurePrompt = toDisplayText(htmlCopy.completeNotSurePrompt)
   const ideasLinkLabel = toDisplayText(htmlCopy.completeIdeasLinkLabel)
   const ideasLinkHref = toDisplayText(htmlCopy.completeIdeasLinkHref)
-  const closeCta = toDisplayText(htmlCopy.completeCloseCta)
 
-  const handleClose = () => {
+  const closeWindow = () => {
     if (typeof window !== 'undefined' && typeof window.close === 'function') {
       window.close()
     }
+  }
+
+  const handleCloseLinkClick = (event) => {
+    event.preventDefault()
+    closeWindow()
+  }
+
+  const handleIdeasLinkClick = (event) => {
+    // Let setWindowOpenHandler in main route this to shell.openExternal,
+    // then close the settings window right after.
+    event.preventDefault()
+    if (typeof window !== 'undefined' && typeof window.open === 'function') {
+      window.open(ideasLinkHref, '_blank', 'noopener,noreferrer')
+    }
+    closeWindow()
   }
 
   return (
@@ -75,63 +138,51 @@ export function CompleteSection({ mc, toDisplayText }) {
       id="section-complete"
       role="tabpanel"
       aria-labelledby="section-title"
-      className="flex-1 flex flex-col items-center justify-center px-8 py-12 overflow-y-auto scrollbar-slim bg-white dark:bg-[#111]"
+      className="relative flex-1 flex flex-col items-center justify-center px-12 py-14 overflow-hidden bg-white dark:bg-[#111]"
     >
-      <div className="max-w-xl w-full space-y-10 text-center">
-        <h2 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+      <SweepingArrow className="text-indigo-500 dark:text-indigo-300" />
+
+      <div className="relative z-10 max-w-md w-full space-y-5 text-center">
+        <h2 className="text-[32px] leading-tight font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
           {headline}
         </h2>
 
-        <div className="flex items-center justify-center gap-3 text-zinc-700 dark:text-zinc-300">
-          <p className="text-base">{menuBarPointer}</p>
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="text-zinc-500 dark:text-zinc-400"
+        <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-300">
+          <a
+            href="#"
+            onClick={handleCloseLinkClick}
+            className="text-indigo-600 dark:text-indigo-300 underline-offset-4 hover:underline cursor-pointer"
           >
-            <path d="M7 17L17 7" />
-            <path d="M8 7h9v9" />
-          </svg>
-        </div>
-
-        <p className="text-base text-zinc-700 dark:text-zinc-300">
+            {closeLink}
+          </a>{' '}
           {tryBody}{' '}
-          <code className="font-mono text-[13px] bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-md px-2 py-1 border border-zinc-200 dark:border-zinc-700">
+          <code className="font-mono text-[13px] bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-md px-2 py-0.5 border border-zinc-200 dark:border-zinc-700">
             {tryCommand}
           </code>
+          .
         </p>
 
-        <p>
+        <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-300">
+          {notSurePrompt}{' '}
           <a
             href={ideasLinkHref}
             target="_blank"
             rel="noreferrer noopener"
-            className="text-sm text-indigo-600 dark:text-indigo-300 underline-offset-4 hover:underline"
+            onClick={handleIdeasLinkClick}
+            className="text-indigo-600 dark:text-indigo-300 underline-offset-4 hover:underline cursor-pointer"
           >
-            {ideasLinkLabel} →
+            {ideasLinkLabel}
           </a>
+          .
         </p>
-
-        <div className="pt-4">
-          <Button
-            type="button"
-            variant="default"
-            size="lg"
-            onClick={handleClose}
-            data-action="complete-close"
-            className="w-full max-w-md"
-          >
-            {closeCta}
-          </Button>
-        </div>
       </div>
+
+      <canvas
+        ref={canvasRef}
+        className="pointer-events-none fixed inset-0 w-full h-full"
+        style={{ zIndex: 9999 }}
+        aria-hidden="true"
+      />
     </section>
   )
 }

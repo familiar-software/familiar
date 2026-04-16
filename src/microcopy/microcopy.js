@@ -161,7 +161,7 @@ const microcopy = {
       wizardDestKnowledgeBase: 'Personal knowledge base',
       wizardDestKnowledgeBaseDesc:
         'A wiki, vault, or second brain stays current automatically',
-      wizardDestManual: 'Just use the skill and /familiar slash command',
+      wizardDestManual: "Don't auto-update, I'll just use the skill",
       wizardDestManualDesc: '',
       wizardDestKnowledgeBaseChoose: 'Choose',
       wizardDestKnowledgeBasePlaceholder: 'No folder selected',
@@ -175,13 +175,13 @@ const microcopy = {
       wizardBack: 'Back',
       wizardNext: 'Next',
       wizardDone: 'Done',
-      completeHeadline: "You're all set.",
-      completeMenuBarPointer: 'Familiar lives up there now',
-      completeTryBody: 'Open your favorite agent and type',
+      completeHeadline: 'Success! Familiar lives up there now.',
+      completeCloseLink: 'Close this window',
+      completeTryBody: 'and head to your favorite agent and type',
       completeTryCommand: '/familiar',
-      completeIdeasLinkLabel: 'Not sure what to ask? See some ideas people use Familiar for',
-      completeIdeasLinkHref: 'https://www.looksfamiliar.org/#use-cases',
-      completeCloseCta: 'Close this window and head to your favorite agent'
+      completeNotSurePrompt: 'Not sure what to ask?',
+      completeIdeasLinkLabel: 'Examples to get your imagination going',
+      completeIdeasLinkHref: 'https://www.looksfamiliar.org/#use-cases'
     },
     sections: {
       wizard: {
