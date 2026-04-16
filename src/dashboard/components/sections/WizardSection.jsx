@@ -91,26 +91,12 @@ export function WizardSection({
   }
   // ── Step 3: restart-confirmation state ──
   // Cursor and Antigravity only pick up newly-installed skills after a
-  // full restart. Once the user installs one of these we show an inline
-  // "I've restarted X" checkbox and gate the Next button on all
-  // restart-required installs being confirmed.
+  // full restart. Once the user installs one of these we surface a single
+  // "I solemnly swear I've restarted..." banner below the agent list and
+  // gate the Next button on it being checked. Transient state — not
+  // persisted, matches the pattern from steps 4 and 5.
   const RESTART_REQUIRED_HARNESSES = new Set(['cursor', 'antigravity'])
   const [restartConfirmed, setRestartConfirmed] = useState(() => new Set())
-  const toggleRestartConfirmed = (harness, checked) => {
-    setRestartConfirmed((prev) => {
-      const next = new Set(prev)
-      if (checked) next.add(harness)
-      else next.delete(harness)
-      return next
-    })
-  }
-  const restartNoteForHarness = (harness) => {
-    switch (harness) {
-      case 'cursor': return html.wizardCursorRestartNote
-      case 'antigravity': return html.wizardAntigravityRestartNote
-      default: return ''
-    }
-  }
 
   // ── Step 4: "Try it" state ──
   const [pinkySwearChecked, setPinkySwearChecked] = useState(false)
@@ -603,7 +589,6 @@ export function WizardSection({
                       // (class defined in input.css — more reliable than
                       // fighting Tailwind v4 group-hover detection).
                       : 'text-zinc-500 dark:text-zinc-400 agent-row-status-idle'
-                const showRestartCheckbox = RESTART_REQUIRED_HARNESSES.has(harness) && isInstalled
                 return (
                   <li key={harness}>
                     <button
@@ -641,22 +626,60 @@ export function WizardSection({
                         {statusText}
                       </span>
                     </button>
-                    {showRestartCheckbox && (
-                      <label className="flex items-center gap-2 pl-[3.25rem] pr-4 pb-3 pt-0 text-[12px] text-zinc-500 dark:text-zinc-400 cursor-pointer select-none bg-white dark:bg-zinc-950">
-                        <input
-                          type="checkbox"
-                          data-restart-confirm={harness}
-                          checked={restartConfirmed.has(harness)}
-                          onChange={(e) => toggleRestartConfirmed(harness, e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        />
-                        <span>{toDisplayText(restartNoteForHarness(harness))}</span>
-                      </label>
-                    )}
                   </li>
                 )
               })}
             </ul>
+            {installedRestartRequired.length > 0 && (() => {
+              const names = installedRestartRequired.map((value) => toDisplayText(labelForHarness(value)))
+              // Build an array of nodes so each name is bold but the
+              // separators (", " and " and ") stay plain weight.
+              const nameNodes = []
+              names.forEach((name, idx) => {
+                if (idx > 0) {
+                  if (names.length === 2) {
+                    nameNodes.push(' and ')
+                  } else if (idx === names.length - 1) {
+                    nameNodes.push(', and ')
+                  } else {
+                    nameNodes.push(', ')
+                  }
+                }
+                nameNodes.push(
+                  <span key={`name-${name}`} className="font-semibold text-zinc-800 dark:text-zinc-100">
+                    {name}
+                  </span>
+                )
+              })
+              const template = toDisplayText(html.wizardRestartConfirmTemplate)
+              const [before, after] = template.split('{{names}}')
+              return (
+                <label className="mt-3 flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    data-restart-confirm-banner
+                    checked={allRestartsConfirmed}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setRestartConfirmed((prev) => {
+                        const next = new Set(prev)
+                        installedRestartRequired.forEach((value) => {
+                          if (checked) next.add(value)
+                          else next.delete(value)
+                        })
+                        return next
+                      })
+                    }}
+                    className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                  />
+                  <span className="pinky-swear-label text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                    {before}
+                    {nameNodes}
+                    {after}
+                  </span>
+                </label>
+              )
+            })()}
           </div>
         </div>
 

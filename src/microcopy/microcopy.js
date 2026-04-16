@@ -138,8 +138,8 @@ const microcopy = {
       wizardHarnessCodex: 'Codex',
       wizardHarnessAntigravity: 'Antigravity',
       wizardHarnessCursor: 'Cursor',
-      wizardCursorRestartNote: "I've restarted Cursor",
-      wizardAntigravityRestartNote: "I've restarted Antigravity",
+      wizardRestartConfirmTemplate:
+        "I solemnly swear I've restarted {{names}} so the skill will actually work (and will not complain when it doesn't work because I didn't restart)",
       wizardAgentInstall: 'Install skill',
       wizardAgentInstalling: 'Installing…',
       wizardAgentInstalled: 'Installed',
