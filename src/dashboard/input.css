@@ -80,6 +80,24 @@
   .skill-picker-note {
     @apply block pt-1 pl-8 text-[14px] font-semibold text-zinc-500 dark:text-zinc-400;
   }
+
+  /* Agents wizard step — per-row install button. The idle "Install →"
+     label is hidden by default and revealed on hover/focus. Installed
+     and error states stay visible regardless of hover. */
+  .agent-row {
+    cursor: pointer;
+  }
+  .agent-row:disabled {
+    cursor: default;
+  }
+  .agent-row-status-idle {
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+  }
+  .agent-row:hover .agent-row-status-idle,
+  .agent-row:focus-visible .agent-row-status-idle {
+    opacity: 1;
+  }
 }
 
 @layer utilities {

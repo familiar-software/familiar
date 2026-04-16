@@ -1,9 +1,7 @@
 import React, { useState } from 'react'
 import { Button } from '../ui/button'
-import { Checkbox } from '../ui/checkbox'
 import { Input } from '../ui/input'
 import { CardTitle } from '../ui/card'
-import { Label } from '../ui/label'
 import { Select } from '../ui/select'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion'
 
@@ -34,6 +32,7 @@ export function WizardSection({
   selectedHarnesses,
   skillInstallPaths,
   handleHarnessChange,
+  installAgent,
   skillMessage,
   skillError,
   isSkillInstalled,
@@ -52,16 +51,62 @@ export function WizardSection({
     : isPermissionCheckGranted
       ? mc.dashboard.stills.permissionsGranted
       : mc.dashboard.settingsActions.checkPermissions
-  const skillStatusMessage = toDisplayText(skillMessage)
   const canAdvance = isWizardStepComplete(wizardStep)
-  const selectedSet = new Set(selectedHarnesses)
-  const pathInstallText = Object.entries(skillInstallPaths || {})
-    .filter(([, path]) => typeof path === 'string' && path.length > 0)
-    .map(([harness, path]) => `${harness}: ${path}`)
-    .join('\n')
-  const displayedSkillStatus = skillStatusMessage || toDisplayText(wizardMessage)
   const hasContextFolder = Boolean(wizardContextFolderPath)
   const [isContextAdvancedExpanded, setIsContextAdvancedExpanded] = useState(false)
+  // Per-row install UI state for the Agents step. Kept local because it's
+  // purely transient visual state — the canonical "is this harness
+  // installed?" signal is skillInstallPaths[harness] from the shared hook.
+  const [installingAgents, setInstallingAgents] = useState(() => new Set())
+  const [agentErrors, setAgentErrors] = useState({})
+  const handleAgentClick = async (harnessValue) => {
+    if (!harnessValue || typeof installAgent !== 'function') return
+    if (skillInstallPaths && skillInstallPaths[harnessValue]) return
+    if (installingAgents.has(harnessValue)) return
+    setInstallingAgents((prev) => {
+      const next = new Set(prev)
+      next.add(harnessValue)
+      return next
+    })
+    setAgentErrors((prev) => {
+      if (!prev[harnessValue]) return prev
+      const { [harnessValue]: _removed, ...rest } = prev
+      return rest
+    })
+    try {
+      const result = await installAgent(harnessValue)
+      if (!result?.ok) {
+        setAgentErrors((prev) => ({
+          ...prev,
+          [harnessValue]: result?.message || 'Install failed'
+        }))
+      }
+    } finally {
+      setInstallingAgents((prev) => {
+        const next = new Set(prev)
+        next.delete(harnessValue)
+        return next
+      })
+    }
+  }
+  const iconForHarness = (harness) => {
+    switch (harness) {
+      case 'claude': return './assets/skill-icons/claude-code.svg'
+      case 'codex': return './assets/skill-icons/codex.svg'
+      case 'antigravity': return './assets/skill-icons/antigravity.svg'
+      case 'cursor': return './assets/skill-icons/cursor.svg'
+      default: return ''
+    }
+  }
+  const labelForHarness = (harness) => {
+    switch (harness) {
+      case 'claude': return toDisplayText(html.wizardHarnessClaudeCode)
+      case 'codex': return toDisplayText(html.wizardHarnessCodex)
+      case 'antigravity': return toDisplayText(html.wizardHarnessAntigravity)
+      case 'cursor': return toDisplayText(html.wizardHarnessCursor)
+      default: return harness
+    }
+  }
   // wizardContextFolderPath is already <parent>/familiar (the storage
   // dir) — see toWizardContextFolderPath in useDashboardState. Friendly
   // display abbreviates $HOME to "~". Renderer can't import node:os;
@@ -460,83 +505,76 @@ export function WizardSection({
               {toDisplayText(html.wizardInstallSkillDescription)}
             </p>
           </div>
-          <div data-component-source="install-skill" className="space-y-5">
-            <section className="space-y-2">
-              <div className="skill-picker-options">
-                {wizardHarnessOptions.map((entry) => (
-                  <Label key={entry.value} className="skill-picker-option">
-                    <span className="skill-picker-option-card">
-                      <Checkbox
-                        type="checkbox"
-                        name="wizard-skill-harness"
-                        value={entry.value}
-                        data-skill-harness
-                        checked={selectedSet.has(entry.value)}
-                        onChange={handleHarnessChange}
-                      />
+          <div data-component-source="install-skill" className="space-y-3">
+            <ul className="agent-list divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+              {wizardHarnessOptions.map((entry) => {
+                const harness = entry.value
+                const isInstalled = Boolean(skillInstallPaths && skillInstallPaths[harness])
+                const isInstalling = installingAgents.has(harness)
+                const hasError = Boolean(agentErrors[harness])
+                const statusText = isInstalling
+                  ? toDisplayText(html.wizardAgentInstalling)
+                  : isInstalled
+                    ? toDisplayText(html.wizardAgentInstalled)
+                    : hasError
+                      ? toDisplayText(html.wizardAgentRetry)
+                      : toDisplayText(html.wizardAgentInstall)
+                const statusClass = isInstalled
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : hasError
+                    ? 'text-red-600 dark:text-red-400'
+                    : isInstalling
+                      ? 'text-zinc-500 dark:text-zinc-400'
+                      // Idle "Install →" only appears on row hover/focus
+                      // (class defined in input.css — more reliable than
+                      // fighting Tailwind v4 group-hover detection).
+                      : 'text-zinc-500 dark:text-zinc-400 agent-row-status-idle'
+                return (
+                  <li key={harness}>
+                    <button
+                      type="button"
+                      data-skill-harness={harness}
+                      data-installed={isInstalled ? 'true' : 'false'}
+                      data-installing={isInstalling ? 'true' : 'false'}
+                      onClick={() => handleAgentClick(harness)}
+                      disabled={isInstalled || isInstalling}
+                      aria-busy={isInstalling}
+                      className="agent-row w-full flex items-center gap-3 px-4 py-3 text-left bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 disabled:hover:bg-white disabled:dark:hover:bg-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+                    >
                       <span className="skill-picker-icon" aria-hidden="true">
-                        <img
-                          src={
-                            entry.value === 'claude'
-                              ? './assets/skill-icons/claude-code.svg'
-                              : entry.value === 'codex'
-                                ? './assets/skill-icons/codex.svg'
-                                : entry.value === 'antigravity'
-                                  ? './assets/skill-icons/antigravity.svg'
-                                  : './assets/skill-icons/cursor.svg'
-                          }
-                          alt=""
-                        />
+                        <img src={iconForHarness(harness)} alt="" />
                       </span>
-                      <span className="skill-picker-label">
-                        {entry.value === 'claude'
-                          ? toDisplayText(html.wizardHarnessClaudeCode)
-                          : entry.value === 'codex'
-                              ? toDisplayText(html.wizardHarnessCodex)
-                              : entry.value === 'antigravity'
-                                ? toDisplayText(html.wizardHarnessAntigravity)
-                                : toDisplayText(html.wizardHarnessCursor)}
+                      <span className="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100">
+                        {labelForHarness(harness)}
+                        {harness === 'cursor' && isInstalled && (
+                          <span className="block text-[12px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                            {toDisplayText(wizardSkillMessages.cursorRestartNote)}
+                          </span>
+                        )}
                       </span>
-                    </span>
-                    {entry.value === 'cursor' && (
                       <span
-                        id="wizard-skill-cursor-restart-note"
-                        data-skill-cursor-restart-note
-                        className={`skill-picker-note ${selectedSet.has('cursor') ? '' : 'hidden'}`}
+                        className={`${statusClass} text-[13px] flex items-center gap-1.5`}
+                        aria-live="polite"
+                        title={hasError ? agentErrors[harness] : undefined}
                       >
-                        {toDisplayText(wizardSkillMessages.cursorRestartNote)}
+                        {isInstalling && (
+                          <span
+                            className="inline-block w-3 h-3 rounded-full border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-500 dark:border-t-zinc-300 animate-spin"
+                            aria-hidden="true"
+                          />
+                        )}
+                        {isInstalled && (
+                          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M3 8.5l3.5 3.5L13 5" />
+                          </svg>
+                        )}
+                        {statusText}
                       </span>
-                    )}
-                  </Label>
-                ))}
-              </div>
-            </section>
-
-            <p
-              id="wizard-skill-path"
-              data-skill-install-path
-              className={`text-[14px] text-zinc-500 dark:text-zinc-400 whitespace-pre-line ${pathInstallText ? '' : 'hidden'}`}
-              aria-live="polite"
-            >
-              {pathInstallText}
-            </p>
-            <p
-              id="wizard-skill-status"
-              data-skill-install-status
-              className={`text-[14px] text-emerald-600 dark:text-emerald-400 ${displayedSkillStatus ? '' : 'hidden'}`}
-              aria-live="polite"
-            >
-              {displayedSkillStatus}
-            </p>
-            <p
-              id="wizard-skill-error"
-              data-skill-install-error
-              className={`text-[14px] text-red-600 dark:text-red-400 ${toDisplayText(skillError) ? '' : 'hidden'}`}
-              role="alert"
-              aria-live="polite"
-            >
-              {toDisplayText(skillError)}
-            </p>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         </div>
 
