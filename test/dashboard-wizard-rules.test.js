@@ -18,18 +18,18 @@ test('initial wizard step starts at context when permissions already granted', (
 })
 
 test('initial wizard step advances past steps that are already complete', () => {
-  // Permissions + context satisfied -> skip steps 1 & 2 and land on step 3
+  // Permissions + context satisfied -> skip steps 1 & 2. Step 3 (Agents)
+  // is always considered complete because installing is optional, and
+  // steps 4 & 5 are informational — so we land on the final step.
   assert.equal(
     resolveInitialWizardStep({
       settings: { contextFolderPath: '/tmp/context', alwaysRecordWhenActive: true },
       isSkillInstalled: false,
       getHarnessesFromState: () => []
     }),
-    3
+    5
   )
 
-  // Permissions + context + harness + skill satisfied -> step 4 is always
-  // complete (informational), so we should land on step 5 (final).
   assert.equal(
     resolveInitialWizardStep({
       settings: { contextFolderPath: '/tmp/context', alwaysRecordWhenActive: true },
@@ -82,15 +82,18 @@ test('step 2 (context) is complete only when context folder path is set', () => 
   )
 })
 
-test('step 3 requires at least one selected harness and installed state', () => {
+test('step 3 (agents) is always complete — installation is optional', () => {
+  // The per-row install UI gives immediate feedback on each agent, and
+  // users without any listed agent installed should still be able to
+  // advance. Next is always enabled on this step.
   assert.equal(
     isWizardStepComplete({
       step: 3,
       settings: {},
       isSkillInstalled: false,
-      getHarnessesFromState: () => ['codex']
+      getHarnessesFromState: () => []
     }),
-    false
+    true
   )
   assert.equal(
     isWizardStepComplete({
@@ -105,22 +108,10 @@ test('step 3 requires at least one selected harness and installed state', () => 
     isWizardStepComplete({
       step: 3,
       settings: {},
-      isSkillInstalled: true,
-      getHarnessesFromState: () => []
-    }),
-    false
-  )
-})
-
-test('step 3 ignores non-array harness state and requires installed state', () => {
-  assert.equal(
-    isWizardStepComplete({
-      step: 3,
-      settings: {},
-      isSkillInstalled: true,
+      isSkillInstalled: false,
       getHarnessesFromState: () => null
     }),
-    false
+    true
   )
 })
 

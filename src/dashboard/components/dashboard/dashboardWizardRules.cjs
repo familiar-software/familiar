@@ -35,10 +35,13 @@ const isWizardStepComplete = ({ step, settings = {}, isSkillInstalled = false, g
       // to $HOME on step entry so most users see ~/familiar/ and just
       // click Next.
       return Boolean(settings.contextFolderPath)
-    case 3: {
-      const harnesses = typeof getHarnessesFromState === 'function' ? getHarnessesFromState() : []
-      return Array.isArray(harnesses) && harnesses.length > 0 && isSkillInstalled
-    }
+    case 3:
+      // Agents: install Familiar into one or more agents (Claude Code,
+      // Cursor, etc.). Always considered complete — the user can skip
+      // installation entirely if none of their agents is listed, or come
+      // back via Settings later. Per-row install success is reflected in
+      // the UI directly; no gating needed.
+      return true
     case 4:
       return true
     case 5:
