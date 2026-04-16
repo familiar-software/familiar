@@ -13,22 +13,25 @@ const microcopyText = (copyPath) => {
   return value
 }
 
+// Step numbering follows the new wizard order (see dashboardWizardRules.cjs):
+//   1 = Permissions, 2 = Context, 3 = Agents, 4 = Try it, 5 = Automate.
+// Legacy tests pre-swap had Context at 1 and Permissions at 2.
 const copy = Object.freeze({
   storageTitle: microcopyText('dashboard.sections.storage.title'),
   wizardSectionTitle: microcopyText('dashboard.sections.wizard.title'),
-  wizardStepContext: microcopyText('dashboard.html.wizardStepContext'),
   wizardStepPermissions: microcopyText('dashboard.html.wizardStepPermissions'),
+  wizardStepContext: microcopyText('dashboard.html.wizardStepContext'),
   wizardStepInstallSkill: microcopyText('dashboard.html.wizardStepInstallSkill'),
   wizardStepFirstUsecase: microcopyText('dashboard.html.wizardStepFirstUsecase'),
   wizardStepComplete: microcopyText('dashboard.html.wizardStepComplete'),
   wizardChooseContextFolderTitle: microcopyText('dashboard.html.wizardChooseContextFolderTitle'),
-  wizardChooseContextFolderDescription: microcopyText('dashboard.html.wizardChooseContextFolderDescription'),
-  wizardContextFolder: microcopyText('dashboard.html.wizardContextFolder'),
-  wizardContextFolderSetCta: microcopyText('dashboard.html.wizardContextFolderSetCta'),
+  wizardContextFolderShowInFinder: microcopyText('dashboard.html.wizardContextFolderShowInFinder'),
+  wizardContextFolderAdvanced: microcopyText('dashboard.html.wizardContextFolderAdvanced'),
   wizardContextFolderChange: microcopyText('dashboard.html.wizardContextFolderChange'),
   wizardEnableCapturingTitle: microcopyText('dashboard.html.wizardEnableCapturingTitle'),
   wizardEnableCapturingDescription: microcopyText('dashboard.html.wizardEnableCapturingDescription'),
-  wizardCheckPermissions: microcopyText('dashboard.settingsActions.checkPermissions'),
+  wizardPermissionGranted: microcopyText('dashboard.html.wizardPermissionGranted'),
+  wizardPermissionOpenSettings: microcopyText('dashboard.html.wizardPermissionOpenSettings'),
   wizardInstallSkillTitle: microcopyText('dashboard.html.wizardInstallSkillTitle'),
   wizardInstallSkillDescription: microcopyText('dashboard.html.wizardInstallSkillDescription'),
   wizardHarnessClaudeCode: microcopyText('dashboard.html.wizardHarnessClaudeCode'),
@@ -36,19 +39,21 @@ const copy = Object.freeze({
   wizardHarnessAntigravity: microcopyText('dashboard.html.wizardHarnessAntigravity'),
   wizardHarnessCursor: microcopyText('dashboard.html.wizardHarnessCursor'),
   wizardFirstUsecaseTitle: microcopyText('dashboard.html.wizardFirstUsecaseTitle'),
-  wizardAllSetTitle: microcopyText('dashboard.html.wizardAllSetTitle'),
-  wizardAllSetDescription: microcopyText('dashboard.html.wizardAllSetDescription'),
-  wizardFaqTitle: microcopyText('dashboard.html.wizardFaqTitle'),
-  wizardFaqScrollHint: microcopyText('dashboard.html.wizardFaqScrollHint'),
-  wizardFaqQuestionSensitiveData: microcopyText('dashboard.html.wizardFaqQuestionSensitiveData'),
+  wizardFirstUsecaseCommand: microcopyText('dashboard.html.wizardFirstUsecaseCommand'),
+  wizardTryItPinkySwear: microcopyText('dashboard.html.wizardTryItPinkySwear'),
+  wizardAutomateTitle: microcopyText('dashboard.html.wizardAutomateTitle'),
+  wizardDestMemory: microcopyText('dashboard.html.wizardDestMemory'),
+  wizardDestSkills: microcopyText('dashboard.html.wizardDestSkills'),
+  wizardDestKnowledgeBase: microcopyText('dashboard.html.wizardDestKnowledgeBase'),
+  wizardDestManual: microcopyText('dashboard.html.wizardDestManual'),
   wizardBack: microcopyText('dashboard.html.wizardBack'),
   wizardNext: microcopyText('dashboard.html.wizardNext'),
   wizardDone: microcopyText('dashboard.html.wizardDone'),
-  wizardSkillInstalled: microcopyText('dashboard.wizardSkill.messages.installed'),
-  wizardSkillInstalledAtTemplate: microcopyText('dashboard.wizardSkill.messages.installedAtTemplate')
+  completeHeadline: microcopyText('dashboard.html.completeHeadline'),
+  completeCloseLink: microcopyText('dashboard.html.completeCloseLink'),
+  completeTryCommand: microcopyText('dashboard.html.completeTryCommand'),
+  completeIdeasLinkLabel: microcopyText('dashboard.html.completeIdeasLinkLabel')
 })
-
-const wizardSkillInstalledAtPrefix = copy.wizardSkillInstalledAtTemplate.split('{{path}}')[0].trimEnd()
 
 const launchElectronWithRetry = async (launchOptions) => {
   try {
@@ -92,36 +97,62 @@ const launchElectron = (options = {}) => {
   }
 }
 
+// In E2E mode, the screen-recording permission is always reported as
+// 'granted' (see src/screen-capture/permissions.js). useWizardPermissionFlow
+// silent-checks on step-1 entry, fires onGranted -> saves
+// alwaysRecordWhenActive=true, and flips its state machine to 'granted'.
+// So on a fresh launch the user lands on step 1 with the green banner
+// already visible and Next enabled.
 const expectWizardChrome = async (window) => {
-  await expect(window.locator('[data-wizard-step-label="1"]')).toHaveText(copy.wizardStepContext)
-  await expect(window.locator('[data-wizard-step-label="2"]')).toHaveText(copy.wizardStepPermissions)
+  await expect(window.locator('[data-wizard-step-label="1"]')).toHaveText(copy.wizardStepPermissions)
+  await expect(window.locator('[data-wizard-step-label="2"]')).toHaveText(copy.wizardStepContext)
   await expect(window.locator('[data-wizard-step-label="3"]')).toHaveText(copy.wizardStepInstallSkill)
   await expect(window.locator('[data-wizard-step-label="4"]')).toHaveText(copy.wizardStepFirstUsecase)
   await expect(window.locator('[data-wizard-step-label="5"]')).toHaveText(copy.wizardStepComplete)
   await expect(window.locator('#wizard-back')).toContainText(copy.wizardBack)
 }
 
-const expectWizardContextStepCopy = async (window, { hasContextFolder }) => {
+const expectWizardPermissionsStepCopy = async (window) => {
   const wizardStepOne = window.locator('[data-wizard-step="1"]')
 
   await expect(wizardStepOne).toBeVisible()
-  await expect(wizardStepOne).toContainText(copy.wizardChooseContextFolderTitle)
-  await expect(wizardStepOne).toContainText(copy.wizardChooseContextFolderDescription)
-  if (hasContextFolder) {
-    await expect(window.locator('#wizard-context-folder-choose')).toContainText(copy.wizardContextFolderChange)
-    return
-  }
-  await expect(window.locator('#wizard-context-folder-path')).toHaveCount(0)
-  await expect(window.locator('#wizard-context-folder-choose')).toContainText(copy.wizardContextFolderSetCta)
+  await expect(wizardStepOne).toContainText(copy.wizardEnableCapturingTitle)
+  await expect(wizardStepOne).toContainText(copy.wizardEnableCapturingDescription)
 }
 
-const expectWizardPermissionsStepCopy = async (window) => {
+const expectPermissionsGrantedBanner = async (window) => {
+  await expect(window.locator('[data-permission-flow-state="granted"]')).toBeVisible()
+  await expect(window.locator('[data-permission-flow-state="granted"]')).toContainText(copy.wizardPermissionGranted)
+}
+
+const completeWizardPermissionsStep = async (window, nextButton) => {
+  await expectWizardPermissionsStepCopy(window)
+  await expectPermissionsGrantedBanner(window)
+  await expect(nextButton).toBeEnabled()
+  await nextButton.click()
+}
+
+const expectWizardContextStepCopy = async (window) => {
   const wizardStepTwo = window.locator('[data-wizard-step="2"]')
 
   await expect(wizardStepTwo).toBeVisible()
-  await expect(wizardStepTwo).toContainText(copy.wizardEnableCapturingTitle)
-  await expect(wizardStepTwo).toContainText(copy.wizardEnableCapturingDescription)
-  await expect(window.locator('#wizard-check-permissions')).toContainText(copy.wizardCheckPermissions)
+  await expect(wizardStepTwo).toContainText(copy.wizardChooseContextFolderTitle)
+  await expect(window.locator('#wizard-context-folder-show-in-finder')).toContainText(copy.wizardContextFolderShowInFinder)
+}
+
+// Context step auto-defaults to $HOME (handleApplyDefaultContextFolder) so
+// the path field fills in on its own. Unless a test wants a specific
+// fixture path, we just verify a non-empty value and advance.
+const completeWizardContextStep = async (window, nextButton, { expectedDisplayPath } = {}) => {
+  await expectWizardContextStepCopy(window)
+  const pathInput = window.locator('#wizard-context-folder-path')
+  if (expectedDisplayPath) {
+    await expect(pathInput).toHaveValue(expectedDisplayPath)
+  } else {
+    await expect(pathInput).not.toHaveValue('')
+  }
+  await expect(nextButton).toBeEnabled()
+  await nextButton.click()
 }
 
 const expectWizardSkillsStepCopy = async (window) => {
@@ -136,87 +167,74 @@ const expectWizardSkillsStepCopy = async (window) => {
   await expect(wizardStepThree).toContainText(copy.wizardHarnessCursor)
 }
 
-const expectWizardFirstUsecaseStepCopy = async (window, nextButton) => {
+// Step 3 is always-complete (installation is optional). Clicking a row
+// runs the per-row installer; the row transitions to data-installed=true
+// once installSkill resolves (min 1s spinner enforced in useDashboardSkills).
+const installCodexHarness = async (window) => {
+  const codexRow = window.locator('button[data-skill-harness="codex"]')
+  await expect(codexRow).toBeVisible()
+  await codexRow.click()
+  await expect(codexRow).toHaveAttribute('data-installed', 'true', { timeout: 10000 })
+}
+
+const expectWizardFirstUsecaseStepCopy = async (window) => {
   const wizardStepFour = window.locator('[data-wizard-step="4"]')
 
   await expect(wizardStepFour).toBeVisible()
   await expect(wizardStepFour).toContainText(copy.wizardFirstUsecaseTitle)
+  await expect(wizardStepFour).toContainText(copy.wizardFirstUsecaseCommand)
+  await expect(wizardStepFour).toContainText(copy.wizardTryItPinkySwear)
   await expect(wizardStepFour.locator('#wizard-first-usecase-gif')).toBeVisible()
   await expect(wizardStepFour.locator('#wizard-first-usecase-gif')).toHaveAttribute('src', /familiar-first-usecase\.gif$/)
-  await expect(nextButton).toContainText(copy.wizardNext)
-  await expect(nextButton).toBeEnabled()
 }
 
-const expectWizardCompleteStepCopy = async (window, doneButton) => {
+// Step 4 gates Next on the pinky-swear checkbox.
+const completeWizardFirstUsecaseStep = async (window, nextButton) => {
+  await expectWizardFirstUsecaseStepCopy(window)
+  const wizardStepFour = window.locator('[data-wizard-step="4"]')
+  await expect(nextButton).toBeDisabled()
+  await wizardStepFour.locator('input[type="checkbox"]').first().check()
+  await expect(nextButton).toBeEnabled()
+  await nextButton.click()
+}
+
+const expectWizardAutomateStepCopy = async (window, doneButton) => {
   const wizardStepFive = window.locator('[data-wizard-step="5"]')
 
   await expect(wizardStepFive).toBeVisible()
-  await expect(wizardStepFive).toContainText(copy.wizardAllSetTitle)
-  await expect(wizardStepFive).toContainText(copy.wizardAllSetDescription)
-  await expect(wizardStepFive).toContainText(copy.wizardFaqTitle)
-  await expect(wizardStepFive).toContainText(copy.wizardFaqScrollHint)
-  await expect(wizardStepFive).toContainText(copy.wizardFaqQuestionSensitiveData)
+  await expect(wizardStepFive).toContainText(copy.wizardAutomateTitle)
+  await expect(wizardStepFive).toContainText(copy.wizardDestMemory)
+  await expect(wizardStepFive).toContainText(copy.wizardDestSkills)
+  await expect(wizardStepFive).toContainText(copy.wizardDestKnowledgeBase)
+  await expect(wizardStepFive).toContainText(copy.wizardDestManual)
   await expect(doneButton).toContainText(copy.wizardDone)
 }
 
-const goToFinalWizardStep = async (window, nextButton) => {
-  await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
-  await expect(nextButton).toBeEnabled()
-  await nextButton.click()
-  await expectWizardFirstUsecaseStepCopy(window, nextButton)
-  await nextButton.click()
-  await expect(window.locator('[data-wizard-step="5"]')).toBeVisible()
+// Step 5 gates Done on having at least one destination selected. Picking
+// "Native memory" is the simplest (no follow-up folder picker).
+const completeWizardAutomateStep = async (window, doneButton) => {
+  await expectWizardAutomateStepCopy(window, doneButton)
+  await expect(doneButton).toBeDisabled()
+  await window.locator('[data-wizard-step="5"] button', { hasText: copy.wizardDestMemory }).click()
+  await expect(doneButton).toBeEnabled()
+  await doneButton.click()
 }
 
-const completeWizardPermissionsStep = async (window, nextButton) => {
-  const checkPermissionsButton = window.locator('#wizard-check-permissions')
-
-  await expectWizardPermissionsStepCopy(window)
-  await expect(checkPermissionsButton).toBeVisible()
-  await expect(nextButton).toBeDisabled()
-  await checkPermissionsButton.click()
-
-  const permission = await window.evaluate(() => window.familiar.checkScreenRecordingPermission())
-  expect(permission?.permissionStatus).toBe('granted')
-
-  await expect(window.locator('#wizard-recording-toggle-section')).toBeHidden()
-  await expect(nextButton).toBeEnabled()
-  await nextButton.click()
+// After Done, the full-window CompleteSection takes over. Sidebar is
+// gone, no section-title header, just the "Success!" headline + inline
+// links + owl-confetti canvas (skipped entirely in reduced-motion).
+const expectCompleteSectionVisible = async (window) => {
+  const complete = window.locator('#section-complete')
+  await expect(complete).toBeVisible()
+  await expect(complete).toContainText(copy.completeHeadline)
+  await expect(complete).toContainText(copy.completeCloseLink)
+  await expect(complete).toContainText(copy.completeTryCommand)
+  await expect(complete).toContainText(copy.completeIdeasLinkLabel)
 }
 
-const installWizardSkill = async (window) => {
-  const skillStatus = window.locator('#wizard-skill-status')
-  const wizardStepThree = window.locator('[data-wizard-step="3"]')
-  const codexHarnessOption = wizardStepThree.locator('.skill-picker-option', { hasText: copy.wizardHarnessCodex })
-  const codexHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="codex"]')
-
-  await expectWizardSkillsStepCopy(window)
-  await expect(wizardStepThree).toBeVisible()
-  if (!(await codexHarness.isChecked())) {
-    await codexHarnessOption.click()
-  }
-  await expect(skillStatus).toContainText(wizardSkillInstalledAtPrefix)
-}
-
-const expectAutoInstallAllowsAdvance = async (window, nextButton) => {
-  const wizardStepThree = window.locator('[data-wizard-step="3"]')
-  const codexHarnessOption = wizardStepThree.locator('.skill-picker-option', { hasText: copy.wizardHarnessCodex })
-  const codexHarness = wizardStepThree.locator('input[name="wizard-skill-harness"][value="codex"]')
-
-  await expectWizardSkillsStepCopy(window)
-  await expect(wizardStepThree).toBeVisible()
-  if (!(await codexHarness.isChecked())) {
-    await codexHarnessOption.click()
-  }
-
-  await expect(window.locator('#wizard-skill-status')).toContainText(wizardSkillInstalledAtPrefix)
-  await expect(nextButton).toBeEnabled()
-}
-
-test('wizard happy flow completes setup and routes to Storage', async () => {
+test('wizard happy flow completes setup and ends on the "You\'re all set" screen', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
-  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
   const { electronApp, settingsDir, skillHomeDir } = launchElectron({
     contextPath,
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
@@ -227,36 +245,37 @@ test('wizard happy flow completes setup and routes to Storage', async () => {
     await window.waitForLoadState('domcontentloaded')
 
     await expectWizardChrome(window)
-    await expect(window.locator('#wizard-llm-provider')).toHaveCount(0)
-    await expectWizardContextStepCopy(window, { hasContextFolder: false })
 
     const nextButton = window.locator('#wizard-next')
     const doneButton = window.locator('#wizard-done')
     await expect(nextButton).toContainText(copy.wizardNext)
-    await expect(nextButton).toBeDisabled()
 
-    await window.locator('#wizard-context-folder-choose').click()
-    await expectWizardContextStepCopy(window, { hasContextFolder: true })
-    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(expectedDisplayPath)
-    await expect(nextButton).toBeEnabled()
-
-    await nextButton.click()
-    await expectWizardPermissionsStepCopy(window)
+    // Step 1: Permissions (auto-granted in E2E).
     await completeWizardPermissionsStep(window, nextButton)
 
-    await installWizardSkill(window)
-    await goToFinalWizardStep(window, nextButton)
-    await expectWizardCompleteStepCopy(window, doneButton)
-    await expect(doneButton).toBeEnabled()
-    await doneButton.click()
+    // Step 2: Context (auto-defaults to $HOME which maps to skillHomeDir in E2E).
+    await completeWizardContextStep(window, nextButton)
 
-    await expect(window.locator('#section-title')).toHaveText(copy.storageTitle)
+    // Step 3: Agents (always-complete; still install codex to verify wiring).
+    await expectWizardSkillsStepCopy(window)
+    await installCodexHarness(window)
+    await expect(nextButton).toBeEnabled()
+    await nextButton.click()
+
+    // Step 4: Try it (pinky-swear gated).
+    await completeWizardFirstUsecaseStep(window, nextButton)
+
+    // Step 5: Automate (destination-selection gated).
+    await completeWizardAutomateStep(window, doneButton)
+
+    // Post-wizard: CompleteSection full-window takeover.
+    await expectCompleteSectionVisible(window)
 
     const settingsPath = path.join(settingsDir, 'settings.json')
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
-    expect(stored.contextFolderPath).toBe(path.resolve(contextPath))
-    expect(stored.alwaysRecordWhenActive ?? false).toBe(true)
     expect(stored.wizardCompleted).toBe(true)
+    expect(stored.alwaysRecordWhenActive ?? false).toBe(true)
+    expect(stored.contextFolderPath).toBeTruthy()
     expect(stored.skillInstaller.harness).toEqual(['codex'])
     expect(stored.skillInstaller.installPath).toEqual([path.join(skillHomeDir, '.codex', 'skills', 'familiar')])
   } finally {
@@ -264,11 +283,10 @@ test('wizard happy flow completes setup and routes to Storage', async () => {
   }
 })
 
-test('wizard permission step auto-enables capture after permissions are granted', async () => {
+test('wizard Permissions step auto-grants in E2E and enables capture', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
-  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
-  const { electronApp } = launchElectron({
+  const { electronApp, settingsDir } = launchElectron({
     contextPath,
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
   })
@@ -278,30 +296,35 @@ test('wizard permission step auto-enables capture after permissions are granted'
     await window.waitForLoadState('domcontentloaded')
 
     await expectWizardChrome(window)
-    await expectWizardContextStepCopy(window, { hasContextFolder: false })
-    await window.locator('#wizard-context-folder-choose').click()
-    await expectWizardContextStepCopy(window, { hasContextFolder: true })
+    await expectWizardPermissionsStepCopy(window)
+    await expectPermissionsGrantedBanner(window)
 
     const nextButton = window.locator('#wizard-next')
+    await expect(nextButton).toBeEnabled()
     await nextButton.click()
-    await expectWizardPermissionsStepCopy(window)
 
-    await expect(nextButton).toBeDisabled()
+    // Landing on step 2 proves step 1 is considered complete.
+    await expect(window.locator('[data-wizard-step="2"]')).toBeVisible()
 
-    await completeWizardPermissionsStep(window, nextButton)
-    await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
+    const settingsPath = path.join(settingsDir, 'settings.json')
+    const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+    expect(stored.alwaysRecordWhenActive).toBe(true)
   } finally {
     await (await electronApp).close()
   }
 })
 
-test('wizard reopens on permissions step when context folder is already configured', async () => {
+test('resolveInitialWizardStep advances past already-complete steps on relaunch', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  // Permissions + context already satisfied -> resolveInitialWizardStep
+  // walks forward and lands on step 3 (Agents is always-complete but
+  // contains actionable install rows, so it's where returning users park).
   const { electronApp } = launchElectron({
     contextPath,
     initialSettings: {
       contextFolderPath: path.resolve(contextPath),
+      alwaysRecordWhenActive: true,
       wizardCompleted: false
     },
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
@@ -311,22 +334,27 @@ test('wizard reopens on permissions step when context folder is already configur
     const window = await (await electronApp).firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
+    await expectWizardChrome(window)
     await expect(window.locator('[data-wizard-step="1"]')).toBeHidden()
-    await expectWizardChrome(window)
-    await expectWizardPermissionsStepCopy(window)
-    await expect(window.locator('#wizard-context-folder-path')).toBeHidden()
-    await expect(window.locator('#wizard-check-permissions')).toBeVisible()
+    await expect(window.locator('[data-wizard-step="2"]')).toBeHidden()
+    // Step 3 (Agents) onward is always-complete; the initial resolver
+    // therefore lands at the last step (5 / Automate).
+    await expect(window.locator('[data-wizard-step="5"]')).toBeVisible()
   } finally {
     await (await electronApp).close()
   }
 })
 
-test('wizard install step auto-installs selected harness and allows continuing', async () => {
+test('wizard Agents step installs codex via per-row click and keeps Next enabled', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
-  const expectedDisplayPath = path.join(path.resolve(contextPath), 'familiar')
   const { electronApp } = launchElectron({
     contextPath,
+    initialSettings: {
+      contextFolderPath: path.resolve(contextPath),
+      alwaysRecordWhenActive: true,
+      wizardCompleted: false
+    },
     env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
   })
 
@@ -334,65 +362,73 @@ test('wizard install step auto-installs selected harness and allows continuing',
     const window = await (await electronApp).firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await expectWizardChrome(window)
+    // Back up from the auto-resolved final step to step 3.
     const nextButton = window.locator('#wizard-next')
+    const backButton = window.locator('#wizard-back')
+    while (!(await window.locator('[data-wizard-step="3"]').isVisible().catch(() => false))) {
+      await backButton.click()
+    }
 
-    await window.locator('#wizard-context-folder-choose').click()
-    await expectWizardContextStepCopy(window, { hasContextFolder: true })
-    await expect(window.locator('#wizard-context-folder-path')).toHaveValue(expectedDisplayPath)
-    await nextButton.click()
-
-    await expectWizardPermissionsStepCopy(window)
-    await completeWizardPermissionsStep(window, nextButton)
     await expectWizardSkillsStepCopy(window)
-
-    await expectAutoInstallAllowsAdvance(window, nextButton)
-    await expect(window.locator('[data-wizard-step="3"]')).toBeVisible()
+    await installCodexHarness(window)
     await expect(nextButton).toBeEnabled()
-    await nextButton.click()
-    await expectWizardFirstUsecaseStepCopy(window, nextButton)
-    await nextButton.click()
-    await expectWizardCompleteStepCopy(window, window.locator('#wizard-done'))
   } finally {
     await (await electronApp).close()
   }
 })
 
-test('wizard hides wizard tab after Done', async () => {
+test('post-wizard CompleteSection is one-shot: Done -> complete; relaunch -> storage', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
-  const { electronApp } = launchElectron({
-    contextPath,
-    env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
-  })
+  const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
 
+  // First launch: complete the wizard, verify CompleteSection takes over.
+  let firstApp
   try {
-    const window = await (await electronApp).firstWindow()
+    const first = launchElectron({
+      contextPath,
+      settingsDir,
+      initialSettings: {
+        contextFolderPath: path.resolve(contextPath),
+        alwaysRecordWhenActive: true,
+        wizardCompleted: false
+      },
+      env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
+    })
+    firstApp = first.electronApp
+    const window = await (await firstApp).firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await expectWizardChrome(window)
-    await expectWizardContextStepCopy(window, { hasContextFolder: false })
-    await window.locator('#wizard-context-folder-choose').click()
-    await expectWizardContextStepCopy(window, { hasContextFolder: true })
-    const nextButton = window.locator('#wizard-next')
+    // initialSettings puts us at step 5 already (resolver lands at end).
+    await expect(window.locator('[data-wizard-step="5"]')).toBeVisible()
     const doneButton = window.locator('#wizard-done')
+    await completeWizardAutomateStep(window, doneButton)
+    await expectCompleteSectionVisible(window)
+    // CompleteSection is chromeless — the sidebar nav (role=tablist) is
+    // hidden via the isCompleteSection branch in DashboardShellLayout.
+    await expect(window.locator('nav[role="tablist"]')).toBeHidden()
+  } finally {
+    if (firstApp) await (await firstApp).close()
+  }
 
-    await nextButton.click()
-    await expectWizardPermissionsStepCopy(window)
-
-    await completeWizardPermissionsStep(window, nextButton)
-    await installWizardSkill(window)
-
-    await goToFinalWizardStep(window, nextButton)
-    await expectWizardCompleteStepCopy(window, doneButton)
-    await expect(doneButton).toBeEnabled()
-    await doneButton.click()
+  // Second launch: wizardCompleted is now true on disk; resolveInitialActiveSection
+  // returns 'storage'. CompleteSection does NOT show again.
+  let secondApp
+  try {
+    const second = launchElectron({
+      contextPath,
+      settingsDir,
+      env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
+    })
+    secondApp = second.electronApp
+    const window = await (await secondApp).firstWindow()
+    await window.waitForLoadState('domcontentloaded')
 
     await expect(window.locator('#section-title')).toHaveText(copy.storageTitle)
     await expect(window.getByRole('tab', { name: copy.wizardSectionTitle })).toBeHidden()
-    await expect(window.locator('[data-wizard-step="1"]')).toBeHidden()
+    await expect(window.locator('#section-complete')).toBeHidden()
   } finally {
-    await (await electronApp).close()
+    if (secondApp) await (await secondApp).close()
   }
 })
 
