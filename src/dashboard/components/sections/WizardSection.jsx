@@ -165,14 +165,6 @@ export function WizardSection({
     return `Please use /familiar to update ${joined}. Keep a pointer in each memory entry back to the original markdown paths so raw data remains retrievable.`
   }
 
-  const pickKnowledgeBaseFolder = async () => {
-    if (typeof window.familiar?.pickDirectory !== 'function') return
-    const result = await window.familiar.pickDirectory()
-    if (!result?.canceled && result?.path) {
-      setKnowledgeBasePath(result.path)
-    }
-  }
-
   // Override canAdvance for steps with local gating
   const installedHarnessValues = wizardHarnessOptions
     ? wizardHarnessOptions
