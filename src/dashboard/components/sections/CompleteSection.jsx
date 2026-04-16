@@ -1,8 +1,60 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import confetti from 'canvas-confetti'
 
 import { Button } from '../ui/button'
 
 export function CompleteSection({ mc, toDisplayText }) {
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const prefersReducedMotion =
+      typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return undefined
+
+    let cancelled = false
+    const timeouts = []
+    const scheduleBurst = (delayMs, options) => {
+      const id = setTimeout(() => {
+        if (cancelled) return
+        try {
+          confetti(options)
+        } catch {
+          // confetti may be unavailable in degraded environments; ignore
+        }
+      }, delayMs)
+      timeouts.push(id)
+    }
+
+    let owlShape
+    try {
+      owlShape = confetti.shapeFromText({ text: '🦉', scalar: 2 })
+    } catch {
+      return undefined
+    }
+
+    const common = {
+      shapes: [owlShape],
+      scalar: 2,
+      gravity: 1,
+      ticks: 220,
+      disableForReducedMotion: true
+    }
+
+    scheduleBurst(0,   { ...common, particleCount: 60, spread: 100, origin: { x: 0.5,  y: 0.55 } })
+    scheduleBurst(150, { ...common, particleCount: 40, spread: 80,  origin: { x: 0.15, y: 0.6  } })
+    scheduleBurst(300, { ...common, particleCount: 40, spread: 80,  origin: { x: 0.85, y: 0.6  } })
+
+    return () => {
+      cancelled = true
+      for (const id of timeouts) clearTimeout(id)
+      try {
+        confetti.reset()
+      } catch {
+        // noop
+      }
+    }
+  }, [])
+
   const htmlCopy = mc?.dashboard?.html || {}
   const headline = toDisplayText(htmlCopy.completeHeadline)
   const menuBarPointer = toDisplayText(htmlCopy.completeMenuBarPointer)
