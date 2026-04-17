@@ -25,3 +25,13 @@ Another plain sentence with punctuation, numbers like 42, and mixed casing.
 In notes: api_key="[REDACTED:generic_api_assignment]" was pasted from a test account.
 Reminder line: password = "[REDACTED:password_assignment]" should never be persisted in clear text.
 Context mention: we accidentally logged [REDACTED:openai_sk] inside this paragraph.
+pem: [REDACTED:pem_private_key]
+google: [REDACTED:google_oauth_client_secret]
+slack webhook: [REDACTED:slack_webhook_url]
+npm: [REDACTED:npm_token]
+hf: [REDACTED:huggingface_token]
+aws secret: AWS_SECRET_ACCESS_KEY="[REDACTED:aws_secret_access_key_contextual]"
+magic link: https://app.example.com/callback?code=[REDACTED:oauth_url_code_or_token]&state=x
+otp: Your [REDACTED:otp_verification_code_contextual].
+[REDACTED:iban_contextual]
+wif: [REDACTED:bitcoin_wif_private_key]

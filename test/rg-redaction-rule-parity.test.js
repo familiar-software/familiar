@@ -224,6 +224,138 @@ const CASES = Object.freeze([
     positive: 'id: 123 45 6789',
     negative: 'id: 12 345 6789',
     expected: 'id: [REDACTED:us_ssn_spaced]'
+  },
+  {
+    ruleId: 'google_oauth_client_secret',
+    positive: 'client_secret: GOCSPX-abcdefghijklmnopqrstuvwxyz01',
+    negative: 'client_secret: GOCSPX-short',
+    expected: 'client_secret: [REDACTED:google_oauth_client_secret]'
+  },
+  {
+    ruleId: 'slack_webhook_url',
+    positive: 'webhook https://hooks.slack.com/services/T12345/B67890/AbCdEf12345',
+    negative: 'webhook https://example.com/services/T12345/B67890/abc',
+    expected: 'webhook [REDACTED:slack_webhook_url]'
+  },
+  {
+    ruleId: 'npm_token',
+    positive: 'npm: npm_abcdefghijklmnopqrstuvwxyz0123456789',
+    negative: 'npm: npm_short',
+    expected: 'npm: [REDACTED:npm_token]'
+  },
+  {
+    ruleId: 'huggingface_token',
+    positive: 'hf: hf_abcdefghijklmnopqrstuvwxyz01234567ABcd',
+    negative: 'hf: hf_short',
+    expected: 'hf: [REDACTED:huggingface_token]'
+  },
+  {
+    ruleId: 'digitalocean_token',
+    positive: 'do: dop_v1_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    negative: 'do: dop_v1_short',
+    expected: 'do: [REDACTED:digitalocean_token]'
+  },
+  {
+    ruleId: 'postman_api_key',
+    positive: 'pm: PMAK-abcdef012345abcdef012345-abcdef012345abcdef012345abcdef0123',
+    negative: 'pm: PMAK-short',
+    expected: 'pm: [REDACTED:postman_api_key]'
+  },
+  {
+    ruleId: 'linear_api_key',
+    positive: 'lin: lin_api_0123456789abcdefghij0123456789abcdefghij',
+    negative: 'lin: lin_api_short',
+    expected: 'lin: [REDACTED:linear_api_key]'
+  },
+  {
+    ruleId: 'figma_token',
+    positive: 'figma: figd_0123456789abcdefghij0123456789abcdefghij0',
+    negative: 'figma: figd_short',
+    expected: 'figma: [REDACTED:figma_token]'
+  },
+  {
+    ruleId: 'notion_secret',
+    positive: 'notion: secret_0123456789abcdefghij0123456789abcdefghij012',
+    negative: 'notion: secret_short',
+    expected: 'notion: [REDACTED:notion_secret]'
+  },
+  {
+    ruleId: 'databricks_token',
+    positive: 'db: dapi0123456789abcdef0123456789abcdef',
+    negative: 'db: dapi_short',
+    expected: 'db: [REDACTED:databricks_token]'
+  },
+  {
+    ruleId: 'cloudflare_api_token',
+    positive: 'cf: CFPAT-abcdefghijklmnopqrstuvwxyz0123456789abcd',
+    negative: 'cf: CFPAT-short',
+    expected: 'cf: [REDACTED:cloudflare_api_token]'
+  },
+  {
+    ruleId: 'square_token',
+    positive: 'sq: sq0csp-abcdefghijklmnopqrstuv',
+    negative: 'sq: sq0csp-short',
+    expected: 'sq: [REDACTED:square_token]'
+  },
+  {
+    ruleId: 'mailgun_key',
+    positive: 'mg: key-0123456789abcdef0123456789abcdef',
+    negative: 'mg: key-short',
+    expected: 'mg: [REDACTED:mailgun_key]'
+  },
+  {
+    ruleId: 'mailchimp_key',
+    positive: 'mc: 0123456789abcdef0123456789abcdef-us1',
+    negative: 'mc: 0123-us1',
+    expected: 'mc: [REDACTED:mailchimp_key]'
+  },
+  {
+    ruleId: 'discord_bot_token',
+    positive: 'dc: MTAxMjM0NTY3ODkwMTIzNDU2Nzg.AbcDef.ghijklmnopqrstuvwxyz0123456789AB',
+    negative: 'dc: M.short.t',
+    expected: 'dc: [REDACTED:discord_bot_token]'
+  },
+  {
+    ruleId: 'telegram_bot_token',
+    positive: 'tg: 123456789:abcdefghijklmnopqrstuvwxyzABCDEFGHI',
+    negative: 'tg: 123:short',
+    expected: 'tg: [REDACTED:telegram_bot_token]'
+  },
+  {
+    ruleId: 'aws_secret_access_key_contextual',
+    positive: 'AWS_SECRET_ACCESS_KEY = "abcd/efgh+ijklmnopqrstuvwxyz0123456789AB"',
+    negative: 'AWS_SECRET_ACCESS_KEY = "short"',
+    expected: 'AWS_SECRET_ACCESS_KEY = "[REDACTED:aws_secret_access_key_contextual]"'
+  },
+  {
+    ruleId: 'oauth_url_code_or_token',
+    positive: 'visit https://app.example.com/callback?code=abcdefghijklmnopqrstuvwxyz0123456789&state=x',
+    negative: 'visit https://app.example.com/callback?foo=short',
+    expected: 'visit https://app.example.com/callback?code=[REDACTED:oauth_url_code_or_token]&state=x'
+  },
+  {
+    ruleId: 'otp_verification_code_contextual',
+    positive: 'Your verification code is 427192',
+    negative: 'Your daily note is 427192',
+    expected: 'Your [REDACTED:otp_verification_code_contextual]'
+  },
+  {
+    ruleId: 'iban_contextual',
+    positive: 'IBAN: DE89370400440532013000',
+    negative: 'IBAN: short',
+    expected: '[REDACTED:iban_contextual]'
+  },
+  {
+    ruleId: 'bitcoin_wif_private_key',
+    positive: 'wif: 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ',
+    negative: 'wif: 5short',
+    expected: 'wif: [REDACTED:bitcoin_wif_private_key]'
+  },
+  {
+    ruleId: 'crypto_seed_phrase_keyword',
+    positive: 'Here is my seed phrase',
+    negative: 'Here is my daily note',
+    expected: 'Here is my seed phrase'
   }
 ])
 

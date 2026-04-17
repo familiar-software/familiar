@@ -176,6 +176,183 @@ const RULES = Object.freeze([
     jsFlags: 'g',
     maskStrategy: 'full',
     action: 'redact'
+  },
+  {
+    id: 'google_oauth_client_secret',
+    rgPattern: String.raw`\bGOCSPX-[A-Za-z0-9_-]{28,}\b`,
+    jsPattern: String.raw`\bGOCSPX-[A-Za-z0-9_-]{28,}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'slack_webhook_url',
+    rgPattern: String.raw`\bhttps://hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+\b`,
+    jsPattern: String.raw`\bhttps://hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'npm_token',
+    rgPattern: String.raw`\bnpm_[A-Za-z0-9]{36}\b`,
+    jsPattern: String.raw`\bnpm_[A-Za-z0-9]{36}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'huggingface_token',
+    rgPattern: String.raw`\bhf_[A-Za-z0-9]{34,}\b`,
+    jsPattern: String.raw`\bhf_[A-Za-z0-9]{34,}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'digitalocean_token',
+    rgPattern: String.raw`\b(?:dop|doo|dor|dot)_v1_[a-f0-9]{64}\b`,
+    jsPattern: String.raw`\b(?:dop|doo|dor|dot)_v1_[a-f0-9]{64}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'postman_api_key',
+    rgPattern: String.raw`\bPMAK-[a-f0-9]{24}-[a-f0-9]{34}\b`,
+    jsPattern: String.raw`\bPMAK-[a-f0-9]{24}-[a-f0-9]{34}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'linear_api_key',
+    rgPattern: String.raw`\blin_(?:api|oauth)_[A-Za-z0-9]{40}\b`,
+    jsPattern: String.raw`\blin_(?:api|oauth)_[A-Za-z0-9]{40}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'figma_token',
+    rgPattern: String.raw`\bfig[dupo]_[A-Za-z0-9_-]{40,}\b`,
+    jsPattern: String.raw`\bfig[dupo]_[A-Za-z0-9_-]{40,}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'notion_secret',
+    rgPattern: String.raw`\bsecret_[A-Za-z0-9]{43}\b`,
+    jsPattern: String.raw`\bsecret_[A-Za-z0-9]{43}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'databricks_token',
+    rgPattern: String.raw`\bdapi[a-f0-9]{32}\b`,
+    jsPattern: String.raw`\bdapi[a-f0-9]{32}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'cloudflare_api_token',
+    rgPattern: String.raw`\bCFPAT-[A-Za-z0-9_-]{40,}\b`,
+    jsPattern: String.raw`\bCFPAT-[A-Za-z0-9_-]{40,}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'square_token',
+    rgPattern: String.raw`\b(?:sq0[a-z]{3}-[A-Za-z0-9_-]{22,}|EAAA[A-Za-z0-9_-]{60,})\b`,
+    jsPattern: String.raw`\b(?:sq0[a-z]{3}-[A-Za-z0-9_-]{22,}|EAAA[A-Za-z0-9_-]{60,})\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'mailgun_key',
+    rgPattern: String.raw`\bkey-[a-f0-9]{32}\b`,
+    jsPattern: String.raw`\bkey-[a-f0-9]{32}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'mailchimp_key',
+    rgPattern: String.raw`\b[a-f0-9]{32}-us\d{1,2}\b`,
+    jsPattern: String.raw`\b[a-f0-9]{32}-us\d{1,2}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'discord_bot_token',
+    rgPattern: String.raw`\b[MN][A-Za-z0-9_-]{23,28}\.[A-Za-z0-9_-]{6,7}\.[A-Za-z0-9_-]{27,}\b`,
+    jsPattern: String.raw`\b[MN][A-Za-z0-9_-]{23,28}\.[A-Za-z0-9_-]{6,7}\.[A-Za-z0-9_-]{27,}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'telegram_bot_token',
+    rgPattern: String.raw`\b\d{8,10}:[A-Za-z0-9_-]{35}\b`,
+    jsPattern: String.raw`\b\d{8,10}:[A-Za-z0-9_-]{35}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'aws_secret_access_key_contextual',
+    rgPattern: String.raw`(?i)\baws[_-]?secret[_-]?access[_-]?key\b\s*[:=]\s*["']?[A-Za-z0-9/+=]{40}["']?`,
+    jsPattern: String.raw`\baws[_-]?secret[_-]?access[_-]?key\b\s*[:=]\s*["']?[A-Za-z0-9/+=]{40}["']?`,
+    jsFlags: 'gi',
+    maskStrategy: 'value_after_separator',
+    action: 'redact'
+  },
+  {
+    id: 'oauth_url_code_or_token',
+    rgPattern: String.raw`(?i)[?&](?:code|(?:access|id|refresh)_token|state)=[A-Za-z0-9._~+/=-]{16,}`,
+    jsPattern: String.raw`[?&](?:code|(?:access|id|refresh)_token|state)=[A-Za-z0-9._~+/=-]{16,}`,
+    jsFlags: 'gi',
+    maskStrategy: 'value_after_separator',
+    action: 'redact'
+  },
+  {
+    id: 'otp_verification_code_contextual',
+    rgPattern: String.raw`(?i)\b(?:verification|auth(?:entication)?|security|login|sign[- ]?in|one[- ]?time|otp|2fa|mfa|two[- ]?factor)\s+(?:code|pin)\b[^\n]{0,20}\b\d{4,8}\b`,
+    jsPattern: String.raw`\b(?:verification|auth(?:entication)?|security|login|sign[- ]?in|one[- ]?time|otp|2fa|mfa|two[- ]?factor)\s+(?:code|pin)\b[^\n]{0,20}\b\d{4,8}\b`,
+    jsFlags: 'gi',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'iban_contextual',
+    rgPattern: String.raw`(?i)\bIBAN\b[^\n]{0,30}\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b`,
+    jsPattern: String.raw`\bIBAN\b[^\n]{0,30}\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b`,
+    jsFlags: 'gi',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'bitcoin_wif_private_key',
+    rgPattern: String.raw`\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b`,
+    jsPattern: String.raw`\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'crypto_seed_phrase_keyword',
+    rgPattern: String.raw`(?i)\b(?:seed\s*phrase|recovery\s*phrase|wallet\s*phrase|mnemonic\s*phrase|BIP\s*0?39)\b`,
+    jsPattern: String.raw`\b(?:seed\s*phrase|recovery\s*phrase|wallet\s*phrase|mnemonic\s*phrase|BIP\s*0?39)\b`,
+    jsFlags: 'gi',
+    maskStrategy: 'none',
+    action: 'drop',
+    dropCategory: 'crypto_seed_keyword'
   }
 ])
 

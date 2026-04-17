@@ -25,3 +25,15 @@ Another plain sentence with punctuation, numbers like 42, and mixed casing.
 In notes: api_key="abcDEF1234567890XYZ_+-/=" was pasted from a test account.
 Reminder line: password = "roadmap-secret-2026" should never be persisted in clear text.
 Context mention: we accidentally logged sk-abcdefghijklmnopqrstuvwxyz123456 inside this paragraph.
+pem: -----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAabcdefmorebase64
+-----END RSA PRIVATE KEY-----
+google: GOCSPX-abcdefghijklmnopqrstuvwxyz01
+slack webhook: https://hooks.slack.com/services/T12345/B67890/AbCdEf12345
+npm: npm_abcdefghijklmnopqrstuvwxyz0123456789
+hf: hf_abcdefghijklmnopqrstuvwxyz01234567ABcd
+aws secret: AWS_SECRET_ACCESS_KEY="abcd/efgh+ijklmnopqrstuvwxyz0123456789AB"
+magic link: https://app.example.com/callback?code=abcdefghijklmnopqrstuvwxyz0123456789&state=x
+otp: Your verification code is 427192.
+IBAN: DE89370400440532013000
+wif: 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ

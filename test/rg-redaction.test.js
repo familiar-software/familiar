@@ -9,7 +9,9 @@ const {
   resolveRgBinaryPath,
   scanAndRedactContent,
   applyDocumentLevelSsnRedaction,
-  SSN_DOC_REDACTION_ID
+  applyDocumentLevelPemRedaction,
+  SSN_DOC_REDACTION_ID,
+  PEM_REDACTION_ID
 } = require('../src/security/rg-redaction')
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-rg-redaction-test-'))
@@ -346,6 +348,109 @@ test('scanAndRedactContent redacts page-scoped SSNs even when the rg scan report
     assert.match(result.content, new RegExp(`ID: \\[REDACTED:${SSN_DOC_REDACTION_ID}\\]`))
     assert.equal(result.findings, 1)
     assert.equal(result.ruleCounts[SSN_DOC_REDACTION_ID], 1)
+  } finally {
+    if (prior === undefined) {
+      delete process.env.FAMILIAR_RG_BINARY
+    } else {
+      process.env.FAMILIAR_RG_BINARY = prior
+    }
+  }
+})
+
+test('applyDocumentLevelPemRedaction collapses multi-line PRIVATE KEY blocks across PEM variants', () => {
+  const content = [
+    'before',
+    '-----BEGIN RSA PRIVATE KEY-----',
+    'MIIEpAIBAAKCAQEAabcdef',
+    'morebase64morebase64',
+    '-----END RSA PRIVATE KEY-----',
+    'middle',
+    '-----BEGIN OPENSSH PRIVATE KEY-----',
+    'b3BlbnNzaC1rZXkt',
+    '-----END OPENSSH PRIVATE KEY-----',
+    'and',
+    '-----BEGIN PGP PRIVATE KEY BLOCK-----',
+    'lQOYBGaPayload',
+    '-----END PGP PRIVATE KEY BLOCK-----',
+    'after'
+  ].join('\n')
+
+  const result = applyDocumentLevelPemRedaction(content)
+
+  assert.equal(result.findings, 3)
+  assert.doesNotMatch(result.content, /BEGIN/)
+  assert.doesNotMatch(result.content, /END/)
+  assert.doesNotMatch(result.content, /base64|payload/i)
+  const occurrences = result.content.split(`[REDACTED:${PEM_REDACTION_ID}]`).length - 1
+  assert.equal(occurrences, 3)
+})
+
+test('applyDocumentLevelPemRedaction is a no-op when no PEM block is present', () => {
+  const content = 'plain text without any keys in it'
+  const result = applyDocumentLevelPemRedaction(content)
+  assert.equal(result.findings, 0)
+  assert.equal(result.content, content)
+})
+
+test('scanAndRedactContent redacts multi-line PEM private-key blocks via the doc-level pass', async () => {
+  const { stubPath } = writeStubRgBinary({
+    scriptBody: 'process.stdin.on("data", () => {}); process.stdin.on("end", () => process.exit(1));'
+  })
+
+  const prior = process.env.FAMILIAR_RG_BINARY
+  process.env.FAMILIAR_RG_BINARY = stubPath
+
+  try {
+    const content = [
+      '-----BEGIN RSA PRIVATE KEY-----',
+      'MIIEpAIBAAKCAQEAabcdef',
+      '-----END RSA PRIVATE KEY-----'
+    ].join('\n')
+
+    const result = await scanAndRedactContent({ content })
+
+    assert.equal(result.dropContent, false)
+    assert.equal(result.redactionBypassed, false)
+    assert.match(result.content, new RegExp(`\\[REDACTED:${PEM_REDACTION_ID}\\]`))
+    assert.doesNotMatch(result.content, /MIIEpAI/)
+    assert.equal(result.findings, 1)
+    assert.equal(result.ruleCounts[PEM_REDACTION_ID], 1)
+  } finally {
+    if (prior === undefined) {
+      delete process.env.FAMILIAR_RG_BINARY
+    } else {
+      process.env.FAMILIAR_RG_BINARY = prior
+    }
+  }
+})
+
+test('scanAndRedactContent sets dropContent with crypto-seed-phrase reason when a seed keyword appears alone', async () => {
+  const { stubPath } = writeStubRgBinary({
+    scriptBody: [
+      'let input = "";',
+      'process.stdin.setEncoding("utf8");',
+      'process.stdin.on("data", (chunk) => { input += chunk; });',
+      'process.stdin.on("end", () => {',
+      '  const lines = input.split(/\\n/);',
+      '  for (let i = 0; i < lines.length; i += 1) {',
+      '    process.stdout.write(JSON.stringify({ type: "match", data: { line_number: i + 1, submatches: [{ match: { text: "x" }, start: 0, end: 1 }] } }) + "\\n");',
+      '  }',
+      '  process.exit(0);',
+      '});'
+    ].join('\n')
+  })
+
+  const prior = process.env.FAMILIAR_RG_BINARY
+  process.env.FAMILIAR_RG_BINARY = stubPath
+
+  try {
+    const result = await scanAndRedactContent({
+      content: 'Write down your recovery phrase in a safe place.'
+    })
+
+    assert.equal(result.dropContent, true)
+    assert.equal(result.dropReason, 'crypto-seed-phrase')
+    assert.equal(result.matchedDropCategories.crypto_seed_keyword > 0, true)
   } finally {
     if (prior === undefined) {
       delete process.env.FAMILIAR_RG_BINARY

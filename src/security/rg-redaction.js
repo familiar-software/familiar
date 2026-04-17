@@ -27,8 +27,25 @@ const applyDocumentLevelSsnRedaction = (content) => {
   return { content: next, findings }
 }
 
+// PEM private-key blocks span many lines, so the line-by-line JS pass
+// in redactLine can never catch them. This pre-pass runs against the
+// whole document and collapses every BEGIN…END PRIVATE KEY block to a
+// single sentinel. Covers RSA/EC/DSA/OPENSSH/PKCS8/ENCRYPTED/PGP.
+const PEM_PRIVATE_KEY_REGEX = /-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY(?: BLOCK)?-----[\s\S]*?-----END (?:[A-Z0-9 ]+ )?PRIVATE KEY(?: BLOCK)?-----/g
+const PEM_REDACTION_ID = 'pem_private_key'
+
+const applyDocumentLevelPemRedaction = (content) => {
+  let findings = 0
+  const next = content.replace(PEM_PRIVATE_KEY_REGEX, () => {
+    findings += 1
+    return `[REDACTED:${PEM_REDACTION_ID}]`
+  })
+  return { content: next, findings }
+}
+
 const RG_WARNING_CODE = 'rg-redaction-unavailable'
 const DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER = 'payment-keyword-and-card-number'
+const DROP_REASON_CRYPTO_SEED_PHRASE = 'crypto-seed-phrase'
 
 function noop () {}
 
@@ -292,21 +309,28 @@ const scanAndRedactContent = async ({
   }
 
   const rawNormalizedContent = normalizeContent(content)
-  const ssnPass = applyDocumentLevelSsnRedaction(rawNormalizedContent)
+  const pemPass = applyDocumentLevelPemRedaction(rawNormalizedContent)
+  const ssnPass = applyDocumentLevelSsnRedaction(pemPass.content)
   const normalizedContent = ssnPass.content
   const compiledRules = compileRules()
 
-  // Starter accumulators include whatever the doc-level SSN pass found.
+  // Starter accumulators include whatever the doc-level passes found.
   // Every return path rolls these in so the caller's counts stay accurate.
   const buildInitialCounts = () => {
-    if (ssnPass.findings === 0) {
-      return { findings: 0, ruleCounts: {}, matchedRuleCounts: {} }
+    const ruleCounts = {}
+    const matchedRuleCounts = {}
+    let findings = 0
+    if (pemPass.findings > 0) {
+      ruleCounts[PEM_REDACTION_ID] = pemPass.findings
+      matchedRuleCounts[PEM_REDACTION_ID] = pemPass.findings
+      findings += pemPass.findings
     }
-    return {
-      findings: ssnPass.findings,
-      ruleCounts: { [SSN_DOC_REDACTION_ID]: ssnPass.findings },
-      matchedRuleCounts: { [SSN_DOC_REDACTION_ID]: ssnPass.findings }
+    if (ssnPass.findings > 0) {
+      ruleCounts[SSN_DOC_REDACTION_ID] = ssnPass.findings
+      matchedRuleCounts[SSN_DOC_REDACTION_ID] = ssnPass.findings
+      findings += ssnPass.findings
     }
+    return { findings, ruleCounts, matchedRuleCounts }
   }
 
   const rgBinaryPath = await resolveRgBinaryPath()
@@ -420,11 +444,16 @@ const scanAndRedactContent = async ({
     }
   }
 
-  const dropContent = Boolean(
-    matchedDropCategories.payment_keyword > 0 &&
-    matchedDropCategories.payment_card_number > 0
-  )
-  const dropReason = dropContent ? DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER : null
+  const seedPhraseDrop = (matchedDropCategories.crypto_seed_keyword || 0) > 0
+  const paymentDrop = (matchedDropCategories.payment_keyword || 0) > 0 &&
+    (matchedDropCategories.payment_card_number || 0) > 0
+  const dropContent = seedPhraseDrop || paymentDrop
+  let dropReason = null
+  if (seedPhraseDrop) {
+    dropReason = DROP_REASON_CRYPTO_SEED_PHRASE
+  } else if (paymentDrop) {
+    dropReason = DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER
+  }
 
   return {
     content: lines.join('\n'),
@@ -441,8 +470,10 @@ const scanAndRedactContent = async ({
 module.exports = {
   RG_WARNING_CODE,
   DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER,
+  DROP_REASON_CRYPTO_SEED_PHRASE,
   RULES,
   SSN_DOC_REDACTION_ID,
+  PEM_REDACTION_ID,
   normalizeContent,
   resolveRgBinaryPath,
   scanAndRedactContent,
@@ -450,5 +481,6 @@ module.exports = {
   maskValueAfterSeparator,
   shouldSkipMatch,
   collectCandidateLineIndexes,
-  applyDocumentLevelSsnRedaction
+  applyDocumentLevelSsnRedaction,
+  applyDocumentLevelPemRedaction
 }
