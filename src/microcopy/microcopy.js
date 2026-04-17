@@ -156,6 +156,7 @@ const microcopy = {
         "I pinky pinky super swear that I did this because it'd be such a waste if I didn't do this and this is so damn cool and I really would be missing out.",
       wizardAutomateTitle: "What should your AI auto-update with Familiar's context?",
       wizardAutomateDescription: '',
+      settingsAutomateTitle: 'Build a prompt for your agent to auto-update on a schedule.',
       wizardDestMemory: 'Native memory',
       wizardDestMemoryDesc: 'Your agent remembers what you do without you telling it',
       wizardDestSkills: 'Custom skills',
@@ -202,6 +203,9 @@ const microcopy = {
       },
       installSkill: {
         title: 'Skill'
+      },
+      automate: {
+        title: 'Automate'
       }
     },
     stills: {

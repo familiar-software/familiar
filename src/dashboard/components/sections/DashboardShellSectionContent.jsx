@@ -1,5 +1,6 @@
 import React from 'react'
 
+import { AutomateSection } from './AutomateSection'
 import { CompleteSection } from './CompleteSection'
 import { InstallSkillSection } from './InstallSkillSection'
 import { RecordingSection } from './RecordingSection'
@@ -13,7 +14,8 @@ export function DashboardShellSectionContent({
   wizardSectionProps,
   recordingSectionProps,
   installSectionProps,
-  storageSectionProps
+  storageSectionProps,
+  automateSectionProps
 }) {
   if (activeSection === 'wizard') {
     return <WizardSection mc={mc} toDisplayText={toDisplayText} {...wizardSectionProps} />
@@ -29,6 +31,10 @@ export function DashboardShellSectionContent({
 
   if (activeSection === 'install-skill' || activeSection === 'installSkill') {
     return <InstallSkillSection mc={mc} toDisplayText={toDisplayText} {...installSectionProps} />
+  }
+
+  if (activeSection === 'automate') {
+    return <AutomateSection mc={mc} toDisplayText={toDisplayText} {...automateSectionProps} />
   }
 
   return <StorageSection mc={mc} toDisplayText={toDisplayText} {...storageSectionProps} />

@@ -238,6 +238,11 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
           installAgent: skills.installAgent,
           skillError: core.skillError
         }}
+        automateSectionProps={{
+          mc: core.mc,
+          wizardHarnessOptions: core.wizardHarnessOptions,
+          skillInstallPaths: core.skillInstallPaths
+        }}
         storageSectionProps={{
           mc: core.mc,
           toDisplayText,

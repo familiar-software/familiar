@@ -73,6 +73,15 @@ export function DashboardShellLayout({
       )
     }
 
+    if (id === 'automate') {
+      return (
+        <>
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 8v4l2.5 2.5" />
+        </>
+      )
+    }
+
     return (
       <>
         <path d="M12 3v6" />
