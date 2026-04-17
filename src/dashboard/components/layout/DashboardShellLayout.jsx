@@ -69,7 +69,7 @@ export function DashboardShellLayout({
 
     if (id === 'install-skill' || id === 'installSkill') {
       return (
-        <path d="M14.7 6.3a4.5 4.5 0 0 0 5.8 5.8L21 12l-1.4 1.4a4.5 4.5 0 0 1-6.4 0L4 22l-2-2 9.2-9.2a4.5 4.5 0 0 1 0-6.4L12.6 3l-.1.5a4.5 4.5 0 0 0 1.2 2.8Z" />
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
       )
     }
 
@@ -184,7 +184,7 @@ export function DashboardShellLayout({
         </SidebarFooter>
       </Sidebar>
 
-      <main className="flex-1 flex flex-col min-h-0 h-full bg-white dark:bg-[#111]">
+      <main className="flex-1 flex flex-col min-h-0 min-w-0 h-full bg-white dark:bg-[#111]">
         <h1 id="section-title" className="sr-only">
           {toDisplayText(sectionTitle)}
         </h1>

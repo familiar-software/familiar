@@ -7,7 +7,9 @@ const path = require('node:path')
 const {
   RG_WARNING_CODE,
   resolveRgBinaryPath,
-  scanAndRedactContent
+  scanAndRedactContent,
+  applyDocumentLevelSsnRedaction,
+  SSN_DOC_REDACTION_ID
 } = require('../src/security/rg-redaction')
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-rg-redaction-test-'))
@@ -283,6 +285,67 @@ test('scanAndRedactContent sets dropContent when payment keyword and 10+ digit c
     assert.equal(result.dropReason, 'payment-keyword-and-card-number')
     assert.equal(result.matchedDropCategories.payment_keyword > 0, true)
     assert.equal(result.matchedDropCategories.payment_card_number > 0, true)
+  } finally {
+    if (prior === undefined) {
+      delete process.env.FAMILIAR_RG_BINARY
+    } else {
+      process.env.FAMILIAR_RG_BINARY = prior
+    }
+  }
+})
+
+test('applyDocumentLevelSsnRedaction is a no-op when no SSN label is present', () => {
+  const content = 'Here is 123456789 and a lone 111-22-3333 without context.'
+  const result = applyDocumentLevelSsnRedaction(content)
+  assert.equal(result.findings, 0)
+  assert.equal(result.content, content)
+})
+
+test('applyDocumentLevelSsnRedaction redacts every 9-digit sequence when any SSN label appears on the page', () => {
+  const content = [
+    'My social security info is below.',
+    '',
+    'Number: 123456789',
+    'Spouse: 444 55 6666',
+    'Old card: 777-88-9999',
+    'Unrelated: 1234567 (7 digits, should remain)'
+  ].join('\n')
+
+  const result = applyDocumentLevelSsnRedaction(content)
+
+  assert.equal(result.findings, 3)
+  assert.match(result.content, new RegExp(`Number: \\[REDACTED:${SSN_DOC_REDACTION_ID}\\]`))
+  assert.match(result.content, new RegExp(`Spouse: \\[REDACTED:${SSN_DOC_REDACTION_ID}\\]`))
+  assert.match(result.content, new RegExp(`Old card: \\[REDACTED:${SSN_DOC_REDACTION_ID}\\]`))
+  assert.match(result.content, /Unrelated: 1234567/)
+})
+
+test('scanAndRedactContent redacts page-scoped SSNs even when the rg scan reports no candidate lines', async () => {
+  const { stubPath } = writeStubRgBinary({
+    scriptBody: [
+      'let input = "";',
+      'process.stdin.setEncoding("utf8");',
+      'process.stdin.on("data", (chunk) => { input += chunk; });',
+      'process.stdin.on("end", () => { process.exit(1); });'
+    ].join('\n')
+  })
+
+  const prior = process.env.FAMILIAR_RG_BINARY
+  process.env.FAMILIAR_RG_BINARY = stubPath
+
+  try {
+    const result = await scanAndRedactContent({
+      content: [
+        'Employee social security on file.',
+        '',
+        'ID: 987654321'
+      ].join('\n')
+    })
+
+    assert.equal(result.redactionBypassed, false)
+    assert.match(result.content, new RegExp(`ID: \\[REDACTED:${SSN_DOC_REDACTION_ID}\\]`))
+    assert.equal(result.findings, 1)
+    assert.equal(result.ruleCounts[SSN_DOC_REDACTION_ID], 1)
   } finally {
     if (prior === undefined) {
       delete process.env.FAMILIAR_RG_BINARY

@@ -51,12 +51,15 @@ export function CompleteSection({ mc, toDisplayText }) {
       return undefined
     }
 
-    // Flat 2D owls, comfortable readable size. scalar on the shape MUST
-    // match scalar on the confetti call or the emoji bitmap renders blurry.
+    // Flat 2D owls, comfortable readable size. Render the emoji bitmap
+    // at 2× the particle scalar so canvas-confetti downscales into the
+    // final draw — downscaling stays crisp, whereas rendering 1:1
+    // leaves the bitmap susceptible to fractional-pixel blur on
+    // high-DPI displays.
     const OWL_SCALAR = 2.6
     let owlShape
     try {
-      owlShape = confetti.shapeFromText({ text: '🦉', scalar: OWL_SCALAR })
+      owlShape = confetti.shapeFromText({ text: '🦉', scalar: OWL_SCALAR * 2 })
     } catch {
       owlShape = undefined
     }

@@ -212,6 +212,18 @@ const CASES = Object.freeze([
     positive: 'card token 4242 4242 4242',
     negative: 'card token 4242 4242',
     expected: 'card token 4242 4242 4242'
+  },
+  {
+    ruleId: 'us_ssn_dashed',
+    positive: 'id: 123-45-6789',
+    negative: 'id: 12-345-6789',
+    expected: 'id: [REDACTED:us_ssn_dashed]'
+  },
+  {
+    ruleId: 'us_ssn_spaced',
+    positive: 'id: 123 45 6789',
+    negative: 'id: 12 345 6789',
+    expected: 'id: [REDACTED:us_ssn_spaced]'
   }
 ])
 

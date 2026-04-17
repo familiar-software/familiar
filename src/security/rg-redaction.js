@@ -3,8 +3,29 @@ const path = require('node:path')
 const { spawn } = require('node:child_process')
 
 const {
-  RULES
+  RULES,
+  SSN_LABEL_REGEX
 } = require('./rg-redaction-rules')
+
+// Matches formatted (123-45-6789, 123 45 6789) AND bare (123456789)
+// 9-digit sequences. Used only by the document-level SSN pass — bare
+// 9-digit numbers on pages without any SSN label stay untouched, since
+// they're overwhelmingly phone / account / order numbers.
+const SSN_DOC_NUMBER_REGEX = /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g
+const SSN_DOC_REDACTION_ID = 'us_ssn_page_contextual'
+
+const applyDocumentLevelSsnRedaction = (content) => {
+  if (!SSN_LABEL_REGEX.test(content)) {
+    return { content, findings: 0 }
+  }
+  let findings = 0
+  const next = content.replace(SSN_DOC_NUMBER_REGEX, (match) => {
+    if (match.includes('[REDACTED:')) return match
+    findings += 1
+    return `[REDACTED:${SSN_DOC_REDACTION_ID}]`
+  })
+  return { content: next, findings }
+}
 
 const RG_WARNING_CODE = 'rg-redaction-unavailable'
 const DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER = 'payment-keyword-and-card-number'
@@ -270,8 +291,23 @@ const scanAndRedactContent = async ({
     throw new Error('RG redaction expected string content.')
   }
 
-  const normalizedContent = normalizeContent(content)
+  const rawNormalizedContent = normalizeContent(content)
+  const ssnPass = applyDocumentLevelSsnRedaction(rawNormalizedContent)
+  const normalizedContent = ssnPass.content
   const compiledRules = compileRules()
+
+  // Starter accumulators include whatever the doc-level SSN pass found.
+  // Every return path rolls these in so the caller's counts stay accurate.
+  const buildInitialCounts = () => {
+    if (ssnPass.findings === 0) {
+      return { findings: 0, ruleCounts: {}, matchedRuleCounts: {} }
+    }
+    return {
+      findings: ssnPass.findings,
+      ruleCounts: { [SSN_DOC_REDACTION_ID]: ssnPass.findings },
+      matchedRuleCounts: { [SSN_DOC_REDACTION_ID]: ssnPass.findings }
+    }
+  }
 
   const rgBinaryPath = await resolveRgBinaryPath()
   if (!rgBinaryPath) {
@@ -282,11 +318,12 @@ const scanAndRedactContent = async ({
       message: 'RG binary unavailable for redaction. Saving content without redaction.'
     }
     onRedactionWarning(warning)
+    const initial = buildInitialCounts()
     return {
       content: normalizedContent,
-      findings: 0,
-      ruleCounts: {},
-      matchedRuleCounts: {},
+      findings: initial.findings,
+      ruleCounts: initial.ruleCounts,
+      matchedRuleCounts: initial.matchedRuleCounts,
       matchedDropCategories: {},
       dropContent: false,
       dropReason: null,
@@ -325,11 +362,12 @@ const scanAndRedactContent = async ({
       error: lastError?.message || String(lastError || '')
     }
     onRedactionWarning(warning)
+    const initial = buildInitialCounts()
     return {
       content: normalizedContent,
-      findings: 0,
-      ruleCounts: {},
-      matchedRuleCounts: {},
+      findings: initial.findings,
+      ruleCounts: initial.ruleCounts,
+      matchedRuleCounts: initial.matchedRuleCounts,
       matchedDropCategories: {},
       dropContent: false,
       dropReason: null,
@@ -338,11 +376,12 @@ const scanAndRedactContent = async ({
   }
 
   if (candidateLineIndexes.size === 0) {
+    const initial = buildInitialCounts()
     return {
       content: normalizedContent,
-      findings: 0,
-      ruleCounts: {},
-      matchedRuleCounts: {},
+      findings: initial.findings,
+      ruleCounts: initial.ruleCounts,
+      matchedRuleCounts: initial.matchedRuleCounts,
       matchedDropCategories: {},
       dropContent: false,
       dropReason: null,
@@ -351,9 +390,10 @@ const scanAndRedactContent = async ({
   }
 
   const lines = normalizedContent.split('\n')
-  let findings = 0
-  const ruleCounts = {}
-  const matchedRuleCounts = {}
+  const initial = buildInitialCounts()
+  let findings = initial.findings
+  const ruleCounts = { ...initial.ruleCounts }
+  const matchedRuleCounts = { ...initial.matchedRuleCounts }
   const matchedDropCategories = {}
 
   for (const lineIndex of candidateLineIndexes) {
@@ -402,11 +442,13 @@ module.exports = {
   RG_WARNING_CODE,
   DROP_REASON_PAYMENT_KEYWORD_AND_CARD_NUMBER,
   RULES,
+  SSN_DOC_REDACTION_ID,
   normalizeContent,
   resolveRgBinaryPath,
   scanAndRedactContent,
   redactLine,
   maskValueAfterSeparator,
   shouldSkipMatch,
-  collectCandidateLineIndexes
+  collectCandidateLineIndexes,
+  applyDocumentLevelSsnRedaction
 }

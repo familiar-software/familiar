@@ -140,6 +140,16 @@ export function WizardSection({
         .filter((entry) => skillInstallPaths && skillInstallPaths[entry.value])
         .map((entry) => entry.value)
     : []
+  // If exactly one install-mode agent is actually installed, steps 4/5
+  // can name it instead of saying "your favorite agent" / "your AI".
+  // Copy-paste agents (Cowork, local) don't populate skillInstallPaths,
+  // so they're not considered here.
+  const installedInstallModeEntries = (wizardHarnessOptions || []).filter(
+    (entry) => (!entry.mode || entry.mode === 'install') && skillInstallPaths && skillInstallPaths[entry.value]
+  )
+  const singleInstalledAgentName = installedInstallModeEntries.length === 1
+    ? toDisplayText(installedInstallModeEntries[0].label)
+    : null
   const installedRestartRequired = installedHarnessValues.filter((value) =>
     RESTART_REQUIRED_HARNESSES.has(value)
   )
@@ -533,7 +543,9 @@ export function WizardSection({
         <div className="max-w-[520px] mx-auto space-y-4" data-wizard-step="4" hidden={wizardStep !== 4}>
           <div className="text-center">
             <CardTitle>
-              {toDisplayText(html.wizardFirstUsecaseTitle)}
+              {singleInstalledAgentName
+                ? `Paste this in ${singleInstalledAgentName}`
+                : toDisplayText(html.wizardFirstUsecaseTitle)}
             </CardTitle>
           </div>
           <section className="space-y-3">
@@ -581,7 +593,9 @@ export function WizardSection({
         <div className="max-w-[440px] mx-auto space-y-3" data-wizard-step="5" hidden={wizardStep !== 5}>
           <div className="text-center">
             <CardTitle>
-              {toDisplayText(html.wizardAutomateTitle)}
+              {singleInstalledAgentName
+                ? `What should ${singleInstalledAgentName} auto-update with Familiar's context?`
+                : toDisplayText(html.wizardAutomateTitle)}
             </CardTitle>
           </div>
           <section className="space-y-3">
@@ -649,7 +663,7 @@ export function WizardSection({
                     ) : (
                       <span>scheduled task</span>
                     )}
-                    {' in your agent:'}
+                    {singleInstalledAgentName ? ` in ${singleInstalledAgentName}:` : ' in your agent:'}
                   </CardTitle>
                   <div className="prompt-box relative rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 pr-20 max-h-[4.5em] overflow-hidden">
                     <p className="text-[13px] text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">

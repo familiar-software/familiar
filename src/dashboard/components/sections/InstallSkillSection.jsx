@@ -1,6 +1,5 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 
-import { isInstallMode } from '../dashboard/dashboardConstants'
 import { AgentInstallerList } from '../skills/AgentInstallerList'
 
 export function InstallSkillSection({
@@ -12,10 +11,13 @@ export function InstallSkillSection({
   skillError
 }) {
   const html = mc?.dashboard?.html || {}
-  // Settings renders install-mode rows only — copy-paste (Cowork, Any
-  // local agent) is onboarding-only because its flow is "paste into
-  // your agent right now" rather than configure-and-forget.
-  const options = (wizardHarnessOptions || []).filter(isInstallMode)
+  const options = wizardHarnessOptions || []
+
+  const copyToClipboard = useCallback(async (text) => {
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch { /* silent — user can select manually */ }
+  }, [])
 
   return (
     <section className="react-install-tab space-y-3">
@@ -23,6 +25,7 @@ export function InstallSkillSection({
         options={options}
         skillInstallPaths={skillInstallPaths}
         installAgent={installAgent}
+        copyToClipboard={copyToClipboard}
         html={html}
         toDisplayText={toDisplayText}
         showRestartBanner={false}

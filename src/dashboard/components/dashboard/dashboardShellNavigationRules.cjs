@@ -1,8 +1,9 @@
 const WIZARD_SECTION = 'wizard'
 const STORAGE_SECTION = 'storage'
+const RECORDING_SECTION = 'recording'
 
 const resolveInitialActiveSection = (wizardCompleted) => {
-  return wizardCompleted === true ? STORAGE_SECTION : WIZARD_SECTION
+  return wizardCompleted === true ? RECORDING_SECTION : WIZARD_SECTION
 }
 
 const resolveSectionSelection = ({ isWizardCompleted, nextSection, availableSectionIds = null }) => {
@@ -25,5 +26,6 @@ module.exports = {
   resolveInitialActiveSection,
   resolveSectionSelection,
   WIZARD_SECTION,
-  STORAGE_SECTION
+  STORAGE_SECTION,
+  RECORDING_SECTION
 }

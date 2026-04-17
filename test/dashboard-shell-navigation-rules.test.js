@@ -14,8 +14,8 @@ test('uses wizard as initial section when wizardCompleted is false', () => {
   assert.equal(resolveInitialActiveSection(false), 'wizard')
 })
 
-test('uses storage as initial section when wizardCompleted is true', () => {
-  assert.equal(resolveInitialActiveSection(true), 'storage')
+test('uses recording as initial section when wizardCompleted is true', () => {
+  assert.equal(resolveInitialActiveSection(true), 'recording')
 })
 
 test('blocks section navigation when wizard is incomplete', () => {

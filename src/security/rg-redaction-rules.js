@@ -160,9 +160,33 @@ const RULES = Object.freeze([
     maskStrategy: 'none',
     action: 'drop',
     dropCategory: 'payment_card_number'
+  },
+  {
+    id: 'us_ssn_dashed',
+    rgPattern: String.raw`\b\d{3}-\d{2}-\d{4}\b`,
+    jsPattern: String.raw`\b\d{3}-\d{2}-\d{4}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
+  },
+  {
+    id: 'us_ssn_spaced',
+    rgPattern: String.raw`\b\d{3}\s\d{2}\s\d{4}\b`,
+    jsPattern: String.raw`\b\d{3}\s\d{2}\s\d{4}\b`,
+    jsFlags: 'g',
+    maskStrategy: 'full',
+    action: 'redact'
   }
 ])
 
+// Label regex for the document-level SSN pass in rg-redaction.js. If
+// any of these labels appears ANYWHERE in the captured content, every
+// 9-digit number (dashed, spaced, or bare) elsewhere in the same
+// document gets redacted. Intentionally broad — user prefers over-
+// redacting to under-redacting SSNs.
+const SSN_LABEL_REGEX = /(?:\bssn\b|\bss\s*#|\bsocial\s*security(?:\s*(?:no\.?|number|#))?|\btax\s*id\b)/i
+
 module.exports = {
-  RULES
+  RULES,
+  SSN_LABEL_REGEX
 }

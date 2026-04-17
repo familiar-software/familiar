@@ -130,8 +130,63 @@ export function AgentInstallerList({
     restartConfirmed &&
     installedRestartRequired.every((value) => restartConfirmed.has(value))
 
+  // Restart banner lives ABOVE the agent list so it's not hidden below
+  // the fold on short wizard panes. Gating Next on an off-screen
+  // checkbox caused real confusion; surfacing it at the top keeps the
+  // required action in view.
+  const restartBanner = (showRestartBanner && installedRestartRequired.length > 0) ? (() => {
+    const names = installedRestartRequired.map((value) => toDisplayText(resolveLabel(value)))
+    const nameNodes = []
+    names.forEach((name, idx) => {
+      if (idx > 0) {
+        if (names.length === 2) {
+          nameNodes.push(' and ')
+        } else if (idx === names.length - 1) {
+          nameNodes.push(', and ')
+        } else {
+          nameNodes.push(', ')
+        }
+      }
+      nameNodes.push(
+        <span key={`name-${name}`} className="font-semibold text-zinc-800 dark:text-zinc-100">
+          {name}
+        </span>
+      )
+    })
+    const template = toDisplayText(html.wizardRestartConfirmTemplate)
+    const [before, after] = template.split('{{names}}')
+    return (
+      <label className="mb-3 flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          data-restart-confirm-banner
+          checked={Boolean(allRestartsConfirmed)}
+          onChange={(e) => {
+            if (typeof onRestartConfirmedChange !== 'function') return
+            const checked = e.target.checked
+            onRestartConfirmedChange((prev) => {
+              const next = new Set(prev)
+              installedRestartRequired.forEach((value) => {
+                if (checked) next.add(value)
+                else next.delete(value)
+              })
+              return next
+            })
+          }}
+          className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+        />
+        <span className="pinky-swear-label text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed">
+          {before}
+          {nameNodes}
+          {after}
+        </span>
+      </label>
+    )
+  })() : null
+
   return (
     <>
+      {restartBanner}
       <ul className="agent-list divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         {options.map((entry) => {
           const harness = entry.value
@@ -278,57 +333,6 @@ export function AgentInstallerList({
           )
         })}
       </ul>
-      {showRestartBanner && installedRestartRequired.length > 0 && (() => {
-        const names = installedRestartRequired.map((value) => toDisplayText(resolveLabel(value)))
-        // Build an array of nodes so each name is bold but the
-        // separators (", " and " and ") stay plain weight.
-        const nameNodes = []
-        names.forEach((name, idx) => {
-          if (idx > 0) {
-            if (names.length === 2) {
-              nameNodes.push(' and ')
-            } else if (idx === names.length - 1) {
-              nameNodes.push(', and ')
-            } else {
-              nameNodes.push(', ')
-            }
-          }
-          nameNodes.push(
-            <span key={`name-${name}`} className="font-semibold text-zinc-800 dark:text-zinc-100">
-              {name}
-            </span>
-          )
-        })
-        const template = toDisplayText(html.wizardRestartConfirmTemplate)
-        const [before, after] = template.split('{{names}}')
-        return (
-          <label className="mt-3 flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              data-restart-confirm-banner
-              checked={Boolean(allRestartsConfirmed)}
-              onChange={(e) => {
-                if (typeof onRestartConfirmedChange !== 'function') return
-                const checked = e.target.checked
-                onRestartConfirmedChange((prev) => {
-                  const next = new Set(prev)
-                  installedRestartRequired.forEach((value) => {
-                    if (checked) next.add(value)
-                    else next.delete(value)
-                  })
-                  return next
-                })
-              }}
-              className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-            />
-            <span className="pinky-swear-label text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed">
-              {before}
-              {nameNodes}
-              {after}
-            </span>
-          </label>
-        )
-      })()}
     </>
   )
 }

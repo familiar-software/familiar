@@ -267,11 +267,11 @@ export function StorageSection({
             {toDisplayText(htmlCopy.storageImagesRetentionDescription)}
           </p>
         </div>
-        <div className="relative w-fit">
+        <div className="w-fit">
           <Select
             id="storage-auto-cleanup-retention-days"
             data-setting="storage-auto-cleanup-retention-days"
-            className="appearance-none bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[14px] font-medium rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-zinc-400/20 cursor-pointer transition-all"
+            className="bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[14px] font-medium rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-zinc-400/20 cursor-pointer transition-all"
             value={String(settings.storageAutoCleanupRetentionDays)}
             onChange={(event) => {
               void saveStorageRetention(event.target.value)
@@ -283,16 +283,6 @@ export function StorageSection({
               </option>
             ))}
           </Select>
-          <svg
-            viewBox="0 0 24 24"
-            className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            aria-hidden="true"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
         </div>
       </div>
 
@@ -306,11 +296,11 @@ export function StorageSection({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+          <div>
             <Select
               id="storage-delete-window"
               data-setting="storage-delete-window"
-              className="appearance-none bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[14px] font-medium rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-zinc-400/20 cursor-pointer transition-all"
+              className="bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[14px] font-medium rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-zinc-400/20 cursor-pointer transition-all"
               value={deleteWindow}
               onChange={(event) => {
                 setDeleteWindow(event.target.value)
@@ -323,16 +313,6 @@ export function StorageSection({
                 </option>
               ))}
             </Select>
-            <svg
-              viewBox="0 0 24 24"
-              className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              aria-hidden="true"
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
           </div>
           <Button
             id="storage-delete-files"

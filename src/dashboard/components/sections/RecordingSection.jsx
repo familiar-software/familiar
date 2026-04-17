@@ -235,10 +235,13 @@ export function RecordingSection({
                     <path d="M16 10l5-3v10l-5-3z" />
                   </svg>
                 </div>
-                <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex flex-col gap-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">
-                      {toDisplayText(htmlCopy.recordingCaptureWhileActive)}
+                    <span className="wizard-capture-toggle-subtitle-off text-[14px] font-medium text-zinc-900 dark:text-zinc-100 block peer-checked:hidden">
+                      {toDisplayText(htmlCopy.recordingActionRequiredToProceed)}
+                    </span>
+                    <span className="wizard-capture-toggle-subtitle-on text-[14px] font-medium text-indigo-600 dark:text-indigo-400 hidden">
+                      {toDisplayText(htmlCopy.recordingCapturingIsEnabled)}
                     </span>
                     <div
                       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[14px] font-medium uppercase tracking-wide ${statusBadgeClasses}`}
@@ -248,11 +251,8 @@ export function RecordingSection({
                       <span id="recording-status">{recordingStatusText}</span>
                     </div>
                   </div>
-                  <span className="wizard-capture-toggle-subtitle-off text-[14px] text-zinc-500 dark:text-zinc-400 block peer-checked:hidden transition-opacity">
-                    {toDisplayText(htmlCopy.recordingActionRequiredToProceed)}
-                  </span>
-                  <span className="wizard-capture-toggle-subtitle-on text-[14px] text-indigo-600 dark:text-indigo-400 hidden transition-opacity">
-                    {toDisplayText(htmlCopy.recordingCapturingIsEnabled)}
+                  <span className="text-[13px] text-zinc-500 dark:text-zinc-400">
+                    {toDisplayText(htmlCopy.recordingCaptureWhileActiveHelp)}
                   </span>
                 </div>
               </div>
@@ -262,9 +262,6 @@ export function RecordingSection({
             </div>
           </div>
         </Label>
-        <p className="mt-2 text-[13px] text-zinc-500 dark:text-zinc-400">
-          {toDisplayText(htmlCopy.recordingCaptureWhileActiveHelp)}
-        </p>
         <p
           id="recording-always-record-when-active-error"
           data-setting-error="always-record-when-active-error"
@@ -272,14 +269,6 @@ export function RecordingSection({
         >
           {toDisplayText(recordingError)}
         </p>
-        <span
-          id="recording-always-record-when-active-status"
-          data-setting-status="always-record-when-active-status"
-          className={`text-[14px] text-emerald-600 dark:text-emerald-400 ${toDisplayText(recordingMessage) ? '' : 'hidden'}`}
-          aria-live="polite"
-        >
-          {toDisplayText(recordingMessage)}
-        </span>
       </section>
 
       <Card>
@@ -299,7 +288,7 @@ export function RecordingSection({
                 return (
                   <div
                     key={`${buildCapturePrivacyAppKey(app) || `${app.bundleId || 'name'}-${app.name || index}`}-selected`}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900"
+                    className="group flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <InstalledAppIcon iconDataUrl={getInstalledAppIconDataUrl(app)} label={label} />
@@ -307,15 +296,18 @@ export function RecordingSection({
                         <p className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">{label}</p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
+                      type="button"
+                      aria-label={toDisplayText(htmlCopy.recordingBlacklistedAppRemove)}
                       onClick={() => {
                         void setBlacklistedAppEnabled(app, false)
                       }}
+                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 p-1 cursor-pointer"
                     >
-                      {toDisplayText(htmlCopy.recordingBlacklistedAppRemove)}
-                    </Button>
+                      <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 3l10 10M13 3L3 13" />
+                      </svg>
+                    </button>
                   </div>
                 )
               })}
@@ -326,19 +318,19 @@ export function RecordingSection({
             <p className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">
               {toDisplayText(htmlCopy.recordingInstalledAppsDescription)}
             </p>
-            <Button
+            <button
               id="recording-refresh-installed-apps"
-              variant="outline"
-              size="sm"
+              type="button"
               disabled={installedAppsLoading}
               onClick={() => {
                 void refreshInstalledApps()
               }}
+              className="text-[13px] text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 underline-offset-4 hover:underline disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
               {installedAppsLoading
                 ? toDisplayText(htmlCopy.recordingInstalledAppsRefreshing)
-                : mc.dashboard.settingsActions.refresh}
-            </Button>
+                : toDisplayText(htmlCopy.recordingInstalledAppsRefresh)}
+            </button>
           </div>
 
           <div className="space-y-2">
