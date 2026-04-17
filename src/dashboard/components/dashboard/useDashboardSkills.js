@@ -19,26 +19,6 @@ export const useDashboardSkills = (state) => {
     displayFormatters
   } = state
 
-  const getPersistablePaths = (paths = {}, installableHarnesses = []) =>
-    installableHarnesses.map((harness) => {
-      const storedPath = typeof paths[harness] === 'string' ? paths[harness] : ''
-      return storedPath
-    })
-
-  const persistSkillInstaller = useCallback(async (harnesses = [], paths = {}) => {
-    const installableHarnesses = getInstallableHarnesses(harnesses)
-    const orderedPaths = getPersistablePaths(paths, installableHarnesses)
-    if (!familiar || typeof familiar.saveSettings !== 'function') {
-      return
-    }
-    await familiar.saveSettings({
-      skillInstaller: {
-        harness: installableHarnesses,
-        installPath: orderedPaths
-      }
-    })
-  }, [familiar, getInstallableHarnesses])
-
   const checkSkillInstallStatus = useCallback(async (nextSelectedHarnesses = selectedHarnesses) => {
     const selected = normalizeHarnesses(nextSelectedHarnesses)
     if (selected.length === 0) {
@@ -46,7 +26,6 @@ export const useDashboardSkills = (state) => {
       setSkillInstallPaths({})
       setSkillMessage('')
       setSkillError('')
-      await persistSkillInstaller([], {})
       return { ok: true, installed: false, installPaths: {} }
     }
 
@@ -56,7 +35,6 @@ export const useDashboardSkills = (state) => {
       setSkillInstallPaths({})
       setSkillMessage('')
       setSkillError('')
-      await persistSkillInstaller([], {})
       return { ok: true, installed: false, installPaths: {} }
     }
 
@@ -121,7 +99,6 @@ export const useDashboardSkills = (state) => {
       }
 
       setSkillInstallPaths(installPaths)
-      await persistSkillInstaller(selected, installPaths)
       return { ok: true, installed: missing.length === 0, installPaths }
     } catch (error) {
       console.error('Failed to check skill installation', error)
@@ -140,7 +117,6 @@ export const useDashboardSkills = (state) => {
     mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
     mc.dashboard.wizardSkill.messages.pathUnavailable,
     normalizeHarnesses,
-    persistSkillInstaller,
     selectedHarnesses,
     setIsSkillInstalled,
     setSkillError,
@@ -201,7 +177,6 @@ export const useDashboardSkills = (state) => {
           )
         }
 
-        await persistSkillInstaller(installableHarnesses, installPaths)
         return
       }
 
@@ -238,7 +213,6 @@ export const useDashboardSkills = (state) => {
     mc.dashboard.wizardSkill.messages.installed,
     mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
     normalizeHarnesses,
-    persistSkillInstaller,
     selectedHarnesses,
     setIsSkillInstalled,
     setSkillError,
@@ -268,7 +242,6 @@ export const useDashboardSkills = (state) => {
     setIsSkillInstalled(false)
 
     if (nextArray.length === 0) {
-      await persistSkillInstaller([], {})
       return
     }
 
@@ -279,7 +252,6 @@ export const useDashboardSkills = (state) => {
   }, [
     checkSkillInstallStatus,
     installSelectedHarnesses,
-    persistSkillInstaller,
     selectedHarnesses,
     setIsSkillInstalled,
     setManualHarnessSelection,
@@ -346,14 +318,12 @@ export const useDashboardSkills = (state) => {
       mergedPaths = { ...(prev || {}), [normalized]: result.path || '' }
       return mergedPaths
     })
-    await persistSkillInstaller(nextSelected, mergedPaths)
 
     return { ok: true, path: result.path || '' }
   }, [
     familiar,
     mc.dashboard.wizardSkill.messages.failedToInstallSkill,
     mc.dashboard.wizardSkill.messages.installerUnavailableRestart,
-    persistSkillInstaller,
     setIsSkillInstalled,
     setManualHarnessSelection,
     setSelectedHarnesses,

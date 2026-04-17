@@ -30,9 +30,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
   })
 
   const skills = useDashboardSkills(core)
-  const lifecycle = useDashboardLifecycle(core, {
-    onInitialHarnessesLoaded: (initialHarnesses) => skills.checkSkillInstallStatus(initialHarnesses)
-  })
+  const lifecycle = useDashboardLifecycle(core)
   const capture = useDashboardCapture({
     ...core,
     refreshRecordingStatus: lifecycle.refreshRecordingStatus

@@ -9,12 +9,10 @@ const {
   validateWritableDirectoryPath,
   resolveDefaultContextFolderPath
 } = require('../settings');
-const { normalizeStringArray } = require('../utils/list');
 const {
   getScreenRecordingPermissionStatus,
   openScreenRecordingSettings
 } = require('../screen-capture/permissions');
-const { resolveHarnessSkillPath } = require('../skills/installer');
 const { createRecorder } = require('../screen-stills/recorder');
 const { resolveAutoCleanupRetentionDays } = require('../storage/auto-cleanup-retention');
 const {
@@ -29,33 +27,6 @@ const installedAppIconCache = new Map();
 const PROBE_RECORDER_WINDOW_NAME = 'familiar-permission-probe-';
 const PERMISSION_PROBE_TIMEOUT_MS = 12_000;
 let permissionProbeRecorder = null;
-
-const VALID_SKILL_HARNESSES = new Set(['claude', 'codex', 'cursor']);
-
-const normalizeSkillInstallerHarnesses = (raw = {}) => {
-    const directHarnesses = Array.isArray(raw?.harness) ? raw.harness : [raw?.harness];
-    const legacyHarnesses = Array.isArray(raw?.harnesses) ? raw.harnesses : [];
-    return normalizeStringArray([...directHarnesses, ...legacyHarnesses], { lowerCase: true })
-        .filter((value) => VALID_SKILL_HARNESSES.has(value));
-};
-
-const normalizeSkillInstallerPaths = (raw = {}, harnesses = []) => {
-    const list = [];
-    if (Array.isArray(raw?.installPath)) {
-        list.push(...raw.installPath);
-    } else if (typeof raw?.installPath === 'string') {
-        list.push(raw.installPath);
-    }
-    const map = raw && typeof raw.installPaths === 'object' ? raw.installPaths : {};
-    const normalized = [];
-    harnesses.forEach((harness, index) => {
-        const direct = typeof list[index] === 'string' ? list[index].trim() : '';
-        const mapped = typeof map[harness] === 'string' ? map[harness].trim() : '';
-        const value = direct || mapped;
-        normalized.push(value);
-    });
-    return normalized;
-};
 
 const readPermissionProbeRecorder = () => {
   if (!permissionProbeRecorder) {
@@ -177,8 +148,6 @@ function handleGetSettings() {
             settings.storageAutoCleanupRetentionDays
         );
         const wizardCompleted = settings.wizardCompleted === true;
-        const skillInstallerHarness = normalizeSkillInstallerHarnesses(settings?.skillInstaller || {});
-        const skillInstallerInstallPath = normalizeSkillInstallerPaths(settings?.skillInstaller || {}, skillInstallerHarness);
         const capturePrivacy = normalizeCapturePrivacySettings(settings?.capturePrivacy);
         let validationMessage = '';
 
@@ -199,10 +168,6 @@ function handleGetSettings() {
             alwaysRecordWhenActive,
             storageAutoCleanupRetentionDays,
             wizardCompleted,
-            skillInstaller: {
-                harness: skillInstallerHarness,
-                installPath: skillInstallerInstallPath,
-            },
             capturePrivacy,
             appVersion,
             homedir: os.homedir()
@@ -215,7 +180,6 @@ function handleGetSettings() {
             alwaysRecordWhenActive: false,
             storageAutoCleanupRetentionDays: resolveAutoCleanupRetentionDays(undefined),
             wizardCompleted: false,
-            skillInstaller: { harness: [], installPath: [] },
             capturePrivacy: normalizeCapturePrivacySettings(),
             appVersion
         };
@@ -227,7 +191,6 @@ function handleSaveSettings(_event, payload) {
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(payload || {}, 'alwaysRecordWhenActive');
     const hasStorageAutoCleanupRetentionDays = Object.prototype.hasOwnProperty.call(payload || {}, 'storageAutoCleanupRetentionDays');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(payload || {}, 'wizardCompleted');
-    const hasSkillInstaller = Object.prototype.hasOwnProperty.call(payload || {}, 'skillInstaller');
     const hasCapturePrivacy = Object.prototype.hasOwnProperty.call(payload || {}, 'capturePrivacy');
     const settingsPayload = {};
 
@@ -236,8 +199,7 @@ function handleSaveSettings(_event, payload) {
         !hasAlwaysRecordWhenActive &&
         !hasStorageAutoCleanupRetentionDays &&
         !hasWizardCompleted &&
-        !hasSkillInstaller
-        && !hasCapturePrivacy
+        !hasCapturePrivacy
     ) {
         return { ok: false, message: 'No settings provided.' };
     }
@@ -270,20 +232,6 @@ function handleSaveSettings(_event, payload) {
 
     if (hasWizardCompleted) {
         settingsPayload.wizardCompleted = payload.wizardCompleted === true;
-    }
-
-    if (hasSkillInstaller) {
-        const raw = payload?.skillInstaller;
-        const harnesses = normalizeSkillInstallerHarnesses(raw || {});
-        if (harnesses.length === 0) {
-            return { ok: false, message: 'At least one harness is required.' };
-        }
-
-        // Canonical install paths are derived from selected harnesses.
-        settingsPayload.skillInstaller = {
-            harness: harnesses,
-            installPath: harnesses.map((harness) => resolveHarnessSkillPath(harness)),
-        };
     }
 
     if (hasCapturePrivacy) {

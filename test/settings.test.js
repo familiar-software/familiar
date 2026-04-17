@@ -57,105 +57,6 @@ test('saveSettings does not rewrite when effective settings are unchanged', () =
   assert.equal(loaded.contextFolderPath, alternateContextDir)
 })
 
-test('saveSettings persists familiarSkillInstalledVersion', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-
-  saveSettings({ familiarSkillInstalledVersion: '2.0.0' }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.familiarSkillInstalledVersion, '2.0.0')
-})
-
-test('saveSettings preserves familiarSkillInstalledVersion when updating other settings', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-
-  saveSettings({ familiarSkillInstalledVersion: '2.0.0' }, { settingsDir })
-  saveSettings({ contextFolderPath: path.join(tempRoot, 'context') }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.familiarSkillInstalledVersion, '2.0.0')
-})
-
-test('saveSettings normalizes single skillInstaller harness + installPath into arrays', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-
-  saveSettings({ skillInstaller: { harness: 'codex', installPath: '/tmp/.codex/skills/familiar' } }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.deepEqual(loaded.skillInstaller?.harness, ['codex'])
-  assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.codex/skills/familiar'])
-})
-
-test('saveSettings persists skillInstaller arrays from legacy harnesses/installPaths fields', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-
-  saveSettings({
-    skillInstaller: {
-      harnesses: ['codex', 'cursor'],
-      installPaths: {
-        codex: '/tmp/.codex/skills/familiar',
-        cursor: '/tmp/.cursor/skills/familiar'
-      }
-    }
-  }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.deepEqual(loaded.skillInstaller?.harness, ['codex', 'cursor'])
-  assert.deepEqual(
-    loaded.skillInstaller?.installPath,
-    ['/tmp/.codex/skills/familiar', '/tmp/.cursor/skills/familiar']
-  )
-})
-
-test('saveSettings preserves skillInstaller when updating other settings', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-  const contextDir = path.join(tempRoot, 'context')
-  fs.mkdirSync(contextDir)
-
-  saveSettings({ skillInstaller: { harness: 'cursor', installPath: '/tmp/.cursor/skills/familiar' } }, { settingsDir })
-  saveSettings({ contextFolderPath: contextDir }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.equal(loaded.contextFolderPath, contextDir)
-  assert.deepEqual(loaded.skillInstaller?.harness, ['cursor'])
-  assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.cursor/skills/familiar'])
-})
-
-test('saveSettings migrates legacy on-disk single skillInstaller values to arrays on next save', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-  fs.mkdirSync(settingsDir, { recursive: true })
-  const settingsPath = path.join(settingsDir, SETTINGS_FILE_NAME)
-
-  fs.writeFileSync(
-    settingsPath,
-    JSON.stringify(
-      {
-        contextFolderPath: '',
-        skillInstaller: {
-          harness: 'codex',
-          installPath: '/tmp/.codex/skills/familiar'
-        }
-      },
-      null,
-      2
-    ),
-    'utf-8'
-  )
-
-  saveSettings({ wizardCompleted: true }, { settingsDir })
-  const loaded = loadSettings({ settingsDir })
-
-  assert.equal(loaded.wizardCompleted, true)
-  assert.deepEqual(loaded.skillInstaller?.harness, ['codex'])
-  assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.codex/skills/familiar'])
-})
-
 test('validateContextFolderPath rejects missing directory', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const missingPath = path.join(tempRoot, 'missing')
@@ -269,6 +170,37 @@ test('saveSettings drops legacy heartbeats when rewriting settings', () => {
   const loaded = loadSettings({ settingsDir })
   assert.equal(Object.prototype.hasOwnProperty.call(loaded, 'heartbeats'), false)
   assert.equal(loaded.contextFolderPath, contextDir)
+})
+
+test('saveSettings drops legacy skill installer metadata when rewriting settings', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+  fs.mkdirSync(settingsDir, { recursive: true })
+  const settingsPath = path.join(settingsDir, SETTINGS_FILE_NAME)
+
+  fs.writeFileSync(
+    settingsPath,
+    JSON.stringify(
+      {
+        contextFolderPath: '',
+        skillInstaller: {
+          harness: ['codex'],
+          installPath: ['/tmp/.codex/skills/familiar']
+        },
+        familiarSkillInstalledVersion: '2.0.0'
+      },
+      null,
+      2
+    ),
+    'utf-8'
+  )
+
+  saveSettings({ wizardCompleted: true }, { settingsDir })
+  const loaded = loadSettings({ settingsDir })
+
+  assert.equal(loaded.wizardCompleted, true)
+  assert.equal(Object.prototype.hasOwnProperty.call(loaded, 'skillInstaller'), false)
+  assert.equal(Object.prototype.hasOwnProperty.call(loaded, 'familiarSkillInstalledVersion'), false)
 })
 
 test('saveSettings persists normalized capturePrivacy.blacklistedApps', () => {

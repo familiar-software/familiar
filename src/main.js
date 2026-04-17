@@ -15,7 +15,6 @@ const { showWindow } = require('./utils/window');
 const { ensureHomebrewPath } = require('./utils/path');
 const { loadSettings, saveSettings, validateContextFolderPath } = require('./settings');
 const { buildTrayMenuTemplate } = require('./menu');
-const { ensureFamiliarSkillAlignment } = require('./skills/familiar-skill-alignment');
 const { initLogging } = require('./logger');
 const { showToast } = require('./toast');
 const {
@@ -800,9 +799,6 @@ if (isPrimaryInstance) {
         } catch (error) {
             console.error('Failed to hydrate recording state from OS permission', error);
         }
-
-        await ensureFamiliarSkillAlignment();
-
         const shouldInitializeRecording = process.platform === 'darwin' || isE2E;
         if (shouldInitializeRecording) {
             presenceMonitor = createPresenceMonitor({ logger: console });

@@ -290,8 +290,6 @@ test('wizard happy flow completes setup and ends on the "You\'re all set" screen
     expect(stored.wizardCompleted).toBe(true)
     expect(stored.alwaysRecordWhenActive ?? false).toBe(true)
     expect(stored.contextFolderPath).toBeTruthy()
-    expect(stored.skillInstaller.harness).toEqual(['codex'])
-    expect(stored.skillInstaller.installPath).toEqual([path.join(skillHomeDir, '.codex', 'skills', 'familiar')])
   } finally {
     await (await electronApp).close()
   }

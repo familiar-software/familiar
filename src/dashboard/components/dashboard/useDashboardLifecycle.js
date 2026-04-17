@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
 
-export const useDashboardLifecycle = (state, options = {}) => {
+export const useDashboardLifecycle = (state) => {
   const {
     familiar,
     mc,
@@ -20,11 +20,8 @@ export const useDashboardLifecycle = (state, options = {}) => {
     setStorageUsageLoaded,
     setRecordingStatus,
     setSettingsLoaded,
-    setSettings,
-    normalizeHarnesses
+    setSettings
   } = state
-
-  const onInitialHarnessesLoaded = options.onInitialHarnessesLoaded || (() => Promise.resolve({ ok: true }))
 
   const refreshStorageUsage = useCallback(async () => {
     if (!familiar || typeof familiar.getStorageUsageBreakdown !== 'function') {
@@ -111,24 +108,16 @@ export const useDashboardLifecycle = (state, options = {}) => {
       const appliedSettings = applySettingsDefaults(result)
       await refreshStorageUsage()
 
-      const initialHarnesses = [
-        ...normalizeHarnesses(result?.skillInstaller?.harness),
-        ...normalizeHarnesses(result?.skillInstaller?.harnesses)
-      ]
-      if (initialHarnesses.length > 0) {
-        await onInitialHarnessesLoaded(initialHarnesses)
-      } else {
-        if (!hasManualHarnessSelectionRef.current) {
-          setIsSkillInstalled(false)
-          setSkillMessage('')
-          setSkillError('')
-        }
+      if (!hasManualHarnessSelectionRef.current) {
+        setIsSkillInstalled(false)
+        setSkillMessage('')
+        setSkillError('')
       }
 
       setGlobalMessage('')
       hasLoadedSettingsRef.current = true
       setSettingsLoaded(true)
-      return { ok: true, settings: appliedSettings, initialHarnesses }
+      return { ok: true, settings: appliedSettings }
     } catch (error) {
       console.error('Failed to load settings', error)
       setGlobalError(mc.dashboard.settings.errors.failedToLoadSettings)
@@ -147,8 +136,6 @@ export const useDashboardLifecycle = (state, options = {}) => {
     mc.dashboard.settings.errors.bridgeUnavailableRestart,
     mc.dashboard.settings.errors.failedToLoadSettings,
     mc.dashboard.settings.statusUpdating,
-    normalizeHarnesses,
-    onInitialHarnessesLoaded,
     hasManualHarnessSelectionRef,
     refreshStorageUsage,
     setGlobalError,
