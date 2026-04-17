@@ -106,7 +106,7 @@ export const useWizardPermissionFlow = ({
     }
   }, [wizardStep, runSilentCheck, applyResult, clearPoll, clearNudge])
 
-  // Re-check whenever the window regains focus while on step 2 — covers
+  // Re-check whenever the window regains focus while on step 1 — covers
   // the common macOS dance where granting screen recording kills the app
   // and the user comes back manually.
   useEffect(() => {

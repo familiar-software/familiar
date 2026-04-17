@@ -145,9 +145,10 @@ const expectWizardContextStepCopy = async (window) => {
   await expect(window.locator('#wizard-context-folder-show-in-finder')).toContainText(copy.wizardContextFolderShowInFinder)
 }
 
-// Context step auto-defaults to $HOME (handleApplyDefaultContextFolder) so
-// the path field fills in on its own. Unless a test wants a specific
-// fixture path, we just verify a non-empty value and advance.
+// The wizard auto-defaults the context folder to $HOME before the user
+// reaches the Context step (handleApplyDefaultContextFolder), so the
+// path field fills in on its own. Unless a test wants a specific fixture
+// path, we just verify a non-empty value and advance.
 const completeWizardContextStep = async (window, nextButton, { expectedDisplayPath } = {}) => {
   await expectWizardContextStepCopy(window)
   const pathInput = window.locator('#wizard-context-folder-path')

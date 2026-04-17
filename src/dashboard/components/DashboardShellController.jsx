@@ -80,11 +80,11 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
   ])
 
   // Auto-default contextFolderPath to $HOME the first time the user
-  // lands on the Context step. Idempotent on the IPC side; we still
+  // lands on the Permissions step. Idempotent on the IPC side; we still
   // guard with a ref so we don't spam invocations on every re-render.
   const defaultAppliedRef = useRef(false)
   useEffect(() => {
-    if (core.wizardStep !== 2) return
+    if (core.wizardStep !== 1) return
     if (defaultAppliedRef.current) return
     if (core.settings?.contextFolderPath) {
       defaultAppliedRef.current = true
