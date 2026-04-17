@@ -9,8 +9,8 @@ import { Input } from '../ui/input'
 import { buildCapturePrivacyAppKey } from '../dashboard/capturePrivacyAppUtils'
 import { resolveRecordingIndicatorVisuals } from '../dashboard/dashboardUtils'
 
-const INSTALLED_APPS_VIEWPORT_STYLE = { maxHeight: '28.25rem' }
-const INSTALLED_APP_ROW_STYLE = { minHeight: '5.25rem' }
+const INSTALLED_APPS_VIEWPORT_STYLE = { maxHeight: '14.125rem' }
+const INSTALLED_APP_ROW_STYLE = { minHeight: '3rem' }
 
 function InstalledAppIcon({ iconDataUrl, label }) {
   if (iconDataUrl) {
@@ -19,7 +19,7 @@ function InstalledAppIcon({ iconDataUrl, label }) {
         src={iconDataUrl}
         alt=""
         aria-hidden="true"
-        className="h-11 w-11 rounded-xl border border-zinc-200 bg-white object-cover p-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+        className="h-7 w-7 rounded-md border border-zinc-200 bg-white object-cover p-0.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       />
     )
   }
@@ -27,7 +27,7 @@ function InstalledAppIcon({ iconDataUrl, label }) {
   return (
     <div
       aria-hidden="true"
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-100 text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-dashed border-zinc-300 bg-zinc-100 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
     >
       {(label || '?').slice(0, 2)}
     </div>
@@ -89,7 +89,7 @@ function InstalledAppOptionRow({
     <label
       ref={rowRef}
       htmlFor={checkboxId}
-      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950"
+      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-950"
       style={INSTALLED_APP_ROW_STYLE}
     >
       <Checkbox
@@ -100,11 +100,8 @@ function InstalledAppOptionRow({
         }}
       />
       <InstalledAppIcon iconDataUrl={iconDataUrl} label={label} />
-      <div className="min-w-0 space-y-1">
+      <div className="min-w-0">
         <p className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">{label}</p>
-        {app.bundleId ? (
-          <p className="break-all text-[12px] text-zinc-500 dark:text-zinc-400">{app.bundleId}</p>
-        ) : null}
       </div>
     </label>
   )
@@ -296,45 +293,37 @@ export function RecordingSection({
         </CardHeader>
         <CardContent className="space-y-4">
           {blacklistedApps.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">
-                {toDisplayText(htmlCopy.recordingBlacklistedAppsTitle)}
-              </p>
-              <div className="grid gap-2">
-                {blacklistedApps.map((app, index) => {
-                  const label = app.name || app.bundleId || mc.general?.unknown || 'Unknown'
-                  return (
-                    <div
-                      key={`${buildCapturePrivacyAppKey(app) || `${app.bundleId || 'name'}-${app.name || index}`}-selected`}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <InstalledAppIcon iconDataUrl={getInstalledAppIconDataUrl(app)} label={label} />
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">{label}</p>
-                          {app.bundleId ? (
-                            <p className="break-all text-[12px] text-zinc-500 dark:text-zinc-400">{app.bundleId}</p>
-                          ) : null}
-                        </div>
+            <div className="grid gap-2">
+              {blacklistedApps.map((app, index) => {
+                const label = app.name || app.bundleId || mc.general?.unknown || 'Unknown'
+                return (
+                  <div
+                    key={`${buildCapturePrivacyAppKey(app) || `${app.bundleId || 'name'}-${app.name || index}`}-selected`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <InstalledAppIcon iconDataUrl={getInstalledAppIconDataUrl(app)} label={label} />
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">{label}</p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          void setBlacklistedAppEnabled(app, false)
-                        }}
-                      >
-                        {toDisplayText(htmlCopy.recordingBlacklistedAppRemove)}
-                      </Button>
                     </div>
-                  )
-                })}
-              </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        void setBlacklistedAppEnabled(app, false)
+                      }}
+                    >
+                      {toDisplayText(htmlCopy.recordingBlacklistedAppRemove)}
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
           ) : null}
 
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
+            <p className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100">
               {toDisplayText(htmlCopy.recordingInstalledAppsDescription)}
             </p>
             <Button
