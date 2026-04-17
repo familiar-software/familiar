@@ -2,7 +2,9 @@
    <img src="./src/icon.png" width="96" alt="Familiar icon" />
 </p>
 
-<h1 align="center">Familiar: Get AI to know you.</h1>
+<h1 align="center">Familiar: Let AI watch you work.</h1>
+
+<h4>Familiar watches your screen so your AI can update its memory, skills, and knowledge. Free, open-source, local, and offline.</h4>
 
 <p align="center">
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
