@@ -6,7 +6,9 @@
 
 <h4 align="center">Familiar watches your screen so your AI can update its memory, skills, and knowledge.</h4>
 
-<a align="center" href="https://looksfamiliar.org">https://looksfamiliar.org</a>
+<p align="center">
+   <a href="https://looksfamiliar.org">https://looksfamiliar.org</a>
+</p>
 
 <p align="center">
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
