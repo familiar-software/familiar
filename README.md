@@ -2,7 +2,7 @@
    <img src="./src/icon.png" width="96" alt="Familiar icon" />
 </p>
 
-<h1 align="center">Let AI watch you work.</h1>
+<h1 align="center">Let AI watch you work</h1>
 
 <h4 align="center">Familiar watches your screen so your AI can update its memory, skills, and knowledge.</h4>
 
