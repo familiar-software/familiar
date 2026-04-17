@@ -549,16 +549,14 @@ export function WizardSection({
               )}
               {(permissionFlowState === 'waiting' || permissionFlowState === 'nudge') && (
                 <div className="space-y-2 text-center">
-                  <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
+                  <p className="text-[14px] text-zinc-500 dark:text-zinc-400 animate-pulse">
                     {toDisplayText(html.wizardPermissionWaiting)}
                   </p>
-                  <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
-                    {toDisplayText(
-                      permissionFlowState === 'nudge'
-                        ? html.wizardPermissionNudgeHint
-                        : html.wizardPermissionWaitingHint
-                    )}
-                  </p>
+                  {permissionFlowState === 'nudge' && (
+                    <p className="text-[13px] text-zinc-400 dark:text-zinc-500">
+                      {toDisplayText(html.wizardPermissionNudgeHint)}
+                    </p>
+                  )}
                 </div>
               )}
               {permissionFlowState === 'granted' && (
