@@ -8,9 +8,11 @@ import {
   RESTART_REQUIRED_HARNESSES
 } from '../skills/AgentInstallerList'
 import { AutomatePromptBuilder } from '../skills/AutomatePromptBuilder'
+import { AutomatePreviewThumbnail } from '../skills/AutomatePreviewThumbnail'
 // Accordion removed — Step 5 "Automate" replaced the FAQ
 
-const FIRST_USECASE_GIF_PATH = './assets/familiar-first-usecase.gif'
+const COWORK_SKILL_GIF_PATH = './assets/cowork-skill.gif'
+const CLAUDE_CODE_GIF_PATH = './assets/familiar-first-usecase.gif'
 
 export function WizardSection({
   mc,
@@ -71,6 +73,7 @@ export function WizardSection({
   // ── Step 4: "Try it" state ──
   const [pinkySwearChecked, setPinkySwearChecked] = useState(false)
   const [tryItCopied, setTryItCopied] = useState(false)
+  const [tryItTab, setTryItTab] = useState('cowork') // 'cowork' | 'claude-code'
 
   // Shared clipboard copy helper (used by steps 4 and 5)
   const copyToClipboard = useCallback(async (text, setCopied) => {
@@ -532,18 +535,46 @@ export function WizardSection({
                 {toDisplayText(html.wizardTryItPinkySwear)}
               </span>
             </label>
+            <div className="flex items-center justify-center gap-1 rounded-full bg-zinc-100 dark:bg-zinc-800 p-1 w-fit mx-auto">
+              <button
+                type="button"
+                onClick={() => setTryItTab('cowork')}
+                className={`px-3 py-1 text-[12px] font-medium rounded-full transition-colors cursor-pointer ${
+                  tryItTab === 'cowork'
+                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-sm'
+                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                }`}
+              >
+                Co-work
+              </button>
+              <button
+                type="button"
+                onClick={() => setTryItTab('claude-code')}
+                className={`px-3 py-1 text-[12px] font-medium rounded-full transition-colors cursor-pointer ${
+                  tryItTab === 'claude-code'
+                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-sm'
+                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                }`}
+              >
+                Claude Code
+              </button>
+            </div>
             <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm max-h-[180px]">
               <img
                 id="wizard-first-usecase-gif"
-                src={FIRST_USECASE_GIF_PATH}
-                alt={toDisplayText(html.wizardFirstUsecaseGifAlt)}
+                src={tryItTab === 'cowork' ? COWORK_SKILL_GIF_PATH : CLAUDE_CODE_GIF_PATH}
+                alt={
+                  tryItTab === 'cowork'
+                    ? 'Familiar as a skill in Co-work'
+                    : toDisplayText(html.wizardFirstUsecaseGifAlt)
+                }
                 className="block w-full h-auto"
               />
             </div>
           </section>
         </div>
 
-        <div className="max-w-[440px] mx-auto space-y-3" data-wizard-step="5" hidden={wizardStep !== 5}>
+        <div className="max-w-[520px] mx-auto space-y-3" data-wizard-step="5" hidden={wizardStep !== 5}>
           <AutomatePromptBuilder
             titleVariant="wizard"
             wizardHarnessOptions={wizardHarnessOptions}
@@ -552,6 +583,7 @@ export function WizardSection({
             toDisplayText={toDisplayText}
             onSelectionChange={setHasSelectedDestination}
             copyToClipboard={copyToClipboard}
+            promptAside={<AutomatePreviewThumbnail />}
           />
         </div>
       </div>

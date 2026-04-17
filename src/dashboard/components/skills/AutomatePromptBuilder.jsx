@@ -13,7 +13,8 @@ export function AutomatePromptBuilder({
   toDisplayText,
   titleVariant = 'wizard',
   onSelectionChange,
-  copyToClipboard
+  copyToClipboard,
+  promptAside
 }) {
   const [selectedDestinations, setSelectedDestinations] = useState(() => new Set())
   const [knowledgeBasePath, setKnowledgeBasePath] = useState('')
@@ -173,20 +174,27 @@ export function AutomatePromptBuilder({
               )}
               {singleInstalledAgentName ? ` in ${singleInstalledAgentName}:` : ' in your agent:'}
             </CardTitle>
-            <div className="prompt-box relative rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 pr-20 max-h-[4.5em] overflow-hidden">
-              <p className="text-[13px] text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
-                {generatePrompt()}
-              </p>
-              <div className="prompt-fade absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-zinc-50 dark:from-zinc-900 to-transparent pointer-events-none" />
-              <button
-                type="button"
-                className="copy-button absolute right-2 top-2 px-2.5 py-1 text-[12px] font-medium rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer z-10"
-                onClick={() => copyToClipboard(generatePrompt(), setPromptCopied)}
-              >
-                {promptCopied
-                  ? toDisplayText(html.wizardAutomateCopied)
-                  : toDisplayText(html.wizardAutomateCopy)}
-              </button>
+            <div className={promptAside ? 'flex items-stretch gap-3' : ''}>
+              <div className={`prompt-box relative rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 pr-20 overflow-hidden ${
+                promptAside ? 'flex-1 h-[110px]' : 'max-h-[4.5em]'
+              }`}>
+                <p className="text-[13px] text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                  {generatePrompt()}
+                </p>
+                <div className="prompt-fade absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-zinc-50 dark:from-zinc-900 to-transparent pointer-events-none" />
+                <button
+                  type="button"
+                  className="copy-button absolute right-2 top-2 px-2.5 py-1 text-[12px] font-medium rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer z-10"
+                  onClick={() => copyToClipboard(generatePrompt(), setPromptCopied)}
+                >
+                  {promptCopied
+                    ? toDisplayText(html.wizardAutomateCopied)
+                    : toDisplayText(html.wizardAutomateCopy)}
+                </button>
+              </div>
+              {promptAside && (
+                <div className="flex-1 h-[110px]">{promptAside}</div>
+              )}
             </div>
           </div>
         )}

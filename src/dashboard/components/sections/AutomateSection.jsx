@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react'
 
 import { AutomatePromptBuilder } from '../skills/AutomatePromptBuilder'
+import { AutomatePreviewThumbnail } from '../skills/AutomatePreviewThumbnail'
 
 export function AutomateSection({
   mc,
@@ -27,6 +28,7 @@ export function AutomateSection({
         html={html}
         toDisplayText={toDisplayText}
         copyToClipboard={copyToClipboard}
+        promptAside={<AutomatePreviewThumbnail />}
       />
     </section>
   )
