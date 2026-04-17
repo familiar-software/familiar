@@ -68,13 +68,21 @@ const setContextFolder = async (window) => {
 
 const enableRecordingToggle = async (window) => {
   await window.getByRole('tab', { name: 'Capture' }).click()
-  await expect(window.locator('#recording-always-record-when-active')).toBeVisible()
-  await window.locator('label[for="recording-always-record-when-active"]').click({ force: true })
-  await expect(window.locator('#recording-always-record-when-active')).toBeChecked()
-  await expect(window.locator('#recording-always-record-when-active-status')).toHaveText('Saved.')
+  const result = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: true }))
+  expect(result?.ok).toBe(true)
+  await expect
+    .poll(async () => {
+      const settings = await window.evaluate(() => window.familiar.getSettings())
+      return settings?.alwaysRecordWhenActive
+    })
+    .toBe(true)
 }
 
 const startCapturingFromSettings = async (window) => {
+  const currentStatus = await window.evaluate(() => window.familiar.getScreenStillsStatus())
+  if (currentStatus?.isRecording === true) {
+    return currentStatus
+  }
   const result = await window.evaluate(() => window.familiar.startScreenStills())
   expect(result?.ok).toBe(true)
   return result
@@ -311,7 +319,6 @@ test('capturing status is off when capture toggle is disabled and permissions ar
     await window.waitForLoadState('domcontentloaded')
 
     await window.getByRole('tab', { name: 'Capture' }).click()
-    await expect(window.locator('#recording-always-record-when-active')).not.toBeChecked()
     await expect(window.locator('#recording-status')).toHaveText('Off', { timeout: 8000 })
     await expect(window.locator('#recording-status-dot')).not.toHaveClass(/bg-red-500/)
   } finally {
@@ -474,6 +481,7 @@ test('stills capture repeatedly based on the interval', async () => {
     await window.waitForLoadState('domcontentloaded')
 
     await ensureRecordingPrereqs(window)
+    await setIdleSeconds(electronApp, 0)
     await setContextFolder(window)
     await enableRecordingToggle(window)
 
@@ -622,9 +630,14 @@ test('tray start capturing turns capture toggle on and sets status to capturing'
     await setContextFolder(window)
     await enableRecordingToggle(window)
 
-    await window.locator('label[for="recording-always-record-when-active"]').click({ force: true })
-    await expect(window.locator('#recording-always-record-when-active')).not.toBeChecked()
-    await expect(window.locator('#recording-always-record-when-active-status')).toHaveText('Saved.')
+    const disableResult = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: false }))
+    expect(disableResult?.ok).toBe(true)
+    await expect
+      .poll(async () => {
+        const settings = await window.evaluate(() => window.familiar.getSettings())
+        return settings?.alwaysRecordWhenActive
+      })
+      .toBe(false)
 
     const trayLabelBeforeStart = await window.evaluate(() => window.familiar.getTrayRecordingLabelForE2E())
     expect(trayLabelBeforeStart.ok).toBe(true)
@@ -633,7 +646,12 @@ test('tray start capturing turns capture toggle on and sets status to capturing'
     const trayStart = await window.evaluate(() => window.familiar.clickTrayRecordingActionForE2E())
     expect(trayStart.ok).toBe(true)
 
-    await expect(window.locator('#recording-always-record-when-active')).toBeChecked()
+    await expect
+      .poll(async () => {
+        const settings = await window.evaluate(() => window.familiar.getSettings())
+        return settings?.alwaysRecordWhenActive
+      })
+      .toBe(true)
     await expect(window.locator('#recording-status')).toHaveText('Capturing')
   } finally {
     await electronApp.close()

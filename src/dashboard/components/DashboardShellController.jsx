@@ -84,6 +84,8 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
   // guard with a ref so we don't spam invocations on every re-render.
   const defaultAppliedRef = useRef(false)
   useEffect(() => {
+    if (!core.settingsLoaded) return
+    if (core.isWizardCompleted) return
     if (core.wizardStep !== 1) return
     if (defaultAppliedRef.current) return
     if (core.settings?.contextFolderPath) {
@@ -103,7 +105,14 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
         defaultAppliedRef.current = false
         console.error('applyDefaultContextFolder failed', error)
       })
-  }, [core, familiar])
+  }, [
+    core.isWizardCompleted,
+    core.settings,
+    core.settingsLoaded,
+    core.setSettings,
+    core.wizardStep,
+    familiar
+  ])
 
   const handlePermissionGranted = useCallback(async () => {
     core.setWizardError('')
@@ -115,6 +124,8 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
 
   const permissionFlow = useWizardPermissionFlow({
     familiar,
+    isWizardCompleted: core.isWizardCompleted,
+    settingsLoaded: core.settingsLoaded,
     wizardStep: core.wizardStep,
     onGranted: handlePermissionGranted
   })

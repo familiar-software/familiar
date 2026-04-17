@@ -36,6 +36,7 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
   }
 
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [recordingStatus, setRecordingStatus] = useState({
     state: 'disabled',
     manualPaused: false,
@@ -225,7 +226,11 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
       }
       setSettings(nextSettings)
       setIsWizardCompleted(nextSettings.wizardCompleted)
-      setWizardStep(resolveInitialWizardStep({ settings: nextSettings }))
+      setWizardStep(
+        nextSettings.wizardCompleted
+          ? 5
+          : resolveInitialWizardStep({ settings: nextSettings })
+      )
       setActiveSection(resolveInitialActiveSection(nextSettings.wizardCompleted))
       return nextSettings
     },
@@ -246,7 +251,9 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
     wizardHarnessOptions,
     recordingCopy,
     settings,
+    settingsLoaded,
     setSettings,
+    setSettingsLoaded,
     recordingStatus,
     setRecordingStatus,
     storageUsage,

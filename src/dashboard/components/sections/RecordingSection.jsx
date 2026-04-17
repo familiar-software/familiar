@@ -215,7 +215,7 @@ export function RecordingSection({
         data-permission-toggle-visibility="always"
         className="space-y-2"
       >
-        <Label htmlFor="recording-always-record-when-active" className="relative block w-full cursor-pointer group">
+        <Label className="relative block w-full cursor-pointer group">
           <Checkbox
             id="recording-always-record-when-active"
             data-setting="always-record-when-active"

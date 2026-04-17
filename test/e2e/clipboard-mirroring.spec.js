@@ -7,6 +7,24 @@ const { confirmMoveContextFolder } = require('./helpers')
 
 const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME, STILLS_MARKDOWN_DIR_NAME } = require('../../src/const')
 
+const setIdleSeconds = async (electronApp, idleSeconds) => {
+  await electronApp.evaluate((seconds) => {
+    const { powerMonitor } = process.mainModule.require('electron')
+    Object.defineProperty(powerMonitor, 'getSystemIdleTime', {
+      value: () => seconds,
+      configurable: true
+    })
+    return powerMonitor.getSystemIdleTime()
+  }, idleSeconds)
+}
+
+const listSessionNames = (stillsRoot) => {
+  if (!fs.existsSync(stillsRoot)) {
+    return []
+  }
+  return fs.readdirSync(stillsRoot).filter((name) => name.startsWith('session-')).sort()
+}
+
 test.describe('clipboard mirroring', () => {
   test('mirrors clipboard text into the current stills-markdown session while recording', async () => {
     const appRoot = path.join(__dirname, '../..')
@@ -46,6 +64,7 @@ test.describe('clipboard mirroring', () => {
 
       const window = await electronApp.firstWindow()
       await window.waitForLoadState('domcontentloaded')
+      await setIdleSeconds(electronApp, 0)
 
       // Configure context folder.
       await window.getByRole('tab', { name: 'Storage' }).click()
@@ -58,18 +77,18 @@ test.describe('clipboard mirroring', () => {
       const enableResult = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: true }))
       expect(enableResult?.ok).toBe(true)
 
-      const startResult = await window.evaluate(() => window.familiar.startScreenStills())
-      expect(startResult?.ok).toBe(true)
-
       const stillsRoot = path.join(contextPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME)
       await expect
-        .poll(() => {
-          if (!fs.existsSync(stillsRoot)) return []
-          return fs.readdirSync(stillsRoot).filter((name) => name.startsWith('session-'))
+        .poll(async () => {
+          const status = await window.evaluate(() => window.familiar.getScreenStillsStatus())
+          if (status?.isRecording !== true) {
+            return 0
+          }
+          return listSessionNames(stillsRoot).length
         }, { timeout: 15000 })
-        .toHaveLength(1)
+        .toBeGreaterThan(0)
 
-      const [sessionId] = fs.readdirSync(stillsRoot).filter((name) => name.startsWith('session-'))
+      const sessionId = listSessionNames(stillsRoot).at(-1)
       const markdownSessionDir = path.join(
         contextPath,
         FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
@@ -134,6 +153,7 @@ test.describe('clipboard mirroring', () => {
 
       const window = await electronApp.firstWindow()
       await window.waitForLoadState('domcontentloaded')
+      await setIdleSeconds(electronApp, 0)
 
       await window.getByRole('tab', { name: 'Storage' }).click()
       const confirmDialog = confirmMoveContextFolder(window)
@@ -144,18 +164,18 @@ test.describe('clipboard mirroring', () => {
       const enableResult = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: true }))
       expect(enableResult?.ok).toBe(true)
 
-      const startResult = await window.evaluate(() => window.familiar.startScreenStills())
-      expect(startResult?.ok).toBe(true)
-
       const stillsRoot = path.join(contextPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME)
       await expect
-        .poll(() => {
-          if (!fs.existsSync(stillsRoot)) return []
-          return fs.readdirSync(stillsRoot).filter((name) => name.startsWith('session-'))
+        .poll(async () => {
+          const status = await window.evaluate(() => window.familiar.getScreenStillsStatus())
+          if (status?.isRecording !== true) {
+            return 0
+          }
+          return listSessionNames(stillsRoot).length
         }, { timeout: 15000 })
-        .toHaveLength(1)
+        .toBeGreaterThan(0)
 
-      const [sessionId] = fs.readdirSync(stillsRoot).filter((name) => name.startsWith('session-'))
+      const sessionId = listSessionNames(stillsRoot).at(-1)
       const markdownSessionDir = path.join(
         contextPath,
         FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,

@@ -18,6 +18,7 @@ const microcopyText = (copyPath) => {
 // Legacy tests pre-swap had Context at 1 and Permissions at 2.
 const copy = Object.freeze({
   storageTitle: microcopyText('dashboard.sections.storage.title'),
+  captureTitle: microcopyText('dashboard.sections.recording.title'),
   wizardSectionTitle: microcopyText('dashboard.sections.wizard.title'),
   wizardStepPermissions: microcopyText('dashboard.html.wizardStepPermissions'),
   wizardStepContext: microcopyText('dashboard.html.wizardStepContext'),
@@ -186,20 +187,20 @@ const installCodexHarness = async (window) => {
   await expect(codexRow).toHaveAttribute('data-installed', 'true', { timeout: 10000 })
 }
 
-const expectWizardFirstUsecaseStepCopy = async (window) => {
+const expectWizardFirstUsecaseStepCopy = async (window, { expectedTitle } = {}) => {
   const wizardStepFour = window.locator('[data-wizard-step="4"]')
 
   await expect(wizardStepFour).toBeVisible()
-  await expect(wizardStepFour).toContainText(copy.wizardFirstUsecaseTitle)
+  await expect(wizardStepFour).toContainText(expectedTitle || copy.wizardFirstUsecaseTitle)
   await expect(wizardStepFour).toContainText(copy.wizardFirstUsecaseCommand)
   await expect(wizardStepFour).toContainText(copy.wizardTryItPinkySwear)
   await expect(wizardStepFour.locator('#wizard-first-usecase-gif')).toBeVisible()
-  await expect(wizardStepFour.locator('#wizard-first-usecase-gif')).toHaveAttribute('src', /familiar-first-usecase\.gif$/)
+  await expect(wizardStepFour.locator('#wizard-first-usecase-gif')).toHaveAttribute('src', /cowork-skill\.gif$/)
 }
 
 // Step 4 gates Next on the pinky-swear checkbox.
-const completeWizardFirstUsecaseStep = async (window, nextButton) => {
-  await expectWizardFirstUsecaseStepCopy(window)
+const completeWizardFirstUsecaseStep = async (window, nextButton, options = {}) => {
+  await expectWizardFirstUsecaseStepCopy(window, options)
   const wizardStepFour = window.locator('[data-wizard-step="4"]')
   await expect(nextButton).toBeDisabled()
   await wizardStepFour.locator('input[type="checkbox"]').first().check()
@@ -207,11 +208,11 @@ const completeWizardFirstUsecaseStep = async (window, nextButton) => {
   await nextButton.click()
 }
 
-const expectWizardAutomateStepCopy = async (window, doneButton) => {
+const expectWizardAutomateStepCopy = async (window, doneButton, { expectedTitle } = {}) => {
   const wizardStepFive = window.locator('[data-wizard-step="5"]')
 
   await expect(wizardStepFive).toBeVisible()
-  await expect(wizardStepFive).toContainText(copy.wizardAutomateTitle)
+  await expect(wizardStepFive).toContainText(expectedTitle || copy.wizardAutomateTitle)
   await expect(wizardStepFive).toContainText(copy.wizardDestMemory)
   await expect(wizardStepFive).toContainText(copy.wizardDestSkills)
   await expect(wizardStepFive).toContainText(copy.wizardDestKnowledgeBase)
@@ -221,8 +222,8 @@ const expectWizardAutomateStepCopy = async (window, doneButton) => {
 
 // Step 5 gates Done on having at least one destination selected. Picking
 // "Native memory" is the simplest (no follow-up folder picker).
-const completeWizardAutomateStep = async (window, doneButton) => {
-  await expectWizardAutomateStepCopy(window, doneButton)
+const completeWizardAutomateStep = async (window, doneButton, options = {}) => {
+  await expectWizardAutomateStepCopy(window, doneButton, options)
   await expect(doneButton).toBeDisabled()
   await window.locator('[data-wizard-step="5"] button', { hasText: copy.wizardDestMemory }).click()
   await expect(doneButton).toBeEnabled()
@@ -272,10 +273,14 @@ test('wizard happy flow completes setup and ends on the "You\'re all set" screen
     await nextButton.click()
 
     // Step 4: Try it (pinky-swear gated).
-    await completeWizardFirstUsecaseStep(window, nextButton)
+    await completeWizardFirstUsecaseStep(window, nextButton, {
+      expectedTitle: `Paste this in ${copy.wizardHarnessCodex}`
+    })
 
     // Step 5: Automate (destination-selection gated).
-    await completeWizardAutomateStep(window, doneButton)
+    await completeWizardAutomateStep(window, doneButton, {
+      expectedTitle: `What should ${copy.wizardHarnessCodex} auto-update with Familiar's context?`
+    })
 
     // Post-wizard: CompleteSection full-window takeover.
     await expectCompleteSectionVisible(window)
@@ -472,7 +477,7 @@ test('post-wizard CompleteSection is one-shot: Done -> complete; relaunch -> sto
   }
 
   // Second launch: wizardCompleted is now true on disk; resolveInitialActiveSection
-  // returns 'storage'. CompleteSection does NOT show again.
+  // returns 'recording'. CompleteSection does NOT show again.
   let secondApp
   try {
     const second = launchElectron({
@@ -484,7 +489,7 @@ test('post-wizard CompleteSection is one-shot: Done -> complete; relaunch -> sto
     const window = await (await secondApp).firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await expect(window.locator('#section-title')).toHaveText(copy.storageTitle)
+    await expect(window.locator('#section-title')).toHaveText(copy.captureTitle)
     await expect(window.getByRole('tab', { name: copy.wizardSectionTitle })).toBeHidden()
     await expect(window.locator('#section-complete')).toBeHidden()
   } finally {
@@ -492,7 +497,7 @@ test('post-wizard CompleteSection is one-shot: Done -> complete; relaunch -> sto
   }
 })
 
-test('launching with wizardCompleted true skips wizard tab and starts on storage', async () => {
+test('launching with wizardCompleted true skips wizard tab and starts on capture', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
   const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
@@ -511,7 +516,7 @@ test('launching with wizardCompleted true skips wizard tab and starts on storage
     const window = await (await electronApp).firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await expect(window.locator('#section-title')).toHaveText(copy.storageTitle)
+    await expect(window.locator('#section-title')).toHaveText(copy.captureTitle)
     await expect(window.getByRole('tab', { name: copy.wizardSectionTitle })).toBeHidden()
     await expect(window.locator('[data-wizard-step="1"]')).toBeHidden()
   } finally {

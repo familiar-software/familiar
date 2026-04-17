@@ -17,6 +17,8 @@ const NUDGE_AFTER_MS = 30000
 
 export const useWizardPermissionFlow = ({
   familiar,
+  isWizardCompleted,
+  settingsLoaded,
   wizardStep,
   onGranted
 }) => {
@@ -57,11 +59,31 @@ export const useWizardPermissionFlow = ({
     }
   }, [familiar])
 
+  const isWizardStillInProgress = useCallback(async () => {
+    if (!familiar || typeof familiar.getSettings !== 'function') {
+      return !isWizardCompleted
+    }
+    try {
+      const settings = await familiar.getSettings()
+      return settings?.wizardCompleted !== true
+    } catch (error) {
+      console.error('Failed to read settings for permission flow', error)
+      return !isWizardCompleted
+    }
+  }, [familiar, isWizardCompleted])
+
   const applyResult = useCallback(
-    (result) => {
+    async (result) => {
       if (!activeRef.current) return
       const granted = result && (result.granted === true || result.permissionStatus === 'granted')
       if (granted) {
+        const wizardStillInProgress = await isWizardStillInProgress()
+        if (!activeRef.current || !wizardStillInProgress) {
+          activeRef.current = false
+          clearPoll()
+          clearNudge()
+          return false
+        }
         clearPoll()
         clearNudge()
         setPermissionFlowState('granted')
@@ -77,13 +99,13 @@ export const useWizardPermissionFlow = ({
       }
       return false
     },
-    [clearPoll, clearNudge]
+    [clearPoll, clearNudge, isWizardStillInProgress]
   )
 
   // On step entry (or re-entry): do a silent check. If already granted,
   // jump straight to the granted banner. Otherwise sit in ready.
   useEffect(() => {
-    if (wizardStep !== 1) {
+    if (!settingsLoaded || isWizardCompleted || wizardStep !== 1) {
       activeRef.current = false
       clearPoll()
       clearNudge()
@@ -92,9 +114,10 @@ export const useWizardPermissionFlow = ({
     activeRef.current = true
     setPermissionFlowState('checking')
     let cancelled = false
-    runSilentCheck().then((result) => {
+    runSilentCheck().then(async (result) => {
       if (cancelled || !activeRef.current) return
-      if (!applyResult(result)) {
+      const didApply = await applyResult(result)
+      if (!didApply && activeRef.current) {
         setPermissionFlowState('ready')
       }
     })
@@ -104,23 +127,25 @@ export const useWizardPermissionFlow = ({
       clearPoll()
       clearNudge()
     }
-  }, [wizardStep, runSilentCheck, applyResult, clearPoll, clearNudge])
+  }, [settingsLoaded, isWizardCompleted, wizardStep, runSilentCheck, applyResult, clearPoll, clearNudge])
 
   // Re-check whenever the window regains focus while on step 1 — covers
   // the common macOS dance where granting screen recording kills the app
   // and the user comes back manually.
   useEffect(() => {
-    if (wizardStep !== 1) return undefined
+    if (!settingsLoaded || isWizardCompleted || wizardStep !== 1) return undefined
     const handleFocus = () => {
       if (!activeRef.current) return
-      runSilentCheck().then(applyResult)
+      runSilentCheck().then((result) => {
+        void applyResult(result)
+      })
     }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
-  }, [wizardStep, runSilentCheck, applyResult])
+  }, [settingsLoaded, isWizardCompleted, wizardStep, runSilentCheck, applyResult])
 
   const openSystemSettings = useCallback(async () => {
-    if (!familiar || typeof familiar.openScreenRecordingSettings !== 'function') {
+    if (!settingsLoaded || !familiar || typeof familiar.openScreenRecordingSettings !== 'function') {
       return
     }
     try {
@@ -133,13 +158,15 @@ export const useWizardPermissionFlow = ({
     clearPoll()
     clearNudge()
     pollRef.current = setInterval(() => {
-      runSilentCheck().then(applyResult)
+      runSilentCheck().then((result) => {
+        void applyResult(result)
+      })
     }, POLL_INTERVAL_MS)
     nudgeRef.current = setTimeout(() => {
       if (!activeRef.current) return
       setPermissionFlowState((current) => (current === 'waiting' ? 'nudge' : current))
     }, NUDGE_AFTER_MS)
-  }, [familiar, runSilentCheck, applyResult, clearPoll, clearNudge])
+  }, [settingsLoaded, familiar, runSilentCheck, applyResult, clearPoll, clearNudge])
 
   return { permissionFlowState, openSystemSettings }
 }

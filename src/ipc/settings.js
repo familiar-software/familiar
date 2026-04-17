@@ -524,6 +524,9 @@ async function handleOpenStorageInFinder() {
 async function handleApplyDefaultContextFolder() {
     try {
         const settings = loadSettings();
+        if (settings?.wizardCompleted === true) {
+            return { ok: true, applied: false };
+        }
         const existing = typeof settings?.contextFolderPath === 'string' ? settings.contextFolderPath.trim() : '';
         if (existing) {
             return { ok: true, contextFolderPath: existing, applied: false };

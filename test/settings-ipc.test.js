@@ -100,3 +100,89 @@ test('settings:applyDefaultContextFolder notifies with full saved settings paylo
     fs.rmSync(tmpRoot, { recursive: true, force: true })
   }
 })
+
+test('settings:applyDefaultContextFolder does not save after wizard completion', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-ipc-'))
+  const settingsDir = path.join(tmpRoot, 'settings')
+  const homeDir = path.join(tmpRoot, 'home')
+  fs.mkdirSync(settingsDir, { recursive: true })
+  fs.mkdirSync(homeDir, { recursive: true })
+
+  saveSettings({
+    alwaysRecordWhenActive: false,
+    wizardCompleted: true
+  }, { settingsDir })
+
+  const handlers = {}
+  const settingsSavedPayloads = []
+  const stubElectron = {
+    app: {
+      getVersion: () => 'test-version',
+      focus: () => {},
+      getFileIcon: async () => null
+    },
+    BrowserWindow: {
+      fromWebContents: () => null
+    },
+    dialog: {
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] })
+    },
+    ipcMain: {
+      handle: (channel, handler) => {
+        handlers[channel] = handler
+      }
+    },
+    shell: {
+      openPath: async () => '',
+      openExternal: async () => {}
+    },
+    desktopCapturer: {
+      getSources: async () => []
+    },
+    screen: {
+      getAllDisplays: () => [],
+      getPrimaryDisplay: () => null
+    }
+  }
+
+  const originalLoad = Module._load
+  const originalSettingsDir = process.env.FAMILIAR_SETTINGS_DIR
+  const originalHome = process.env.HOME
+  process.env.FAMILIAR_SETTINGS_DIR = settingsDir
+  process.env.HOME = homeDir
+
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return stubElectron
+    }
+    return originalLoad.call(this, request, parent, isMain)
+  }
+
+  resetModule('../src/ipc/settings')
+
+  try {
+    const { registerSettingsHandlers } = require('../src/ipc/settings')
+    registerSettingsHandlers({
+      onSettingsSaved: (payload) => {
+        settingsSavedPayloads.push(payload)
+      }
+    })
+
+    assert.equal(typeof handlers['settings:applyDefaultContextFolder'], 'function')
+
+    const result = await handlers['settings:applyDefaultContextFolder']()
+    const persistedSettings = loadSettings({ settingsDir })
+
+    assert.deepEqual(result, { ok: true, applied: false })
+    assert.equal(fs.existsSync(path.join(homeDir, 'familiar')), false)
+    assert.equal(settingsSavedPayloads.length, 0)
+    assert.equal(persistedSettings.contextFolderPath, '')
+    assert.equal(persistedSettings.wizardCompleted, true)
+  } finally {
+    Module._load = originalLoad
+    resetModule('../src/ipc/settings')
+    process.env.FAMILIAR_SETTINGS_DIR = originalSettingsDir
+    process.env.HOME = originalHome
+    fs.rmSync(tmpRoot, { recursive: true, force: true })
+  }
+})

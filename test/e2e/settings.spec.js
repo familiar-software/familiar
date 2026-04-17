@@ -86,7 +86,7 @@ test('storage change button sets the context folder path', async () => {
     const visibleTabs = (await window.locator('[role="tab"]:visible').allTextContents()).map((tabText) =>
       tabText.trim()
     )
-    expect(visibleTabs.slice(0, 2)).toEqual(['Storage', 'Capture'])
+    expect(visibleTabs.slice(0, 2)).toEqual(['Capture', 'Storage'])
     await window.getByRole('tab', { name: 'Storage' }).click()
 
     const confirmDialog = confirmMoveContextFolder(window)

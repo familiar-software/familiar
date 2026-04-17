@@ -68,18 +68,32 @@ const setContextFolder = async (window) => {
 
 const enableRecordingToggle = async (window) => {
   await window.getByRole('tab', { name: 'Capture' }).click()
-  await expect(window.locator('#recording-always-record-when-active')).toBeVisible()
-  await window.locator('label[for="recording-always-record-when-active"]').click({ force: true })
-  await expect(window.locator('#recording-always-record-when-active')).toBeChecked()
-  await expect(window.locator('#recording-always-record-when-active-status')).toHaveText('Saved.')
+  const result = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: true }))
+  expect(result?.ok).toBe(true)
+  await expect
+    .poll(async () => {
+      const settings = await window.evaluate(() => window.familiar.getSettings())
+      return settings?.alwaysRecordWhenActive
+    })
+    .toBe(true)
 }
 
 const disableRecordingToggle = async (window) => {
   await window.getByRole('tab', { name: 'Capture' }).click()
-  const toggle = window.locator('#recording-always-record-when-active')
-  await expect(toggle).toBeChecked()
-  await window.locator('label[for="recording-always-record-when-active"]').click({ force: true })
-  await expect(toggle).not.toBeChecked()
+  await expect
+    .poll(async () => {
+      const settings = await window.evaluate(() => window.familiar.getSettings())
+      return settings?.alwaysRecordWhenActive
+    })
+    .toBe(true)
+  const result = await window.evaluate(() => window.familiar.saveSettings({ alwaysRecordWhenActive: false }))
+  expect(result?.ok).toBe(true)
+  await expect
+    .poll(async () => {
+      const settings = await window.evaluate(() => window.familiar.getSettings())
+      return settings?.alwaysRecordWhenActive
+    })
+    .toBe(false)
 }
 
 const clearToastEvents = async (window) => {

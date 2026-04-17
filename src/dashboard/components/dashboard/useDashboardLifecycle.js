@@ -19,6 +19,7 @@ export const useDashboardLifecycle = (state, options = {}) => {
     setStorageError,
     setStorageUsageLoaded,
     setRecordingStatus,
+    setSettingsLoaded,
     setSettings,
     normalizeHarnesses
   } = state
@@ -96,6 +97,7 @@ export const useDashboardLifecycle = (state, options = {}) => {
     if (!familiar || typeof familiar.getSettings !== 'function') {
       setGlobalError(mc.dashboard.settings.errors.bridgeUnavailableRestart)
       setGlobalMessage('')
+      setSettingsLoaded(true)
       isLoadingSettingsRef.current = false
       return { ok: false, reason: 'bridgeUnavailable' }
     }
@@ -125,12 +127,14 @@ export const useDashboardLifecycle = (state, options = {}) => {
 
       setGlobalMessage('')
       hasLoadedSettingsRef.current = true
+      setSettingsLoaded(true)
       return { ok: true, settings: appliedSettings, initialHarnesses }
     } catch (error) {
       console.error('Failed to load settings', error)
       setGlobalError(mc.dashboard.settings.errors.failedToLoadSettings)
       setGlobalMessage('')
       setIsSkillInstalled(false)
+      setSettingsLoaded(true)
       return { ok: false, error }
     } finally {
       isLoadingSettingsRef.current = false
@@ -150,6 +154,7 @@ export const useDashboardLifecycle = (state, options = {}) => {
     setGlobalError,
     setGlobalMessage,
     setIsSkillInstalled,
+    setSettingsLoaded,
     setSettings,
     setSkillMessage,
     setSkillError,
