@@ -545,7 +545,7 @@ export function WizardSection({
                     : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                 }`}
               >
-                Co-work
+                Cowork
               </button>
               <button
                 type="button"
@@ -565,7 +565,7 @@ export function WizardSection({
                 src={tryItTab === 'cowork' ? COWORK_SKILL_GIF_PATH : CLAUDE_CODE_GIF_PATH}
                 alt={
                   tryItTab === 'cowork'
-                    ? 'Familiar as a skill in Co-work'
+                    ? 'Familiar as a skill in Cowork'
                     : toDisplayText(html.wizardFirstUsecaseGifAlt)
                 }
                 className="block w-full h-auto"
