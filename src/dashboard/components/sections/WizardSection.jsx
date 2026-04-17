@@ -3,31 +3,13 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { CardTitle } from '../ui/card'
 import { Select } from '../ui/select'
+import {
+  AgentInstallerList,
+  RESTART_REQUIRED_HARNESSES
+} from '../skills/AgentInstallerList'
 // Accordion removed — Step 5 "Automate" replaced the FAQ
 
 const FIRST_USECASE_GIF_PATH = './assets/familiar-first-usecase.gif'
-
-// Robot glyph for the "Any local agent" row in the wizard's agents list.
-// Hoisted out of the component body so we don't re-allocate the SVG VNode
-// on every wizard render.
-const LOCAL_AGENT_ICON = (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.7"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-full h-full text-zinc-500 dark:text-zinc-400"
-  >
-    <path d="M12 8V4H8" />
-    <rect width="16" height="12" x="4" y="8" rx="2" />
-    <path d="M2 14h2" />
-    <path d="M20 14h2" />
-    <path d="M15 13v2" />
-    <path d="M9 13v2" />
-  </svg>
-)
 
 export function WizardSection({
   mc,
@@ -76,59 +58,14 @@ export function WizardSection({
   const canAdvance = isWizardStepComplete(wizardStep)
   const hasContextFolder = Boolean(wizardContextFolderPath)
   const [isContextAdvancedExpanded, setIsContextAdvancedExpanded] = useState(false)
-  // Per-row install UI state for the Agents step. Kept local because it's
-  // purely transient visual state — the canonical "is this harness
-  // installed?" signal is skillInstallPaths[harness] from the shared hook.
-  const [installingAgents, setInstallingAgents] = useState(() => new Set())
-  const [agentErrors, setAgentErrors] = useState({})
-  const handleAgentClick = async (harnessValue) => {
-    if (!harnessValue || typeof installAgent !== 'function') return
-    if (skillInstallPaths && skillInstallPaths[harnessValue]) return
-    if (installingAgents.has(harnessValue)) return
-    setInstallingAgents((prev) => {
-      const next = new Set(prev)
-      next.add(harnessValue)
-      return next
-    })
-    setAgentErrors((prev) => {
-      if (!prev[harnessValue]) return prev
-      const { [harnessValue]: _removed, ...rest } = prev
-      return rest
-    })
-    try {
-      const result = await installAgent(harnessValue)
-      if (!result?.ok) {
-        setAgentErrors((prev) => ({
-          ...prev,
-          [harnessValue]: result?.message || 'Install failed'
-        }))
-      }
-    } finally {
-      setInstallingAgents((prev) => {
-        const next = new Set(prev)
-        next.delete(harnessValue)
-        return next
-      })
-    }
-  }
   // ── Step 3: restart-confirmation state ──
   // Cursor only picks up newly-installed skills after a full restart.
   // Once the user installs it we surface a single "I vow I've restarted..."
   // banner below the agent list and gate the Next button on it being
   // checked. Transient state — not persisted, matches the pattern from
-  // steps 4 and 5.
-  const RESTART_REQUIRED_HARNESSES = new Set(['cursor'])
+  // steps 4 and 5. Lives here (not inside AgentInstallerList) because the
+  // wizard's Next button depends on it.
   const [restartConfirmed, setRestartConfirmed] = useState(() => new Set())
-
-  // ── Step 3: copy-paste install state ──
-  // Cowork and "Any local agent" don't have a programmatic installer;
-  // the user copies a one-line prompt and pastes it into the agent
-  // themselves. Click the row to expand a thin prompt panel inline;
-  // copy click flips the row's status to "Copied!". No vow gate — copy
-  // is fire-and-forget here, unlike Cursor where the missed-restart
-  // failure mode actually bites.
-  const [expandedCopyPaste, setExpandedCopyPaste] = useState(() => new Set())
-  const [copiedCopyPaste, setCopiedCopyPaste] = useState(() => new Set())
 
   // ── Step 4: "Try it" state ──
   const [pinkySwearChecked, setPinkySwearChecked] = useState(false)
@@ -228,34 +165,6 @@ export function WizardSection({
     completeWizard()
   }
 
-  // Returns JSX (not a string path) so we can inline an SVG for harnesses
-  // without a bundled icon asset (e.g. "Any local agent"). Cowork reuses
-  // the Claude Code icon — same brand family, no separate asset needed.
-  const iconForHarness = (harness) => {
-    switch (harness) {
-      case 'claude':
-      case 'cowork':
-        return <img src="./assets/skill-icons/claude-code.svg" alt="" />
-      case 'codex':
-        return <img src="./assets/skill-icons/codex.svg" alt="" />
-      case 'cursor':
-        return <img src="./assets/skill-icons/cursor.svg" alt="" />
-      case 'localAgent':
-        return LOCAL_AGENT_ICON
-      default:
-        return null
-    }
-  }
-  const labelForHarness = (harness) => {
-    switch (harness) {
-      case 'claude': return toDisplayText(html.wizardHarnessClaudeCode)
-      case 'cowork': return toDisplayText(html.wizardHarnessClaudeCowork)
-      case 'codex': return toDisplayText(html.wizardHarnessCodex)
-      case 'cursor': return toDisplayText(html.wizardHarnessCursor)
-      case 'localAgent': return toDisplayText(html.wizardHarnessAnyLocalAgent)
-      default: return harness
-    }
-  }
   // wizardContextFolderPath is already <parent>/familiar (the storage
   // dir) — see toWizardContextFolderPath in useDashboardState. Friendly
   // display abbreviates $HOME to "~". Renderer can't import node:os;
@@ -606,210 +515,18 @@ export function WizardSection({
             </p>
           </div>
           <div data-component-source="install-skill" className="space-y-3">
-            <ul className="agent-list divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-              {wizardHarnessOptions.map((entry) => {
-                const harness = entry.value
-                const isCopyPaste = entry.mode === 'copy-paste'
-                const isInstalled = Boolean(skillInstallPaths && skillInstallPaths[harness])
-                const isInstalling = installingAgents.has(harness)
-                const hasError = Boolean(agentErrors[harness])
-                const isCopied = copiedCopyPaste.has(harness)
-                const isExpanded = expandedCopyPaste.has(harness)
-                const needsRestartPrompt =
-                  isInstalled &&
-                  RESTART_REQUIRED_HARNESSES.has(harness) &&
-                  !restartConfirmed.has(harness)
-                let statusText
-                let statusClass
-                if (isCopyPaste) {
-                  if (isCopied) {
-                    statusText = toDisplayText(html.wizardCopyPasteCopied)
-                    statusClass = 'text-emerald-600 dark:text-emerald-400'
-                  } else {
-                    // Reuse the same idle "Install" hover label as auto-install
-                    // rows — Tal wants the row to read consistently regardless
-                    // of underlying mechanism.
-                    statusText = toDisplayText(html.wizardAgentInstall)
-                    statusClass = 'text-zinc-500 dark:text-zinc-400 agent-row-status-idle'
-                  }
-                } else {
-                  statusText = isInstalling
-                    ? toDisplayText(html.wizardAgentInstalling)
-                    : needsRestartPrompt
-                      ? toDisplayText(html.wizardAgentInstalledNeedsRestart)
-                      : isInstalled
-                        ? toDisplayText(html.wizardAgentInstalled)
-                        : hasError
-                          ? toDisplayText(html.wizardAgentRetry)
-                          : toDisplayText(html.wizardAgentInstall)
-                  statusClass = isInstalled
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : hasError
-                      ? 'text-red-600 dark:text-red-400'
-                      : isInstalling
-                        ? 'text-zinc-500 dark:text-zinc-400'
-                        // Idle "Install →" only appears on row hover/focus
-                        // (class defined in input.css — more reliable than
-                        // fighting Tailwind v4 group-hover detection).
-                        : 'text-zinc-500 dark:text-zinc-400 agent-row-status-idle'
-                }
-                const handleRowClick = () => {
-                  if (isCopyPaste) {
-                    setExpandedCopyPaste((prev) => {
-                      const next = new Set(prev)
-                      if (next.has(harness)) next.delete(harness)
-                      else next.add(harness)
-                      return next
-                    })
-                  } else {
-                    handleAgentClick(harness)
-                  }
-                }
-                const promptText = toDisplayText(html.wizardSkillInstallPrompt)
-                const handleCopyClick = () => {
-                  copyToClipboard(promptText, () => {})
-                  setCopiedCopyPaste((prev) => {
-                    if (prev.has(harness)) return prev
-                    const next = new Set(prev)
-                    next.add(harness)
-                    return next
-                  })
-                }
-                return (
-                  <li key={harness}>
-                    <button
-                      type="button"
-                      data-skill-harness={harness}
-                      data-mode={entry.mode || 'install'}
-                      data-installed={isInstalled ? 'true' : 'false'}
-                      data-installing={isInstalling ? 'true' : 'false'}
-                      data-copied={isCopied ? 'true' : 'false'}
-                      data-expanded={isExpanded ? 'true' : 'false'}
-                      onClick={handleRowClick}
-                      disabled={!isCopyPaste && (isInstalled || isInstalling)}
-                      aria-busy={!isCopyPaste && isInstalling}
-                      aria-expanded={isCopyPaste ? isExpanded : undefined}
-                      className="agent-row w-full flex items-center gap-3 px-4 py-3 text-left bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 disabled:hover:bg-white disabled:dark:hover:bg-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
-                    >
-                      <span className="skill-picker-icon" aria-hidden="true">
-                        {iconForHarness(harness)}
-                      </span>
-                      <span className="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100">
-                        {labelForHarness(harness)}
-                      </span>
-                      <span
-                        className={`${statusClass} text-[13px] flex items-center gap-1.5`}
-                        aria-live="polite"
-                        title={hasError ? agentErrors[harness] : undefined}
-                      >
-                        {isInstalling && (
-                          <span
-                            className="inline-block w-3 h-3 rounded-full border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-500 dark:border-t-zinc-300 animate-spin"
-                            aria-hidden="true"
-                          />
-                        )}
-                        {(isInstalled || isCopied) && (
-                          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M3 8.5l3.5 3.5L13 5" />
-                          </svg>
-                        )}
-                        {statusText}
-                      </span>
-                    </button>
-                    {isCopyPaste && isExpanded && (
-                      <div
-                        className="copy-paste-expansion px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 space-y-2"
-                        data-copy-paste-expansion={harness}
-                      >
-                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                          {harness === 'cowork'
-                            ? toDisplayText(html.wizardCopyPasteIntroCowork)
-                            : toDisplayText(html.wizardCopyPasteIntroLocalAgent)}
-                        </p>
-                        {/* Layout note: code element gets pr-12 so its
-                            text overflows INTO the right padding before
-                            being clipped by overflow-hidden, and the
-                            fade sits over that overflowing text. The
-                            fade extends all the way to the right edge
-                            (right-0 w-20) so there's no transparent gap
-                            between fade and button. The button itself
-                            also has a solid bg matching the panel so
-                            anything visually behind it is fully
-                            obscured. */}
-                        <div className="relative rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden">
-                          <code className="block text-[12px] font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap overflow-hidden px-3 py-2 pr-12">
-                            {promptText}
-                          </code>
-                          <div className="pointer-events-none absolute top-0 bottom-0 right-0 w-20 bg-gradient-to-l from-white dark:from-zinc-950 to-transparent" />
-                          <button
-                            type="button"
-                            onClick={handleCopyClick}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded bg-white dark:bg-zinc-950 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 transition-colors cursor-pointer"
-                            aria-label="Copy install prompt"
-                            data-copy-paste-copy={harness}
-                          >
-                            <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <rect x="5" y="5" width="9" height="9" rx="1.5" />
-                              <path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2H3.5A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-            {installedRestartRequired.length > 0 && (() => {
-              const names = installedRestartRequired.map((value) => toDisplayText(labelForHarness(value)))
-              // Build an array of nodes so each name is bold but the
-              // separators (", " and " and ") stay plain weight.
-              const nameNodes = []
-              names.forEach((name, idx) => {
-                if (idx > 0) {
-                  if (names.length === 2) {
-                    nameNodes.push(' and ')
-                  } else if (idx === names.length - 1) {
-                    nameNodes.push(', and ')
-                  } else {
-                    nameNodes.push(', ')
-                  }
-                }
-                nameNodes.push(
-                  <span key={`name-${name}`} className="font-semibold text-zinc-800 dark:text-zinc-100">
-                    {name}
-                  </span>
-                )
-              })
-              const template = toDisplayText(html.wizardRestartConfirmTemplate)
-              const [before, after] = template.split('{{names}}')
-              return (
-                <label className="mt-3 flex items-start gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    data-restart-confirm-banner
-                    checked={allRestartsConfirmed}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setRestartConfirmed((prev) => {
-                        const next = new Set(prev)
-                        installedRestartRequired.forEach((value) => {
-                          if (checked) next.add(value)
-                          else next.delete(value)
-                        })
-                        return next
-                      })
-                    }}
-                    className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
-                  />
-                  <span className="pinky-swear-label text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                    {before}
-                    {nameNodes}
-                    {after}
-                  </span>
-                </label>
-              )
-            })()}
+            <AgentInstallerList
+              options={wizardHarnessOptions}
+              skillInstallPaths={skillInstallPaths}
+              installAgent={installAgent}
+              copyToClipboard={copyToClipboard}
+              html={html}
+              toDisplayText={toDisplayText}
+              showRestartBanner
+              installedRestartRequired={installedRestartRequired}
+              restartConfirmed={restartConfirmed}
+              onRestartConfirmedChange={setRestartConfirmed}
+            />
           </div>
         </div>
 
