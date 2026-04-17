@@ -42,8 +42,6 @@ const microcopy = {
       sidebarRecordingActionPauseFor10Min: 'Pause (10 min)',
       navWizard: 'Wizard',
       navStorage: 'Storage',
-      navCapturing: 'Capturing',
-      navInstallSkill: 'Connect Agent',
       updatesCheckForUpdates: 'Check for Updates',
       recordingAriaLabelCapturingSettings: 'Capturing settings',
       recordingPermissionsLabel: 'Permissions',
@@ -128,9 +126,6 @@ const microcopy = {
       wizardPermissionWaitingHint: 'Return here after you enable Familiar in Screen Recording.',
       wizardPermissionNudgeHint: 'Make sure the Familiar toggle is turned on, then come back to this window.',
       wizardPermissionGranted: 'Screen Recording is on.',
-      wizardCaptureWhileActive: 'Capture screen',
-      wizardActionRequiredToProceed: 'Off',
-      wizardCapturingIsEnabled: 'Capturing your screen',
       wizardInstallSkillTitleBefore: 'Install the Familiar ',
       wizardInstallSkillTitleSkillLink: 'skill',
       wizardInstallSkillDescription:
@@ -202,13 +197,13 @@ const microcopy = {
         subtitle: 'Check for new versions and download when available.'
       },
       recording: {
-        title: 'Capturing'
+        title: 'Capture'
       },
       storage: {
         title: 'Storage'
       },
       installSkill: {
-        title: 'Connect Agent'
+        title: 'Skill'
       }
     },
     stills: {

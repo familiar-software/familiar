@@ -34,7 +34,7 @@ export function InstallSkillSection({
   const isCursorSelected = selectedSet.has('cursor')
   const statusText = toDisplayText(skillMessage)
   const pathText = isSkillInstalled ? '' : getFormattedInstallPaths(skillInstallPaths)
-  // Standalone Connect Agent settings is install-only — copy-paste rows
+  // Standalone Skill settings is install-only — copy-paste rows
   // (Cowork, Any local agent) are wizard-only, since their flow is "paste
   // into your agent right now" rather than configure-and-forget.
   const installableOptions = wizardHarnessOptions.filter(isInstallMode)

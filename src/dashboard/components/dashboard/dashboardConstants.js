@@ -11,13 +11,13 @@ export const DEFAULT_MICROCOPY = {
         title: 'Storage'
       },
       recording: {
-        title: 'Capturing'
+        title: 'Capture'
       },
       updates: {
         title: 'Updates'
       },
       installSkill: {
-        title: 'Connect Agent'
+        title: 'Skill'
       }
     },
     settings: {
@@ -139,9 +139,9 @@ export const DEFAULT_MICROCOPY = {
 // `mode` distinguishes auto-install agents (familiar.installSkill writes
 // SKILL.md to the agent's skills dir) from copy-paste agents (the user
 // pastes a one-line install prompt into the agent themselves). Step 3 of
-// the wizard renders both kinds; the standalone Connect Agent settings
-// section filters to install-mode only since copy-paste only makes sense
-// during onboarding.
+// the wizard renders both kinds; the standalone Skill settings section
+// filters to install-mode only since copy-paste only makes sense during
+// onboarding.
 export const HARNESS_OPTIONS = [
   { value: 'claude', label: 'Claude Code', mode: 'install' },
   { value: 'cowork', label: 'Claude Cowork', mode: 'copy-paste' },

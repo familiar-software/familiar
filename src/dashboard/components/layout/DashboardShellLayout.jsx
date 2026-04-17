@@ -69,14 +69,7 @@ export function DashboardShellLayout({
 
     if (id === 'install-skill' || id === 'installSkill') {
       return (
-        <>
-          <path d="M12 8V4H8" />
-          <rect width="16" height="12" x="4" y="8" rx="2" />
-          <path d="M2 14h2" />
-          <path d="M20 14h2" />
-          <path d="M15 13v2" />
-          <path d="M9 13v2" />
-        </>
+        <path d="M14.7 6.3a4.5 4.5 0 0 0 5.8 5.8L21 12l-1.4 1.4a4.5 4.5 0 0 1-6.4 0L4 22l-2-2 9.2-9.2a4.5 4.5 0 0 1 0-6.4L12.6 3l-.1.5a4.5 4.5 0 0 0 1.2 2.8Z" />
       )
     }
 

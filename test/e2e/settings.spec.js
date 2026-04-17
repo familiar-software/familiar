@@ -80,13 +80,13 @@ test('storage change button sets the context folder path', async () => {
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
     await expect(window.getByRole('tab', { name: 'Wizard' })).toBeHidden()
-    await expect(window.getByRole('tab', { name: 'Capturing' })).toBeVisible()
+    await expect(window.getByRole('tab', { name: 'Capture' })).toBeVisible()
     await expect(window.getByRole('tab', { name: 'Storage' })).toBeVisible()
-    await expect(window.getByRole('tab', { name: 'Connect Agent' })).toBeVisible()
+    await expect(window.getByRole('tab', { name: 'Skill' })).toBeVisible()
     const visibleTabs = (await window.locator('[role="tab"]:visible').allTextContents()).map((tabText) =>
       tabText.trim()
     )
-    expect(visibleTabs.slice(0, 2)).toEqual(['Storage', 'Capturing'])
+    expect(visibleTabs.slice(0, 2)).toEqual(['Storage', 'Capture'])
     await window.getByRole('tab', { name: 'Storage' }).click()
 
     const confirmDialog = confirmMoveContextFolder(window)
@@ -139,7 +139,7 @@ test('capturing tab keeps toggle visible before checking permissions', async () 
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await window.getByRole('tab', { name: 'Capturing' }).click()
+    await window.getByRole('tab', { name: 'Capture' }).click()
     await expect(window.locator('#recording-recording-toggle-section')).toBeVisible()
   } finally {
     await electronApp.close()
@@ -189,7 +189,7 @@ test('capturing tab saves blacklisted installed apps into settings', async () =>
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await window.getByRole('tab', { name: 'Capturing' }).click()
+    await window.getByRole('tab', { name: 'Capture' }).click()
     const messagesOption = window.locator('label').filter({ hasText: 'Messages' }).first()
     await expect(messagesOption).toBeVisible()
     await messagesOption.click()

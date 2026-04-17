@@ -67,7 +67,7 @@ const setContextFolder = async (window) => {
 }
 
 const enableRecordingToggle = async (window) => {
-  await window.getByRole('tab', { name: 'Capturing' }).click()
+  await window.getByRole('tab', { name: 'Capture' }).click()
   await expect(window.locator('#recording-always-record-when-active')).toBeVisible()
   await window.locator('label[for="recording-always-record-when-active"]').click({ force: true })
   await expect(window.locator('#recording-always-record-when-active')).toBeChecked()
@@ -310,7 +310,7 @@ test('capturing status is off when capture toggle is disabled and permissions ar
     const window = await electronApp.firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    await window.getByRole('tab', { name: 'Capturing' }).click()
+    await window.getByRole('tab', { name: 'Capture' }).click()
     await expect(window.locator('#recording-always-record-when-active')).not.toBeChecked()
     await expect(window.locator('#recording-status')).toHaveText('Off', { timeout: 8000 })
     await expect(window.locator('#recording-status-dot')).not.toHaveClass(/bg-red-500/)

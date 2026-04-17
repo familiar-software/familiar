@@ -67,7 +67,7 @@ const setContextFolder = async (window) => {
 }
 
 const enableRecordingToggle = async (window) => {
-  await window.getByRole('tab', { name: 'Capturing' }).click()
+  await window.getByRole('tab', { name: 'Capture' }).click()
   await expect(window.locator('#recording-always-record-when-active')).toBeVisible()
   await window.locator('label[for="recording-always-record-when-active"]').click({ force: true })
   await expect(window.locator('#recording-always-record-when-active')).toBeChecked()
@@ -75,7 +75,7 @@ const enableRecordingToggle = async (window) => {
 }
 
 const disableRecordingToggle = async (window) => {
-  await window.getByRole('tab', { name: 'Capturing' }).click()
+  await window.getByRole('tab', { name: 'Capture' }).click()
   const toggle = window.locator('#recording-always-record-when-active')
   await expect(toggle).toBeChecked()
   await window.locator('label[for="recording-always-record-when-active"]').click({ force: true })

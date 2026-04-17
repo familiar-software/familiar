@@ -7,9 +7,9 @@ import { Select } from '../ui/select'
 
 const FIRST_USECASE_GIF_PATH = './assets/familiar-first-usecase.gif'
 
-// Same robot glyph rendered in DashboardShellLayout's sidebar tab for the
-// Connect Agent section. Hoisted out of the component body so we don't
-// re-allocate the SVG VNode on every wizard render.
+// Robot glyph for the "Any local agent" row in the wizard's agents list.
+// Hoisted out of the component body so we don't re-allocate the SVG VNode
+// on every wizard render.
 const LOCAL_AGENT_ICON = (
   <svg
     viewBox="0 0 24 24"
