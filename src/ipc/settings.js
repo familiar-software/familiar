@@ -547,7 +547,7 @@ async function handleApplyDefaultContextFolder() {
         }
         if (typeof onSettingsSaved === 'function') {
             try {
-                onSettingsSaved({ contextFolderPath: defaultPath });
+                onSettingsSaved(loadSettings());
             } catch (error) {
                 console.warn('onSettingsSaved threw after applying default context folder', error);
             }
