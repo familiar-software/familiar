@@ -30,7 +30,7 @@ const PROBE_RECORDER_WINDOW_NAME = 'familiar-permission-probe-';
 const PERMISSION_PROBE_TIMEOUT_MS = 12_000;
 let permissionProbeRecorder = null;
 
-const VALID_SKILL_HARNESSES = new Set(['claude', 'codex', 'cursor', 'antigravity']);
+const VALID_SKILL_HARNESSES = new Set(['claude', 'codex', 'cursor']);
 
 const normalizeSkillInstallerHarnesses = (raw = {}) => {
     const directHarnesses = Array.isArray(raw?.harness) ? raw.harness : [raw?.harness];

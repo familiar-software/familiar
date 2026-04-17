@@ -2,11 +2,11 @@ import React from 'react'
 
 import { Checkbox } from '../ui/checkbox'
 import { Label } from '../ui/label'
+import { isInstallMode } from '../dashboard/dashboardConstants'
 
 const skillIcons = {
   claude: './assets/skill-icons/claude-code.svg',
   codex: './assets/skill-icons/codex.svg',
-  antigravity: './assets/skill-icons/antigravity.svg',
   cursor: './assets/skill-icons/cursor.svg'
 }
 
@@ -34,11 +34,15 @@ export function InstallSkillSection({
   const isCursorSelected = selectedSet.has('cursor')
   const statusText = toDisplayText(skillMessage)
   const pathText = isSkillInstalled ? '' : getFormattedInstallPaths(skillInstallPaths)
+  // Standalone Connect Agent settings is install-only — copy-paste rows
+  // (Cowork, Any local agent) are wizard-only, since their flow is "paste
+  // into your agent right now" rather than configure-and-forget.
+  const installableOptions = wizardHarnessOptions.filter(isInstallMode)
 
   return (
     <section className="react-install-tab space-y-3">
       <div className="react-skill-picker-options">
-        {wizardHarnessOptions.map((entry) => (
+        {installableOptions.map((entry) => (
           <Label key={entry.value} className="react-skill-picker-option">
             <span className="react-skill-picker-option-card">
               <Checkbox

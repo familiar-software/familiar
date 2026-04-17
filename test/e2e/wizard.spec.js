@@ -32,12 +32,17 @@ const copy = Object.freeze({
   wizardEnableCapturingDescription: microcopyText('dashboard.html.wizardEnableCapturingDescription'),
   wizardPermissionGranted: microcopyText('dashboard.html.wizardPermissionGranted'),
   wizardPermissionOpenSettings: microcopyText('dashboard.html.wizardPermissionOpenSettings'),
-  wizardInstallSkillTitle: microcopyText('dashboard.html.wizardInstallSkillTitle'),
+  wizardInstallSkillTitleBefore: microcopyText('dashboard.html.wizardInstallSkillTitleBefore'),
+  wizardInstallSkillTitleSkillLink: microcopyText('dashboard.html.wizardInstallSkillTitleSkillLink'),
   wizardInstallSkillDescription: microcopyText('dashboard.html.wizardInstallSkillDescription'),
   wizardHarnessClaudeCode: microcopyText('dashboard.html.wizardHarnessClaudeCode'),
+  wizardHarnessClaudeCowork: microcopyText('dashboard.html.wizardHarnessClaudeCowork'),
   wizardHarnessCodex: microcopyText('dashboard.html.wizardHarnessCodex'),
-  wizardHarnessAntigravity: microcopyText('dashboard.html.wizardHarnessAntigravity'),
   wizardHarnessCursor: microcopyText('dashboard.html.wizardHarnessCursor'),
+  wizardHarnessAnyLocalAgent: microcopyText('dashboard.html.wizardHarnessAnyLocalAgent'),
+  wizardCopyPasteCopied: microcopyText('dashboard.html.wizardCopyPasteCopied'),
+  wizardSkillInstallPrompt: microcopyText('dashboard.html.wizardSkillInstallPrompt'),
+  wizardCopyPasteIntroCowork: microcopyText('dashboard.html.wizardCopyPasteIntroCowork'),
   wizardFirstUsecaseTitle: microcopyText('dashboard.html.wizardFirstUsecaseTitle'),
   wizardFirstUsecaseCommand: microcopyText('dashboard.html.wizardFirstUsecaseCommand'),
   wizardTryItPinkySwear: microcopyText('dashboard.html.wizardTryItPinkySwear'),
@@ -159,12 +164,15 @@ const expectWizardSkillsStepCopy = async (window) => {
   const wizardStepThree = window.locator('[data-wizard-step="3"]')
 
   await expect(wizardStepThree).toBeVisible()
-  await expect(wizardStepThree).toContainText(copy.wizardInstallSkillTitle)
+  // Title is split: prefix + 'skill' as a link to the SKILL.md source.
+  await expect(wizardStepThree).toContainText(copy.wizardInstallSkillTitleBefore.trim())
+  await expect(wizardStepThree).toContainText(copy.wizardInstallSkillTitleSkillLink)
   await expect(wizardStepThree).toContainText(copy.wizardInstallSkillDescription)
   await expect(wizardStepThree).toContainText(copy.wizardHarnessClaudeCode)
+  await expect(wizardStepThree).toContainText(copy.wizardHarnessClaudeCowork)
   await expect(wizardStepThree).toContainText(copy.wizardHarnessCodex)
-  await expect(wizardStepThree).toContainText(copy.wizardHarnessAntigravity)
   await expect(wizardStepThree).toContainText(copy.wizardHarnessCursor)
+  await expect(wizardStepThree).toContainText(copy.wizardHarnessAnyLocalAgent)
 }
 
 // Step 3 is always-complete (installation is optional). Clicking a row
@@ -371,6 +379,57 @@ test('wizard Agents step installs codex via per-row click and keeps Next enabled
 
     await expectWizardSkillsStepCopy(window)
     await installCodexHarness(window)
+    await expect(nextButton).toBeEnabled()
+  } finally {
+    await (await electronApp).close()
+  }
+})
+
+test('wizard Agents step copy-paste row reveals prompt panel and gates Next on paste vow', async () => {
+  const appRoot = path.join(__dirname, '../..')
+  const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const { electronApp } = launchElectron({
+    contextPath,
+    initialSettings: {
+      contextFolderPath: path.resolve(contextPath),
+      alwaysRecordWhenActive: true,
+      wizardCompleted: false
+    },
+    env: { FAMILIAR_LLM_MOCK: '1', FAMILIAR_LLM_MOCK_TEXT: 'gibberish' }
+  })
+
+  try {
+    const window = await (await electronApp).firstWindow()
+    await window.waitForLoadState('domcontentloaded')
+
+    // Back up from the auto-resolved final step to step 3.
+    const nextButton = window.locator('#wizard-next')
+    const backButton = window.locator('#wizard-back')
+    while (!(await window.locator('[data-wizard-step="3"]').isVisible().catch(() => false))) {
+      await backButton.click()
+    }
+
+    await expectWizardSkillsStepCopy(window)
+
+    // No expansion visible until the Cowork row is clicked.
+    const coworkRow = window.locator('button[data-skill-harness="cowork"]')
+    const coworkExpansion = window.locator('[data-copy-paste-expansion="cowork"]')
+    await expect(coworkRow).toBeVisible()
+    await expect(coworkRow).toHaveAttribute('data-mode', 'copy-paste')
+    await expect(coworkExpansion).toHaveCount(0)
+
+    await coworkRow.click()
+    await expect(coworkExpansion).toBeVisible()
+    await expect(coworkExpansion).toContainText(copy.wizardSkillInstallPrompt)
+    await expect(coworkExpansion).toContainText(copy.wizardCopyPasteIntroCowork)
+
+    // Copy flips the row status to "Copied!". Step 3 stays freely
+    // advanceable — the copy-paste rows don't gate Next (unlike Cursor's
+    // restart-confirm, which has real failure-mode stakes).
+    await expect(nextButton).toBeEnabled()
+    await coworkExpansion.locator('[data-copy-paste-copy="cowork"]').click()
+    await expect(coworkRow).toHaveAttribute('data-copied', 'true')
+    await expect(coworkRow).toContainText(copy.wizardCopyPasteCopied)
     await expect(nextButton).toBeEnabled()
   } finally {
     await (await electronApp).close()

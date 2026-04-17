@@ -53,6 +53,26 @@ test('getMicrocopyValue resolves configured copy', () => {
     getMicrocopyValue('dashboard.html.wizardTryItPinkySwear'),
     "I pinky pinky super swear that I did this because it'd be such a waste if I didn't do this and this is so damn cool and I really would be missing out."
   )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardHarnessClaudeCowork'),
+    'Claude Cowork'
+  )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardHarnessAnyLocalAgent'),
+    'Any local agent'
+  )
+  // Prompt copies the tree URL (broad context for the agent); the
+  // "Read the skill" link points directly at SKILL.md (blob URL) so the
+  // user can read or PR the actual skill source in one click.
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardSkillInstallPrompt'),
+    'Install this skill: https://github.com/familiar-software/familiar/tree/main/src/skills/familiar'
+  )
+  assert.equal(
+    getMicrocopyValue('dashboard.html.wizardReadTheSkillUrl'),
+    'https://github.com/familiar-software/familiar/blob/main/src/skills/familiar/SKILL.md'
+  )
+  assert.equal(getMicrocopyValue('dashboard.html.wizardCopyPasteCopied'), 'Copied!')
 })
 
 test('formatters use configured templates', () => {

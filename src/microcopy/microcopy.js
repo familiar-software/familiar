@@ -131,20 +131,29 @@ const microcopy = {
       wizardCaptureWhileActive: 'Capture screen',
       wizardActionRequiredToProceed: 'Off',
       wizardCapturingIsEnabled: 'Capturing your screen',
-      wizardInstallSkillTitle: 'Install the Familiar skill',
+      wizardInstallSkillTitleBefore: 'Install the Familiar ',
+      wizardInstallSkillTitleSkillLink: 'skill',
       wizardInstallSkillDescription:
-        "Empower your favorite agent to use Familiar's context autonomously, or call /familiar as a slash command.",
+        "Let your favorite agent use Familiar's context autonomously, or call /familiar as a slash command.",
       wizardHarnessClaudeCode: 'Claude Code',
+      wizardHarnessClaudeCowork: 'Claude Cowork',
       wizardHarnessCodex: 'Codex',
-      wizardHarnessAntigravity: 'Antigravity',
       wizardHarnessCursor: 'Cursor',
+      wizardHarnessAnyLocalAgent: 'Any local agent',
       wizardRestartConfirmTemplate:
-        "I solemnly swear I've restarted {{names}} so the skill will actually work (and will not complain when it doesn't work because I didn't restart)",
+        "I vow I've restarted {{names}} so the skill will actually work (and will not complain when it doesn't work because I didn't restart)",
       wizardAgentInstall: 'Install skill',
       wizardAgentInstalling: 'Installing…',
       wizardAgentInstalled: 'Installed',
       wizardAgentInstalledNeedsRestart: 'Installed, needs restart',
       wizardAgentRetry: 'Failed — try again',
+      wizardCopyPasteCopied: 'Copied!',
+      wizardSkillInstallPrompt:
+        'Install this skill: https://github.com/familiar-software/familiar/tree/main/src/skills/familiar',
+      wizardCopyPasteIntroCowork: 'Paste into Cowork chat:',
+      wizardCopyPasteIntroLocalAgent: 'Paste into your agent chat:',
+      wizardReadTheSkillUrl:
+        'https://github.com/familiar-software/familiar/blob/main/src/skills/familiar/SKILL.md',
       wizardFirstUsecaseTitle: 'Paste this in your favorite agent',
       wizardFirstUsecaseDescription: '',
       wizardFirstUsecaseCommand: '/familiar what did I do in the last few minutes',
@@ -291,7 +300,6 @@ const microcopy = {
       harnessNames: {
         claude: 'Claude Code',
         codex: 'Codex',
-        antigravity: 'Antigravity',
         cursor: 'Cursor'
       },
       messages: {

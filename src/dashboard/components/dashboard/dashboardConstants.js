@@ -90,7 +90,6 @@ export const DEFAULT_MICROCOPY = {
       harnessNames: {
         claude: 'Claude Code',
         codex: 'Codex',
-        antigravity: 'Antigravity',
         cursor: 'Cursor'
       },
       messages: {
@@ -137,12 +136,23 @@ export const DEFAULT_MICROCOPY = {
   unknown: '—'
 }
 
+// `mode` distinguishes auto-install agents (familiar.installSkill writes
+// SKILL.md to the agent's skills dir) from copy-paste agents (the user
+// pastes a one-line install prompt into the agent themselves). Step 3 of
+// the wizard renders both kinds; the standalone Connect Agent settings
+// section filters to install-mode only since copy-paste only makes sense
+// during onboarding.
 export const HARNESS_OPTIONS = [
-  { value: 'claude', label: 'Claude Code' },
-  { value: 'codex', label: 'Codex' },
-  { value: 'antigravity', label: 'Antigravity' },
-  { value: 'cursor', label: 'Cursor' }
+  { value: 'claude', label: 'Claude Code', mode: 'install' },
+  { value: 'cowork', label: 'Claude Cowork', mode: 'copy-paste' },
+  { value: 'codex', label: 'Codex', mode: 'install' },
+  { value: 'cursor', label: 'Cursor', mode: 'install' },
+  { value: 'localAgent', label: 'Any local agent', mode: 'copy-paste' }
 ]
+
+// Predicate: does this harness entry use the auto-installer code path?
+// Treat missing `mode` as install for forward-compatibility.
+export const isInstallMode = (entry) => !entry?.mode || entry.mode === 'install'
 
 export const STORAGE_DELETE_PRESETS = [
   { value: '15m', label: '15 minutes' },

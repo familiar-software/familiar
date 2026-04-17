@@ -89,17 +89,6 @@ test('saveSettings normalizes single skillInstaller harness + installPath into a
   assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.codex/skills/familiar'])
 })
 
-test('saveSettings normalizes antigravity single skillInstaller values into arrays', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
-  const settingsDir = path.join(tempRoot, 'settings')
-
-  saveSettings({ skillInstaller: { harness: 'antigravity', installPath: '/tmp/.gemini/antigravity/skills/familiar' } }, { settingsDir })
-
-  const loaded = loadSettings({ settingsDir })
-  assert.deepEqual(loaded.skillInstaller?.harness, ['antigravity'])
-  assert.deepEqual(loaded.skillInstaller?.installPath, ['/tmp/.gemini/antigravity/skills/familiar'])
-})
-
 test('saveSettings persists skillInstaller arrays from legacy harnesses/installPaths fields', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

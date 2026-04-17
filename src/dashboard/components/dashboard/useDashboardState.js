@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { buildDashboardShellMicrocopy } from './dashboardShellMicrocopy'
-import { HARNESS_OPTIONS, STORAGE_DELETE_PRESETS, DEFAULT_SETTINGS } from './dashboardConstants'
+import { HARNESS_OPTIONS, STORAGE_DELETE_PRESETS, DEFAULT_SETTINGS, isInstallMode } from './dashboardConstants'
 import {
   formatTemplate,
   normalizeHarnessArray,
@@ -15,7 +15,14 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
   const { resolveInitialWizardStep } = dashboardWizardRules
   const mc = buildDashboardShellMicrocopy(microcopy)
   const wizardHarnessNameMap = mc.dashboard.wizardSkill.harnessNames
-  const supportedHarnessValues = new Set(HARNESS_OPTIONS.map((entry) => entry.value))
+  // Only install-mode harnesses are valid in persisted skillInstaller
+  // state. Copy-paste mode harnesses (Cowork, Any local agent) are
+  // wizard-only — they have no installer destination on disk and never
+  // appear in saved settings, so a stale settings file mentioning them
+  // gets dropped on load.
+  const supportedHarnessValues = new Set(
+    HARNESS_OPTIONS.filter(isInstallMode).map((entry) => entry.value)
+  )
   const wizardHarnessOptions = HARNESS_OPTIONS.map((entry) => ({
     ...entry,
     label: wizardHarnessNameMap[entry.value] || entry.label
@@ -179,9 +186,6 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
       }
       if (value === 'codex') {
         return wizardHarnessNameMap.codex
-      }
-      if (value === 'antigravity') {
-        return wizardHarnessNameMap.antigravity
       }
       if (value === 'cursor') {
         return wizardHarnessNameMap.cursor
