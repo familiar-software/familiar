@@ -12,7 +12,7 @@
 
 Familiar is a Mac app that, every few seconds, captures your screen and OCRs into markdown (also captures clipboard). Your local agent can use it however it wants: in a cron to update its own memory and skills, or use it as a skill. 
 
-(under the hood we use Apple's Vision OCR and redact passwords, credit card numbers, SSNs, API tokens, and private keys.)
+(under the hood we use Apple's Vision OCR, delete screenshots after 2 days, and redact passwords, credit card numbers, SSNs, API tokens, and private keys.)
 
 We stand on the shoulders of giants: screenpipe, rewind, dayflow, etc. two things changed since then:
 1) Local agents got good at handling massive amounts of messy text files 
