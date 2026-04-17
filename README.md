@@ -6,6 +6,8 @@
 
 <h4 align="center">Familiar watches your screen so your AI can update its memory, skills, and knowledge.</h4>
 
+<a align="center" href="https://looksfamiliar.org">https://looksfamiliar.org</a.
+
 <p align="center">
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
 </p>
@@ -20,7 +22,7 @@ We stand on the shoulders of giants: screenpipe, rewind, dayflow, etc. two thing
 
 What's left is to turn the world into context and get out of the way. 
 
-Our one reason to exist is that this needs to be open/free/offline to work. https://github.com/familiar-software/familiar and https://looksfamiliar.org
+Our one reason to exist is that this needs to be open/free/offline to work. 
 
 We expect Familiar will primarily be a resource for AI to self-update its own memory, knowledge base, skills, etc. (esp with loops, heartbeats, and KAIROS). We got inspired by a friend who wrote a daily script that scans Familiar's markdown for markers and auto-updates his skill files. You can also type /familiar when you have a question that needs screen context, like "help me with what I'm working on right now."
 
