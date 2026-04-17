@@ -61,9 +61,10 @@ const microcopy = {
       recordingScreenRecordingSettingsNote:
         'Enable access to capture while active in Screen Recording settings.',
       recordingAfterEnablingRestartFamiliar: 'After enabling capturing, restart Familiar',
-      recordingCaptureWhileActive: 'Capture screen',
+      recordingCaptureWhileActive: 'Capture screen and clipboard',
+      recordingCaptureWhileActiveHelp: 'Keep this on to build up context for your AI agent.',
       recordingActionRequiredToProceed: 'Off',
-      recordingCapturingIsEnabled: 'Capturing your screen',
+      recordingCapturingIsEnabled: 'Capturing screen and clipboard',
       recordingCopyDebugLog: 'Copy Debug Log',
       recordingCopyDebugLogTitle: 'Copies ~/.familiar/logs/familiar.log to your clipboard',
       storageAriaLabelStorageSettings: 'Storage settings',
@@ -116,7 +117,7 @@ const microcopy = {
         'Familiar will create a "familiar" folder inside your chosen location.',
       wizardEnableCapturingTitle: 'Enable capturing',
       wizardEnableCapturingDescription:
-        'Allow Familiar to capture your screen.',
+        'Allow Familiar to capture your screen and clipboard.',
       wizardCheckPermissions: 'Check Permissions',
       wizardEnableFamiliarInScreenRecording: 'Enable Familiar In Screen Recording',
       wizardAfterEnablingRestartFamiliar: 'After enabling capturing, restart Familiar',

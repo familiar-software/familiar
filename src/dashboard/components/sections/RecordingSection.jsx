@@ -265,6 +265,9 @@ export function RecordingSection({
             </div>
           </div>
         </Label>
+        <p className="mt-2 text-[13px] text-zinc-500 dark:text-zinc-400">
+          {toDisplayText(htmlCopy.recordingCaptureWhileActiveHelp)}
+        </p>
         <p
           id="recording-always-record-when-active-error"
           data-setting-error="always-record-when-active-error"
