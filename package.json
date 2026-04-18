@@ -19,6 +19,8 @@
     "react:watch:dashboard": "esbuild src/dashboard/main.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"development\"' --sourcemap --outfile=src/dashboard/react-dist/dashboard-react.js --watch",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
     "css:build": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --minify",
+    "css:landing": "tailwindcss -c tailwind.config.landing.js -i docs/input.css -o docs/styles.css --minify",
+    "css:landing:watch": "tailwindcss -c tailwind.config.landing.js -i docs/input.css -o docs/styles.css --watch",
     "start": "npm run rebuild:electron && npm run css:build && electron .",
     "predev": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run react:build:dashboard",
     "dev": "npm run rebuild:electron && tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
