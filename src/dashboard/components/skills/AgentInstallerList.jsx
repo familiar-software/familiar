@@ -83,7 +83,9 @@ export function AgentInstallerList({
   showRestartBanner = false,
   installedRestartRequired = [],
   restartConfirmed,
-  onRestartConfirmedChange
+  onRestartConfirmedChange,
+  onCopyPrompt,
+  onInstallSuccess
 }) {
   const resolveLabel = labelForHarness
     || ((harness) => defaultLabelForHarness(html, toDisplayText, harness))
@@ -115,6 +117,8 @@ export function AgentInstallerList({
           ...prev,
           [harness]: result?.message || 'Install failed'
         }))
+      } else if (typeof onInstallSuccess === 'function') {
+        onInstallSuccess(harness)
       }
     } finally {
       setInstallingAgents((prev) => {
@@ -196,11 +200,18 @@ export function AgentInstallerList({
           const hasError = Boolean(agentErrors[harness])
           const isCopied = copiedCopyPaste.has(harness)
           const isExpanded = expandedCopyPaste.has(harness)
+          // Show "Installed, needs restart" whenever a restart-required
+          // harness is installed. In wizard mode the banner checkbox
+          // also gates Next and clears this hint when confirmed; in
+          // settings mode there's no banner, so the hint stays visible
+          // as a low-effort reminder that Cursor needs a restart for
+          // the freshly-installed skill to take effect.
+          const isRestartRequiredHarness = RESTART_REQUIRED_HARNESSES.has(harness)
           const needsRestartPrompt =
-            showRestartBanner &&
             isInstalled &&
-            RESTART_REQUIRED_HARNESSES.has(harness) &&
-            !(restartConfirmed && restartConfirmed.has(harness))
+            isRestartRequiredHarness &&
+            (!showRestartBanner ||
+              !(restartConfirmed && restartConfirmed.has(harness)))
           let statusText
           let statusClass
           if (isCopyPaste) {
@@ -257,6 +268,9 @@ export function AgentInstallerList({
               next.add(harness)
               return next
             })
+            if (typeof onCopyPrompt === 'function') {
+              onCopyPrompt(harness)
+            }
           }
           return (
             <li key={harness}>

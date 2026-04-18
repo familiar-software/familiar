@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { CardTitle } from '../ui/card'
@@ -60,7 +60,6 @@ export function WizardSection({
       : mc.dashboard.settingsActions.checkPermissions
   const canAdvance = isWizardStepComplete(wizardStep)
   const hasContextFolder = Boolean(wizardContextFolderPath)
-  const [isContextAdvancedExpanded, setIsContextAdvancedExpanded] = useState(false)
   // ── Step 3: restart-confirmation state ──
   // Cursor only picks up newly-installed skills after a full restart.
   // Once the user installs it we surface a single "I vow I've restarted..."
@@ -69,6 +68,15 @@ export function WizardSection({
   // steps 4 and 5. Lives here (not inside AgentInstallerList) because the
   // wizard's Next button depends on it.
   const [restartConfirmed, setRestartConfirmed] = useState(() => new Set())
+  // Generic Step 3 "user did something" flag. Copy-prompt click arms a
+  // 3s timer that flips this true; a successful install flips it true
+  // synchronously. Cursor still routes through the restart-confirmation
+  // checkbox above.
+  const [step3ActionTaken, setStep3ActionTaken] = useState(false)
+  const step3CopyTimerRef = useRef(null)
+  useEffect(() => () => {
+    if (step3CopyTimerRef.current) clearTimeout(step3CopyTimerRef.current)
+  }, [])
 
   // ── Step 4: "Try it" state ──
   const [pinkySwearChecked, setPinkySwearChecked] = useState(false)
@@ -84,11 +92,12 @@ export function WizardSection({
     } catch { /* silent fail — user can manually select and copy */ }
   }, [])
 
-  // ── Step 5: "Automate" selection state ──
-  // The actual picker + prompt generator lives in AutomatePromptBuilder
-  // (shared with the settings Automate section). We only track whether
-  // any destination is selected, for wizard Next/Done gating.
-  const [hasSelectedDestination, setHasSelectedDestination] = useState(false)
+  // ── Step 5: "Automate" Done gating ──
+  // Ready = "manual only" selected, OR user clicked Copy on the prompt
+  // and 4s have elapsed since that click. AutomatePromptBuilder owns
+  // the timer + reset-on-selection-change logic and tells us via this
+  // callback.
+  const [step5Ready, setStep5Ready] = useState(false)
 
   // Override canAdvance for steps with local gating
   const installedHarnessValues = wizardHarnessOptions
@@ -112,22 +121,51 @@ export function WizardSection({
   const allRestartsConfirmed = installedRestartRequired.every((value) =>
     restartConfirmed.has(value)
   )
+  // Step 3 unlock. Rules:
+  //   1. If any restart-required harness (Cursor) is installed but its
+  //      checkbox is NOT ticked → force disabled. An installed-but-not-
+  //      restart-confirmed harness is the most important thing on the
+  //      step, so we don't let a prior copy-prompt action override it.
+  //   2. Otherwise, unlock if the checkbox is ticked (when required) OR
+  //      the user took any other qualifying action (copied a prompt,
+  //      installed a non-restart-required harness).
+  const hasUnconfirmedRestart =
+    installedRestartRequired.length > 0 && !allRestartsConfirmed
+  const step3CanAdvance =
+    !hasUnconfirmedRestart &&
+    (step3ActionTaken ||
+      (installedRestartRequired.length > 0 && allRestartsConfirmed))
   const canAdvanceStep = wizardStep === 3
-    ? allRestartsConfirmed
+    ? step3CanAdvance
     : wizardStep === 4
       ? pinkySwearChecked
       : wizardStep === 5
-        ? hasSelectedDestination
+        ? step5Ready
         : canAdvance
 
+  const handleStep3CopyPrompt = useCallback(() => {
+    if (step3CopyTimerRef.current) clearTimeout(step3CopyTimerRef.current)
+    step3CopyTimerRef.current = setTimeout(() => {
+      setStep3ActionTaken(true)
+      step3CopyTimerRef.current = null
+    }, 3000)
+  }, [])
+
+  const handleStep3InstallSuccess = useCallback((harness) => {
+    // Restart-required harnesses (Cursor) still need the checkbox; don't
+    // unlock on their install alone.
+    if (RESTART_REQUIRED_HARNESSES.has(harness)) return
+    setStep3ActionTaken(true)
+  }, [])
+
   const handleNext = () => {
-    if (wizardStep === 3 && !allRestartsConfirmed) return
+    if (wizardStep === 3 && !step3CanAdvance) return
     if (wizardStep === 4 && !pinkySwearChecked) return
     goWizardNext()
   }
 
   const handleDone = () => {
-    if (wizardStep === 5 && !hasSelectedDestination) return
+    if (wizardStep === 5 && !step5Ready) return
     completeWizard()
   }
 
@@ -337,13 +375,6 @@ export function WizardSection({
             </div>
 
             <p
-              data-role="context-folder-privacy"
-              className="text-[14px] leading-relaxed text-zinc-600 dark:text-zinc-300"
-            >
-              {toDisplayText(html.wizardContextFolderPrivacyBody)}
-            </p>
-
-            <p
               id="wizard-context-folder-error"
               data-setting-error="context-folder-error"
               className={`text-[14px] text-red-600 dark:text-red-400 ${toDisplayText(storageError) ? '' : 'hidden'}`}
@@ -353,37 +384,19 @@ export function WizardSection({
               {toDisplayText(storageError)}
             </p>
 
-            {!isContextAdvancedExpanded ? (
-              <div className="pt-6 text-center">
-                <button
-                  type="button"
-                  data-action="context-folder-advanced-toggle"
-                  className="text-[12px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 underline-offset-4 hover:underline focus:outline-none cursor-pointer"
-                  onClick={() => setIsContextAdvancedExpanded(true)}
-                >
-                  {toDisplayText(html.wizardContextFolderAdvanced)}
-                </button>
-              </div>
-            ) : (
-              <div className="mt-6 pt-4 space-y-2 border-t border-zinc-200 dark:border-zinc-800">
-                <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
-                  {toDisplayText(html.wizardContextFolderAdvancedNote)}
-                </p>
-                <Button
-                  id="wizard-context-folder-choose"
-                  data-action="context-folder-choose"
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="px-2.5 py-1.5 text-[14px] font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-                  onClick={() => {
-                    void pickContextFolder(false)
-                  }}
-                >
-                  {toDisplayText(html.wizardContextFolderChange)}
-                </Button>
-              </div>
-            )}
+            <div className="pt-6 text-center">
+              <button
+                type="button"
+                id="wizard-context-folder-choose"
+                data-action="context-folder-choose"
+                className="text-[12px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 underline-offset-4 hover:underline focus:outline-none cursor-pointer"
+                onClick={() => {
+                  void pickContextFolder(false)
+                }}
+              >
+                {toDisplayText(html.wizardContextFolderAdvanced)}
+              </button>
+            </div>
           </section>
         </div>
 
@@ -492,6 +505,8 @@ export function WizardSection({
               installedRestartRequired={installedRestartRequired}
               restartConfirmed={restartConfirmed}
               onRestartConfirmedChange={setRestartConfirmed}
+              onCopyPrompt={handleStep3CopyPrompt}
+              onInstallSuccess={handleStep3InstallSuccess}
             />
           </div>
         </div>
@@ -581,7 +596,7 @@ export function WizardSection({
             skillInstallPaths={skillInstallPaths}
             html={html}
             toDisplayText={toDisplayText}
-            onSelectionChange={setHasSelectedDestination}
+            onReadyChange={setStep5Ready}
             copyToClipboard={copyToClipboard}
             promptAside={<AutomatePreviewThumbnail />}
           />
@@ -602,7 +617,7 @@ export function WizardSection({
         <div className="flex items-center gap-2">
           <span
             id="wizard-step-status"
-            className={`text-[14px] text-zinc-400 whitespace-nowrap ${canAdvanceStep ? 'hidden' : ''}`}
+            className={`text-[14px] text-zinc-400 whitespace-nowrap ${(canAdvanceStep || wizardStep >= 3) ? 'hidden' : ''}`}
             aria-live="polite"
           >
             {toDisplayText(mc.dashboard.wizard?.completeStepToContinue)}
@@ -615,7 +630,9 @@ export function WizardSection({
             disabled={wizardStep >= 5 || !canAdvanceStep}
             hidden={wizardStep >= 5}
           >
-            {toDisplayText(html.wizardNext)}
+            {wizardStep === 3 && !canAdvanceStep
+              ? toDisplayText(html.wizardNextDisabledEmphasis)
+              : toDisplayText(html.wizardNext)}
           </Button>
           <Button
             id="wizard-done"

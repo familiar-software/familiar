@@ -98,7 +98,7 @@ const microcopy = {
       wizardStepInstallSkill: 'Agents',
       wizardStepFirstUsecase: 'Try it',
       wizardStepComplete: 'Automate',
-      wizardChooseContextFolderTitle: 'Where Familiar stores context for your AI',
+      wizardChooseContextFolderTitle: 'Every few seconds, Familiar takes a screenshot.',
       wizardChooseContextFolderDescription:
         'Familiar will create a new folder at that destination called "familiar"',
       wizardContextFolder: 'Context Folder',
@@ -106,9 +106,7 @@ const microcopy = {
       wizardContextFolderPlaceholderNoFolderSelected: 'No folder selected',
       wizardContextFolderChange: 'Change',
       wizardContextFolderWhatBody:
-        'Familiar takes a screenshot every few seconds and converts it to a text file (same for your clipboard). Open in Finder and watch it live:',
-      wizardContextFolderPrivacyBody:
-        "Familiar deletes the image file after 2 days, while keeping the markdown file (you can change this in Settings). You can also delete anything manually — it's all files on your computer.",
+        "Familiar converts it into a text file, then deletes the screenshot 2 days later. It also captures what's on your clipboard.",
       wizardContextFolderShowInFinder: 'Watch it happening live',
       wizardContextFolderAdvanced: 'Advanced: choose a different location',
       wizardContextFolderAdvancedNote:
@@ -177,8 +175,9 @@ const microcopy = {
         'No scheduled task needed — just call /familiar in your agent whenever you want context. You can always set up automation later in Settings.',
       wizardBack: 'Back',
       wizardNext: 'Next',
+      wizardNextDisabledEmphasis: 'This is really, really, important.',
       wizardDone: 'Done',
-      completeHeadline: 'Success! Familiar lives up there now.',
+      completeHeadline: 'Success! Familiar is perched up here.',
       completeCloseLink: 'Close this window',
       completeTryBody: 'and head to your favorite agent and type',
       completeTryCommand: '/familiar',

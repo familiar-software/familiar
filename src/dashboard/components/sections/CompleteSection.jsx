@@ -23,8 +23,8 @@ function SweepingArrow({ className = '' }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {/* body: same curve as before, truncated at t=0.2 (20% off the tail) via De Casteljau so the tip + approach are identical */}
-      <path d="M 129 187 C 249 162 282 92 282 22" strokeWidth="2.5" />
+      {/* body: same curve as before, with an additional 10% trimmed off the tail via De Casteljau so the tip + approach are identical while the tail clears the headline text */}
+      <path d="M 162 178 C 255 148 282 85 282 22" strokeWidth="2.5" />
       {/* chevron opens downward from the tip */}
       <path d="M 260 42 L 281 21" strokeWidth="2.5" />
       <path d="M 282 22 L 298 44" strokeWidth="2.5" />
@@ -88,12 +88,11 @@ export function CompleteSection({ mc, toDisplayText }) {
       timeouts.push(id)
     }
 
-    // Four bursts over ~1.5s — center, left, right, center — alternating
-    // origins so owls fall from all over while still being a brief moment.
+    // Three bursts over ~1s — center, left, right — alternating origins
+    // so owls fall from all over while staying a brief moment.
     scheduleBurst(0,    { ...common, particleCount: 28, spread: 110, origin: { x: 0.5,  y: 0.48 } })
     scheduleBurst(500,  { ...common, particleCount: 18, spread: 80,  origin: { x: 0.18, y: 0.55 } })
     scheduleBurst(1000, { ...common, particleCount: 18, spread: 80,  origin: { x: 0.82, y: 0.55 } })
-    scheduleBurst(1500, { ...common, particleCount: 22, spread: 100, origin: { x: 0.5,  y: 0.52 } })
 
     return () => {
       cancelled = true

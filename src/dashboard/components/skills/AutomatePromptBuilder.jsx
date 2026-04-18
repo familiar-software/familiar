@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { CardTitle } from '../ui/card'
 
 // Shared prompt-builder used by the wizard's step 5 and the settings
@@ -6,30 +6,47 @@ import { CardTitle } from '../ui/card'
 // destinations selected. The feature is a prompt generator, not an
 // "automation" record: users pick destinations, copy the generated
 // /familiar command, and paste it into their agent's scheduled-task UI.
+//
+// `onReadyChange(ready: boolean)` — for wizard step 5 Done gating.
+// "Ready" is: only the manual/no-auto-update option selected, OR the
+// user has clicked Copy on the generated prompt AND a 4-second delay
+// has elapsed. Changing the destination selection after copying resets
+// the copy-ready flag so the user has to re-copy.
 export function AutomatePromptBuilder({
   wizardHarnessOptions,
   skillInstallPaths,
   html,
   toDisplayText,
   titleVariant = 'wizard',
-  onSelectionChange,
+  onReadyChange,
   copyToClipboard,
   promptAside
 }) {
   const [selectedDestinations, setSelectedDestinations] = useState(() => new Set())
   const [knowledgeBasePath, setKnowledgeBasePath] = useState('')
   const [promptCopied, setPromptCopied] = useState(false)
+  const [copyReady, setCopyReady] = useState(false)
+  const copyReadyTimerRef = useRef(null)
 
   const hasAutomationDest = ['memory', 'skills', 'knowledgeBase'].some(
     (d) => selectedDestinations.has(d)
   )
-  const hasSelectedDestination = selectedDestinations.size > 0
+  // "Manual only" = user picked the don't-auto-update option and nothing
+  // else. Done unlocks immediately in that case — no copy step needed.
+  const manualOnly =
+    selectedDestinations.has('manual') && !hasAutomationDest
+  const ready = manualOnly || (hasAutomationDest && copyReady)
 
   useEffect(() => {
-    if (typeof onSelectionChange === 'function') {
-      onSelectionChange(hasSelectedDestination)
+    if (typeof onReadyChange === 'function') {
+      onReadyChange(ready)
     }
-  }, [hasSelectedDestination, onSelectionChange])
+  }, [ready, onReadyChange])
+
+  // Clean up any pending copy-delay timer on unmount.
+  useEffect(() => () => {
+    if (copyReadyTimerRef.current) clearTimeout(copyReadyTimerRef.current)
+  }, [])
 
   const installedInstallModeEntries = (wizardHarnessOptions || []).filter(
     (entry) =>
@@ -42,6 +59,17 @@ export function AutomatePromptBuilder({
       ? toDisplayText(installedInstallModeEntries[0].label)
       : null
 
+  // Any change to the destination set invalidates a prior "user copied
+  // the prompt" unlock — the prompt text itself just changed, so the
+  // thing they copied is no longer what they meant to paste.
+  const resetCopyReady = () => {
+    if (copyReadyTimerRef.current) {
+      clearTimeout(copyReadyTimerRef.current)
+      copyReadyTimerRef.current = null
+    }
+    setCopyReady(false)
+  }
+
   const toggleDestination = async (dest) => {
     if (dest === 'knowledgeBase' && !selectedDestinations.has('knowledgeBase')) {
       if (typeof window.familiar?.pickDirectory === 'function') {
@@ -53,6 +81,7 @@ export function AutomatePromptBuilder({
             next.add('knowledgeBase')
             return next
           })
+          resetCopyReady()
         }
         return
       }
@@ -63,6 +92,16 @@ export function AutomatePromptBuilder({
       else next.add(dest)
       return next
     })
+    resetCopyReady()
+  }
+
+  const handlePromptCopy = () => {
+    copyToClipboard(generatePrompt(), setPromptCopied)
+    if (copyReadyTimerRef.current) clearTimeout(copyReadyTimerRef.current)
+    copyReadyTimerRef.current = setTimeout(() => {
+      setCopyReady(true)
+      copyReadyTimerRef.current = null
+    }, 4000)
   }
 
   const generatePrompt = () => {
@@ -158,22 +197,24 @@ export function AutomatePromptBuilder({
 
         {hasAutomationDest && (
           <div className="space-y-2 pt-4">
-            <CardTitle>
-              {'Then, paste this as a '}
-              {scheduledTaskUrl ? (
-                <a
-                  href={scheduledTaskUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  scheduled task
-                </a>
-              ) : (
-                <span>scheduled task</span>
-              )}
-              {singleInstalledAgentName ? ` in ${singleInstalledAgentName}:` : ' in your agent:'}
-            </CardTitle>
+            <div className="text-center">
+              <CardTitle>
+                {'Then, paste this as a '}
+                {scheduledTaskUrl ? (
+                  <a
+                    href={scheduledTaskUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    scheduled task
+                  </a>
+                ) : (
+                  <span>scheduled task</span>
+                )}
+                {singleInstalledAgentName ? ` in ${singleInstalledAgentName}:` : ' in your agent:'}
+              </CardTitle>
+            </div>
             <div className={promptAside ? 'flex items-stretch gap-3' : ''}>
               <div className={`prompt-box relative rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 pr-20 overflow-hidden ${
                 promptAside ? 'flex-1 h-[110px]' : 'max-h-[4.5em]'
@@ -185,7 +226,7 @@ export function AutomatePromptBuilder({
                 <button
                   type="button"
                   className="copy-button absolute right-2 top-2 px-2.5 py-1 text-[12px] font-medium rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer z-10"
-                  onClick={() => copyToClipboard(generatePrompt(), setPromptCopied)}
+                  onClick={handlePromptCopy}
                 >
                   {promptCopied
                     ? toDisplayText(html.wizardAutomateCopied)

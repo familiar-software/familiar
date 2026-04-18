@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react'
 
+import { CardTitle } from '../ui/card'
 import { AgentInstallerList } from '../skills/AgentInstallerList'
 
 export function InstallSkillSection({
@@ -20,7 +21,23 @@ export function InstallSkillSection({
   }, [])
 
   return (
-    <section className="react-install-tab space-y-3">
+    <section className="react-install-tab space-y-4">
+      <div className="text-center space-y-1">
+        <CardTitle>
+          {toDisplayText(html.wizardInstallSkillTitleBefore)}
+          <a
+            href={toDisplayText(html.wizardReadTheSkillUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            {toDisplayText(html.wizardInstallSkillTitleSkillLink)}
+          </a>
+        </CardTitle>
+        <p className="text-[14px] text-zinc-500 dark:text-zinc-400">
+          {toDisplayText(html.wizardInstallSkillDescription)}
+        </p>
+      </div>
       <AgentInstallerList
         options={options}
         skillInstallPaths={skillInstallPaths}
