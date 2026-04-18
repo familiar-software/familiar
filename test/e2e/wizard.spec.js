@@ -220,12 +220,16 @@ const expectWizardAutomateStepCopy = async (window, doneButton, { expectedTitle 
   await expect(doneButton).toContainText(copy.wizardDone)
 }
 
-// Step 5 gates Done on having at least one destination selected. Picking
-// "Native memory" is the simplest (no follow-up folder picker).
+// Step 5 gates Done on either (a) the "Don't auto-update" option
+// selected alone — unlocks Done immediately — or (b) an automation
+// destination selected followed by a Copy click on the generated
+// prompt plus a 4-second delay. E2E takes path (a) because it's the
+// deterministic fast path; the 4-second copy delay has dedicated
+// coverage elsewhere.
 const completeWizardAutomateStep = async (window, doneButton, options = {}) => {
   await expectWizardAutomateStepCopy(window, doneButton, options)
   await expect(doneButton).toBeDisabled()
-  await window.locator('[data-wizard-step="5"] button', { hasText: copy.wizardDestMemory }).click()
+  await window.locator('[data-wizard-step="5"] button', { hasText: copy.wizardDestManual }).click()
   await expect(doneButton).toBeEnabled()
   await doneButton.click()
 }
@@ -427,14 +431,16 @@ test('wizard Agents step copy-paste row reveals prompt panel and gates Next on p
     await expect(coworkExpansion).toContainText(copy.wizardSkillInstallPrompt)
     await expect(coworkExpansion).toContainText(copy.wizardCopyPasteIntroCowork)
 
-    // Copy flips the row status to "Copied!". Step 3 stays freely
-    // advanceable — the copy-paste rows don't gate Next (unlike Cursor's
-    // restart-confirm, which has real failure-mode stakes).
-    await expect(nextButton).toBeEnabled()
+    // Next is disabled by default on step 3 — the user has to actually
+    // do something (copy an install prompt or install a harness). Copy
+    // flips the row to "Copied!" immediately but the button stays
+    // disabled for 3 seconds, then unlocks. Playwright retries the
+    // expect() so a generous timeout covers the delay plus jitter.
+    await expect(nextButton).toBeDisabled()
     await coworkExpansion.locator('[data-copy-paste-copy="cowork"]').click()
     await expect(coworkRow).toHaveAttribute('data-copied', 'true')
     await expect(coworkRow).toContainText(copy.wizardCopyPasteCopied)
-    await expect(nextButton).toBeEnabled()
+    await expect(nextButton).toBeEnabled({ timeout: 6000 })
   } finally {
     await (await electronApp).close()
   }
