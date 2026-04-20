@@ -330,12 +330,12 @@ test('wizard Permissions step auto-grants in E2E and enables capture', async () 
   }
 })
 
-test('resolveInitialWizardStep advances past already-complete steps on relaunch', async () => {
+test('resolveInitialWizardStep reopens unfinished wizard on context after permissions are granted', async () => {
   const appRoot = path.join(__dirname, '../..')
   const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
-  // Permissions + context already satisfied -> resolveInitialWizardStep
-  // walks forward and lands on step 3 (Agents is always-complete but
-  // contains actionable install rows, so it's where returning users park).
+  // Permissions + context already satisfied -> relaunch should still land
+  // on step 2 so the storage step is shown explicitly after the macOS
+  // permission grant/reopen flow.
   const { electronApp } = launchElectron({
     contextPath,
     initialSettings: {
@@ -352,10 +352,7 @@ test('resolveInitialWizardStep advances past already-complete steps on relaunch'
 
     await expectWizardChrome(window)
     await expect(window.locator('[data-wizard-step="1"]')).toBeHidden()
-    await expect(window.locator('[data-wizard-step="2"]')).toBeHidden()
-    // Step 3 (Agents) onward is always-complete; the initial resolver
-    // therefore lands at the last step (5 / Automate).
-    await expect(window.locator('[data-wizard-step="5"]')).toBeVisible()
+    await expectWizardContextStepCopy(window)
   } finally {
     await (await electronApp).close()
   }
@@ -378,12 +375,10 @@ test('wizard Agents step installs codex via per-row click and keeps Next enabled
     const window = await (await electronApp).firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    // Back up from the auto-resolved final step to step 3.
     const nextButton = window.locator('#wizard-next')
-    const backButton = window.locator('#wizard-back')
-    while (!(await window.locator('[data-wizard-step="3"]').isVisible().catch(() => false))) {
-      await backButton.click()
-    }
+    await expectWizardContextStepCopy(window)
+    await expect(nextButton).toBeEnabled()
+    await nextButton.click()
 
     await expectWizardSkillsStepCopy(window)
     await installCodexHarness(window)
@@ -410,12 +405,10 @@ test('wizard Agents step copy-paste row reveals prompt panel and gates Next on p
     const window = await (await electronApp).firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    // Back up from the auto-resolved final step to step 3.
     const nextButton = window.locator('#wizard-next')
-    const backButton = window.locator('#wizard-back')
-    while (!(await window.locator('[data-wizard-step="3"]').isVisible().catch(() => false))) {
-      await backButton.click()
-    }
+    await expectWizardContextStepCopy(window)
+    await expect(nextButton).toBeEnabled()
+    await nextButton.click()
 
     await expectWizardSkillsStepCopy(window)
 
@@ -468,10 +461,21 @@ test('post-wizard CompleteSection is one-shot: Done -> complete; relaunch -> sto
     const window = await (await firstApp).firstWindow()
     await window.waitForLoadState('domcontentloaded')
 
-    // initialSettings puts us at step 5 already (resolver lands at end).
-    await expect(window.locator('[data-wizard-step="5"]')).toBeVisible()
+    const nextButton = window.locator('#wizard-next')
     const doneButton = window.locator('#wizard-done')
-    await completeWizardAutomateStep(window, doneButton)
+    await expectWizardContextStepCopy(window)
+    await expect(nextButton).toBeEnabled()
+    await nextButton.click()
+    await expectWizardSkillsStepCopy(window)
+    await installCodexHarness(window)
+    await expect(nextButton).toBeEnabled()
+    await nextButton.click()
+    await completeWizardFirstUsecaseStep(window, nextButton, {
+      expectedTitle: `Paste this in ${copy.wizardHarnessCodex}`
+    })
+    await completeWizardAutomateStep(window, doneButton, {
+      expectedTitle: `What should ${copy.wizardHarnessCodex} auto-update with Familiar's context?`
+    })
     await expectCompleteSectionVisible(window)
     // CompleteSection is chromeless — the sidebar nav (role=tablist) is
     // hidden via the isCompleteSection branch in DashboardShellLayout.

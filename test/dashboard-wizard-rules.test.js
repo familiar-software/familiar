@@ -17,17 +17,16 @@ test('initial wizard step starts at context when permissions already granted', (
   assert.equal(resolveInitialWizardStep(), 1)
 })
 
-test('initial wizard step advances past steps that are already complete', () => {
-  // Permissions + context satisfied -> skip steps 1 & 2. Step 3 (Agents)
-  // is always considered complete because installing is optional, and
-  // steps 4 & 5 are informational — so we land on the final step.
+test('initial wizard step stays on context after permissions are already granted', () => {
+  // Relaunch after macOS permission changes should resume at step 2 even
+  // if the context folder was already auto-filled earlier in the flow.
   assert.equal(
     resolveInitialWizardStep({
       settings: { contextFolderPath: '/tmp/context', alwaysRecordWhenActive: true },
       isSkillInstalled: false,
       getHarnessesFromState: () => []
     }),
-    5
+    2
   )
 
   assert.equal(
@@ -36,7 +35,7 @@ test('initial wizard step advances past steps that are already complete', () => 
       isSkillInstalled: true,
       getHarnessesFromState: () => ['codex']
     }),
-    5
+    2
   )
 })
 

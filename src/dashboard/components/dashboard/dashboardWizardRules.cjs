@@ -1,14 +1,19 @@
 const WIZARD_STEPS = [1, 2, 3, 4, 5]
 
-// Walk forward from step 1, returning the first step that isn't yet
-// complete. Keeps users from being trapped on a step they've already
-// satisfied (e.g. permissions granted in a previous session) while
-// still parking them at the first incomplete step if any remain.
+// On relaunch, once permissions are granted we intentionally reopen on
+// step 2 so the user always sees the storage step next, even if a
+// default context folder was already auto-applied before the app quit.
+// Otherwise walk forward from step 1 and return the first incomplete
+// step.
 const resolveInitialWizardStep = ({
   settings = {},
   isSkillInstalled = false,
   getHarnessesFromState = () => []
 } = {}) => {
+  if (Boolean(settings.alwaysRecordWhenActive)) {
+    return 2
+  }
+
   for (const step of WIZARD_STEPS) {
     const complete = isWizardStepComplete({
       step,
