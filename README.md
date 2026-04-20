@@ -2,27 +2,31 @@
    <img src="./src/icon.png" width="96" alt="Familiar icon" />
 </p>
 
-<h1 align="center">Familiar: Get AI to know you.</h1>
+<h1 align="center">Let AI watch you work</h1>
+
+<h4 align="center">Familiar watches your screen so your AI can update its memory, skills, and knowledge.</h4>
+
+<p align="center">
+   <a href="https://looksfamiliar.org">https://looksfamiliar.org</a>
+</p>
 
 <p align="center">
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
 </p>
 
-Familiar captures all of the important context on your screen.
-Get your favorite agent up to speed in no time.
+Familiar is a Mac app that, every few seconds, captures your screen and OCRs into markdown (also captures clipboard). Your local agent can use it however it wants: in a cron to update its own memory and skills, or use it as a skill. 
 
-## What happens to my data?
+(under the hood we use Apple's Vision OCR, delete screenshots after 2 days, and redact passwords, credit card numbers, SSNs, API tokens, and private keys.)
 
-**You control your data**
+We stand on the shoulders of giants: screenpipe, rewind, dayflow, etc. two things changed since then:
+1) Local agents got good at handling massive amounts of messy text files 
+2) Local agents come with memory and skill systems
 
-Familiar is designed to be local & offline.
-This means that all of the data is stored locally on your machine and only you can access it.
+What's left is to turn the world into context and get out of the way. 
 
-## Doesn't it use a lot of resources?
+Our one reason to exist is that this needs to be open/free/offline to work. 
 
-Familiar is efficient in the resources it uses.
-Running Familiar for more than two months will results in less than 1 GB of storage.
-Familiar has a "low power mode" for cases when you're unplugged.
+We expect Familiar will primarily be a resource for AI to self-update its own memory, knowledge base, skills, etc. (esp with loops, heartbeats, and KAIROS). We got inspired by a friend who wrote a daily script that scans Familiar's markdown for markers and auto-updates his skill files. You can also type /familiar when you have a question that needs screen context, like "help me with what I'm working on right now."
 
 ## Additional Details
 
