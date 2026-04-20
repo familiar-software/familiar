@@ -24,9 +24,15 @@ const getSettingsWindow = async (electronApp) => {
 
     if (!requestedActivation) {
       requestedActivation = true
-      await electronApp.evaluate(({ app }) => {
-        app.emit('activate')
-      })
+      try {
+        await electronApp.evaluate(({ app }) => {
+          app.emit('activate')
+        })
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes('Execution context was destroyed')) {
+          throw error
+        }
+      }
     }
 
     await new Promise((resolve) => setTimeout(resolve, 100))
