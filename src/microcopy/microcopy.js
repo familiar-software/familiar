@@ -111,7 +111,7 @@ const microcopy = {
       wizardContextFolderAdvanced: 'Advanced: choose a different location',
       wizardContextFolderAdvancedNote:
         'Familiar will create a "familiar" folder inside your chosen location.',
-      wizardEnableCapturingTitle: 'Enable capturing',
+      wizardEnableCapturingTitle: 'Grant permissions',
       wizardEnableCapturingDescription:
         'Allow Familiar to capture your screen and clipboard.',
       wizardCheckPermissions: 'Check Permissions',
@@ -121,7 +121,7 @@ const microcopy = {
       wizardPermissionOpenSettings: 'Open System Settings',
       wizardPermissionWaiting: 'Waiting for you to give Familiar permissions in System Settings…',
       wizardPermissionNudgeHint: 'Make sure the Familiar toggle is turned on, then come back to this window.',
-      wizardPermissionGranted: 'Screen Recording is on.',
+      wizardPermissionGranted: 'Success! Permission granted.',
       wizardInstallSkillTitleBefore: 'Install the Familiar ',
       wizardInstallSkillTitleSkillLink: 'skill',
       wizardInstallSkillDescription:

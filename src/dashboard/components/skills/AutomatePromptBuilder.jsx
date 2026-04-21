@@ -199,7 +199,7 @@ export function AutomatePromptBuilder({
           <div className="space-y-2 pt-4">
             <div className="text-center">
               <CardTitle>
-                {'Then, paste this as a '}
+                {'Next, create a '}
                 {scheduledTaskUrl ? (
                   <a
                     href={scheduledTaskUrl}
