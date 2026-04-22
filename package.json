@@ -122,6 +122,6 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "rimraf": "^6.1.2",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.2.4"
   }
 }
