@@ -56,6 +56,7 @@ function createScreenStillsController(options = {}) {
   let manualPaused = false;
   let manualPauseStartedAt = null;
   let pauseTimer = null;
+  let activePauseDurationMs = pauseDurationMs;
   let activeSessionId = null;
   let lastPresenceState = null;
   let startRetryTimer = null;
@@ -142,6 +143,7 @@ function createScreenStillsController(options = {}) {
   function clearManualPauseState() {
     manualPaused = false;
     manualPauseStartedAt = null;
+    activePauseDurationMs = pauseDurationMs;
     clearPauseTimer();
   }
 
@@ -150,7 +152,7 @@ function createScreenStillsController(options = {}) {
       return 0;
     }
     const elapsedMs = Math.max(0, clock.now() - manualPauseStartedAt);
-    return Math.max(0, pauseDurationMs - elapsedMs);
+    return Math.max(0, activePauseDurationMs - elapsedMs);
   }
 
   function clearStartRetryTimer() {
@@ -238,9 +240,9 @@ function createScreenStillsController(options = {}) {
         return;
       }
       clearManualPauseState();
-      logger.log('Recording pause window elapsed', { durationMs: pauseDurationMs });
+      logger.log('Recording pause window elapsed', { durationMs: activePauseDurationMs });
       syncPresenceState('pause-elapsed');
-    }, pauseDurationMs);
+    }, activePauseDurationMs);
     if (pauseTimer && typeof pauseTimer.unref === 'function') {
       pauseTimer.unref();
     }
@@ -459,25 +461,27 @@ function createScreenStillsController(options = {}) {
     return { ok: true };
   }
 
-  async function manualPause() {
+  async function manualPause({ durationMs } = {}) {
     if (!settings.enabled) {
       return { ok: false, message: 'Recording is disabled.' };
     }
     resetStartRetry();
     if (manualPaused) {
+      activePauseDurationMs = (Number.isFinite(durationMs) && durationMs > 0) ? durationMs : pauseDurationMs;
       manualPauseStartedAt = clock.now();
       schedulePauseResume();
-      logger.log('Recording pause extended', { durationMs: pauseDurationMs });
+      logger.log('Recording pause extended', { durationMs: activePauseDurationMs });
       return { ok: true, alreadyPaused: true };
     }
     if (state !== STATES.RECORDING && state !== STATES.IDLE_GRACE) {
       return { ok: false, message: 'Recording is not active.' };
     }
+    activePauseDurationMs = (Number.isFinite(durationMs) && durationMs > 0) ? durationMs : pauseDurationMs;
     manualPaused = true;
     manualPauseStartedAt = clock.now();
     pendingStart = false;
     schedulePauseResume();
-    logger.log('Recording paused manually', { durationMs: pauseDurationMs });
+    logger.log('Recording paused manually', { durationMs: activePauseDurationMs });
     await stopRecording('manual-pause');
     return { ok: true };
   }
