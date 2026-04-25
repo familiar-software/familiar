@@ -14,19 +14,50 @@
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
 </p>
 
-Familiar is a Mac app that, every few seconds, captures your screen and OCRs into markdown (also captures clipboard). Your local agent can use it however it wants: in a cron to update its own memory and skills, or use it as a skill. 
+<p align="center">
+  <video src="./docs/familiar-header-usecase.mp4" autoplay loop muted playsinline width="720"></video>
+</p>
 
-(under the hood we use Apple's Vision OCR, delete screenshots after 2 days, and redact passwords, credit card numbers, SSNs, API tokens, and private keys.)
+---
 
-We stand on the shoulders of giants: screenpipe, rewind, dayflow, etc. two things changed since then:
-1) Local agents got good at handling massive amounts of messy text files 
-2) Local agents come with memory and skill systems
+We created Familiar to capture our screen (and clipboard) every 4 seconds and save it as markdown. That way our local agent can use that as context (through a cron, skill, or slash command).
 
-What's left is to turn the world into context and get out of the way. 
+## What people use Familiar for
 
-Our one reason to exist is that this needs to be open/free/offline to work. 
+- Fill the gap between AI tools: meeting transcribers, auto-memory layers, second brain
+- Update Claude's skills/memory based on their workday (in a scheduled task/heartbeat)
+- Typing "help me with what I'm working on right now" without having to prompt/describe what's going on their screen
+- Enriching meeting transcripts with what was actually on screen (and vice versa)
+- Forking it into their coaching app so coaches can see what learners did between sessions
+- Someone new to tech used Familiar during a trial week at a YC startup, so that AI could coach him every few hours (and got the job)
 
-We expect Familiar will primarily be a resource for AI to self-update its own memory, knowledge base, skills, etc. (esp with loops, heartbeats, and KAIROS). We got inspired by a friend who wrote a daily script that scans Familiar's markdown for markers and auto-updates his skill files. You can also type /familiar when you have a question that needs screen context, like "help me with what I'm working on right now."
+## How agents use the output
+
+Early users often report AI using Familiar's context as "connective tissue" or a "routing layer" to help agents map between resources. Recently, my agent "saw" that I spent a long time on a document, so it fetched the full doc directly. We've also seen the agent traverse the markdown, then decide to fetch the original image (so cool).
+
+<table>
+  <tr>
+    <td align="center">
+      <strong>As a skill</strong><br />
+      <video src="./docs/cowork-skill.mp4" autoplay loop muted playsinline width="380"></video>
+    </td>
+    <td align="center">
+      <strong>Self-updating</strong><br />
+      <video src="./docs/cowork-scheduled.mp4" autoplay loop muted playsinline width="380"></video>
+    </td>
+  </tr>
+</table>
+
+## The Bitter Lesson comes to our screens
+
+We stand on the shoulders of giants: screenpipe, rewind, dayflow, etc. Since then: 1) Local agents got good at handling massive amounts of messy text files 2) Local agents have their own memory and skills systems.
+
+Familiar is our "bitter lesson" version: just hand over context and get out of the way. The right way to do that piece is open source / free / offline.
+
+## Privacy
+
+Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and redacts passwords/credit card numbers/SSNs/API tokens/etc. We'd love contributions on what else to block: https://github.com/familiar-software/familiar/tree/main/src/ or in general ways to improve privacy.
+
 
 ## Additional Details
 
