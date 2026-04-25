@@ -14,13 +14,19 @@
   <a href="https://github.com/familiar-software/familiar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" /></a>
 </p>
 
-<p align="center">
-  <video src="./docs/familiar-header-usecase.mp4" autoplay loop muted playsinline width="720"></video>
-</p>
-
 ---
 
 We created Familiar to capture our screen (and clipboard) every 4 seconds and save it as markdown. That way our local agent can use that as context (through a cron, skill, or slash command).
+
+## Use Familiar with your favorite agent
+
+### As a skill
+
+<video src="./docs/cowork-skill.mp4" autoplay loop muted playsinline width="720"></video>
+
+### Self-updating
+
+<video src="./docs/cowork-scheduled.mp4" autoplay loop muted playsinline width="720"></video>
 
 ## What people use Familiar for
 
@@ -34,19 +40,6 @@ We created Familiar to capture our screen (and clipboard) every 4 seconds and sa
 ## How agents use the output
 
 Early users often report AI using Familiar's context as "connective tissue" or a "routing layer" to help agents map between resources. Recently, my agent "saw" that I spent a long time on a document, so it fetched the full doc directly. We've also seen the agent traverse the markdown, then decide to fetch the original image (so cool).
-
-<table>
-  <tr>
-    <td align="center">
-      <strong>As a skill</strong><br />
-      <video src="./docs/cowork-skill.mp4" autoplay loop muted playsinline width="380"></video>
-    </td>
-    <td align="center">
-      <strong>Self-updating</strong><br />
-      <video src="./docs/cowork-scheduled.mp4" autoplay loop muted playsinline width="380"></video>
-    </td>
-  </tr>
-</table>
 
 ## The Bitter Lesson comes to our screens
 
