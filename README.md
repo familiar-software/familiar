@@ -20,13 +20,13 @@ We created Familiar to capture our screen (and clipboard) every 4 seconds and sa
 
 ## Use Familiar with your favorite agent
 
-### As a skill
-
-<img src="./docs/cowork-skill.gif" alt="Familiar used as a skill inside Cowork" width="500" />
-
 ### Self-updating
 
 <img src="./docs/cowork-scheduled.gif" alt="Familiar used in a scheduled Cowork task" width="500" />
+
+### As a skill
+
+<img src="./docs/cowork-skill.gif" alt="Familiar used as a skill inside Cowork" width="500" />
 
 ## What people use Familiar for
 
