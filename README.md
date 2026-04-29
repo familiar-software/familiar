@@ -22,11 +22,11 @@ We created Familiar to capture our screen (and clipboard) every 4 seconds and sa
 
 ### As a skill
 
-<video src="./docs/cowork-skill.mp4" autoplay loop muted playsinline width="720"></video>
+<img src="./docs/cowork-skill.gif" alt="Familiar used as a skill inside Cowork" width="720" />
 
 ### Self-updating
 
-<video src="./docs/cowork-scheduled.mp4" autoplay loop muted playsinline width="720"></video>
+<img src="./docs/cowork-scheduled.gif" alt="Familiar used in a scheduled Cowork task" width="720" />
 
 ## What people use Familiar for
 
@@ -36,6 +36,18 @@ We created Familiar to capture our screen (and clipboard) every 4 seconds and sa
 - Enriching meeting transcripts with what was actually on screen (and vice versa)
 - Forking it into their coaching app so coaches can see what learners did between sessions
 - Someone new to tech used Familiar during a trial week at a YC startup, so that AI could coach him every few hours (and got the job)
+
+## What people are saying
+
+> btw, I feel grateful to have familiar.
+>
+> I feel lucky that I get to capture all this context that I know will be super useful at some point.
+>
+> It's already been useful for daily reflection but I know there's 10x value that I need to unlock.
+>
+> — Marc Baselga
+
+<img src="./docs/testimonial-marc-baselga.png" width="420" alt="WhatsApp message from Marc Baselga sharing how Familiar has been useful for daily reflection and capturing context" />
 
 ## How agents use the output
 
