@@ -97,7 +97,8 @@ const createStillsMarkdownWorker = ({
   createExtractorImpl = createStillsMarkdownExtractor,
   writeMarkdownFileImpl = writeMarkdownFile,
   scanAndRedactContentImpl = scanAndRedactContent,
-  onRedactionWarning = noop
+  onRedactionWarning = noop,
+  onRecovery = null
 } = {}) => {
   let running = false
   let contextFolderPath = ''
@@ -126,7 +127,7 @@ const createStillsMarkdownWorker = ({
     }
     stop()
     contextFolderPath = nextContextFolderPath
-    queueStore = createQueueImpl({ contextFolderPath, logger })
+    queueStore = createQueueImpl({ contextFolderPath, logger, onRecovery })
     running = true
     if (Number.isFinite(pollIntervalMs) && pollIntervalMs > 0) {
       timer = setInterval(() => {

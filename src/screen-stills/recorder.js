@@ -126,6 +126,7 @@ function createRecorder(options = {}) {
   const lowPowerModeAdaptiveIntervalEnabled = !usesFixedInterval && !hasE2EIntervalOverride;
   const lowPowerModeMonitor = options.lowPowerModeMonitor || createLowPowerModeMonitor({ logger });
   const loadSettingsImpl = options.loadSettingsImpl || loadSettings;
+  const onRecovery = typeof options.onRecovery === 'function' ? options.onRecovery : null;
 
   let captureWindow = null;
   let windowReadyPromise = null;
@@ -914,7 +915,7 @@ function createRecorder(options = {}) {
           contextFolderPath,
           format: CAPTURE_CONFIG.format
         });
-        queueStore = createStillsQueue({ contextFolderPath, logger });
+        queueStore = createStillsQueue({ contextFolderPath, logger, onRecovery });
 
         logger.log('Recording session started', { sessionDir: sessionStore.sessionDir });
 
