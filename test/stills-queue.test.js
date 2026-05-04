@@ -6,6 +6,7 @@ const path = require('node:path')
 const Database = require('better-sqlite3')
 
 const { createStillsQueue, resolveDbPath } = require('../src/screen-stills/stills-queue')
+const { FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME, STILLS_MARKDOWN_DIR_NAME } = require('../src/const')
 
 const makeTempContext = () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-stills-queue-'))
@@ -227,4 +228,106 @@ test('stills queue migrates legacy schema and exposes app metadata columns', () 
   db.close()
 
   queue.close()
+})
+
+test('stills queue auto-recovers when database file is corrupt at startup', () => {
+  const contextFolderPath = makeTempContext()
+  const dbPath = resolveDbPath(contextFolderPath)
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true })
+
+  // Write garbage bytes so SQLite cannot parse it
+  fs.writeFileSync(dbPath, Buffer.from('this is not a valid sqlite database file'))
+
+  const recoveryEvents = []
+  const queue = createStillsQueue({
+    contextFolderPath,
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    onRecovery: (event) => recoveryEvents.push(event)
+  })
+
+  // Recovery should have fired with the quarantine path
+  assert.equal(recoveryEvents.length, 1)
+  assert.ok(typeof recoveryEvents[0].quarantinePath === 'string')
+  assert.ok(recoveryEvents[0].quarantinePath.includes('.corrupt-'))
+
+  // The quarantined file should exist on disk
+  assert.ok(fs.existsSync(recoveryEvents[0].quarantinePath))
+
+  // The queue should be fully operational after recovery
+  const imagePath = path.join(contextFolderPath, 'familiar', 'stills', 'session-r', 'frame.webp')
+  const inserted = queue.enqueueCapture({ imagePath, sessionId: 'session-r', capturedAt: new Date().toISOString() })
+  assert.equal(inserted, true)
+
+  const batch = queue.getPendingBatch(10)
+  assert.equal(batch.length, 1)
+  assert.equal(batch[0].image_path, imagePath)
+
+  queue.close()
+})
+
+test('stills queue startup recovery requeues orphan screenshots without matching markdown', () => {
+  const contextFolderPath = makeTempContext()
+
+  // Create two .webp stills; one has a matching .md, one does not
+  const sessionId = 'session-orphan'
+  const stillsDir = path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DIR_NAME, sessionId)
+  const markdownDir = path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_MARKDOWN_DIR_NAME, sessionId)
+
+  fs.mkdirSync(stillsDir, { recursive: true })
+  fs.mkdirSync(markdownDir, { recursive: true })
+
+  fs.writeFileSync(path.join(stillsDir, '2026-01-01T10-00-00-000.webp'), 'fake-image')
+  fs.writeFileSync(path.join(stillsDir, '2026-01-01T10-00-05-000.webp'), 'fake-image')
+  // Only the first still has a matching markdown — the second is an orphan
+  fs.writeFileSync(path.join(markdownDir, '2026-01-01T10-00-00-000.md'), '# OCR\n- "hello"')
+
+  // Corrupt the DB so recovery runs
+  const dbPath = resolveDbPath(contextFolderPath)
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true })
+  fs.writeFileSync(dbPath, Buffer.from('not a database'))
+
+  const queue = createStillsQueue({
+    contextFolderPath,
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    onRecovery: () => {}
+  })
+
+  const batch = queue.getPendingBatch(10)
+  const paths = batch.map((r) => r.image_path)
+
+  // Only the orphan (without a .md) should be requeued
+  assert.equal(batch.length, 1)
+  assert.ok(paths[0].includes('2026-01-01T10-00-05-000.webp'))
+
+  queue.close()
+})
+
+test('stills queue does not quarantine a fresh database when probe shows it is healthy', () => {
+  const contextFolderPath = makeTempContext()
+
+  // Open a queue normally — DB is created fresh and healthy
+  const firstQueue = createStillsQueue({
+    contextFolderPath,
+    logger: { log: () => {}, warn: () => {}, error: () => {} }
+  })
+
+  const imagePath = path.join(contextFolderPath, 'familiar', 'stills', 'session-h', 'frame.webp')
+  firstQueue.enqueueCapture({ imagePath, sessionId: 'session-h', capturedAt: new Date().toISOString() })
+  firstQueue.close()
+
+  // Open a second queue on the same healthy DB — onRecovery must not fire
+  const recoveryEvents = []
+  const secondQueue = createStillsQueue({
+    contextFolderPath,
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    onRecovery: (event) => recoveryEvents.push(event)
+  })
+
+  assert.equal(recoveryEvents.length, 0)
+
+  const batch = secondQueue.getPendingBatch(10)
+  assert.equal(batch.length, 1)
+  assert.equal(batch[0].image_path, imagePath)
+
+  secondQueue.close()
 })
