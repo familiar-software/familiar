@@ -89,3 +89,7 @@ Clipboard captures are stored alongside screen captures as `<captureTimestamp>.c
 - Do not infer text that is not explicitly present.
 - Treat `UNCLEAR` and `unknown` as missing data.
 - Avoid scanning the entire history unless the user explicitly requests it.
+
+## Troubleshooting
+
+If screenshots exist under `familiar/stills` but OCR markdown is missing under `familiar/stills-markdown`, the SQLite queue may have been corrupted. Restart Familiar and check the app log for `SQLITE_CORRUPT`. Newer builds automatically reset a corrupted stills database on startup and re-enqueue saved screenshots for reprocessing.

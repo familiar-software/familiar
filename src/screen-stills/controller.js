@@ -23,6 +23,7 @@ function createScreenStillsController(options = {}) {
   const onRedactionWarning = typeof options.onRedactionWarning === 'function'
     ? options.onRedactionWarning
     : noop;
+  const onRecovery = typeof options.onRecovery === 'function' ? options.onRecovery : null;
   const onStateTransition = typeof options.onStateTransition === 'function'
     ? options.onStateTransition
     : noop;
@@ -36,9 +37,9 @@ function createScreenStillsController(options = {}) {
   const clock = options.clock || { now: () => Date.now() };
   const presenceMonitor = options.presenceMonitor ||
     createPresenceMonitor({ idleThresholdSeconds, logger });
-  const recorder = options.recorder || createRecorder({ logger });
+  const recorder = options.recorder || createRecorder({ logger, onRecovery });
   const markdownWorker = options.markdownWorker
-    || createStillsMarkdownWorker({ logger, onRedactionWarning });
+    || createStillsMarkdownWorker({ logger, onRedactionWarning, onRecovery });
   const clipboardMirror = options.clipboardMirror
     || ((process.versions && process.versions.electron)
       ? createClipboardMirror({ logger, onRedactionWarning })

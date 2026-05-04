@@ -225,6 +225,27 @@ const attemptScreenCaptureShutdown = (reason) => {
         });
 };
 
+let dbRecoveryToastShownAt = 0;
+const handleStillsDbRecovery = ({ requeuedCount } = {}) => {
+    const now = Date.now();
+    if (now - dbRecoveryToastShownAt < 60000) {
+        console.warn('Stills DB recovery (suppressed duplicate toast)', { requeuedCount });
+        return;
+    }
+    dbRecoveryToastShownAt = now;
+    console.warn('Stills DB recovered from corruption', { requeuedCount });
+    const screenshotWord = requeuedCount === 1 ? 'screenshot is' : 'screenshots are';
+    const body = requeuedCount > 0
+        ? `Familiar reset its screenshot database after detecting corruption. ${requeuedCount} saved ${screenshotWord} being reprocessed.`
+        : 'Familiar reset its screenshot database after detecting corruption. Saved screenshots will be reprocessed if found.';
+    maybeE2EToast({
+        title: 'Screenshot database reset',
+        body,
+        type: 'warning',
+        size: 'large'
+    });
+};
+
 const handleStillsError = ({ message, willRetry, retryDelayMs, attempt } = {}) => {
     if (!message) {
         return;
@@ -809,8 +830,9 @@ if (isPrimaryInstance) {
             }
             screenStillsController = createScreenStillsController({
                 logger: console,
-            onError: handleStillsError,
+                onError: handleStillsError,
                 onRedactionWarning: handleRedactionWarning,
+                onRecovery: handleStillsDbRecovery,
                 onStateTransition: handleRecordingStateTransition,
                 presenceMonitor,
                 ...(pauseDurationOverrideMs ? { pauseDurationMs: pauseDurationOverrideMs } : {})
