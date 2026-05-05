@@ -6,6 +6,10 @@ const path = require('node:path')
 const Database = require('better-sqlite3')
 
 const { createStillsQueue, resolveDbPath } = require('../src/screen-stills/stills-queue')
+const {
+  isSqliteCorruptError,
+  recreateStillsQueueDb
+} = require('../src/screen-stills/stills-queue-archive')
 
 const makeTempContext = () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-stills-queue-'))
@@ -227,4 +231,44 @@ test('stills queue migrates legacy schema and exposes app metadata columns', () 
   db.close()
 
   queue.close()
+})
+
+test('stills queue recreation archives corrupt database files and creates a fresh schema', () => {
+  const contextFolderPath = makeTempContext()
+  const dbPath = resolveDbPath(contextFolderPath)
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true })
+  fs.writeFileSync(dbPath, 'not sqlite')
+  fs.writeFileSync(`${dbPath}-wal`, 'wal')
+  fs.writeFileSync(`${dbPath}-shm`, 'shm')
+
+  const result = recreateStillsQueueDb({
+    contextFolderPath,
+    logger: { log: () => {}, warn: () => {} }
+  })
+
+  assert.equal(path.dirname(result.archiveDir), path.join(contextFolderPath, 'familiar', 'archive'))
+  assert.match(
+    path.basename(result.archiveDir),
+    /^stills-db-corruption-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/
+  )
+  assert.equal(result.movedFiles.length, 3)
+  assert.equal(fs.existsSync(path.join(result.archiveDir, path.basename(dbPath))), true)
+  assert.equal(fs.existsSync(path.join(result.archiveDir, `${path.basename(dbPath)}-wal`)), true)
+  assert.equal(fs.existsSync(path.join(result.archiveDir, `${path.basename(dbPath)}-shm`)), true)
+
+  const queue = createStillsQueue({ contextFolderPath, logger: { log: () => {} } })
+  const batch = queue.getPendingBatch(10)
+
+  assert.equal(batch.length, 0)
+  queue.close()
+})
+
+test('stills queue corruption detection recognizes sqlite corruption errors', () => {
+  const codedError = new Error('boom')
+  codedError.code = 'SQLITE_CORRUPT'
+  const messageError = new Error('database disk image is malformed')
+
+  assert.equal(isSqliteCorruptError(codedError), true)
+  assert.equal(isSqliteCorruptError(messageError), true)
+  assert.equal(isSqliteCorruptError(new Error('other failure')), false)
 })

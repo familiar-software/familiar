@@ -377,6 +377,78 @@ test('stills controller retries start after an error when presence stays active'
   assert.equal(controller.getState().state, 'recording')
 })
 
+test('stills controller recreates corrupt queue database and resumes recording', async () => {
+  const contextFolderPath = makeTempContext()
+  const presence = createPresenceMonitor()
+  const calls = { start: [], stop: [], recreate: [] }
+  let startAttempt = 0
+  const corruptError = new Error('database disk image is malformed')
+  corruptError.code = 'SQLITE_CORRUPT'
+  const recorder = {
+    start: async (payload) => {
+      calls.start.push(payload)
+      startAttempt += 1
+      if (startAttempt === 1) {
+        throw corruptError
+      }
+      return { ok: true, sessionId: 'session-recovered' }
+    },
+    stop: async (payload) => {
+      calls.stop.push(payload)
+    }
+  }
+  const workerCalls = { start: 0, stop: 0 }
+  const markdownWorker = {
+    start: () => {
+      workerCalls.start += 1
+    },
+    stop: () => {
+      workerCalls.stop += 1
+    }
+  }
+  const clipboardCalls = { start: [], stop: [] }
+  const clipboardMirror = {
+    start: (payload) => {
+      clipboardCalls.start.push(payload)
+    },
+    stop: (reason) => {
+      clipboardCalls.stop.push(reason)
+    }
+  }
+
+  const controller = createScreenStillsController({
+    presenceMonitor: presence,
+    recorder,
+    markdownWorker,
+    clipboardMirror,
+    recreateStillsQueueDbImpl: async (payload) => {
+      calls.recreate.push(payload)
+      return { archiveDir: path.join(contextFolderPath, 'archive'), movedFiles: [{}] }
+    },
+    logger: silentLogger
+  })
+
+  controller.start()
+  controller.updateSettings({ enabled: true, contextFolderPath })
+
+  presence.emit('active')
+  await flushPromises()
+  await flushPromises()
+
+  assert.equal(calls.start.length, 2)
+  assert.equal(calls.stop.length, 1)
+  assert.equal(calls.stop[0].reason, 'stills-db-corrupt')
+  assert.equal(calls.recreate.length, 1)
+  assert.equal(calls.recreate[0].contextFolderPath, contextFolderPath)
+  assert.equal(workerCalls.start, 3)
+  assert.equal(workerCalls.stop >= 1, true)
+  assert.equal(clipboardCalls.stop.includes('stop:stills-db-corrupt'), true)
+  assert.equal(clipboardCalls.start.length, 1)
+  assert.equal(clipboardCalls.start[0].sessionId, 'session-recovered')
+  assert.equal(controller.getState().state, 'recording')
+  assert.equal(controller.getState().activeSessionId, 'session-recovered')
+})
+
 test('stills controller does not retry start when presence becomes idle before cooldown elapses', async () => {
   const contextFolderPath = makeTempContext()
   const presence = createPresenceMonitor()

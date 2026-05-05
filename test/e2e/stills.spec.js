@@ -6,6 +6,7 @@ const { _electron: electron } = require('playwright')
 const { confirmMoveContextFolder } = require('./helpers')
 const {
   FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
+  STILLS_DB_FILENAME,
   STILLS_DIR_NAME
 } = require('../../src/const')
 
@@ -119,6 +120,29 @@ const findSessionDir = (stillsRoot) => {
   return path.join(stillsRoot, sessions[0])
 }
 
+const listSessionDirs = (stillsRoot) => {
+  if (!fs.existsSync(stillsRoot)) {
+    return []
+  }
+  return fs
+    .readdirSync(stillsRoot)
+    .filter((entry) => entry.startsWith('session-'))
+    .sort()
+    .map((entry) => path.join(stillsRoot, entry))
+}
+
+const listArchiveDirs = (contextPath) => {
+  const archiveRoot = path.join(contextPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, 'archive')
+  if (!fs.existsSync(archiveRoot)) {
+    return []
+  }
+  return fs
+    .readdirSync(archiveRoot)
+    .filter((entry) => entry.startsWith('stills-db-corruption-'))
+    .sort()
+    .map((entry) => path.join(archiveRoot, entry))
+}
+
 const listCaptureFiles = (sessionDir) => {
   if (!sessionDir || !fs.existsSync(sessionDir)) {
     return []
@@ -148,6 +172,41 @@ const waitForSessionDir = async (stillsRoot, options = {}) => {
 
 const waitForCaptureCount = async (sessionDir, minimumCount) => {
   await expect.poll(() => listCaptureFiles(sessionDir).length).toBeGreaterThanOrEqual(minimumCount)
+}
+
+const waitForTotalCaptureCount = async (stillsRoot, minimumCount) => {
+  await expect
+    .poll(() =>
+      listSessionDirs(stillsRoot)
+        .map((sessionDir) => listCaptureFiles(sessionDir).length)
+        .reduce((total, count) => total + count, 0)
+    )
+    .toBeGreaterThanOrEqual(minimumCount)
+}
+
+const corruptStillsDbOnNextEnqueue = async (electronApp) => {
+  await electronApp.evaluate(() => {
+    process.env.FAMILIAR_E2E_CORRUPT_STILLS_QUEUE_DB_ON_ENQUEUE = 'next'
+  })
+}
+
+const assertFreshQueueDb = async (electronApp) => {
+  const result = await electronApp.evaluate(() => {
+    const Database = process.mainModule.require(`${process.cwd()}/node_modules/better-sqlite3`)
+    const dbPath = `${process.env.FAMILIAR_E2E_CONTEXT_PATH}/familiar/stills.db`
+    const db = new Database(dbPath, { readonly: true })
+    try {
+      return {
+        integrityCheck: db.prepare('PRAGMA integrity_check').pluck().get(),
+        columns: db.prepare('PRAGMA table_info(stills_queue)').all().map((column) => column.name)
+      }
+    } finally {
+      db.close()
+    }
+  })
+
+  expect(result.integrityCheck).toBe('ok')
+  expect(result.columns).toContain('image_path')
 }
 
 const waitForRecordingStopped = async (window) => {
@@ -501,6 +560,69 @@ test('stills capture repeatedly based on the interval', async () => {
     const captureFiles = listCaptureFiles(sessionDir)
     expect(captureFiles.length).toBeGreaterThanOrEqual(2)
     assertCaptureFiles(sessionDir, captureFiles, { requireNonEmptyCount: 2 })
+  } finally {
+    await electronApp.close()
+  }
+})
+
+test('stills queue corruption recreates the database and recording continues', async () => {
+  const intervalMs = 300
+  const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-stills-corrupt-'))
+  const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
+
+  const electronApp = await launchApp({
+    contextPath,
+    settingsDir,
+    env: {
+      FAMILIAR_E2E_STILLS_INTERVAL_MS: String(intervalMs)
+    }
+  })
+
+  try {
+    const window = await electronApp.firstWindow()
+    await window.waitForLoadState('domcontentloaded')
+
+    await ensureRecordingPrereqs(window)
+    await setIdleSeconds(electronApp, 0)
+    await setContextFolder(window)
+    await enableRecordingToggle(window)
+
+    await startCapturingFromSettings(window)
+    await expect(window.locator('#recording-status')).toHaveText('Capturing')
+
+    const stillsRoot = getStillsRoot(contextPath)
+    const firstSessionDir = await waitForSessionDir(stillsRoot)
+    await waitForCaptureCount(firstSessionDir, 1)
+    const capturesBeforeCorruption = listCaptureFiles(firstSessionDir).length
+
+    await corruptStillsDbOnNextEnqueue(electronApp)
+
+    await expect.poll(() => listArchiveDirs(contextPath).length, { timeout: 8000 }).toBe(1)
+    const archiveDir = listArchiveDirs(contextPath)[0]
+    expect(path.basename(archiveDir)).toMatch(
+      /^stills-db-corruption-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/
+    )
+    expect(fs.existsSync(path.join(archiveDir, STILLS_DB_FILENAME))).toBe(true)
+    await assertFreshQueueDb(electronApp)
+
+    await expect(window.locator('#recording-status')).toHaveText('Capturing', { timeout: 8000 })
+    await expect
+      .poll(async () => {
+        const status = await window.evaluate(() => window.familiar.getScreenStillsStatus())
+        return status?.isRecording === true
+      })
+      .toBeTruthy()
+
+    await expect
+      .poll(() => listSessionDirs(stillsRoot).length, { timeout: 8000 })
+      .toBeGreaterThanOrEqual(2)
+    await waitForTotalCaptureCount(stillsRoot, capturesBeforeCorruption + 2)
+
+    const latestSessionDir = listSessionDirs(stillsRoot).at(-1)
+    expect(latestSessionDir).not.toBe(firstSessionDir)
+    assertCaptureFiles(latestSessionDir, listCaptureFiles(latestSessionDir), {
+      requireNonEmptyCount: 1
+    })
   } finally {
     await electronApp.close()
   }

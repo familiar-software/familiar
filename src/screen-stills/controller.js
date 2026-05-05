@@ -2,6 +2,10 @@ const { validateContextFolderPath } = require('../settings');
 const { createPresenceMonitor } = require('../screen-capture/presence');
 const { createRecorder } = require('./recorder');
 const { createStillsMarkdownWorker } = require('./stills-markdown-worker');
+const {
+  isSqliteCorruptError,
+  recreateStillsQueueDb
+} = require('./stills-queue-archive');
 const { createClipboardMirror } = require('../clipboard/mirror');
 
 const DEFAULT_PAUSE_DURATION_MS = 10 * 60 * 1000;
@@ -36,9 +40,17 @@ function createScreenStillsController(options = {}) {
   const clock = options.clock || { now: () => Date.now() };
   const presenceMonitor = options.presenceMonitor ||
     createPresenceMonitor({ idleThresholdSeconds, logger });
-  const recorder = options.recorder || createRecorder({ logger });
+  const recreateStillsQueueDbImpl = options.recreateStillsQueueDbImpl || recreateStillsQueueDb;
+  const recorder = options.recorder || createRecorder({
+    logger,
+    onFatalError: handleRecorderFatalError
+  });
   const markdownWorker = options.markdownWorker
-    || createStillsMarkdownWorker({ logger, onRedactionWarning });
+    || createStillsMarkdownWorker({
+      logger,
+      onRedactionWarning,
+      onFatalError: handleMarkdownWorkerFatalError
+    });
   const clipboardMirror = options.clipboardMirror
     || ((process.versions && process.versions.electron)
       ? createClipboardMirror({ logger, onRedactionWarning })
@@ -60,6 +72,7 @@ function createScreenStillsController(options = {}) {
   let lastPresenceState = null;
   let startRetryTimer = null;
   let startRetryAttempt = 0;
+  let recoveryInProgress = false;
 
   function setState(nextState, details = {}) {
     const resolvedReason = typeof details.reason === 'string' ? details.reason : null;
@@ -181,6 +194,87 @@ function createScreenStillsController(options = {}) {
     return true;
   }
 
+  function handleRecorderFatalError(error) {
+    if (!isSqliteCorruptError(error)) {
+      return;
+    }
+    void recoverFromQueueCorruption({ error, source: 'recorder' });
+  }
+
+  function handleMarkdownWorkerFatalError(error) {
+    if (!isSqliteCorruptError(error)) {
+      return;
+    }
+    void recoverFromQueueCorruption({ error, source: 'markdown-worker' });
+  }
+
+  async function recoverFromQueueCorruption({ error, source } = {}) {
+    if (recoveryInProgress || !isSqliteCorruptError(error)) {
+      return false;
+    }
+    if (!settings.contextFolderPath) {
+      logger.error('Cannot recover corrupt stills queue database without context folder path', {
+        source
+      });
+      return false;
+    }
+
+    recoveryInProgress = true;
+    const wasCapturing = state === STATES.RECORDING || state === STATES.IDLE_GRACE;
+    const shouldResume = settings.enabled
+      && !manualPaused
+      && (wasCapturing || lastPresenceState === 'active');
+
+    logger.error('Stills queue database is corrupt; recreating database', { error, source });
+    onError({
+      message: 'Familiar capture storage was corrupted and is being recreated.',
+      reason: 'stills-db-corrupt'
+    });
+    resetStartRetry();
+    pendingStart = false;
+
+    try {
+      if (wasCapturing) {
+        await stopRecording('stills-db-corrupt');
+      } else {
+        markdownWorker.stop();
+        if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
+          clipboardMirror.stop('stills-db-corrupt');
+        }
+        activeSessionId = null;
+      }
+
+      const result = await recreateStillsQueueDbImpl({
+        contextFolderPath: settings.contextFolderPath,
+        logger
+      });
+      logger.log('Stills queue database recreated after corruption', {
+        source,
+        archiveDir: result?.archiveDir || null,
+        movedFiles: Array.isArray(result?.movedFiles) ? result.movedFiles.length : 0
+      });
+
+      if (shouldResume && settings.enabled && !manualPaused) {
+        await startRecording('stills-db-recreated');
+      } else if (settings.enabled) {
+        setState(STATES.ARMED, { reason: 'stills-db-recreated' });
+      }
+      return true;
+    } catch (recoveryError) {
+      logger.error('Failed to recover corrupt stills queue database', { error: recoveryError });
+      onError({
+        message: recoveryError?.message || 'Failed to recover capture storage.',
+        reason: 'stills-db-recovery-failed'
+      });
+      setState(settings.enabled ? STATES.ARMED : STATES.DISABLED, {
+        reason: 'stills-db-recovery-failed'
+      });
+      return false;
+    } finally {
+      recoveryInProgress = false;
+    }
+  }
+
   function scheduleStartRetry(error) {
     if (startRetryTimer) {
       return;
@@ -276,6 +370,10 @@ function createScreenStillsController(options = {}) {
         });
       }
     } catch (error) {
+      if (isSqliteCorruptError(error)) {
+        await recoverFromQueueCorruption({ error, source: 'start-recording' });
+        return;
+      }
       logger.error('Failed to start recording', error);
       if (clipboardMirror && typeof clipboardMirror.stop === 'function') {
         clipboardMirror.stop('start-failed');

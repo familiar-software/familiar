@@ -5,6 +5,7 @@ const { loadSettings } = require('../settings')
 const { scanAndRedactContent } = require('../security/rg-redaction')
 const { RetryableError } = require('../utils/retry')
 const { createStillsQueue } = require('./stills-queue')
+const { isSqliteCorruptError } = require('./stills-queue-archive')
 const { createStillsMarkdownExtractor } = require('./stills-markdown-extractor')
 const {
   FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
@@ -97,7 +98,8 @@ const createStillsMarkdownWorker = ({
   createExtractorImpl = createStillsMarkdownExtractor,
   writeMarkdownFileImpl = writeMarkdownFile,
   scanAndRedactContentImpl = scanAndRedactContent,
-  onRedactionWarning = noop
+  onRedactionWarning = noop,
+  onFatalError = noop
 } = {}) => {
   let running = false
   let contextFolderPath = ''
@@ -226,6 +228,7 @@ const createStillsMarkdownWorker = ({
       return
     }
     isProcessing = true
+    let fatalError = null
     logger.log('Stills markdown worker tick')
     try {
       const requeued = queueStore.requeueStaleProcessing({ olderThanMs: requeueProcessingAfterMs })
@@ -292,11 +295,23 @@ const createStillsMarkdownWorker = ({
       }
     } catch (error) {
       logger.error('Stills markdown worker failed', { error })
+      if (isSqliteCorruptError(error)) {
+        fatalError = error
+      }
     } finally {
       isProcessing = false
       if (!running && queueStore) {
         queueStore.close()
         queueStore = null
+      }
+      if (fatalError) {
+        try {
+          onFatalError(fatalError)
+        } catch (notifyError) {
+          logger.error('Failed to propagate stills markdown worker fatal error', {
+            error: notifyError
+          })
+        }
       }
     }
   }

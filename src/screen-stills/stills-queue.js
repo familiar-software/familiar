@@ -11,8 +11,33 @@ const STATUS = Object.freeze({
   FAILED: 'failed'
 })
 
+let e2eQueueDbCorruptionTriggered = false
+
 const resolveDbPath = (contextFolderPath) =>
   path.join(contextFolderPath, FAMILIAR_BEHIND_THE_SCENES_DIR_NAME, STILLS_DB_FILENAME)
+
+const createSqliteCorruptError = () => {
+  const error = new Error('database disk image is malformed')
+  error.code = 'SQLITE_CORRUPT'
+  return error
+}
+
+const corruptDbFilesForE2E = (dbPath) => {
+  fs.writeFileSync(dbPath, 'not-a-sqlite-db\n')
+  fs.writeFileSync(`${dbPath}-wal`, 'not-a-valid-sqlite-wal\n')
+}
+
+const shouldCorruptDbOnEnqueueForE2E = (enqueueCount) => {
+  if (process.env.FAMILIAR_E2E !== '1' || e2eQueueDbCorruptionTriggered) {
+    return false
+  }
+  const value = process.env.FAMILIAR_E2E_CORRUPT_STILLS_QUEUE_DB_ON_ENQUEUE
+  if (value === 'next') {
+    return true
+  }
+  const targetCount = Number.parseInt(value || '', 10)
+  return Number.isFinite(targetCount) && targetCount > 0 && enqueueCount >= targetCount
+}
 
 const normalizeVisibleWindowNames = (visibleWindowNames) => {
   if (Array.isArray(visibleWindowNames)) {
@@ -36,6 +61,7 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
 
   const db = new Database(dbPath)
   db.pragma('journal_mode = WAL')
+  let enqueueCount = 0
 
   const existingColumns = [];
   const ensureColumn = (name, ddl) => {
@@ -185,6 +211,13 @@ const createStillsQueue = ({ contextFolderPath, logger = console } = {}) => {
     }
     if (!capturedAt) {
       throw new Error('capturedAt is required to enqueue still capture.')
+    }
+
+    enqueueCount += 1
+    if (shouldCorruptDbOnEnqueueForE2E(enqueueCount)) {
+      e2eQueueDbCorruptionTriggered = true
+      corruptDbFilesForE2E(dbPath)
+      throw createSqliteCorruptError()
     }
 
     const now = new Date().toISOString()

@@ -9,6 +9,7 @@ const { isScreenRecordingPermissionGranted } = require('../screen-capture/permis
 const { createLowPowerModeMonitor } = require('../screen-capture/low-power-mode');
 const { createSessionStore } = require('./session-store');
 const { createStillsQueue } = require('./stills-queue');
+const { isSqliteCorruptError } = require('./stills-queue-archive');
 const { normalizeCapturePrivacySettings, shouldSkipCaptureForBlacklistedApps } = require('./capture-privacy');
 const {
   createActiveWindowDetector,
@@ -126,6 +127,7 @@ function createRecorder(options = {}) {
   const lowPowerModeAdaptiveIntervalEnabled = !usesFixedInterval && !hasE2EIntervalOverride;
   const lowPowerModeMonitor = options.lowPowerModeMonitor || createLowPowerModeMonitor({ logger });
   const loadSettingsImpl = options.loadSettingsImpl || loadSettings;
+  const onFatalError = typeof options.onFatalError === 'function' ? options.onFatalError : null;
 
   let captureWindow = null;
   let windowReadyPromise = null;
@@ -187,6 +189,17 @@ function createRecorder(options = {}) {
   function isCaptureAlreadyInProgressError(error) {
     const message = error?.message || '';
     return typeof message === 'string' && message.includes('Capture already in progress.');
+  }
+
+  function propagateFatalError(error) {
+    if (!onFatalError) {
+      return;
+    }
+    try {
+      onFatalError(error);
+    } catch (notifyError) {
+      logger.error('Failed to propagate recorder fatal error', { error: notifyError });
+    }
   }
 
   function rejectPendingRequests(error) {
@@ -696,6 +709,9 @@ function createRecorder(options = {}) {
     captureTimer = scheduler.setInterval(function () {
       captureNext().catch(function (error) {
         logger.error('Failed to capture still', error);
+        if (isSqliteCorruptError(error)) {
+          propagateFatalError(error);
+        }
       });
     }, nextIntervalMs);
     if (typeof captureTimer.unref === 'function') {
@@ -864,6 +880,9 @@ function createRecorder(options = {}) {
           });
         } catch (error) {
           logger.error('Failed to enqueue still capture', { error, filePath });
+          if (isSqliteCorruptError(error)) {
+            throw error;
+          }
         }
       }
     } finally {
