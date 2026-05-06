@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildTrayMenuTemplate } = require('../src/menu');
+const { buildTrayMenuTemplate, PAUSE_DURATIONS, formatPausedLabel } = require('../src/menu');
 const { microcopy } = require('../src/microcopy');
 
 test('buildTrayMenuTemplate returns the expected items', () => {
@@ -30,7 +30,7 @@ test('buildTrayMenuTemplate uses recording label while active', () => {
         recordingState
     });
 
-    const recordingItem = template.find((item) => item.label === microcopy.tray.recording.clickToPauseFor10Min);
+    const recordingItem = template.find((item) => item.label === 'Capturing');
 
     assert.ok(recordingItem);
 });
@@ -104,7 +104,7 @@ test('recording item click does not trigger settings', () => {
     assert.equal(openSettingsCalls, 0);
 });
 
-test('buildTrayMenuTemplate uses minute pause label while paused', () => {
+test('buildTrayMenuTemplate shows paused label with countdown when paused', () => {
     const template = buildTrayMenuTemplate({
         onRecordingPause: () => {},
         onOpenSettings: () => {},
@@ -116,14 +116,11 @@ test('buildTrayMenuTemplate uses minute pause label while paused', () => {
         }
     });
 
-    const recordingItem = template.find(
-        (item) => item.label === microcopy.tray.recording.pausedFor10MinClickToResume
-    );
-
-    assert.ok(recordingItem);
+    assert.ok(template[0].label.includes('remaining'));
+    assert.equal(template[0].toolTip, 'Click to resume');
 });
 
-test('buildTrayMenuTemplate keeps paused label at 1m when remaining time is below one minute', () => {
+test('buildTrayMenuTemplate keeps paused label at fallback when remaining time is zero', () => {
     const template = buildTrayMenuTemplate({
         onRecordingPause: () => {},
         onOpenSettings: () => {},
@@ -136,7 +133,7 @@ test('buildTrayMenuTemplate keeps paused label at 1m when remaining time is belo
     });
 
     const recordingItem = template.find(
-        (item) => item.label === microcopy.tray.recording.pausedFor10MinClickToResume
+        (item) => item.label === 'Paused'
     );
 
     assert.ok(recordingItem);
@@ -152,4 +149,49 @@ test('buildTrayMenuTemplate includes status icon when provided', () => {
     });
 
     assert.equal(template[0].icon, recordingStatusIcon);
+});
+
+test('buildTrayMenuTemplate shows pause duration submenu when recording', () => {
+    const recordingState = { state: 'recording', manualPaused: false };
+    const template = buildTrayMenuTemplate({
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        recordingState
+    });
+
+    const recordingItem = template[0];
+    assert.ok(recordingItem.submenu, 'recording item should have a submenu');
+    assert.equal(recordingItem.submenu.length, PAUSE_DURATIONS.length);
+    assert.equal(recordingItem.submenu[0].label, 'Pause for 5 minutes');
+    assert.equal(recordingItem.submenu[1].label, 'Pause for 10 minutes');
+    assert.equal(recordingItem.submenu[2].label, 'Pause for 30 minutes');
+    assert.equal(recordingItem.submenu[3].label, 'Pause for 1 hour');
+});
+
+test('pause submenu items pass durationMs to onRecordingPause', () => {
+    const pauseCalls = [];
+    const recordingState = { state: 'recording', manualPaused: false };
+    const template = buildTrayMenuTemplate({
+        onRecordingPause: (durationMs) => { pauseCalls.push(durationMs); },
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        recordingState
+    });
+
+    template[0].submenu[0].click();
+    template[0].submenu[1].click();
+
+    assert.deepEqual(pauseCalls, [5 * 60 * 1000, 10 * 60 * 1000]);
+});
+
+test('formatPausedLabel shows countdown when remaining time is positive', () => {
+    const label = formatPausedLabel(125000);
+    assert.ok(label.includes('2:05'));
+    assert.ok(label.includes('remaining'));
+});
+
+test('formatPausedLabel falls back to microcopy when remaining is zero', () => {
+    const label = formatPausedLabel(0);
+    assert.equal(label, 'Paused');
 });

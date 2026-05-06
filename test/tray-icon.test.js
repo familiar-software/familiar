@@ -25,6 +25,9 @@ const createMockImage = ({ empty = false, dataUrl = 'data:image/png;base64,base'
   },
   toDataURL() {
     return dataUrl
+  },
+  toBitmap() {
+    return Buffer.alloc(16 * 16 * 4)
   }
 })
 
@@ -60,4 +63,26 @@ test('createTrayIconFactory keeps normal tray icons as template images', () => {
 
   assert.equal(icon, baseIcon)
   assert.deepEqual(baseIcon.templateCalls, [process.platform === 'darwin'])
+})
+
+test('createTrayIconFactory uses separate cache keys for paused and active', () => {
+  const baseIcon = createMockImage()
+  let createFromPathCalls = 0
+  const nativeImage = {
+    createFromPath: () => { createFromPathCalls++; return createMockImage() },
+    createEmpty: () => createMockImage({ empty: true }),
+    createFromDataURL: () => createMockImage(),
+    createFromBuffer: (buf, size) => createMockImage()
+  }
+  const createTrayIcon = createTrayIconFactory({ nativeImage })
+
+  createTrayIcon({ defaultIconPath, isPaused: false })
+  createTrayIcon({ defaultIconPath, isPaused: true })
+
+  assert.equal(createFromPathCalls, 2, 'should create separate icons for paused and active')
+
+  createTrayIcon({ defaultIconPath, isPaused: false })
+  createTrayIcon({ defaultIconPath, isPaused: true })
+
+  assert.equal(createFromPathCalls, 2, 'should use cache on subsequent calls')
 })
