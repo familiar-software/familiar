@@ -26,12 +26,12 @@ test('tray menu shows recording and paused labels without auto-refresh loop', ()
 
     controller.updateTrayMenu()
     assert.equal(menuCalls.length, 1)
-    assert.equal(menuCalls[0][0].label, microcopy.tray.recording.clickToPauseFor10Min)
+    assert.equal(menuCalls[0][0].label, 'Capturing')
 
     recordingState = { manualPaused: true, state: 'armed', pauseRemainingMs: 61000 }
     controller.updateTrayMenu()
     assert.equal(menuCalls.length, 2)
-    assert.equal(menuCalls[1][0].label, microcopy.tray.recording.pausedFor10MinClickToResume)
+    assert.ok(menuCalls[1][0].label.includes('remaining'), 'paused label should show countdown')
 })
 
 test('registerTrayRefreshHandlers refreshes tray on click and right-click', () => {

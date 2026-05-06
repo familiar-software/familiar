@@ -304,12 +304,12 @@ const startScreenStills = async () => {
     }
 };
 
-const pauseScreenStills = async () => {
+const pauseScreenStills = async ({ durationMs } = {}) => {
     if (!screenStillsController) {
         return { ok: true, skipped: true };
     }
     try {
-        const result = await screenStillsController.manualPause();
+        const result = await screenStillsController.manualPause({ durationMs });
         if (result && result.ok === false) {
             handleStillsError({ message: result.message || 'Failed to pause capturing.' });
         }
@@ -328,7 +328,7 @@ const refreshTrayMenu = () => {
     }
 };
 
-const handleRecordingToggleAction = async () => {
+const handleRecordingToggleAction = async ({ durationMs } = {}) => {
     if (!screenStillsController) {
         console.warn('Recording toggle action ignored: controller unavailable');
         return { ok: false, message: 'Capture controller unavailable.' };
@@ -340,12 +340,14 @@ const handleRecordingToggleAction = async () => {
     if (isPaused) {
         const result = await startScreenStills();
         refreshTrayMenu();
+        refreshTrayIcon();
         return result;
     }
 
     if (isRecording) {
-        const result = await pauseScreenStills();
+        const result = await pauseScreenStills({ durationMs });
         refreshTrayMenu();
+        refreshTrayIcon();
         return result;
     }
 
@@ -410,6 +412,8 @@ const notifyScreenStillsStateChanged = () => {
 const handleRecordingStateTransition = (transition) => {
   handleRecordingOffReminderTransition(transition);
   notifyScreenStillsStateChanged();
+  refreshTrayMenu();
+  refreshTrayIcon();
 };
 
 const getTrayRecordingActionLabel = () => {
@@ -580,9 +584,11 @@ function createTray() {
 
     const getTrayIcon = () => {
         const trayIconState = getTrayIconState();
+        const state = typeof getCurrentScreenStillsState === 'function' ? getCurrentScreenStillsState() : {};
         return createTrayIcon({
             defaultIconPath: trayIconPath,
-            isDarkMode: nativeTheme.shouldUseDarkColors === true
+            isDarkMode: nativeTheme.shouldUseDarkColors === true,
+            isPaused: state.manualPaused === true
         });
     };
 
@@ -609,8 +615,8 @@ function createTray() {
     nativeTheme.on('updated', updateTrayIcon);
 
     trayHandlers = {
-        onRecordingPause: () => {
-            void handleRecordingToggleAction();
+        onRecordingPause: (durationMs) => {
+            void handleRecordingToggleAction({ durationMs });
         },
         onOpenSettings: () => openSettingsWindow({ reason: 'tray' }),
         onQuit: quitApp,
