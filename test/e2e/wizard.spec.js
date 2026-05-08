@@ -281,10 +281,9 @@ test('wizard happy flow completes setup and ends on the "You\'re all set" screen
       expectedTitle: `Paste this in ${copy.wizardHarnessCodex}`
     })
 
-    // Step 5: Automate (destination-selection gated).
-    await completeWizardAutomateStep(window, doneButton, {
-      expectedTitle: `What should ${copy.wizardHarnessCodex} auto-update with Familiar's context?`
-    })
+    // Step 5: Automate (destination-selection gated). Title is now
+    // generic — falls back to copy.wizardAutomateTitle in the helper.
+    await completeWizardAutomateStep(window, doneButton)
 
     // Post-wizard: CompleteSection full-window takeover.
     await expectCompleteSectionVisible(window)
@@ -473,9 +472,7 @@ test('post-wizard CompleteSection is one-shot: Done -> complete; relaunch -> sto
     await completeWizardFirstUsecaseStep(window, nextButton, {
       expectedTitle: `Paste this in ${copy.wizardHarnessCodex}`
     })
-    await completeWizardAutomateStep(window, doneButton, {
-      expectedTitle: `What should ${copy.wizardHarnessCodex} auto-update with Familiar's context?`
-    })
+    await completeWizardAutomateStep(window, doneButton)
     await expectCompleteSectionVisible(window)
     // CompleteSection is chromeless — the sidebar nav (role=tablist) is
     // hidden via the isCompleteSection branch in DashboardShellLayout.
