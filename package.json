@@ -116,7 +116,7 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.18",
     "canvas-confetti": "^1.9.4",
-    "electron": "^40.0.0",
+    "electron": "^42.0.1",
     "electron-builder": "^26.4.0",
     "esbuild": "^0.25.5",
     "playwright": "^1.55.0",
