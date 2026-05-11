@@ -89,3 +89,58 @@ Clipboard captures are stored alongside screen captures as `<captureTimestamp>.c
 - Do not infer text that is not explicitly present.
 - Treat `UNCLEAR` and `unknown` as missing data.
 - Avoid scanning the entire history unless the user explicitly requests it.
+
+## Troubleshooting
+
+If expected Familiar history is missing, stale, incomplete, or only partially available, do not assume there is no data. First check whether Familiar is still collecting raw data but one processing path is failing.
+
+General checks:
+
+1. Locate `contextFolderPath` from the provided context or from `~/.familiar/settings.json`.
+2. Check recent capture activity:
+   - screenshots: `<contextFolderPath>/familiar/stills/session-*/*.webp`
+   - OCR markdown: `<contextFolderPath>/familiar/stills-markdown/session-*/*.md`
+   - clipboard captures: `<contextFolderPath>/familiar/stills-markdown/session-*/*.clipboard.txt`
+3. Check the app log:
+   - `~/Library/Logs/familiar-desktopapp/main.log`
+   - look for recent `error`, `warn`, `SQLITE`, `OCR`, `stills`, `markdown`, `clipboard`, `permission`, or `capture` messages.
+4. Summarize what is present and what is missing before suggesting a fix.
+
+If screenshots, markdown, and clipboard are all missing, guide the user to check whether Familiar is running, whether recording is enabled, and whether macOS Screen Recording permission is granted.
+
+If screenshots exist but OCR markdown is missing, follow the SQLite recovery path below.
+
+## Recover Missing OCR Markdown
+
+Use this path only when recent `.webp` screenshots exist under `familiar/stills`, but matching `.md` files are missing under `familiar/stills-markdown`.
+
+Diagnosis:
+
+1. Inspect `~/Library/Logs/familiar-desktopapp/main.log`.
+2. Confirm evidence of SQLite queue failure, for example:
+   - `SQLITE_CORRUPT`
+   - `database disk image is malformed`
+   - errors from `stills-queue.js`
+   - repeated markdown worker messages with no pending items despite recent screenshots
+
+If the evidence points to a corrupted stills database, explain the finding to the user before taking action. Do not run repair commands without explicit permission.
+
+Ask:
+
+`Familiar appears to still be capturing screenshots, but OCR markdown generation is blocked by a corrupted stills database. I can quit Familiar, quarantine the broken database, and reopen Familiar so it creates a fresh queue. This does not delete screenshots or existing markdown, but it resets the OCR queue. Should I proceed?`
+
+Only after the user approves, run:
+
+```shell
+osascript -e 'quit app "Familiar"'
+timestamp="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+db="<contextFolderPath>/familiar/stills.db"
+[ -f "$db" ] && mv "$db" "$db.corrupt-$timestamp"
+[ -f "$db-wal" ] && mv "$db-wal" "$db-wal.corrupt-$timestamp"
+[ -f "$db-shm" ] && mv "$db-shm" "$db-shm.corrupt-$timestamp"
+open -a Familiar
+```
+
+After restart, verify that new `.md` files begin appearing under `familiar/stills-markdown`.
+
+Existing `.webp` screenshots remain on disk. This manual recovery creates a fresh queue for new captures; screenshots captured while the database was corrupt may not be automatically reprocessed. If the user needs older screenshots reprocessed, explain that this requires a separate backfill step and ask before attempting it.
