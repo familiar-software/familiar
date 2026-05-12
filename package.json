@@ -109,7 +109,7 @@
   "author": "Familiar",
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.10.0",
     "electron-log": "^5.3.4",
     "electron-updater": "^6.6.2"
   },
