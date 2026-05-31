@@ -218,13 +218,46 @@ const collectAppBundlePaths = async ({ roots = DEFAULT_SCAN_ROOTS, logger = cons
   return discovered
 }
 
-const readAppInfoPlist = async ({ appPath } = {}) => {
-  const infoPlistPath = path.join(appPath, 'Contents', 'Info.plist')
+const readPlistJson = async ({ infoPlistPath } = {}) => {
   const { stdout } = await execFileAsync('plutil', ['-convert', 'json', '-o', '-', infoPlistPath], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 5
   })
-  const parsed = JSON.parse(stdout)
+  return JSON.parse(stdout)
+}
+
+const readRawPlistValue = async ({ infoPlistPath, key } = {}) => {
+  try {
+    const { stdout } = await execFileAsync('plutil', [
+      '-extract',
+      key,
+      'raw',
+      '-o',
+      '-',
+      infoPlistPath
+    ], {
+      encoding: 'utf8',
+      maxBuffer: 1024 * 1024
+    })
+    return normalizeAppString(stdout, null)
+  } catch (_error) {
+    return null
+  }
+}
+
+const readPlistRawFields = async ({ infoPlistPath } = {}) => ({
+  CFBundleIdentifier: await readRawPlistValue({ infoPlistPath, key: 'CFBundleIdentifier' }),
+  CFBundleDisplayName: await readRawPlistValue({ infoPlistPath, key: 'CFBundleDisplayName' }),
+  CFBundleName: await readRawPlistValue({ infoPlistPath, key: 'CFBundleName' }),
+  CFBundleIconFile: await readRawPlistValue({ infoPlistPath, key: 'CFBundleIconFile' }),
+  CFBundleIconName: await readRawPlistValue({ infoPlistPath, key: 'CFBundleIconName' })
+})
+
+const hasReadablePlistIdentity = (infoPlist = {}) =>
+  Boolean(infoPlist.CFBundleIdentifier || infoPlist.CFBundleDisplayName || infoPlist.CFBundleName)
+
+const buildAppFromInfoPlist = async ({ appPath, infoPlist } = {}) => {
+  const parsed = infoPlist || {}
   const iconPath = await resolveDeclaredIconPath({ appPath, infoPlist: parsed })
   return normalizeInstalledApp({
     bundleId: parsed?.CFBundleIdentifier,
@@ -232,6 +265,20 @@ const readAppInfoPlist = async ({ appPath } = {}) => {
     appPath,
     iconPath
   })
+}
+
+const readAppInfoPlist = async ({ appPath } = {}) => {
+  const infoPlistPath = path.join(appPath, 'Contents', 'Info.plist')
+  try {
+    const infoPlist = await readPlistJson({ infoPlistPath })
+    return await buildAppFromInfoPlist({ appPath, infoPlist })
+  } catch (error) {
+    const infoPlist = await readPlistRawFields({ infoPlistPath })
+    if (hasReadablePlistIdentity(infoPlist)) {
+      return await buildAppFromInfoPlist({ appPath, infoPlist })
+    }
+    throw error
+  }
 }
 
 const getInstalledAppIconDataUrl = async ({

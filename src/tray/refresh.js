@@ -24,6 +24,7 @@ function createTrayMenuController({
     trayHandlers,
     loadSettingsFn = loadSettings,
     buildTrayMenuTemplateFn = buildTrayMenuTemplate,
+    getMeetingRecordingState = null,
     getRecordingState = null,
     onTrayMenuOpened = null,
     menu = getElectronMenu(),
@@ -49,6 +50,13 @@ function createTrayMenuController({
         return getRecordingState() || null;
     };
 
+    const resolveMeetingRecordingState = () => {
+        if (typeof getMeetingRecordingState !== 'function') {
+            return null;
+        }
+        return getMeetingRecordingState() || null;
+    };
+
     function getTrayMenuTemplate({ recordingPaused, settings = null } = {}) {
         if (!trayHandlers) {
             logger.warn('Tray menu template build skipped: handlers not ready');
@@ -64,6 +72,7 @@ function createTrayMenuController({
         });
         return buildTrayMenuTemplateFn({
             ...trayHandlers,
+            meetingRecordingState: resolveMeetingRecordingState(),
             recordingPaused: isPaused,
             recordingState,
             recordingStatusIcon

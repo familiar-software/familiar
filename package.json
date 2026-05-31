@@ -8,26 +8,29 @@
     "build:apple-vision-ocr": "bash scripts/build-apple-vision-ocr.sh",
     "build:active-window-detector": "bash scripts/build-list-on-screen-apps-helper.sh",
     "build:rg-bundle": "bash scripts/build-rg-bundle.sh",
-    "prestart": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run react:build:dashboard",
+    "build:speech-helper": "bash scripts/build-familiar-speech-helper.sh",
+    "build:speech-helper:universal": "bash scripts/build-familiar-speech-helper.sh --universal",
+    "build:speech-models": "bash scripts/build-whisperkit-models.sh",
+    "prestart": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper && npm run react:build:dashboard",
     "pre-dist:mac": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run css:build && electron-builder --mac --arm64 --x64",
+    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run build:speech-models && npm run css:build && electron-builder --mac --arm64 --x64",
     "pre-dist:mac:arm64": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac:arm64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run css:build && electron-builder --mac --arm64",
+    "dist:mac:arm64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run build:speech-models && npm run css:build && electron-builder --mac --arm64",
     "pre-dist:mac:x64": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run css:build && electron-builder --mac --x64",
+    "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run build:speech-models && npm run css:build && electron-builder --mac --x64",
     "react:build:dashboard": "esbuild src/dashboard/main.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"production\"' --outfile=src/dashboard/react-dist/dashboard-react.js",
     "react:watch:dashboard": "esbuild src/dashboard/main.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"development\"' --sourcemap --outfile=src/dashboard/react-dist/dashboard-react.js --watch",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
     "css:build": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --minify",
     "start": "npm run rebuild:electron && npm run css:build && electron .",
-    "predev": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run react:build:dashboard",
+    "predev": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper && npm run react:build:dashboard",
     "dev": "npm run rebuild:electron && tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch & electron .",
     "rebuild:node": "npm rebuild better-sqlite3",
     "rebuild:electron": "npm_config_runtime=electron npm_config_target=40.0.0 npm_config_disturl=https://electronjs.org/headers npm rebuild better-sqlite3 --build-from-source",
     "test": "npm run rebuild:node && find test -name \"*.test.js\" -not -path \"*/e2e/*\" -print0 | xargs -0 node --test",
     "test:unit:timed": "npm run rebuild:node && node scripts/run-unit-tests-with-timeout.js",
-    "test:e2e": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run react:build:dashboard && npm run rebuild:electron && playwright test",
-    "test:e2e:target": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run react:build:dashboard && npm run rebuild:electron && playwright test",
+    "test:e2e": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper && npm run react:build:dashboard && npm run rebuild:electron && playwright test",
+    "test:e2e:target": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper && npm run react:build:dashboard && npm run rebuild:electron && playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test && npm run test:e2e && npm run test:unit:timed",
     "dev:reset-wizard": "node scripts/dev-reset-wizard.js",
@@ -70,6 +73,14 @@
         "to": "list-on-screen-apps-helper"
       },
       {
+        "from": "scripts/bin/familiar-speech-helper",
+        "to": "familiar-speech-helper"
+      },
+      {
+        "from": "scripts/bin/whisperkit-models",
+        "to": "whisperkit-models"
+      },
+      {
         "from": "scripts/bin/rg",
         "to": "rg"
       }
@@ -84,6 +95,9 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Familiar needs microphone access to record and transcribe meetings you explicitly start."
+      },
       "icon": "build/icon.icns"
     },
     "dmg": {

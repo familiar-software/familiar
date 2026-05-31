@@ -5,6 +5,7 @@ const {
     nativeImage,
     ipcMain,
     nativeTheme,
+    powerSaveBlocker,
     shell
 } = require('electron');
 const { existsSync } = require('node:fs');
@@ -26,6 +27,7 @@ const {
 } = require('./tray/refresh');
 const { initializeAutoUpdater, scheduleRecurringUpdateCheck } = require('./updates');
 const { createScreenStillsController } = require('./screen-stills');
+const meetingRecording = require('./meeting-recording/main-process');
 const { createPresenceMonitor } = require('./screen-capture/presence');
 const { getScreenRecordingPermissionStatus } = require('./screen-capture/permissions');
 const { createTrayIconFactory, getTrayIconPathForMenuBar } = require('./tray/icon');
@@ -55,6 +57,7 @@ let resolveTrayIconStateForE2E = () => ({
 let settingsWindow = null;
 let isQuitting = false;
 let screenStillsController = null;
+let meetingRecordingMainProcess = null;
 let presenceMonitor = null;
 let recordingShutdownInProgress = false;
 let recordingOffReminder = null;
@@ -171,10 +174,8 @@ const autoCleanupCheckIntervalMs = (() => {
 
 initLogging();
 ensureHomebrewPath({ logger: console });
-
 const enterBackgroundMode = () => setAppMode({ app, mode: APP_MODE.BACKGROUND, logger: console });
 const enterForegroundMode = () => setAppMode({ app, mode: APP_MODE.FOREGROUND, logger: console });
-
 const normalizeControllerContextFolderPath = (value) =>
     typeof value === 'string' ? value : '';
 
@@ -217,12 +218,22 @@ const handleMainSettingsSaved = (nextSettings = null) => {
 
 const attemptScreenCaptureShutdown = (reason) => {
     if (!screenStillsController) {
+        if (meetingRecordingMainProcess) {
+            meetingRecordingMainProcess.shutdown(reason).catch((error) => {
+                console.error('Failed to stop meeting recording', error);
+            });
+        }
         return;
     }
     screenStillsController.shutdown(reason)
         .catch((error) => {
             console.error('Failed to stop screen capture', error);
         });
+    if (meetingRecordingMainProcess) {
+        meetingRecordingMainProcess.shutdown(reason).catch((error) => {
+            console.error('Failed to stop meeting recording', error);
+        });
+    }
 };
 
 const handleStillsError = ({ message, willRetry, retryDelayMs, attempt } = {}) => {
@@ -321,7 +332,9 @@ const pauseScreenStills = async ({ durationMs } = {}) => {
     }
 };
 
-
+const getCurrentMeetingRecordingStatus = () => {
+    return meetingRecordingMainProcess?.getStatus?.() || { ...meetingRecording.EMPTY_STATUS };
+};
 const refreshTrayMenu = () => {
     if (trayMenuController && typeof trayMenuController.refreshTrayMenuFromSettings === 'function') {
         trayMenuController.refreshTrayMenuFromSettings();
@@ -370,7 +383,6 @@ const handleRecordingToggleAction = async ({ durationMs } = {}) => {
     refreshTrayMenu();
     return result;
 };
-
 const getCurrentScreenStillsState = () => {
     const baseState = screenStillsController?.getState?.() || {
         enabled: false,
@@ -400,7 +412,6 @@ const getScreenStillsStatusPayload = () => {
         permissionGranted: state.permissionGranted
     };
 };
-
 const notifyScreenStillsStateChanged = () => {
   if (!settingsWindow || settingsWindow.isDestroyed()) {
     return;
@@ -415,14 +426,12 @@ const handleRecordingStateTransition = (transition) => {
   refreshTrayMenu();
   refreshTrayIcon();
 };
-
 const getTrayRecordingActionLabel = () => {
     const template = getCurrentTrayMenuTemplate();
-    return template && template[0] && typeof template[0].label === 'string'
-        ? template[0].label
+    return template && template[1] && typeof template[1].label === 'string'
+        ? template[1].label
         : '';
 };
-
 const getCurrentTrayMenuTemplate = () => {
     if (!trayHandlers) {
         return [];
@@ -436,18 +445,17 @@ const getCurrentTrayMenuTemplate = () => {
     const recordingState = getCurrentScreenStillsState();
     return buildTrayMenuTemplate({
         ...trayHandlers,
+        meetingRecordingState: getCurrentMeetingRecordingStatus(),
         recordingPaused: recordingState.manualPaused === true,
         recordingState,
     });
 };
-
 const runCaptureActionAndRefreshTray = async (action) => {
     const result = await action();
     refreshTrayMenu();
     notifyScreenStillsStateChanged();
     return result;
 };
-
 const notifyAlwaysRecordWhenActiveChanged = ({ enabled } = {}) => {
     if (settingsWindow && !settingsWindow.isDestroyed()) {
         settingsWindow.webContents.send('settings:alwaysRecordWhenActiveChanged', { enabled });
@@ -615,6 +623,9 @@ function createTray() {
     nativeTheme.on('updated', updateTrayIcon);
 
     trayHandlers = {
+        onMeetingRecordingToggle: () => {
+            void meetingRecordingMainProcess?.toggle?.();
+        },
         onRecordingPause: (durationMs) => {
             void handleRecordingToggleAction({ durationMs });
         },
@@ -625,6 +636,7 @@ function createTray() {
     trayMenuController = createTrayMenuController({
         tray,
         trayHandlers,
+        getMeetingRecordingState: getCurrentMeetingRecordingStatus,
         getRecordingState: getCurrentScreenStillsState
     });
 
@@ -685,6 +697,11 @@ const registerMainProcessIpc = () => {
         };
     });
 
+    meetingRecording.registerMeetingRecordingIpcHandlers({
+        getMeetingRecordingMainProcess: () => meetingRecordingMainProcess,
+        ipcMain,
+        isE2E
+    });
 
     ipcMain.handle('screenStills:simulateIdle', (_event, payload = {}) => {
         if (!isE2E) {
@@ -829,6 +846,19 @@ if (isPrimaryInstance) {
             syncRecordingOffReminderState();
             updateScreenCaptureFromSettings();
         }
+        if (process.platform === 'darwin' || isE2E) {
+            meetingRecordingMainProcess = meetingRecording.createMeetingRecordingMainProcess({
+                powerSaveBlocker,
+                logger: console,
+                loadSettings,
+                showToast: maybeE2EToast,
+                refreshTrayIcon,
+                refreshTrayMenu,
+                getSettingsWindow: () => settingsWindow,
+                getPreferredSessionId: () => getCurrentScreenStillsState().activeSessionId || ''
+            });
+            meetingRecordingMainProcess.initialize();
+        }
 
         autoSessionCleanupScheduler = createAutoSessionCleanupScheduler({
             settingsLoader: loadSettings,
@@ -902,10 +932,11 @@ app.on('before-quit', (event) => {
         recordingOffReminder.stopReminder();
     }
     isQuitting = true;
-    if (screenStillsController) {
+    if (screenStillsController || meetingRecordingMainProcess) {
         const stillsState = screenStillsController?.getState?.().state;
         const isStills = stillsState === 'recording' || stillsState === 'idleGrace';
-        if (isStills && !recordingShutdownInProgress) {
+        const isMeetingRecording = getCurrentMeetingRecordingStatus().isRecording === true;
+        if ((isStills || isMeetingRecording) && !recordingShutdownInProgress) {
             recordingShutdownInProgress = true;
             event.preventDefault();
             const shutdowns = [];
@@ -916,14 +947,25 @@ app.on('before-quit', (event) => {
                     })
                 );
             }
+            if (meetingRecordingMainProcess) {
+                shutdowns.push(
+                    meetingRecordingMainProcess.shutdown('quit').catch((error) => {
+                        console.error('Failed to stop meeting recording on quit', error);
+                    })
+                );
+            }
             Promise.allSettled(shutdowns)
                 .finally(() => {
                     screenStillsController?.dispose?.();
+                    meetingRecordingMainProcess = null;
                     app.quit();
                 });
             return;
         }
         screenStillsController?.dispose?.();
+        meetingRecordingMainProcess?.shutdown?.('quit').catch((error) => {
+            console.error('Failed to dispose meeting recording on quit', error);
+        });
     }
 });
 

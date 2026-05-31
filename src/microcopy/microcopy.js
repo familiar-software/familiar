@@ -11,6 +11,10 @@ const microcopy = {
     pageTitle: 'Familiar Capturing'
   },
   tray: {
+    meeting: {
+      startRecording: 'Record meeting',
+      stopRecording: 'Stop meeting recording'
+    },
     recording: {
       pausedFor10MinClickToResume: 'Paused for 10 min (click to resume)',
       clickToPauseFor10Min: 'Capturing (click to pause for 10 min)',

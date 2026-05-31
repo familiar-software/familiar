@@ -20,6 +20,8 @@ function formatPausedLabel(remainingMs) {
 }
 
 function buildTrayMenuTemplate ({
+  meetingRecordingState,
+  onMeetingRecordingToggle,
   onRecordingPause,
   onOpenSettings,
   onQuit,
@@ -53,7 +55,16 @@ function buildTrayMenuTemplate ({
     recordingItem.icon = recordingStatusIcon
   }
 
+  const isMeetingRecording = meetingRecordingState?.isRecording === true
+  const meetingRecordingItem = {
+    label: isMeetingRecording
+      ? microcopy.tray.meeting.stopRecording
+      : microcopy.tray.meeting.startRecording,
+    click: onMeetingRecordingToggle
+  }
+
   return [
+    meetingRecordingItem,
     recordingItem,
     { label: microcopy.tray.actions.settings, click: onOpenSettings },
     { type: 'separator' },

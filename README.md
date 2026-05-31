@@ -59,6 +59,37 @@ Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and 
 - Extracted markdown for captured still images: `<contextFolderPath>/familiar/stills-markdown/`
 - Clipboard text mirrors while recording: `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.clipboard.txt`
 - Before still markdown and clipboard text are written, Familiar runs `rg`-based redaction for password/API-key patterns. If the scanner fails twice, Familiar still saves the file and shows a one-time warning toast per recording session.
+- Meeting recording is started and stopped from the tray menu. It streams transcript events from the
+  local WhisperKit speech helper into
+  `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.transcript.md`. The
+  markdown file keeps a live `In progress` block for partial text, then replaces it with final
+  transcript lines.
+- During meeting recording, Familiar uses Electron's `powerSaveBlocker` with
+  `prevent-display-sleep` so an explicit recording session stays visibly active instead of silently
+  stopping on idle.
+- Local development uses `scripts/bin/familiar-speech-helper` directly. You can override it with
+  `FAMILIAR_SPEECH_HELPER_PATH=/path/to/helper`. The helper speaks a JSON command protocol over
+  stdin/stdout and returns plain streaming transcript payloads.
+- `FAMILIAR_AUDIO_INPUT_DEVICE_NAME="BlackHole 2ch"` selects a named macOS input device for
+  local meeting transcription without changing the default system input.
+- Packaged builds include `scripts/bin/whisperkit-models` as `resources/whisperkit-models`.
+  Distribution builds prepare that directory with `npm run build:speech-models`; BlackHole is only
+  a local test routing device and is not packaged.
+- Microphone permission is separate from Screen Recording permission on macOS. A local development
+  run may not prompt if the responsible process already has microphone permission, but the packaged
+  app still declares `NSMicrophoneUsageDescription` and should be verified in System Settings.
+
+### Real Audio Transcription Smoke Test
+
+This gated test uses BlackHole to route generated macOS speech into the real local transcriber:
+
+```bash
+npm run build:speech-helper
+FAMILIAR_REAL_AUDIO_TEST=1 node --test test/real-audio-transcriber.test.js
+```
+
+It is skipped by default because it requires macOS, BlackHole 2ch, microphone permission, and local
+WhisperKit model assets.
 
 ## Build locally
 

@@ -1908,3 +1908,128 @@ test('recorder fails when active window detection throws before capture', async 
     resetRecorderModule();
   }
 });
+
+test('recorder.start returns session details when stop wins the first-capture race', async () => {
+  resetRecorderModule();
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-start-stop-race-'));
+  const ipcMain = new EventEmitter();
+  let recorder = null;
+  let stopStarted = false;
+
+  function createWebContents() {
+    const webContents = new EventEmitter();
+    webContents.getURL = () => 'file://stills.html';
+    webContents.send = (channel, payload) => {
+      if (channel === 'screen-stills:start') {
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'started'
+          });
+        });
+      }
+      if (channel === 'screen-stills:capture') {
+        if (!stopStarted) {
+          stopStarted = true;
+          void recorder.stop({ reason: 'race-test' });
+        }
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'captured',
+            imageBuffer: MOCK_CAPTURE_IMAGE_BUFFER
+          });
+        });
+      }
+      if (channel === 'screen-stills:stop') {
+        process.nextTick(() => {
+          ipcMain.emit('screen-stills:status', {}, {
+            requestId: payload.requestId,
+            status: 'stopped'
+          });
+        });
+      }
+    };
+    return webContents;
+  }
+
+  function BrowserWindowStub() {
+    this.webContents = createWebContents();
+    this.loadFile = () => {
+      process.nextTick(() => {
+        this.webContents.emit('did-finish-load');
+        ipcMain.emit('screen-stills:ready', { sender: this.webContents });
+      });
+    };
+    this.on = () => {};
+    this.isDestroyed = () => false;
+    this.destroy = () => {};
+  }
+
+  const originalLoad = Module._load;
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return {
+        BrowserWindow: BrowserWindowStub,
+        desktopCapturer: { getSources: async () => [createMockSource()] },
+        ipcMain,
+        screen: {
+          getAllDisplays: () => [{ id: 1, bounds: { width: 100, height: 100 } }],
+          getPrimaryDisplay: () => ({ id: 1, bounds: { width: 100, height: 100 } })
+        },
+        app: { getVersion: () => 'test' }
+      };
+    }
+    if (request === '../screen-capture/permissions') {
+      return { isScreenRecordingPermissionGranted: () => true };
+    }
+    if (request === './session-store') {
+      return {
+        createSessionStore: ({ contextFolderPath }) => {
+          const sessionId = 'session-race-test';
+          const sessionDir = path.join(contextFolderPath, 'familiar', 'stills', sessionId);
+          fs.mkdirSync(sessionDir, { recursive: true });
+          return {
+            sessionDir,
+            sessionId,
+            nextCaptureFile: () => ({
+              capturedAt: new Date().toISOString(),
+              fileName: 'capture.webp'
+            })
+          };
+        }
+      };
+    }
+    if (request === './stills-queue') {
+      return {
+        createStillsQueue: () => ({
+          close: () => {},
+          enqueueCapture: () => {}
+        })
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  try {
+    const { createRecorder } = require('../src/screen-stills/recorder');
+    recorder = createRecorder({
+      createActiveWindowDetectorImpl: () => ({
+        detectWindowCandidates: async () => [],
+        resolveBinaryPath: async () => '/tmp/list-on-screen-apps'
+      }),
+      intervalSeconds: 1,
+      logger: { log: () => {}, warn: () => {}, error: () => {} },
+      lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
+    });
+
+    const result = await recorder.start({ contextFolderPath: tempDir });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.sessionId, 'session-race-test');
+  } finally {
+    Module._load = originalLoad;
+    resetRecorderModule();
+  }
+});

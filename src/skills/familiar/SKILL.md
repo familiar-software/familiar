@@ -1,6 +1,6 @@
 ---
 name: familiar
-version: 1.0.3
+version: 1.0.4
 description: Use when the user references past on-screen activity, needs work summaries or status updates, wants to recall or reconstruct what happened, document, asks about decisions made, communication patterns, or time spent, or when brainstorming and planning would benefit from recent screen context.
 ---
 
@@ -22,6 +22,9 @@ If the skill is called without any extra inline date/prompt, treat it as if the 
 
 - Session folder pattern: `<contextFolderPath>/familiar/stills-markdown/session-<timestamp>/`
 - Capture file pattern: `<contextFolderPath>/familiar/stills-markdown/session-<timestamp>/<captureTimestamp>.md`
+- Meeting transcript pattern:
+  `<contextFolderPath>/familiar/stills-markdown/session-<timestamp>/`
+  `<captureTimestamp>.transcript.md`
 
 ## Naming Conventions
 
@@ -29,6 +32,7 @@ If the skill is called without any extra inline date/prompt, treat it as if the 
 - `<timestamp>` is local time with `:` and `.` replaced by `-`.
 - Example session: `session-2026-02-05T16-35-35-626`
 - Example capture file: `2026-02-05T16-35-35-770.md`
+- Example meeting transcript file: `2026-02-05T16-35-35-770.transcript.md`
 - Lexicographic order matches chronological order.
 
 ## Content Format
@@ -55,6 +59,10 @@ url: <url or unknown>
 Treat literal `unknown` and `UNCLEAR` as missing data.
 
 Clipboard captures are stored alongside screen captures as `<captureTimestamp>.clipboard.txt` files in the same session folders. These contain text that was copied to the clipboard during that session.
+
+Meeting transcripts are stored alongside screen captures as `<captureTimestamp>.transcript.md`
+files in the same session folders. These contain live-captured speech from explicit meeting
+recording sessions.
 
 ## Working with a sequence of markdown files (important)
 

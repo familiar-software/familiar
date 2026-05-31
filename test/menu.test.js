@@ -14,11 +14,12 @@ test('buildTrayMenuTemplate returns the expected items', () => {
     const labels = template.filter((item) => item.label).map((item) => item.label);
 
     assert.deepEqual(labels, [
+        microcopy.tray.meeting.startRecording,
         microcopy.tray.recording.startCapturing,
         microcopy.tray.actions.settings,
         microcopy.tray.actions.quit,
     ]);
-    assert.equal(template[2].type, 'separator');
+    assert.equal(template[3].type, 'separator');
 });
 
 test('buildTrayMenuTemplate uses recording label while active', () => {
@@ -33,6 +34,18 @@ test('buildTrayMenuTemplate uses recording label while active', () => {
     const recordingItem = template.find((item) => item.label === 'Capturing');
 
     assert.ok(recordingItem);
+});
+
+test('buildTrayMenuTemplate uses stop meeting label while meeting recording is active', () => {
+    const template = buildTrayMenuTemplate({
+        onMeetingRecordingToggle: () => {},
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        meetingRecordingState: { isRecording: true }
+    });
+
+    assert.equal(template[0].label, microcopy.tray.meeting.stopRecording);
 });
 
 test('settings click does not trigger quit', () => {
@@ -116,8 +129,10 @@ test('buildTrayMenuTemplate shows paused label with countdown when paused', () =
         }
     });
 
-    assert.ok(template[0].label.includes('remaining'));
-    assert.equal(template[0].toolTip, 'Click to resume');
+    const recordingItem = template.find((item) => item.label.includes('remaining'));
+
+    assert.ok(recordingItem);
+    assert.equal(recordingItem.toolTip, 'Click to resume');
 });
 
 test('buildTrayMenuTemplate keeps paused label at fallback when remaining time is zero', () => {
@@ -148,7 +163,7 @@ test('buildTrayMenuTemplate includes status icon when provided', () => {
         recordingStatusIcon
     });
 
-    assert.equal(template[0].icon, recordingStatusIcon);
+    assert.equal(template[1].icon, recordingStatusIcon);
 });
 
 test('buildTrayMenuTemplate shows pause duration submenu when recording', () => {
@@ -160,7 +175,7 @@ test('buildTrayMenuTemplate shows pause duration submenu when recording', () => 
         recordingState
     });
 
-    const recordingItem = template[0];
+    const recordingItem = template[1];
     assert.ok(recordingItem.submenu, 'recording item should have a submenu');
     assert.equal(recordingItem.submenu.length, PAUSE_DURATIONS.length);
     assert.equal(recordingItem.submenu[0].label, 'Pause for 5 minutes');
@@ -179,8 +194,8 @@ test('pause submenu items pass durationMs to onRecordingPause', () => {
         recordingState
     });
 
-    template[0].submenu[0].click();
-    template[0].submenu[1].click();
+    template[1].submenu[0].click();
+    template[1].submenu[1].click();
 
     assert.deepEqual(pauseCalls, [5 * 60 * 1000, 10 * 60 * 1000]);
 });

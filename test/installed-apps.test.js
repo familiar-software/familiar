@@ -1,5 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const childProcess = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
@@ -139,4 +140,84 @@ test('resolveDeclaredIconPath finds icon resources declared in Info.plist', asyn
   })
 
   assert.equal(iconPath, expectedIconPath)
+})
+
+test('readAppInfoPlist falls back to raw plist key extraction when JSON conversion fails', async () => {
+  const appRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-installed-app-'))
+  const resourcesDir = path.join(appRoot, 'Contents', 'Resources')
+  fs.mkdirSync(resourcesDir, { recursive: true })
+  const iconPath = path.join(resourcesDir, 'AppIcon.icns')
+  fs.writeFileSync(iconPath, 'icon')
+
+  const installedAppsModulePath = require.resolve('../src/apps/installed-apps')
+  const originalExecFile = childProcess.execFile
+  childProcess.execFile = (file, args, options, callback) => {
+    const key = Array.isArray(args) && args[0] === '-extract' ? args[1] : null
+    if (key === 'CFBundleIdentifier') {
+      callback(null, { stdout: 'com.apple.stocks\n', stderr: '' })
+      return
+    }
+    if (key === 'CFBundleDisplayName' || key === 'CFBundleName') {
+      callback(null, { stdout: 'Stocks\n', stderr: '' })
+      return
+    }
+    if (key === 'CFBundleIconFile') {
+      callback(null, { stdout: 'AppIcon\n', stderr: '' })
+      return
+    }
+    if (key === 'CFBundleIconName') {
+      const error = new Error('key missing')
+      callback(error, { stdout: '', stderr: 'missing' })
+      return
+    }
+    callback(new Error('invalid object in plist for destination format'), {
+      stdout: '',
+      stderr: 'invalid object'
+    })
+  }
+
+  try {
+    delete require.cache[installedAppsModulePath]
+    const { readAppInfoPlist } = require('../src/apps/installed-apps')
+    const app = await readAppInfoPlist({ appPath: appRoot })
+
+    assert.deepEqual(app, {
+      bundleId: 'com.apple.stocks',
+      name: 'Stocks',
+      appPath: appRoot,
+      iconPath
+    })
+  } finally {
+    childProcess.execFile = originalExecFile
+    delete require.cache[installedAppsModulePath]
+  }
+})
+
+test('readAppInfoPlist rethrows JSON conversion failure when raw identity keys are missing', async () => {
+  const appRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-installed-app-missing-'))
+  const installedAppsModulePath = require.resolve('../src/apps/installed-apps')
+  const originalExecFile = childProcess.execFile
+  childProcess.execFile = (_file, args, _options, callback) => {
+    if (Array.isArray(args) && args[0] === '-extract') {
+      callback(new Error(`missing ${args[1]}`), { stdout: '', stderr: 'missing' })
+      return
+    }
+    callback(new Error('invalid object in plist for destination format'), {
+      stdout: '',
+      stderr: 'invalid object'
+    })
+  }
+
+  try {
+    delete require.cache[installedAppsModulePath]
+    const { readAppInfoPlist } = require('../src/apps/installed-apps')
+
+    await assert.rejects(
+      readAppInfoPlist({ appPath: appRoot }),
+      /invalid object in plist for destination format/
+    )
+  } finally {
+    childProcess.execFile = originalExecFile
+    delete require.cache[installedAppsModulePath]
+  }
 })

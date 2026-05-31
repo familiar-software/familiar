@@ -26,9 +26,14 @@ contextBridge.exposeInMainWorld('familiar', {
   startScreenStills: () => ipcRenderer.invoke('screenStills:start'),
   pauseScreenStills: () => ipcRenderer.invoke('screenStills:pause'),
   stopScreenStills: () => ipcRenderer.invoke('screenStills:stop'),
+  getMeetingRecordingStatus: () => ipcRenderer.invoke('meetingRecording:getStatus'),
+  startMeetingRecording: () => ipcRenderer.invoke('meetingRecording:start'),
+  stopMeetingRecording: () => ipcRenderer.invoke('meetingRecording:stop'),
   simulateStillsIdle: (payload) => ipcRenderer.invoke('screenStills:simulateIdle', payload),
   getTrayRecordingLabelForE2E: () => ipcRenderer.invoke('e2e:tray:getRecordingLabel'),
   clickTrayRecordingActionForE2E: () => ipcRenderer.invoke('e2e:tray:clickRecordingAction'),
+  clickTrayMeetingRecordingActionForE2E: () =>
+    ipcRenderer.invoke('e2e:tray:clickMeetingRecordingAction'),
   openTrayMenuForE2E: () => ipcRenderer.invoke('e2e:tray:openMenu'),
   getTrayIconStateForE2E: () => ipcRenderer.invoke('e2e:tray:getIconState'),
   getTrayMenuItemsForE2E: () => ipcRenderer.invoke('e2e:tray:getMenuItems'),
@@ -42,6 +47,11 @@ contextBridge.exposeInMainWorld('familiar', {
     const listener = (_event, payload) => handler(payload)
     ipcRenderer.on('settings:screenStillsStateChanged', listener)
     return () => ipcRenderer.removeListener('settings:screenStillsStateChanged', listener)
+  },
+  onMeetingRecordingStateChanged: (handler) => {
+    const listener = (_event, payload) => handler(payload)
+    ipcRenderer.on('settings:meetingRecordingStateChanged', listener)
+    return () => ipcRenderer.removeListener('settings:meetingRecordingStateChanged', listener)
   },
   onSettingsWindowOpened: (handler) => {
     const listener = (_event, payload) => handler(payload)

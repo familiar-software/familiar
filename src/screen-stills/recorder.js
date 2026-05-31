@@ -933,9 +933,10 @@ function createRecorder(options = {}) {
           contextFolderPath,
           format: CAPTURE_CONFIG.format
         });
+        const startedSessionStore = sessionStore;
         queueStore = createStillsQueue({ contextFolderPath, logger });
 
-        logger.log('Recording session started', { sessionDir: sessionStore.sessionDir });
+        logger.log('Recording session started', { sessionDir: startedSessionStore.sessionDir });
 
         try {
           if (!IS_E2E_FAKE_CAPTURE) {
@@ -947,7 +948,11 @@ function createRecorder(options = {}) {
           sourceDetails = initialSourceDetails;
           await captureNext();
           scheduleCaptureLoop('start');
-          return { ok: true, sessionId: sessionStore.sessionId, sessionDir: sessionStore.sessionDir };
+          return {
+            ok: true,
+            sessionDir: startedSessionStore.sessionDir,
+            sessionId: startedSessionStore.sessionId
+          };
         } catch (error) {
           lowPowerModeMonitor.stop();
           if (queueStore) {
