@@ -18,6 +18,12 @@ export const DEFAULT_MICROCOPY = {
       },
       installSkill: {
         title: 'Skill'
+      },
+      automate: {
+        title: 'Automate'
+      },
+      audio: {
+        title: 'Audio'
       }
     },
     settings: {
@@ -166,6 +172,7 @@ export const DEFAULT_SETTINGS = {
   appVersion: '',
   contextFolderPath: '',
   alwaysRecordWhenActive: false,
+  meetingRecordingShortcut: null,
   capturePrivacy: {
     blacklistedApps: []
   },

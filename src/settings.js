@@ -5,6 +5,7 @@ const os = require('node:os');
 const { SETTINGS_DIR_NAME, SETTINGS_FILE_NAME } = require('./const');
 const { resolveAutoCleanupRetentionDays } = require('./storage/auto-cleanup-retention');
 const { normalizeCapturePrivacySettings } = require('./screen-stills/capture-privacy');
+const { normalizeMeetingRecordingShortcut } = require('./audio-shortcut');
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -98,6 +99,8 @@ const saveSettings = (settings, options = {}) => {
     const hasStorageAutoCleanupRetentionDays = Object.prototype.hasOwnProperty.call(settings, 'storageAutoCleanupRetentionDays');
     const hasStorageAutoCleanupLastRunAt = Object.prototype.hasOwnProperty.call(settings, 'storageAutoCleanupLastRunAt');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(settings, 'alwaysRecordWhenActive');
+    const hasMeetingRecordingShortcut =
+        Object.prototype.hasOwnProperty.call(settings, 'meetingRecordingShortcut');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(settings, 'wizardCompleted');
     const hasCapturePrivacy = Object.prototype.hasOwnProperty.call(settings, 'capturePrivacy');
     const existingCapturePrivacy =
@@ -145,6 +148,16 @@ const saveSettings = (settings, options = {}) => {
         payload.alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
     } else if (typeof existing.alwaysRecordWhenActive === 'boolean') {
         payload.alwaysRecordWhenActive = existing.alwaysRecordWhenActive;
+    }
+
+    if (hasMeetingRecordingShortcut) {
+        payload.meetingRecordingShortcut = normalizeMeetingRecordingShortcut(
+            settings.meetingRecordingShortcut
+        );
+    } else if (Object.prototype.hasOwnProperty.call(existing, 'meetingRecordingShortcut')) {
+        payload.meetingRecordingShortcut = normalizeMeetingRecordingShortcut(
+            existing.meetingRecordingShortcut
+        );
     }
 
     if (hasWizardCompleted) {

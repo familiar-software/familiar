@@ -1,7 +1,11 @@
 const { spawn } = require('node:child_process')
 
 const COMMAND_TIMEOUT_MS = 30000
-const STOP_TIMEOUT_MS = 2500
+const START_COMMAND_TIMEOUT_MS = 120000
+const STOP_COMMAND_TIMEOUT_MS = 120000
+const STOP_TIMEOUT_MS = 125000
+const TERMINATE_GRACE_MS = 3000
+const TERMINATE_FORCE_GRACE_MS = 3000
 
 function noop () {}
 
@@ -32,12 +36,89 @@ function resolveStartCaptureOptions (env = process.env) {
   return inputDeviceName ? { inputDeviceName } : {}
 }
 
+function endChildStdin (child, logger = console) {
+  if (!child?.stdin || child.stdin.destroyed || child.stdin.writableEnded) {
+    return
+  }
+  try {
+    child.stdin.end()
+  } catch (error) {
+    logger.warn('Failed to close speech helper stdin', {
+      message: error?.message || String(error)
+    })
+  }
+}
+
+function killChild (child, signal, logger = console) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) {
+    return false
+  }
+  try {
+    return child.kill(signal)
+  } catch (error) {
+    logger.warn('Failed to signal speech helper process', {
+      pid: child.pid || null,
+      signal,
+      message: error?.message || String(error)
+    })
+    return false
+  }
+}
+
+function unrefTimer (timer) {
+  if (timer && typeof timer.unref === 'function') {
+    timer.unref()
+  }
+}
+
+function createHelperExitError ({ code, signal, child, helperPath }) {
+  const error = new Error(`Speech helper exited with code ${code} and signal ${signal || ''}.`)
+  error.exitCode = code
+  error.signal = signal || ''
+  error.pid = child?.pid || null
+  error.helperPath = helperPath || ''
+  return error
+}
+
+function normalizeTranscriptWords (words = []) {
+  if (!Array.isArray(words)) {
+    return []
+  }
+  return words.map((word) => ({
+    text: pickString(word?.text, word?.word),
+    startedAtMs: pickNumber(word?.startedAtMs, word?.startMs, word?.startTimeMs),
+    endedAtMs: pickNumber(word?.endedAtMs, word?.endMs, word?.endTimeMs)
+  })).filter((word) => word.text)
+}
+
+function normalizeTranscriptSegments (segments = []) {
+  if (!Array.isArray(segments)) {
+    return []
+  }
+  return segments.map((segment) => {
+    const words = normalizeTranscriptWords(segment?.words)
+    const normalizedSegment = {
+      text: pickString(segment?.text, segment?.transcription),
+      startedAtMs: pickNumber(segment?.startedAtMs, segment?.startMs, segment?.startTimeMs),
+      endedAtMs: pickNumber(segment?.endedAtMs, segment?.endMs, segment?.endTimeMs),
+      speaker: pickString(segment?.speaker, segment?.speakerId)
+    }
+    if (words.length > 0) {
+      normalizedSegment.words = words
+    }
+    return normalizedSegment
+  }).filter((segment) => segment.text)
+}
+
 function normalizeTranscriptPayload (payload = {}, defaultType = 'partial') {
   if (!payload || typeof payload !== 'object') {
     return null
   }
+  const segments = normalizeTranscriptSegments(
+    payload.segments || payload.speakerTurns || payload.turns
+  )
   const text = pickString(payload.text, payload.partialText, payload.transcription)
-  if (!text) {
+  if (!text && segments.length === 0) {
     return null
   }
 
@@ -49,7 +130,8 @@ function normalizeTranscriptPayload (payload = {}, defaultType = 'partial') {
     type: isFinal ? 'final' : 'partial',
     text,
     startedAtMs: pickNumber(payload.startedAtMs, payload.startMs, payload.startTimeMs),
-    endedAtMs: pickNumber(payload.endedAtMs, payload.endMs, payload.endTimeMs)
+    endedAtMs: pickNumber(payload.endedAtMs, payload.endMs, payload.endTimeMs),
+    segments
   }
 }
 
@@ -63,7 +145,12 @@ function createSpeechHelperClient ({
   onTranscriptEvent = noop,
   scheduler = { setTimeout, clearTimeout },
   commandTimeoutMs = COMMAND_TIMEOUT_MS,
-  stopTimeoutMs = STOP_TIMEOUT_MS
+  startCommandTimeoutMs = START_COMMAND_TIMEOUT_MS,
+  stopCommandTimeoutMs = STOP_COMMAND_TIMEOUT_MS,
+  stopTimeoutMs = STOP_TIMEOUT_MS,
+  terminateGraceMs = TERMINATE_GRACE_MS,
+  terminateForceGraceMs = TERMINATE_FORCE_GRACE_MS,
+  processLifecycle = process
 } = {}) {
   const child = spawnImpl(helperPath, [], {
     env,
@@ -73,6 +160,44 @@ function createSpeechHelperClient ({
   let nextRequestId = 0
   let stdoutBuffer = ''
   let closed = false
+  let closeDetails = null
+
+  const processExitHandler = () => {
+    endChildStdin(child, logger)
+    killChild(child, 'SIGTERM', logger)
+  }
+
+  if (Number.isInteger(child.pid) && typeof processLifecycle?.once === 'function') {
+    processLifecycle.once('exit', processExitHandler)
+  }
+
+  function removeProcessExitHandler () {
+    if (typeof processLifecycle?.off === 'function') {
+      processLifecycle.off('exit', processExitHandler)
+      return
+    }
+    if (typeof processLifecycle?.removeListener === 'function') {
+      processLifecycle.removeListener('exit', processExitHandler)
+    }
+  }
+
+  function waitForClose (timeoutMs) {
+    if (closed) {
+      return Promise.resolve({ closed: true, ...closeDetails })
+    }
+    return new Promise((resolve) => {
+      const onClose = (code, signal) => {
+        scheduler.clearTimeout(timer)
+        resolve({ closed: true, code, signal })
+      }
+      const timer = scheduler.setTimeout(() => {
+        child.off('close', onClose)
+        resolve({ closed: false, code: null, signal: null })
+      }, timeoutMs)
+      unrefTimer(timer)
+      child.once('close', onClose)
+    })
+  }
 
   function rejectPending (error) {
     const waiters = Array.from(pending.values())
@@ -150,21 +275,26 @@ function createSpeechHelperClient ({
 
   child.once('close', (code, signal) => {
     closed = true
-    rejectPending(new Error(`Speech helper exited with code ${code} and signal ${signal || ''}.`))
-    onClose({ code, signal })
+    closeDetails = { code, signal }
+    removeProcessExitHandler()
+    rejectPending(createHelperExitError({ code, signal, child, helperPath }))
+    onClose({ code, signal, pid: child.pid || null, helperPath })
   })
 
-  function sendCommand (command, payload = {}) {
+  function sendCommand (command, payload = {}, options = {}) {
     if (closed) {
       return Promise.reject(new Error('Speech helper is not running.'))
     }
 
     const id = String(++nextRequestId)
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+      ? options.timeoutMs
+      : commandTimeoutMs
     return new Promise((resolve, reject) => {
       const timer = scheduler.setTimeout(() => {
         pending.delete(id)
         reject(new Error(`Speech helper command timed out: ${command}`))
-      }, commandTimeoutMs)
+      }, timeoutMs)
       pending.set(id, { resolve, reject, timer })
       writeJsonLine(child.stdin, { id, command, ...payload })
     })
@@ -177,24 +307,49 @@ function createSpeechHelperClient ({
 
     const forceTimer = scheduler.setTimeout(() => {
       if (!closed) {
-        child.kill('SIGKILL')
+        killChild(child, 'SIGKILL', logger)
       }
     }, stopTimeoutMs)
+    unrefTimer(forceTimer)
     try {
-      const payload = await sendCommand('stop_capture')
+      const payload = await sendCommand('stop_capture', {}, { timeoutMs: stopCommandTimeoutMs })
       emitPayload(payload, 'final')
     } finally {
       scheduler.clearTimeout(forceTimer)
-      child.stdin.end()
+      endChildStdin(child, logger)
     }
+  }
+
+  async function terminate ({
+    signal = 'SIGTERM',
+    forceSignal = 'SIGKILL',
+    graceMs = terminateGraceMs,
+    forceGraceMs = terminateForceGraceMs
+  } = {}) {
+    if (closed) {
+      return { closed: true, ...closeDetails, forced: false }
+    }
+
+    endChildStdin(child, logger)
+    killChild(child, signal, logger)
+    const gracefulClose = await waitForClose(graceMs)
+    if (gracefulClose.closed) {
+      return { ...gracefulClose, forced: false }
+    }
+
+    killChild(child, forceSignal, logger)
+    const forcedClose = await waitForClose(forceGraceMs)
+    return { ...forcedClose, forced: true }
   }
 
   return {
     child,
-    kill: (signal) => child.kill(signal),
+    kill: (signal) => killChild(child, signal, logger),
     sendCommand,
-    startCapture: (options = {}) => sendCommand('start_capture', options),
-    stopCapture
+    startCapture: (options = {}) =>
+      sendCommand('start_capture', options, { timeoutMs: startCommandTimeoutMs }),
+    stopCapture,
+    terminate
   }
 }
 

@@ -63,13 +63,17 @@ Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and 
   local WhisperKit speech helper into
   `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.transcript.md`. The
   markdown file keeps a live `In progress` block for partial text, then replaces it with final
-  transcript lines.
+  transcript lines. Each transcript line includes an elapsed `[HH:MM:SS]` timestamp.
+- The Settings window includes an **Audio** tab with an optional
+  `meetingRecordingShortcut` setting. The default is `null`; when set, the global shortcut toggles
+  meeting recording using the same start/stop path as the tray menu.
 - During meeting recording, Familiar uses Electron's `powerSaveBlocker` with
   `prevent-display-sleep` so an explicit recording session stays visibly active instead of silently
   stopping on idle.
 - Local development uses `scripts/bin/familiar-speech-helper` directly. You can override it with
   `FAMILIAR_SPEECH_HELPER_PATH=/path/to/helper`. The helper speaks a JSON command protocol over
-  stdin/stdout and returns plain streaming transcript payloads.
+  stdin/stdout and returns streaming transcript payloads with WhisperKit segment and word timestamp
+  metadata for line breaks.
 - `FAMILIAR_AUDIO_INPUT_DEVICE_NAME="BlackHole 2ch"` selects a named macOS input device for
   local meeting transcription without changing the default system input.
 - Packaged builds include `scripts/bin/whisperkit-models` as `resources/whisperkit-models`.
@@ -81,6 +85,14 @@ Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and 
 
 ### Real Audio Transcription Smoke Test
 
+This gated test starts the real Swift speech helper, sends `start_capture`, and reports child
+process state if the helper exits or hangs before responding:
+
+```bash
+npm run build:speech-helper
+FAMILIAR_REAL_AUDIO_STARTUP_TEST=1 node --test test/real-audio-transcriber.test.js
+```
+
 This gated test uses BlackHole to route generated macOS speech into the real local transcriber:
 
 ```bash
@@ -88,8 +100,8 @@ npm run build:speech-helper
 FAMILIAR_REAL_AUDIO_TEST=1 node --test test/real-audio-transcriber.test.js
 ```
 
-It is skipped by default because it requires macOS, BlackHole 2ch, microphone permission, and local
-WhisperKit model assets.
+These tests are skipped by default because they require macOS, microphone permission, and local
+WhisperKit model assets. The BlackHole route additionally requires the BlackHole 2ch audio device.
 
 ## Build locally
 

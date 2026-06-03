@@ -13,6 +13,7 @@ const microcopy = {
   tray: {
     meeting: {
       startRecording: 'Record meeting',
+      startingRecording: 'Starting meeting recording...',
       stopRecording: 'Stop meeting recording'
     },
     recording: {
@@ -93,6 +94,14 @@ const microcopy = {
       storageRetention2d: '2 days',
       storageRetention7d: '7 days',
       installSkillAriaLabelInstallSkillSettings: 'Install skill settings',
+      audioAriaLabelAudioSettings: 'Audio settings',
+      audioMeetingShortcutTitle: 'Meeting recording shortcut',
+      audioMeetingShortcutDescription:
+        'Press a keyboard shortcut to start or stop meeting recording.',
+      audioMeetingShortcutPlaceholder: 'No shortcut defined',
+      audioMeetingShortcutClear: 'Clear',
+      audioMeetingShortcutModifierRequired:
+        'Use at least one modifier key with the shortcut.',
       wizardAriaLabelSetupWizard: 'Setup wizard',
       wizardHeaderTitle: 'Setup Wizard',
       wizardHeaderSubtitle: 'Guided setup in five steps.',
@@ -209,6 +218,9 @@ const microcopy = {
       },
       automate: {
         title: 'Automate'
+      },
+      audio: {
+        title: 'Audio'
       }
     },
     stills: {

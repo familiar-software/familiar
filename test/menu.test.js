@@ -48,6 +48,23 @@ test('buildTrayMenuTemplate uses stop meeting label while meeting recording is a
     assert.equal(template[0].label, microcopy.tray.meeting.stopRecording);
 });
 
+test('buildTrayMenuTemplate shows starting meeting state without stop action', () => {
+    let toggleCalls = 0;
+    const template = buildTrayMenuTemplate({
+        onMeetingRecordingToggle: () => {
+            toggleCalls += 1;
+        },
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        meetingRecordingState: { state: 'starting', isRecording: false, isStarting: true }
+    });
+
+    assert.equal(template[0].label, 'Starting meeting recording...');
+    assert.equal(template[0].enabled, false);
+    assert.equal(toggleCalls, 0);
+});
+
 test('settings click does not trigger quit', () => {
     let openSettingsCalls = 0;
     let quitCalls = 0;
@@ -108,7 +125,9 @@ test('recording item click does not trigger settings', () => {
         onQuit: () => {},
     });
 
-    const recordingItem = template.find((item) => item.label === microcopy.tray.recording.startCapturing);
+    const recordingItem = template.find(
+        (item) => item.label === microcopy.tray.recording.startCapturing
+    );
     assert.ok(recordingItem);
 
     recordingItem.click();

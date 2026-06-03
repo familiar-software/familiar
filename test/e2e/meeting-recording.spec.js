@@ -150,9 +150,12 @@ test.describe('meeting recording', () => {
       )
       const transcript = fs.readFileSync(transcriptPath, 'utf-8')
       expect(transcript).toContain('We should ship live notes.')
+      expect(transcript).toContain(
+        '[00:00:00] Hello from the meeting.\n[00:00:01] We should ship live notes.'
+      )
       expect(transcript).not.toContain('In progress')
       expect(transcript).not.toContain('Started:')
-      expect(transcript).not.toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
+      expect(transcript).toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
       expect(listTranscriptJsonlPaths(contextPath)).toEqual([])
 
       const stopResult = await window.evaluate(() =>
@@ -215,6 +218,115 @@ test.describe('meeting recording', () => {
       )
       expect(stopResult?.status?.isRecording).toBe(false)
       expect(stopResult?.status?.awakeLockActive).toBe(false)
+    } finally {
+      await electronApp.close()
+    }
+  })
+
+  test('shows starting state and does not miss a slow helper startup', async () => {
+    const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-meeting-slow-'))
+    const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-meeting-slow-'))
+    const electronApp = await launchApp({
+      contextPath,
+      settingsDir,
+      env: {
+        FAMILIAR_E2E_AUDIO_START_DELAY_MS: '5000'
+      }
+    })
+
+    try {
+      const window = await electronApp.firstWindow()
+      await window.waitForLoadState('domcontentloaded')
+
+      await window.evaluate(() => {
+        window.__pendingMeetingStart = window.familiar.clickTrayMeetingRecordingActionForE2E()
+      })
+
+      await expect
+        .poll(async () => {
+          const status = await window.evaluate(() => window.familiar.getMeetingRecordingStatus())
+          return {
+            state: status?.state,
+            isStarting: status?.isStarting,
+            isRecording: status?.isRecording,
+            awakeLockActive: status?.awakeLockActive
+          }
+        })
+        .toEqual({
+          state: 'starting',
+          isStarting: true,
+          isRecording: false,
+          awakeLockActive: true
+        })
+
+      const startingMenuItems = await window.evaluate(() =>
+        window.familiar.getTrayMenuItemsForE2E()
+      )
+      expect(startingMenuItems?.items.map((item) => item.label)).toContain(
+        'Starting meeting recording...'
+      )
+
+      const startResult = await window.evaluate(() => window.__pendingMeetingStart)
+      expect(startResult?.ok).toBe(true)
+      expect(startResult?.status?.isRecording).toBe(true)
+
+      await expect
+        .poll(async () => {
+          const status = await window.evaluate(() => window.familiar.getMeetingRecordingStatus())
+          return status?.state
+        })
+        .toBe('recording')
+
+      const stopResult = await window.evaluate(() =>
+        window.familiar.clickTrayMeetingRecordingActionForE2E()
+      )
+      expect(stopResult?.ok).toBe(true)
+      expect(stopResult?.status?.isRecording).toBe(false)
+    } finally {
+      await electronApp.close()
+    }
+  })
+
+  test('retries when the speech helper is killed twice during tray startup', async () => {
+    const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-meeting-kill-'))
+    const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-meeting-kill-'))
+    const killMarkerPath = path.join(settingsDir, 'speech-helper-killed-on-start')
+    const electronApp = await launchApp({
+      contextPath,
+      settingsDir,
+      env: {
+        FAMILIAR_E2E_AUDIO_KILL_ON_START_MARKER_PATH: killMarkerPath,
+        FAMILIAR_E2E_AUDIO_KILL_ON_START_COUNT: '2'
+      }
+    })
+
+    try {
+      const window = await electronApp.firstWindow()
+      await window.waitForLoadState('domcontentloaded')
+
+      const startResult = await window.evaluate(() =>
+        window.familiar.clickTrayMeetingRecordingActionForE2E()
+      )
+
+      expect(startResult?.ok).toBe(true)
+      expect(startResult?.status?.state).toBe('recording')
+      expect(fs.existsSync(killMarkerPath)).toBe(true)
+      expect(fs.readFileSync(killMarkerPath, 'utf-8')).toBe('2')
+
+      await expect
+        .poll(() => {
+          const transcriptPath = findTranscriptMarkdownPath(contextPath)
+          return transcriptPath && fs.existsSync(transcriptPath)
+            ? fs.readFileSync(transcriptPath, 'utf-8')
+            : ''
+        }, { timeout: 10000 })
+        .toContain('Hello from')
+
+      const stopResult = await window.evaluate(() =>
+        window.familiar.clickTrayMeetingRecordingActionForE2E()
+      )
+      expect(stopResult?.ok).toBe(true)
+      expect(stopResult?.status?.isRecording).toBe(false)
     } finally {
       await electronApp.close()
     }

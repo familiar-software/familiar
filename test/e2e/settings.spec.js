@@ -89,10 +89,12 @@ test('storage change button sets the context folder path', async () => {
     await expect(window.getByRole('tab', { name: 'Capture' })).toBeVisible()
     await expect(window.getByRole('tab', { name: 'Storage' })).toBeVisible()
     await expect(window.getByRole('tab', { name: 'Skill' })).toBeVisible()
-    const visibleTabs = (await window.locator('[role="tab"]:visible').allTextContents()).map((tabText) =>
-      tabText.trim()
-    )
+    await expect(window.getByRole('tab', { name: 'Audio' })).toBeVisible()
+    const visibleTabs = (
+      await window.locator('[role="tab"]:visible').allTextContents()
+    ).map((tabText) => tabText.trim())
     expect(visibleTabs.slice(0, 2)).toEqual(['Capture', 'Storage'])
+    expect(visibleTabs.slice(-2)).toEqual(['Automate', 'Audio'])
     await window.getByRole('tab', { name: 'Storage' }).click()
 
     const confirmDialog = confirmMoveContextFolder(window)
@@ -103,6 +105,72 @@ test('storage change button sets the context folder path', async () => {
 
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
     expect(stored.contextFolderPath).toBe(expectedContextPath)
+  } finally {
+    await electronApp.close()
+  }
+})
+
+test('audio tab saves and clears meeting recording shortcut', async () => {
+  const appRoot = path.join(__dirname, '../..')
+  const contextPath = path.join(appRoot, 'test', 'fixtures', 'context')
+  const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-e2e-'))
+  const settingsPath = path.join(settingsDir, 'settings.json')
+  fs.writeFileSync(
+    settingsPath,
+    JSON.stringify(
+      {
+        wizardCompleted: true
+      },
+      null,
+      2
+    )
+  )
+
+  const launchArgs = ['.', '--open-settings']
+  if (process.platform === 'linux') {
+    launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
+  }
+
+  const electronApp = await electron.launch({
+    args: launchArgs,
+    cwd: appRoot,
+    env: {
+      ...process.env,
+      FAMILIAR_E2E: '1',
+      FAMILIAR_E2E_CONTEXT_PATH: contextPath,
+      FAMILIAR_SETTINGS_DIR: settingsDir
+    }
+  })
+
+  try {
+    const window = await getSettingsWindow(electronApp)
+    await window.waitForLoadState('domcontentloaded')
+
+    await window.getByRole('tab', { name: 'Audio' }).click()
+    const shortcutInput = window.locator('#audio-meeting-recording-shortcut')
+    await expect(shortcutInput).toBeVisible()
+    await expect(shortcutInput).toHaveValue('')
+
+    await shortcutInput.focus()
+    await window.keyboard.press(
+      process.platform === 'darwin' ? 'Meta+Shift+M' : 'Control+Shift+M'
+    )
+    await expect(shortcutInput).toHaveValue('CommandOrControl+Shift+M')
+    await expect(window.locator('#audio-settings-status')).toHaveText('Saved.')
+
+    let stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+    expect(stored.meetingRecordingShortcut).toBe('CommandOrControl+Shift+M')
+
+    await window.locator('#audio-meeting-recording-shortcut-clear').click()
+    await expect(shortcutInput).toHaveValue('')
+    stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+    expect(stored.meetingRecordingShortcut).toBe(null)
+
+    await shortcutInput.focus()
+    await window.keyboard.press('Alt+Shift+F')
+    await expect(shortcutInput).toHaveValue('Alt+Shift+F')
+    stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+    expect(stored.meetingRecordingShortcut).toBe('Alt+Shift+F')
   } finally {
     await electronApp.close()
   }

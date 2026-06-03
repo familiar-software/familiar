@@ -82,6 +82,16 @@ export function DashboardShellLayout({
       )
     }
 
+    if (id === 'audio') {
+      return (
+        <>
+          <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" />
+          <path d="M5 10v2a7 7 0 0 0 14 0v-2" />
+          <path d="M12 19v2" />
+        </>
+      )
+    }
+
     return (
       <>
         <path d="M12 3v6" />

@@ -62,6 +62,7 @@ else
 fi
 
 chmod 755 "$OUT"
+codesign --force --sign - "$OUT"
 
 if [[ "$UNIVERSAL" == true ]]; then
   ARCH_INFO="$(lipo -info "$OUT" || true)"

@@ -1,11 +1,19 @@
 import CoreML
+import Darwin
+import Dispatch
 import Foundation
 import WhisperKit
 
 private let defaultModel = "tiny"
 private let modelRootEnvKey = "FAMILIAR_WHISPERKIT_MODEL_ROOT"
-private let sampleRate = 16_000
+let sampleRate = 16_000
 private let partialIntervalNs: UInt64 = 1_500_000_000
+private let audioStartProbeIntervalNs: UInt64 = 100_000_000
+private let audioStartTimeoutNs: UInt64 = 5_000_000_000
+
+private func writeDiagnostic(_ message: String) {
+    FileHandle.standardError.write(Data("[familiar-speech-helper] \(message)\n".utf8))
+}
 
 private struct HelperRequest: Decodable {
     let id: String
@@ -81,25 +89,66 @@ actor SpeechService {
     }
 
     func startCapture(inputDeviceName: String?) async throws {
+        writeDiagnostic("start_capture requested")
         guard state == .idle else {
             throw HelperError.message("Speech capture is already active.")
         }
+        writeDiagnostic("requesting microphone permission")
         guard await AudioProcessor.requestRecordPermission() else {
             throw HelperError.message("Microphone access was not granted.")
         }
+        writeDiagnostic("microphone permission granted")
 
-        state = .loading
-        let pipe = try await loadWhisperKit()
-        let inputDeviceID = try resolveInputDeviceID(named: inputDeviceName)
-        startedAt = Date()
-        lastText = ""
+        do {
+            state = .loading
+            writeDiagnostic("loading WhisperKit")
+            let pipe = try await loadWhisperKit()
+            writeDiagnostic("resolving input device")
+            let inputDeviceID = try resolveInputDeviceID(named: inputDeviceName)
+            startedAt = Date()
+            lastText = ""
 
-        try pipe.audioProcessor.startRecordingLive(inputDeviceID: inputDeviceID) { _ in }
-        state = .recording
-        partialTask = Task { await self.runPartialLoop() }
+            writeDiagnostic("starting audio processor")
+            let initialSampleCount = pipe.audioProcessor.audioSamples.count
+            try pipe.audioProcessor.startRecordingLive(inputDeviceID: inputDeviceID) { _ in }
+            writeDiagnostic("waiting for audio samples")
+            let sampleCount = try await waitForAudioSamples(
+                from: pipe.audioProcessor,
+                previousSampleCount: initialSampleCount
+            )
+            state = .recording
+            writeDiagnostic("audio processor started samples=\(sampleCount)")
+            partialTask = Task { await self.runPartialLoop() }
+        } catch {
+            writeDiagnostic("start_capture failed: \(error)")
+            partialTask?.cancel()
+            partialTask = nil
+            whisperKit?.audioProcessor.stopRecording()
+            state = .idle
+            throw error
+        }
+    }
+
+    private func waitForAudioSamples(
+        from audioProcessor: any AudioProcessing,
+        previousSampleCount: Int
+    ) async throws -> Int {
+        let deadline = DispatchTime.now().uptimeNanoseconds + audioStartTimeoutNs
+        while DispatchTime.now().uptimeNanoseconds < deadline {
+            let sampleCount = audioProcessor.audioSamples.count
+            if sampleCount > 0 && sampleCount != previousSampleCount {
+                return sampleCount
+            }
+            try await Task.sleep(nanoseconds: audioStartProbeIntervalNs)
+        }
+
+        throw HelperError.message(
+            "Audio capture did not start: no microphone samples were received."
+        )
     }
 
     func stopCapture() async -> [String: Any] {
+        writeDiagnostic("stop_capture requested state=\(state.rawValue)")
         guard state == .recording else {
             return [:]
         }
@@ -107,8 +156,8 @@ actor SpeechService {
         partialTask?.cancel()
         partialTask = nil
         whisperKit?.audioProcessor.stopRecording()
-        let finalPayload = await transcribeCurrentAudio(isFinal: true) ?? [:]
         state = .idle
+        let finalPayload = await transcribeCurrentAudio(isFinal: true) ?? [:]
         return finalPayload
     }
 
@@ -134,19 +183,27 @@ actor SpeechService {
             return nil
         }
 
-        let samples = Array(pipe.audioProcessor.audioSamples)
-        if samples.count < sampleRate {
+        let selected = selectTranscriptionSamples(
+            pipe.audioProcessor.audioSamples,
+            isFinal: isFinal
+        )
+        if selected.samples.count < sampleRate {
             return nil
         }
 
         do {
             let options = DecodingOptions(
+                detectLanguage: true,
                 skipSpecialTokens: true,
-                withoutTimestamps: true,
+                withoutTimestamps: false,
+                wordTimestamps: true,
                 concurrentWorkerCount: 1,
                 chunkingStrategy: ChunkingStrategy.none
             )
-            let results = try await pipe.transcribe(audioArray: samples, decodeOptions: options)
+            let results = try await pipe.transcribe(
+                audioArray: selected.samples,
+                decodeOptions: options
+            )
             guard let result = results.first else {
                 return nil
             }
@@ -157,21 +214,83 @@ actor SpeechService {
             }
 
             lastText = text
-            return transcriptPayload(text: text, isFinal: isFinal)
+            return transcriptPayload(
+                result: result,
+                text: text,
+                isFinal: isFinal,
+                audioSampleOffsetMs: selected.audioSampleOffsetMs
+            )
         } catch {
             FileHandle.standardError.write(Data("Transcription failed: \(error)\n".utf8))
             return nil
         }
     }
 
-    private func transcriptPayload(text: String, isFinal: Bool) -> [String: Any] {
+    private func transcriptPayload(
+        result: TranscriptionResult,
+        text: String,
+        isFinal: Bool,
+        audioSampleOffsetMs: Int
+    ) -> [String: Any] {
         let elapsedMs = Int(Date().timeIntervalSince(startedAt) * 1000)
+        let segmentPayloads = transcriptSegmentPayloads(
+            from: result,
+            audioSampleOffsetMs: audioSampleOffsetMs
+        )
+        let startedAtMs = segmentPayloads.first?["startedAtMs"] as? Int ?? 0
+        let endedAtMs = segmentPayloads.last?["endedAtMs"] as? Int ?? elapsedMs
         return [
             "text": text,
             "isFinal": isFinal,
-            "startedAtMs": 0,
-            "endedAtMs": elapsedMs
+            "startedAtMs": startedAtMs,
+            "endedAtMs": endedAtMs,
+            "segments": segmentPayloads
         ]
+    }
+
+    private func transcriptSegmentPayloads(
+        from result: TranscriptionResult,
+        audioSampleOffsetMs: Int
+    ) -> [[String: Any]] {
+        var payloads: [[String: Any]] = []
+        for segment in result.segments {
+            let text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if text.isEmpty {
+                continue
+            }
+            payloads.append([
+                "text": text,
+                "startedAtMs": Int(segment.start * 1000) + audioSampleOffsetMs,
+                "endedAtMs": Int(segment.end * 1000) + audioSampleOffsetMs,
+                "words": wordPayloads(
+                    from: segment.words,
+                    audioSampleOffsetMs: audioSampleOffsetMs
+                )
+            ])
+        }
+        return payloads
+    }
+
+    private func wordPayloads(
+        from words: [WordTiming]?,
+        audioSampleOffsetMs: Int
+    ) -> [[String: Any]] {
+        guard let words else {
+            return []
+        }
+        var payloads: [[String: Any]] = []
+        for word in words {
+            let text = word.word.trimmingCharacters(in: .whitespacesAndNewlines)
+            if text.isEmpty {
+                continue
+            }
+            payloads.append([
+                "text": text,
+                "startedAtMs": Int(word.start * 1000) + audioSampleOffsetMs,
+                "endedAtMs": Int(word.end * 1000) + audioSampleOffsetMs
+            ])
+        }
+        return payloads
     }
 
     private func loadWhisperKit() async throws -> WhisperKit {
@@ -183,6 +302,7 @@ actor SpeechService {
             defaultModel
         let modelRoot = resolveModelRoot()
         let localModelFolder = resolveLocalModelFolder(modelRoot: modelRoot, model: model)
+        writeDiagnostic("resolved model root \(modelRoot.path)")
         try FileManager.default.createDirectory(
             at: modelRoot,
             withIntermediateDirectories: true
@@ -205,6 +325,7 @@ actor SpeechService {
             useBackgroundDownloadSession: false
         )
         let loaded = try await WhisperKit(config)
+        writeDiagnostic("WhisperKit loaded")
         whisperKit = loaded
         return loaded
     }
@@ -285,12 +406,16 @@ enum HelperError: Error, CustomStringConvertible {
     }
 }
 
-@main
 struct FamiliarSpeechHelper {
     static func main() async {
+        writeDiagnostic("helper started pid=\(getpid())")
         let writer = OutputWriter()
         let service = SpeechService(writer: writer)
         let decoder = JSONDecoder()
+        let signalHandlers = TerminationSignalHandlers(service: service)
+        defer {
+            signalHandlers.cancel()
+        }
 
         while let line = readLine() {
             guard let data = line.data(using: .utf8) else {
@@ -299,6 +424,7 @@ struct FamiliarSpeechHelper {
 
             do {
                 let request = try decoder.decode(HelperRequest.self, from: data)
+                writeDiagnostic("received command=\(request.command) id=\(request.id)")
                 await handle(request: request, service: service, writer: writer)
             } catch {
                 FileHandle.standardError.write(Data("Invalid helper request: \(error)\n".utf8))
@@ -338,3 +464,5 @@ struct FamiliarSpeechHelper {
         }
     }
 }
+
+await FamiliarSpeechHelper.main()

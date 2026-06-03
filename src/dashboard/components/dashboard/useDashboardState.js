@@ -54,6 +54,8 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
   const [globalError, setGlobalError] = useTimedMessage('')
   const [recordingMessage, setRecordingMessage] = useTimedMessage('')
   const [recordingError, setRecordingError] = useTimedMessage('')
+  const [audioMessage, setAudioMessage] = useTimedMessage('')
+  const [audioError, setAudioError] = useTimedMessage('')
   const [storageMessage, setStorageMessage] = useTimedMessage('')
   const [storageError, setStorageError] = useTimedMessage('')
   const [skillMessage, setSkillMessage] = useTimedMessage('')
@@ -198,6 +200,10 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
             ? next.contextFolderPath
             : DEFAULT_SETTINGS.contextFolderPath,
         alwaysRecordWhenActive: Boolean(next.alwaysRecordWhenActive),
+        meetingRecordingShortcut:
+          typeof next.meetingRecordingShortcut === 'string' && next.meetingRecordingShortcut.trim()
+            ? next.meetingRecordingShortcut.trim()
+            : null,
         capturePrivacy: {
           blacklistedApps: Array.isArray(next?.capturePrivacy?.blacklistedApps)
             ? next.capturePrivacy.blacklistedApps
@@ -270,6 +276,10 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
     setRecordingMessage,
     recordingError,
     setRecordingError,
+    audioMessage,
+    setAudioMessage,
+    audioError,
+    setAudioError,
     storageMessage,
     setStorageMessage,
     storageError,

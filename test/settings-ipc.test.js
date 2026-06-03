@@ -186,3 +186,79 @@ test('settings:applyDefaultContextFolder does not save after wizard completion',
     fs.rmSync(tmpRoot, { recursive: true, force: true })
   }
 })
+
+test('settings IPC saves and returns meeting recording shortcut', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-ipc-'))
+  const settingsDir = path.join(tmpRoot, 'settings')
+  fs.mkdirSync(settingsDir, { recursive: true })
+
+  const handlers = {}
+  const stubElectron = {
+    app: {
+      getVersion: () => 'test-version',
+      focus: () => {},
+      getFileIcon: async () => null
+    },
+    BrowserWindow: {
+      fromWebContents: () => null
+    },
+    dialog: {
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] })
+    },
+    ipcMain: {
+      handle: (channel, handler) => {
+        handlers[channel] = handler
+      }
+    },
+    shell: {
+      openPath: async () => '',
+      openExternal: async () => {}
+    },
+    desktopCapturer: {
+      getSources: async () => []
+    },
+    screen: {
+      getAllDisplays: () => [],
+      getPrimaryDisplay: () => null
+    }
+  }
+
+  const originalLoad = Module._load
+  const originalSettingsDir = process.env.FAMILIAR_SETTINGS_DIR
+  process.env.FAMILIAR_SETTINGS_DIR = settingsDir
+
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return stubElectron
+    }
+    return originalLoad.call(this, request, parent, isMain)
+  }
+
+  resetModule('../src/ipc/settings')
+
+  try {
+    const { registerSettingsHandlers } = require('../src/ipc/settings')
+    registerSettingsHandlers()
+
+    const saveResult = await handlers['settings:save'](null, {
+      meetingRecordingShortcut: 'CommandOrControl+Shift+M'
+    })
+    assert.deepEqual(saveResult, { ok: true })
+
+    const savedSettings = handlers['settings:get']()
+    assert.equal(savedSettings.meetingRecordingShortcut, 'CommandOrControl+Shift+M')
+
+    const clearResult = await handlers['settings:save'](null, {
+      meetingRecordingShortcut: null
+    })
+    assert.deepEqual(clearResult, { ok: true })
+
+    const clearedSettings = handlers['settings:get']()
+    assert.equal(clearedSettings.meetingRecordingShortcut, null)
+  } finally {
+    Module._load = originalLoad
+    resetModule('../src/ipc/settings')
+    process.env.FAMILIAR_SETTINGS_DIR = originalSettingsDir
+    fs.rmSync(tmpRoot, { recursive: true, force: true })
+  }
+})

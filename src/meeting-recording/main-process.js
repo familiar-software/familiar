@@ -3,6 +3,7 @@ const { createMeetingRecordingController } = require('./controller')
 
 const EMPTY_STATUS = Object.freeze({
   state: 'idle',
+  isStarting: false,
   isRecording: false,
   awakeLockActive: false,
   sessionId: '',

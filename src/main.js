@@ -5,6 +5,7 @@ const {
     nativeImage,
     ipcMain,
     nativeTheme,
+    globalShortcut,
     powerSaveBlocker,
     shell
 } = require('electron');
@@ -32,6 +33,7 @@ const { createPresenceMonitor } = require('./screen-capture/presence');
 const { getScreenRecordingPermissionStatus } = require('./screen-capture/permissions');
 const { createTrayIconFactory, getTrayIconPathForMenuBar } = require('./tray/icon');
 const { shouldOpenSettingsOnReady } = require('./launch-intent');
+const { createMeetingRecordingShortcutController } = require('./audio-shortcut');
 const { APP_MODE, setAppMode } = require('./app-mode');
 const { initializeProcessOwnership } = require('./startup/ownership');
 const { microcopy } = require('./microcopy/microcopy');
@@ -58,6 +60,7 @@ let settingsWindow = null;
 let isQuitting = false;
 let screenStillsController = null;
 let meetingRecordingMainProcess = null;
+let meetingRecordingShortcutController = null;
 let presenceMonitor = null;
 let recordingShutdownInProgress = false;
 let recordingOffReminder = null;
@@ -209,6 +212,9 @@ const updateScreenCaptureFromSettings = (nextSettings = null) => {
 
 const handleMainSettingsSaved = (nextSettings = null) => {
     updateScreenCaptureFromSettings(nextSettings);
+    if (meetingRecordingShortcutController) {
+        meetingRecordingShortcutController.registerFromSettings(nextSettings || loadSettings());
+    }
 
     if (!retentionChangeTrigger) {
         return;
@@ -858,6 +864,13 @@ if (isPrimaryInstance) {
                 getPreferredSessionId: () => getCurrentScreenStillsState().activeSessionId || ''
             });
             meetingRecordingMainProcess.initialize();
+            meetingRecordingShortcutController = createMeetingRecordingShortcutController({
+                globalShortcut,
+                loadSettings,
+                onToggleMeetingRecording: () => meetingRecordingMainProcess?.toggle?.(),
+                logger: console
+            });
+            meetingRecordingShortcutController.registerFromSettings(loadSettings());
         }
 
         autoSessionCleanupScheduler = createAutoSessionCleanupScheduler({
@@ -928,6 +941,8 @@ if (isPrimaryInstance) {
 
 app.on('before-quit', (event) => {
     autoSessionCleanupScheduler?.stop?.();
+    meetingRecordingShortcutController?.dispose?.();
+    meetingRecordingShortcutController = null;
     if (recordingOffReminder && typeof recordingOffReminder.stopReminder === 'function') {
         recordingOffReminder.stopReminder();
     }

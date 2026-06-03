@@ -1,6 +1,7 @@
 import React from 'react'
 
 import { AutomateSection } from './AutomateSection'
+import { AudioSection } from './AudioSection'
 import { CompleteSection } from './CompleteSection'
 import { InstallSkillSection } from './InstallSkillSection'
 import { RecordingSection } from './RecordingSection'
@@ -15,7 +16,8 @@ export function DashboardShellSectionContent({
   recordingSectionProps,
   installSectionProps,
   storageSectionProps,
-  automateSectionProps
+  automateSectionProps,
+  audioSectionProps
 }) {
   if (activeSection === 'wizard') {
     return <WizardSection mc={mc} toDisplayText={toDisplayText} {...wizardSectionProps} />
@@ -35,6 +37,10 @@ export function DashboardShellSectionContent({
 
   if (activeSection === 'automate') {
     return <AutomateSection mc={mc} toDisplayText={toDisplayText} {...automateSectionProps} />
+  }
+
+  if (activeSection === 'audio') {
+    return <AudioSection mc={mc} toDisplayText={toDisplayText} {...audioSectionProps} />
   }
 
   return <StorageSection mc={mc} toDisplayText={toDisplayText} {...storageSectionProps} />

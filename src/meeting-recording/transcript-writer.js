@@ -5,6 +5,7 @@ const { scanAndRedactContent } = require('../security/rg-redaction')
 
 const LIVE_BLOCK_START = '<!-- familiar-live-transcript:start -->'
 const LIVE_BLOCK_END = '<!-- familiar-live-transcript:end -->'
+const TRANSCRIPT_LINE_MAX_WORDS = 8
 
 function noop () {}
 
@@ -13,12 +14,14 @@ function normalizeTranscriptEvent (event = {}) {
   const text = typeof event.text === 'string' ? event.text : ''
   const startedAtMs = Number.isFinite(event.startedAtMs) ? event.startedAtMs : null
   const endedAtMs = Number.isFinite(event.endedAtMs) ? event.endedAtMs : null
+  const segments = normalizeTranscriptSegments(event.segments)
   return {
     ...event,
     type,
     text,
     startedAtMs,
-    endedAtMs
+    endedAtMs,
+    segments
   }
 }
 
@@ -26,15 +29,165 @@ function buildTranscriptHeader () {
   return '# Meeting transcript\n\n'
 }
 
+function normalizeTranscriptWords (words = []) {
+  if (!Array.isArray(words)) {
+    return []
+  }
+  return words.map((word) => ({
+    text: typeof word?.text === 'string' ? word.text.trim() : '',
+    startedAtMs: Number.isFinite(word?.startedAtMs) ? word.startedAtMs : null,
+    endedAtMs: Number.isFinite(word?.endedAtMs) ? word.endedAtMs : null
+  })).filter((word) => word.text)
+}
+
+function normalizeTranscriptSegments (segments = []) {
+  if (!Array.isArray(segments)) {
+    return []
+  }
+  return segments.map((segment) => {
+    const words = normalizeTranscriptWords(segment?.words)
+    const normalizedSegment = {
+      text: typeof segment?.text === 'string' ? segment.text.trim() : '',
+      startedAtMs: Number.isFinite(segment?.startedAtMs) ? segment.startedAtMs : null,
+      endedAtMs: Number.isFinite(segment?.endedAtMs) ? segment.endedAtMs : null,
+      speaker: typeof segment?.speaker === 'string' ? segment.speaker.trim() : ''
+    }
+    if (words.length > 0) {
+      normalizedSegment.words = words
+    }
+    return normalizedSegment
+  }).filter((segment) => segment.text)
+}
+
+function countTranscriptWords (text = '') {
+  return (text.match(/\S+/g) || []).length
+}
+
+function splitTranscriptPartByWordLimit (text, baseWordOffset) {
+  const words = text.match(/\S+/g) || []
+  if (words.length <= TRANSCRIPT_LINE_MAX_WORDS) {
+    return [{ text, wordOffset: baseWordOffset }]
+  }
+  const parts = []
+  for (let index = 0; index < words.length; index += TRANSCRIPT_LINE_MAX_WORDS) {
+    parts.push({
+      text: words.slice(index, index + TRANSCRIPT_LINE_MAX_WORDS).join(' '),
+      wordOffset: baseWordOffset + index
+    })
+  }
+  return parts
+}
+
+function splitTranscriptTextIntoLineParts (text = '') {
+  const trimmed = typeof text === 'string' ? text.trim() : ''
+  if (!trimmed) {
+    return []
+  }
+
+  const sentenceParts = trimmed.match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g) || [trimmed]
+  const lineParts = []
+  let wordOffset = 0
+  for (const sentencePart of sentenceParts) {
+    const softParts = sentencePart.match(/[^,;:]+[,;:]+(?=\s|$)|[^,;:]+$/g) || [sentencePart]
+    for (const softPart of softParts) {
+      const part = softPart.trim()
+      lineParts.push(...splitTranscriptPartByWordLimit(part, wordOffset))
+      wordOffset += countTranscriptWords(part)
+    }
+  }
+  return lineParts
+}
+
+function splitTranscriptTextIntoLines (text = '') {
+  return splitTranscriptTextIntoLineParts(text).map((part) => part.text)
+}
+
+function normalizeTimestampMs (value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0
+  }
+  return Math.floor(value)
+}
+
+function formatTranscriptTimestamp (startedAtMs) {
+  const totalSeconds = Math.floor(normalizeTimestampMs(startedAtMs) / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [hours, minutes, seconds]
+    .map((part) => String(part).padStart(2, '0'))
+    .join(':')
+}
+
 function buildTranscriptLine (event) {
-  return `${event.text.trim()}\n`
+  const text = event.text.trim()
+  const timestamp = `[${formatTranscriptTimestamp(event.startedAtMs)}]`
+  const body = event.speaker ? `${event.speaker}: ${text}` : text
+  return `${timestamp} ${body}\n`
+}
+
+function resolveTextPartTimestampMs ({ event, part, index, count }) {
+  const word = Array.isArray(event.words) ? event.words[part.wordOffset] : null
+  if (Number.isFinite(word?.startedAtMs)) {
+    return word.startedAtMs
+  }
+
+  const startedAtMs = normalizeTimestampMs(event.startedAtMs)
+  const endedAtMs = normalizeTimestampMs(event.endedAtMs)
+  if (endedAtMs <= startedAtMs) {
+    return startedAtMs
+  }
+  const wordCount = countTranscriptWords(event.text)
+  if (part.wordOffset > 0 && wordCount > TRANSCRIPT_LINE_MAX_WORDS) {
+    return startedAtMs + Math.floor(((endedAtMs - startedAtMs) * part.wordOffset) / wordCount)
+  }
+  if (count <= 1) {
+    return startedAtMs
+  }
+  return startedAtMs + Math.floor(((endedAtMs - startedAtMs) * index) / count)
+}
+
+function resolveTextLineEvents (event) {
+  const parts = splitTranscriptTextIntoLineParts(event.text)
+  return parts.map((part, index) => ({
+    text: part.text,
+    startedAtMs: resolveTextPartTimestampMs({
+      event,
+      part,
+      index,
+      count: parts.length
+    }),
+    speaker: event.speaker
+  }))
+}
+
+function resolveTranscriptLineEvents (event) {
+  if (Array.isArray(event.segments) && event.segments.length > 0) {
+    return event.segments.flatMap((segment) => resolveTextLineEvents({
+      ...segment,
+      startedAtMs: Number.isFinite(segment.startedAtMs)
+        ? segment.startedAtMs
+        : event.startedAtMs,
+      endedAtMs: Number.isFinite(segment.endedAtMs)
+        ? segment.endedAtMs
+        : event.endedAtMs
+    }))
+  }
+  return resolveTextLineEvents(event)
+}
+
+function buildTranscriptLines (event) {
+  return resolveTranscriptLineEvents(event)
+    .filter((line) => line.text.trim())
+    .map(buildTranscriptLine)
+    .join('')
 }
 
 function buildLiveBlock (event) {
   return [
     LIVE_BLOCK_START,
     'In progress:',
-    buildTranscriptLine(event).trimEnd(),
+    buildTranscriptLines(event).trimEnd(),
     LIVE_BLOCK_END,
     ''
   ].join('\n')
@@ -129,7 +282,7 @@ function createTranscriptWriter ({
     const baseContent = stripLiveBlock(currentContent).trimEnd()
     await fs.writeFile(
       transcriptMarkdownPath,
-      `${baseContent}\n${buildTranscriptLine(event)}`,
+      `${baseContent}\n${buildTranscriptLines(event)}`,
       'utf-8'
     )
   }
@@ -143,8 +296,14 @@ function createTranscriptWriter ({
         eventType: normalizedEvent.type
       })
     }
+    for (const segment of normalizedEvent.segments) {
+      segment.text = await redactText({
+        text: segment.text,
+        eventType: normalizedEvent.type
+      })
+    }
 
-    if (!normalizedEvent.text.trim()) {
+    if (!normalizedEvent.text.trim() && normalizedEvent.segments.length === 0) {
       return
     }
     if (normalizedEvent.type === 'final') {
@@ -165,6 +324,9 @@ function createTranscriptWriter ({
 module.exports = {
   LIVE_BLOCK_END,
   LIVE_BLOCK_START,
+  buildTranscriptLines,
   createTranscriptWriter,
-  normalizeTranscriptEvent
+  formatTranscriptTimestamp,
+  normalizeTranscriptEvent,
+  splitTranscriptTextIntoLines
 }

@@ -240,6 +240,40 @@ test('saveSettings preserves alwaysRecordWhenActive when updating other settings
   assert.equal(loaded.contextFolderPath, contextDir)
 })
 
+test('saveSettings persists meeting recording shortcut', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+
+  saveSettings({ meetingRecordingShortcut: 'CommandOrControl+Shift+M' }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.meetingRecordingShortcut, 'CommandOrControl+Shift+M')
+})
+
+test('saveSettings normalizes empty meeting recording shortcut to null', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+
+  saveSettings({ meetingRecordingShortcut: '   ' }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.meetingRecordingShortcut, null)
+})
+
+test('saveSettings preserves meeting recording shortcut when updating other settings', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+  const contextDir = path.join(tempRoot, 'context')
+  fs.mkdirSync(contextDir)
+
+  saveSettings({ meetingRecordingShortcut: 'CommandOrControl+Shift+M' }, { settingsDir })
+  saveSettings({ contextFolderPath: contextDir }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(loaded.meetingRecordingShortcut, 'CommandOrControl+Shift+M')
+  assert.equal(loaded.contextFolderPath, contextDir)
+})
+
 test('saveSettings persists wizardCompleted', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

@@ -3,5 +3,6 @@ export const buildDashboardNavigation = (mc = {}) => [
   { id: 'recording', label: mc.dashboard?.sections?.recording?.title },
   { id: 'storage', label: mc.dashboard?.sections?.storage?.title },
   { id: 'install-skill', label: mc.dashboard?.sections?.installSkill?.title },
-  { id: 'automate', label: mc.dashboard?.sections?.automate?.title }
+  { id: 'automate', label: mc.dashboard?.sections?.automate?.title },
+  { id: 'audio', label: mc.dashboard?.sections?.audio?.title }
 ]

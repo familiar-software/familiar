@@ -29,7 +29,9 @@ function buildTrayMenuTemplate ({
   recordingState,
   recordingStatusIcon
 }) {
-  const stillsState = recordingState && typeof recordingState === 'object' ? recordingState.state : ''
+  const stillsState = recordingState && typeof recordingState === 'object'
+    ? recordingState.state
+    : ''
   const isRecording = isCaptureActiveState(stillsState)
   const isPaused = Boolean(recordingPaused || (recordingState && recordingState.manualPaused))
   const pauseRemainingMs = recordingState && typeof recordingState.pauseRemainingMs === 'number'
@@ -38,7 +40,11 @@ function buildTrayMenuTemplate ({
 
   let recordingItem
   if (isPaused) {
-    recordingItem = { label: formatPausedLabel(pauseRemainingMs), toolTip: 'Click to resume', click: onRecordingPause }
+    recordingItem = {
+      label: formatPausedLabel(pauseRemainingMs),
+      toolTip: 'Click to resume',
+      click: onRecordingPause
+    }
   } else if (isRecording) {
     recordingItem = {
       label: 'Capturing',
@@ -55,11 +61,16 @@ function buildTrayMenuTemplate ({
     recordingItem.icon = recordingStatusIcon
   }
 
+  const isMeetingStarting = meetingRecordingState?.isStarting === true ||
+    meetingRecordingState?.state === 'starting'
   const isMeetingRecording = meetingRecordingState?.isRecording === true
   const meetingRecordingItem = {
-    label: isMeetingRecording
-      ? microcopy.tray.meeting.stopRecording
-      : microcopy.tray.meeting.startRecording,
+    label: isMeetingStarting
+      ? microcopy.tray.meeting.startingRecording
+      : isMeetingRecording
+        ? microcopy.tray.meeting.stopRecording
+        : microcopy.tray.meeting.startRecording,
+    enabled: !isMeetingStarting,
     click: onMeetingRecordingToggle
   }
 

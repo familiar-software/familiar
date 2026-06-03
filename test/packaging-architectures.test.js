@@ -14,6 +14,20 @@ const buildSteps = [
     'npm run css:build'
 ];
 
+function readSpeechHelperSource () {
+    const helperSourceDir = path.join(
+        appRoot,
+        'scripts',
+        'familiar-speech-helper',
+        'Sources',
+        'FamiliarSpeechHelper'
+    );
+    return fs.readdirSync(helperSourceDir)
+        .filter((name) => name.endsWith('.swift'))
+        .map((name) => fs.readFileSync(path.join(helperSourceDir, name), 'utf-8'))
+        .join('\n');
+}
+
 test('package scripts build mac dist for both arm64 and x64', () => {
     const packageJsonPath = path.join(appRoot, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
@@ -114,6 +128,13 @@ test('package includes meeting audio transcription resources', () => {
     );
 });
 
+test('meeting audio transcription has packaged microphone entitlement', () => {
+    const entitlementsPath = path.join(appRoot, 'build', 'entitlements.mac.plist');
+    const entitlements = fs.readFileSync(entitlementsPath, 'utf-8');
+
+    assert.match(entitlements, /com\.apple\.security\.device\.audio-input/);
+});
+
 test('meeting audio transcription pins the official WhisperKit package', () => {
     const packageSwiftPath = path.join(
         appRoot,
@@ -137,23 +158,33 @@ test('meeting audio transcription pins the official WhisperKit package', () => {
     assert.equal(argmaxPin.state.revision, '25c62997041c134b03ca82731ce2f6fd2cae1eb9');
 });
 
-test('speech helper uses plain transcript streaming and packaged model root override', () => {
-    const helperSourcePath = path.join(
-        appRoot,
-        'scripts',
-        'familiar-speech-helper',
-        'Sources',
-        'FamiliarSpeechHelper',
-        'main.swift'
-    );
-    const helperSource = fs.readFileSync(helperSourcePath, 'utf-8');
+test('speech helper uses timestamp segments and packaged model root override', () => {
+    const helperSource = readSpeechHelperSource();
 
     assert.match(helperSource, /FAMILIAR_WHISPERKIT_MODEL_ROOT/);
     assert.match(helperSource, /modelFolder: localModelFolder\?\.path/);
     assert.match(helperSource, /tokenizerFolder: modelRoot/);
-    assert.match(helperSource, /withoutTimestamps:\s*true/);
-    assert.doesNotMatch(helperSource, /wordTimestamps:\s*true/);
-    assert.doesNotMatch(helperSource, /"segments": segmentPayloads/);
+    assert.match(helperSource, /detectLanguage:\s*true/);
+    assert.match(helperSource, /withoutTimestamps:\s*false/);
+    assert.match(helperSource, /wordTimestamps:\s*true/);
+    assert.match(helperSource, /"segments": segmentPayloads/);
+    assert.match(helperSource, /"words": wordPayloads/);
+    assert.match(helperSource, /TerminationSignalHandlers/);
+    assert.match(helperSource, /install\(signalNumber: SIGTERM\)/);
+    assert.match(helperSource, /waitForAudioSamples/);
+    assert.match(helperSource, /Audio capture did not start/);
+});
+
+test('speech helper bounds partial transcription work to recent audio', () => {
+    const helperSource = readSpeechHelperSource();
+
+    assert.match(helperSource, /maxPartialTranscriptionSamples/);
+    assert.match(helperSource, /audioSampleOffsetMs/);
+    assert.match(helperSource, /suffix\(maxPartialTranscriptionSamples\)/);
+    assert.doesNotMatch(
+        helperSource,
+        /let samples = Array\(pipe\.audioProcessor\.audioSamples\)/
+    );
 });
 
 test('speech helper build script can build a universal macOS helper', () => {
@@ -165,6 +196,7 @@ test('speech helper build script can build a universal macOS helper', () => {
     assert.match(script, /build_arch x86_64/);
     assert.match(script, /apple-macosx14\.0/);
     assert.match(script, /lipo -create/);
+    assert.match(script, /codesign --force --sign - "\$OUT"/);
 });
 
 test('RG bundle script prepares binaries from official releases or env overrides', () => {

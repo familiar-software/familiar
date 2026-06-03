@@ -18,6 +18,7 @@ const { resolveAutoCleanupRetentionDays } = require('../storage/auto-cleanup-ret
 const {
   normalizeCapturePrivacySettings
 } = require('../screen-stills/capture-privacy');
+const { normalizeMeetingRecordingShortcut } = require('../audio-shortcut');
 const { listInstalledApps, getInstalledAppIconDataUrl } = require('../apps/installed-apps');
 const { getStorageDir } = require('../const');
 
@@ -144,6 +145,9 @@ function handleGetSettings() {
         const settings = loadSettings();
         const contextFolderPath = settings.contextFolderPath || '';
         const alwaysRecordWhenActive = settings.alwaysRecordWhenActive === true;
+        const meetingRecordingShortcut = normalizeMeetingRecordingShortcut(
+            settings.meetingRecordingShortcut
+        );
         const storageAutoCleanupRetentionDays = resolveAutoCleanupRetentionDays(
             settings.storageAutoCleanupRetentionDays
         );
@@ -166,6 +170,7 @@ function handleGetSettings() {
             contextFolderPath,
             validationMessage,
             alwaysRecordWhenActive,
+            meetingRecordingShortcut,
             storageAutoCleanupRetentionDays,
             wizardCompleted,
             capturePrivacy,
@@ -178,6 +183,7 @@ function handleGetSettings() {
             contextFolderPath: '',
             validationMessage: 'Failed to load settings.',
             alwaysRecordWhenActive: false,
+            meetingRecordingShortcut: null,
             storageAutoCleanupRetentionDays: resolveAutoCleanupRetentionDays(undefined),
             wizardCompleted: false,
             capturePrivacy: normalizeCapturePrivacySettings(),
@@ -189,6 +195,8 @@ function handleGetSettings() {
 function handleSaveSettings(_event, payload) {
     const hasContextFolderPath = Object.prototype.hasOwnProperty.call(payload || {}, 'contextFolderPath');
     const hasAlwaysRecordWhenActive = Object.prototype.hasOwnProperty.call(payload || {}, 'alwaysRecordWhenActive');
+    const hasMeetingRecordingShortcut =
+        Object.prototype.hasOwnProperty.call(payload || {}, 'meetingRecordingShortcut');
     const hasStorageAutoCleanupRetentionDays = Object.prototype.hasOwnProperty.call(payload || {}, 'storageAutoCleanupRetentionDays');
     const hasWizardCompleted = Object.prototype.hasOwnProperty.call(payload || {}, 'wizardCompleted');
     const hasCapturePrivacy = Object.prototype.hasOwnProperty.call(payload || {}, 'capturePrivacy');
@@ -197,6 +205,7 @@ function handleSaveSettings(_event, payload) {
     if (
         !hasContextFolderPath &&
         !hasAlwaysRecordWhenActive &&
+        !hasMeetingRecordingShortcut &&
         !hasStorageAutoCleanupRetentionDays &&
         !hasWizardCompleted &&
         !hasCapturePrivacy
@@ -222,6 +231,12 @@ function handleSaveSettings(_event, payload) {
     if (hasAlwaysRecordWhenActive) {
         const nextValue = payload.alwaysRecordWhenActive === true;
         settingsPayload.alwaysRecordWhenActive = nextValue;
+    }
+
+    if (hasMeetingRecordingShortcut) {
+        settingsPayload.meetingRecordingShortcut = normalizeMeetingRecordingShortcut(
+            payload.meetingRecordingShortcut
+        );
     }
 
     if (hasStorageAutoCleanupRetentionDays) {

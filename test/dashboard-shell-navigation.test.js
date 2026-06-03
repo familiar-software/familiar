@@ -8,6 +8,6 @@ test('includes the expected dashboard navigation sections', () => {
 
   assert.deepEqual(
     navigation.map((entry) => entry.id),
-    ['wizard', 'recording', 'storage', 'install-skill', 'automate']
+    ['wizard', 'recording', 'storage', 'install-skill', 'automate', 'audio']
   )
 })

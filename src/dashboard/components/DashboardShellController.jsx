@@ -7,6 +7,7 @@ import {
 } from './dashboard/DashboardShellNavigation'
 import { useDashboardCapture } from './dashboard/useDashboardCapture'
 import { useDashboardCapturePrivacy } from './dashboard/useDashboardCapturePrivacy'
+import { useDashboardAudio } from './dashboard/useDashboardAudio'
 import { useDashboardLifecycle } from './dashboard/useDashboardLifecycle'
 import { useDashboardSkills } from './dashboard/useDashboardSkills'
 import { useDashboardState } from './dashboard/useDashboardState'
@@ -36,6 +37,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
     refreshRecordingStatus: lifecycle.refreshRecordingStatus
   })
   const capturePrivacy = useDashboardCapturePrivacy(core)
+  const audio = useDashboardAudio(core)
   const storage = useDashboardStorage(core, lifecycle)
   const updates = useDashboardUpdates(core)
   const wizard = useDashboardWizard({
@@ -251,6 +253,12 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
           mc: core.mc,
           wizardHarnessOptions: core.wizardHarnessOptions,
           skillInstallPaths: core.skillInstallPaths
+        }}
+        audioSectionProps={{
+          settings: core.settings,
+          audioMessage: core.audioMessage,
+          audioError: core.audioError,
+          saveMeetingRecordingShortcut: audio.saveMeetingRecordingShortcut
         }}
         storageSectionProps={{
           mc: core.mc,
