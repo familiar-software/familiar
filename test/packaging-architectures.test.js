@@ -161,9 +161,13 @@ test('meeting audio transcription pins the official WhisperKit package', () => {
 test('speech helper uses timestamp segments and packaged model root override', () => {
     const helperSource = readSpeechHelperSource();
 
+    assert.match(helperSource, /defaultModel = "large-v3-v20240930_626MB"/);
     assert.match(helperSource, /FAMILIAR_WHISPERKIT_MODEL_ROOT/);
     assert.match(helperSource, /modelFolder: localModelFolder\?\.path/);
     assert.match(helperSource, /tokenizerFolder: modelRoot/);
+    assert.match(helperSource, /resolveWhisperKitAssets/);
+    assert.match(helperSource, /WhisperKit\.download/);
+    assert.match(helperSource, /ModelUtilities\.loadTokenizer/);
     assert.match(helperSource, /detectLanguage:\s*true/);
     assert.match(helperSource, /withoutTimestamps:\s*false/);
     assert.match(helperSource, /wordTimestamps:\s*true/);
@@ -197,6 +201,14 @@ test('speech helper build script can build a universal macOS helper', () => {
     assert.match(script, /apple-macosx14\.0/);
     assert.match(script, /lipo -create/);
     assert.match(script, /codesign --force --sign - "\$OUT"/);
+});
+
+test('speech model bundle script defaults to compressed large v3', () => {
+    const buildScriptPath = path.join(appRoot, 'scripts', 'build-whisperkit-models.sh');
+    const script = fs.readFileSync(buildScriptPath, 'utf-8');
+
+    assert.match(script, /FAMILIAR_WHISPERKIT_MODEL:-large-v3-v20240930_626MB/);
+    assert.match(script, /find "\$OUT_DIR" -mindepth 1 -maxdepth 1 -exec rm -R/);
 });
 
 test('RG bundle script prepares binaries from official releases or env overrides', () => {

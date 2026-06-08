@@ -9,7 +9,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELPER="$SCRIPT_DIR/bin/familiar-speech-helper"
 OUT_DIR="$SCRIPT_DIR/bin/whisperkit-models"
-MODEL="${FAMILIAR_WHISPERKIT_MODEL:-tiny}"
+MODEL="${FAMILIAR_WHISPERKIT_MODEL:-large-v3-v20240930_626MB}"
 
 if [[ ! -x "$HELPER" ]]; then
   echo "Missing Familiar speech helper: $HELPER" >&2
@@ -18,6 +18,7 @@ if [[ ! -x "$HELPER" ]]; then
 fi
 
 mkdir -p "$OUT_DIR"
+find "$OUT_DIR" -mindepth 1 -maxdepth 1 -exec rm -R {} +
 
 response="$(
   printf '{"id":"install","command":"install_assets"}\n' |

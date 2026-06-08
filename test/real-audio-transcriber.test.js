@@ -9,6 +9,7 @@ const appRoot = path.join(__dirname, '..')
 const helperPath = path.join(appRoot, 'scripts', 'bin', 'familiar-speech-helper')
 const playerSourcePath = path.join(appRoot, 'scripts', 'play-audio-to-output-device.m')
 const blackHoleDeviceName = 'BlackHole 2ch'
+const defaultWhisperKitModel = 'large-v3-v20240930_626MB'
 
 const shouldRunBlackHole = process.env.FAMILIAR_REAL_AUDIO_TEST === '1' &&
   process.platform === 'darwin'
@@ -267,7 +268,7 @@ test('real speech helper launches and responds before audio capture starts', {
   const child = spawn(helperPath, [], {
     env: {
       ...process.env,
-      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || 'tiny'
+      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || defaultWhisperKitModel
     },
     stdio: ['pipe', 'pipe', 'pipe']
   })
@@ -322,7 +323,7 @@ test('real speech helper returns a start_capture response without hanging or exi
   const child = spawn(helperPath, [], {
     env: {
       ...process.env,
-      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || 'tiny'
+      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || defaultWhisperKitModel
     },
     stdio: ['pipe', 'pipe', 'pipe']
   })
@@ -424,7 +425,7 @@ test('real transcriber receives generated audio through BlackHole', {
   const child = spawn(helperPath, [], {
     env: {
       ...process.env,
-      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || 'tiny'
+      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || defaultWhisperKitModel
     },
     stdio: ['pipe', 'pipe', 'pipe']
   })

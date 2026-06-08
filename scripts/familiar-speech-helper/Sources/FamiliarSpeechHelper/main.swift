@@ -4,7 +4,7 @@ import Dispatch
 import Foundation
 import WhisperKit
 
-private let defaultModel = "tiny"
+private let defaultModel = "large-v3-v20240930_626MB"
 private let modelRootEnvKey = "FAMILIAR_WHISPERKIT_MODEL_ROOT"
 let sampleRate = 16_000
 private let partialIntervalNs: UInt64 = 1_500_000_000
@@ -84,7 +84,7 @@ actor SpeechService {
     }
 
     func installAssets() async throws -> [String: Any] {
-        _ = try await loadWhisperKit()
+        try await resolveWhisperKitAssets()
         return statusPayload()
     }
 
@@ -298,8 +298,7 @@ actor SpeechService {
             return whisperKit
         }
 
-        let model = ProcessInfo.processInfo.environment["FAMILIAR_WHISPERKIT_MODEL"] ??
-            defaultModel
+        let model = resolveConfiguredModel()
         let modelRoot = resolveModelRoot()
         let localModelFolder = resolveLocalModelFolder(modelRoot: modelRoot, model: model)
         writeDiagnostic("resolved model root \(modelRoot.path)")
@@ -313,7 +312,7 @@ actor SpeechService {
             textDecoderCompute: .cpuAndNeuralEngine
         )
         let config = WhisperKitConfig(
-            model: model.contains("*") ? model : "openai*\(model)",
+            model: whisperKitSearchModelName(for: model),
             downloadBase: modelRoot,
             modelFolder: localModelFolder?.path,
             tokenizerFolder: modelRoot,
@@ -328,6 +327,44 @@ actor SpeechService {
         writeDiagnostic("WhisperKit loaded")
         whisperKit = loaded
         return loaded
+    }
+
+    private func resolveWhisperKitAssets() async throws {
+        let model = resolveConfiguredModel()
+        let modelRoot = resolveModelRoot()
+        writeDiagnostic("resolved model root \(modelRoot.path)")
+        try FileManager.default.createDirectory(
+            at: modelRoot,
+            withIntermediateDirectories: true
+        )
+
+        let modelFolder: URL
+        if let localModelFolder = resolveLocalModelFolder(modelRoot: modelRoot, model: model) {
+            modelFolder = localModelFolder
+        } else {
+            modelFolder = try await WhisperKit.download(
+                variant: whisperKitSearchModelName(for: model),
+                downloadBase: modelRoot,
+                useBackgroundSession: false
+            )
+        }
+        writeDiagnostic("WhisperKit model assets resolved \(modelFolder.path)")
+
+        _ = try await ModelUtilities.loadTokenizer(
+            for: tokenizerVariant(for: model),
+            tokenizerFolder: modelRoot,
+            useBackgroundSession: false
+        )
+        writeDiagnostic("WhisperKit tokenizer assets resolved")
+    }
+
+    private func resolveConfiguredModel() -> String {
+        ProcessInfo.processInfo.environment["FAMILIAR_WHISPERKIT_MODEL"] ??
+            defaultModel
+    }
+
+    private func whisperKitSearchModelName(for model: String) -> String {
+        model.contains("*") ? model : "openai*\(model)"
     }
 
     private func resolveModelRoot() -> URL {
@@ -362,6 +399,41 @@ actor SpeechService {
             return "openai_\(modelName)"
         }
         return "openai_whisper-\(modelName)"
+    }
+
+    private func tokenizerVariant(for model: String) -> ModelVariant {
+        let modelName = localModelVariantName(for: model)
+        if modelName.contains("tiny.en") {
+            return .tinyEn
+        }
+        if modelName.contains("tiny") {
+            return .tiny
+        }
+        if modelName.contains("base.en") {
+            return .baseEn
+        }
+        if modelName.contains("base") {
+            return .base
+        }
+        if modelName.contains("small.en") {
+            return .smallEn
+        }
+        if modelName.contains("small") {
+            return .small
+        }
+        if modelName.contains("medium.en") {
+            return .mediumEn
+        }
+        if modelName.contains("medium") {
+            return .medium
+        }
+        if modelName.contains("large-v3") {
+            return .largev3
+        }
+        if modelName.contains("large-v2") {
+            return .largev2
+        }
+        return .large
     }
 
     private func inputDevicePayloads() -> [[String: Any]] {

@@ -77,8 +77,10 @@ Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and 
 - `FAMILIAR_AUDIO_INPUT_DEVICE_NAME="BlackHole 2ch"` selects a named macOS input device for
   local meeting transcription without changing the default system input.
 - Packaged builds include `scripts/bin/whisperkit-models` as `resources/whisperkit-models`.
-  Distribution builds prepare that directory with `npm run build:speech-models`; BlackHole is only
-  a local test routing device and is not packaged.
+  Distribution builds prepare that directory with `npm run build:speech-models`. The default
+  bundled WhisperKit model is the compressed multilingual `large-v3-v20240930_626MB` model so
+  Hebrew transcription is usable; `FAMILIAR_WHISPERKIT_MODEL` can still override the model for
+  local experiments. BlackHole is only a local test routing device and is not packaged.
 - Microphone permission is separate from Screen Recording permission on macOS. A local development
   run may not prompt if the responsible process already has microphone permission, but the packaged
   app still declares `NSMicrophoneUsageDescription` and should be verified in System Settings.
