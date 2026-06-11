@@ -1,12 +1,15 @@
 const fs = require('node:fs')
 const path = require('node:path')
-const { execFileSync } = require('node:child_process')
+const { execFile } = require('node:child_process')
+const { promisify } = require('node:util')
 
 const {
   FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
   STILLS_DIR_NAME,
   STILLS_MARKDOWN_DIR_NAME
 } = require('../const')
+
+const execFileAsync = promisify(execFile)
 
 function parseDuKilobytes(output) {
   if (typeof output !== 'string') {
@@ -20,24 +23,52 @@ function parseDuKilobytes(output) {
   return kilobytes
 }
 
-function getDuSizeBytes({
+async function pathExists(targetPath) {
+  try {
+    await fs.promises.access(targetPath)
+    return true
+  } catch (_error) {
+    return false
+  }
+}
+
+async function readDuOutput({ targetPath, duArgs, execFileImpl }) {
+  const output = await execFileImpl('du', [...duArgs, targetPath], { encoding: 'utf8' })
+  if (typeof output === 'string') {
+    return output
+  }
+  if (typeof output?.stdout === 'string') {
+    return output.stdout
+  }
+  return ''
+}
+
+async function getDuSizeBytes({
   targetPath,
-  options: { logger = console, execFile = execFileSync } = {}
+  options: { logger = console, execFile = execFileAsync } = {}
 } = {}) {
-  if (!targetPath || !fs.existsSync(targetPath)) {
+  if (!targetPath || !(await pathExists(targetPath))) {
     return 0
   }
 
   let duOutput = ''
   try {
-    duOutput = execFile('du', ['-skA', targetPath], { encoding: 'utf8' })
+    duOutput = await readDuOutput({
+      targetPath,
+      duArgs: ['-skA'],
+      execFileImpl: execFile
+    })
   } catch (error) {
     logger.warn('du -skA failed; falling back to du -sk', {
       targetPath,
       message: error?.message || String(error)
     })
     try {
-      duOutput = execFile('du', ['-sk', targetPath], { encoding: 'utf8' })
+      duOutput = await readDuOutput({
+        targetPath,
+        duArgs: ['-sk'],
+        execFileImpl: execFile
+      })
     } catch (fallbackError) {
       logger.error('du size lookup failed', {
         targetPath,
@@ -51,7 +82,7 @@ function getDuSizeBytes({
   return kilobytes * 1024
 }
 
-function getStorageUsageBreakdown({ contextFolderPath, logger = console, execFile } = {}) {
+async function getStorageUsageBreakdown({ contextFolderPath, logger = console, execFile } = {}) {
   if (typeof contextFolderPath !== 'string' || contextFolderPath.trim().length === 0) {
     return {
       totalBytes: 0,
@@ -65,9 +96,15 @@ function getStorageUsageBreakdown({ contextFolderPath, logger = console, execFil
   const stillsRoot = path.join(familiarRoot, STILLS_DIR_NAME)
   const stillsMarkdownRoot = path.join(familiarRoot, STILLS_MARKDOWN_DIR_NAME)
 
-  const totalBytes = getDuSizeBytes({ targetPath: familiarRoot, options: { logger, execFile } })
-  const screenshotsBytes = getDuSizeBytes({ targetPath: stillsRoot, options: { logger, execFile } })
-  const steelsMarkdownBytes = getDuSizeBytes({
+  const totalBytes = await getDuSizeBytes({
+    targetPath: familiarRoot,
+    options: { logger, execFile }
+  })
+  const screenshotsBytes = await getDuSizeBytes({
+    targetPath: stillsRoot,
+    options: { logger, execFile }
+  })
+  const steelsMarkdownBytes = await getDuSizeBytes({
     targetPath: stillsMarkdownRoot,
     options: { logger, execFile }
   })
