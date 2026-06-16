@@ -16,12 +16,12 @@ test('parseDuKilobytes parses first du output field', () => {
   assert.equal(parseDuKilobytes('invalid output'), 0)
 })
 
-test('getDuSizeBytes uses du -skA output when available', () => {
+test('getDuSizeBytes uses du -skA output when available', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-du-usage-'))
   const targetPath = path.join(root, 'example')
   fs.mkdirSync(targetPath, { recursive: true })
   const calls = []
-  const bytes = getDuSizeBytes({
+  const bytes = await getDuSizeBytes({
     targetPath,
     options: {
       execFile: (cmd, args) => {
@@ -40,12 +40,12 @@ test('getDuSizeBytes uses du -skA output when available', () => {
   fs.rmSync(root, { recursive: true, force: true })
 })
 
-test('getDuSizeBytes falls back to du -sk when -A is unavailable', () => {
+test('getDuSizeBytes falls back to du -sk when -A is unavailable', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-du-fallback-'))
   const targetPath = path.join(root, 'example')
   fs.mkdirSync(targetPath, { recursive: true })
   const calls = []
-  const bytes = getDuSizeBytes({
+  const bytes = await getDuSizeBytes({
     targetPath,
     options: {
       execFile: (cmd, args) => {
@@ -65,7 +65,36 @@ test('getDuSizeBytes falls back to du -sk when -A is unavailable', () => {
   fs.rmSync(root, { recursive: true, force: true })
 })
 
-test('getStorageUsageBreakdown uses du category values and computes system as subtraction', () => {
+test('getDuSizeBytes waits for asynchronous du completion', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-du-async-'))
+  const targetPath = path.join(root, 'example')
+  fs.mkdirSync(targetPath, { recursive: true })
+
+  let resolveDu
+  let settled = false
+  const pendingDu = new Promise((resolve) => {
+    resolveDu = resolve
+  })
+  const bytesPromise = getDuSizeBytes({
+    targetPath,
+    options: {
+      execFile: () => pendingDu
+    }
+  }).then((bytes) => {
+    settled = true
+    return bytes
+  })
+
+  await Promise.resolve()
+  assert.equal(settled, false)
+
+  resolveDu(`7\t${targetPath}\n`)
+  assert.equal(await bytesPromise, 7 * 1024)
+  assert.equal(settled, true)
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
+test('getStorageUsageBreakdown computes category values from du', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-storage-breakdown-'))
   const contextFolderPath = path.join(root, 'context')
   const familiarRoot = path.join(contextFolderPath, 'familiar')
@@ -80,7 +109,7 @@ test('getStorageUsageBreakdown uses du category values and computes system as su
     [markdownRoot, `200\t${markdownRoot}\n`]
   ])
 
-  const usage = getStorageUsageBreakdown({
+  const usage = await getStorageUsageBreakdown({
     contextFolderPath,
     execFile: (_cmd, args) => {
       const output = outputsByPath.get(args[1])

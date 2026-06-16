@@ -122,11 +122,9 @@ export function AutomatePromptBuilder({
   }
 
   const titleText =
-    titleVariant === 'wizard' && singleInstalledAgentName
-      ? `What should ${singleInstalledAgentName} auto-update with Familiar's context?`
-      : titleVariant === 'settings' && html.settingsAutomateTitle
-        ? toDisplayText(html.settingsAutomateTitle)
-        : toDisplayText(html.wizardAutomateTitle)
+    titleVariant === 'settings' && html.settingsAutomateTitle
+      ? toDisplayText(html.settingsAutomateTitle)
+      : toDisplayText(html.wizardAutomateTitle)
 
   const scheduledTaskUrls = {
     cursor: 'https://cursor.com/docs/cloud-agent/automations',
@@ -140,10 +138,32 @@ export function AutomatePromptBuilder({
   const firstWithUrl = harnessPool.find((entry) => scheduledTaskUrls[entry.value])
   const scheduledTaskUrl = firstWithUrl ? scheduledTaskUrls[firstWithUrl.value] : null
 
+  const descriptionText = toDisplayText(html.wizardAutomateDescription)
+  const descriptionContactUrl = toDisplayText(html.wizardAutomateDescriptionContactUrl)
+  const descriptionContactLabel = toDisplayText(html.wizardAutomateDescriptionContactLabel)
+
   return (
     <>
-      <div className="text-center">
+      <div className="text-center space-y-2">
         <CardTitle>{titleText}</CardTitle>
+        {descriptionText && (
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            {descriptionText}
+            {descriptionContactUrl && descriptionContactLabel && (
+              <>
+                {' '}
+                <a
+                  href={descriptionContactUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  {descriptionContactLabel}
+                </a>
+              </>
+            )}
+          </p>
+        )}
       </div>
       <section className="space-y-3">
         <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">

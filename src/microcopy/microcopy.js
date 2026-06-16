@@ -165,10 +165,13 @@ const microcopy = {
         'Demo showing how to ask Familiar what you did recently from your AI agent.',
       wizardTryItPinkySwear:
         "I pinky pinky super swear that I did this because it'd be such a waste if I didn't do this and this is so damn cool and I really would be missing out.",
-      wizardAutomateTitle: "What should your AI auto-update with Familiar's context?",
-      wizardAutomateDescription: '',
-      settingsAutomateTitle: 'Build a prompt for your agent to auto-update on a schedule.',
-      wizardDestMemory: 'Native memory',
+      wizardAutomateTitle: 'Let your agent self-update using Familiar',
+      wizardAutomateDescription:
+        "Early adopters loved using Familiar as part of scheduled tasks, heartbeats, and routines, updating things in the background. We'd love to hear what you're doing with this.",
+      wizardAutomateDescriptionContactUrl: 'https://wa.me/972587891015',
+      wizardAutomateDescriptionContactLabel: 'whatsapp Tal here',
+      settingsAutomateTitle: 'Let your agent self-update using Familiar',
+      wizardDestMemory: 'Native memory (i.e. dreaming)',
       wizardDestMemoryDesc: 'Your agent remembers what you do without you telling it',
       wizardDestSkills: 'Custom skills',
       wizardDestSkillsDesc: 'Your skills evolve as your work does',

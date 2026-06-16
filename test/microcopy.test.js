@@ -27,11 +27,11 @@ test('getMicrocopyValue resolves configured copy', () => {
   assert.equal(getMicrocopyValue('dashboard.sections.storage.title'), microcopy.dashboard.sections.storage.title)
   assert.equal(
     getMicrocopyValue('dashboard.html.wizardAutomateTitle'),
-    "What should your AI auto-update with Familiar's context?"
+    'Let your agent self-update using Familiar'
   )
   assert.equal(
     getMicrocopyValue('dashboard.html.wizardDestMemory'),
-    'Native memory'
+    'Native memory (i.e. dreaming)'
   )
   assert.equal(
     getMicrocopyValue('dashboard.html.wizardChooseContextFolderTitle'),

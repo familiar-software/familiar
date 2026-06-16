@@ -621,7 +621,8 @@ async function handleGetStorageUsageBreakdown(_event, _payload = {}, options = {
 
   const normalizedContextFolderPath =
     typeof contextFolderPath === 'string' ? contextFolderPath.trim() : ''
-  const cacheKey = normalizedContextFolderPath.length > 0 ? path.resolve(normalizedContextFolderPath) : ''
+  const cacheKey =
+    normalizedContextFolderPath.length > 0 ? path.resolve(normalizedContextFolderPath) : ''
   const nowMs = Date.now()
   const cached = storageUsageCache.get(cacheKey)
 
@@ -637,12 +638,14 @@ async function handleGetStorageUsageBreakdown(_event, _payload = {}, options = {
     }
   }
 
-  const computePromise = Promise.resolve().then(() => {
-    const usage = getUsageBreakdown({ contextFolderPath, logger })
+  const computePromise = Promise.resolve().then(async () => {
+    const usage = await getUsageBreakdown({ contextFolderPath, logger })
     const normalized = {
       totalBytes: Number.isFinite(usage?.totalBytes) ? usage.totalBytes : 0,
       screenshotsBytes: Number.isFinite(usage?.screenshotsBytes) ? usage.screenshotsBytes : 0,
-      steelsMarkdownBytes: Number.isFinite(usage?.steelsMarkdownBytes) ? usage.steelsMarkdownBytes : 0,
+      steelsMarkdownBytes: Number.isFinite(usage?.steelsMarkdownBytes)
+        ? usage.steelsMarkdownBytes
+        : 0,
       systemBytes: Number.isFinite(usage?.systemBytes) ? usage.systemBytes : 0
     }
     return {
