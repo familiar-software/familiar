@@ -131,6 +131,52 @@ function createAwakeLockSpy () {
   }
 }
 
+test('meeting recording prewarms model and returns to idle', async () => {
+  const stateChanges = []
+  const terminateReasons = []
+  let prewarmResolve = null
+  let helperOptions = null
+
+  const controller = createMeetingRecordingController({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    onStateChanged: (status) => stateChanges.push(status),
+    resolveSpeechHelperPathImpl: () => __filename,
+    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
+    createSpeechHelperClientImpl: (options) => {
+      helperOptions = options
+      return {
+        child: {},
+        prewarmModel: () => new Promise((resolve) => {
+          prewarmResolve = resolve
+        }),
+        terminate: async () => {
+          terminateReasons.push('prewarm-complete')
+          return { closed: true }
+        }
+      }
+    }
+  })
+
+  const prewarmPromise = controller.prewarm()
+  await Promise.resolve()
+
+  assert.equal(controller.getStatus().state, 'prewarming')
+  assert.equal(controller.getStatus().isPrewarming, true)
+  assert.equal(controller.getStatus().isStarting, false)
+  assert.equal(controller.getStatus().isRecording, false)
+  assert.equal(helperOptions.helperPath, __filename)
+  assert.equal(helperOptions.env.FAMILIAR_WHISPERKIT_MODEL_ROOT, '/tmp/familiar-model-root')
+
+  prewarmResolve({ durationMs: 42 })
+  const result = await prewarmPromise
+
+  assert.equal(result.ok, true)
+  assert.equal(controller.getStatus().state, 'idle')
+  assert.equal(controller.getStatus().isPrewarming, false)
+  assert.deepEqual(terminateReasons, ['prewarm-complete'])
+  assert.deepEqual(stateChanges.map((status) => status.state), ['prewarming', 'idle'])
+})
+
 test('meeting recording starts helper and stops awake lock', async () => {
   const contextFolderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-meeting-unit-'))
   const fakeChild = createFakeChild()

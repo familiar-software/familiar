@@ -3,6 +3,7 @@ const { createMeetingRecordingController } = require('./controller')
 
 const EMPTY_STATUS = Object.freeze({
   state: 'idle',
+  isPrewarming: false,
   isStarting: false,
   isRecording: false,
   awakeLockActive: false,
@@ -64,6 +65,20 @@ function createMeetingRecordingMainProcess (options = {}) {
       getContextFolderPath: () => loadSettings()?.contextFolderPath || '',
       getPreferredSessionId
     })
+    void prewarm()
+  }
+
+  async function prewarm () {
+    if (!controller) {
+      return { ok: false, message: 'Meeting recording controller unavailable.' }
+    }
+    try {
+      return await controller.prewarm()
+    } catch (error) {
+      const message = error?.message || 'Failed to prewarm meeting recording.'
+      logger.warn('Failed to prewarm meeting recording', { message })
+      return { ok: false, message, status: getStatus() }
+    }
   }
 
   async function start () {
@@ -115,6 +130,7 @@ function createMeetingRecordingMainProcess (options = {}) {
   return {
     getStatus,
     initialize,
+    prewarm,
     shutdown,
     start,
     stop,

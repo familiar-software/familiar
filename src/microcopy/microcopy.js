@@ -13,6 +13,7 @@ const microcopy = {
   tray: {
     meeting: {
       startRecording: 'Record meeting',
+      prewarmingRecording: 'Preparing meeting recording...',
       startingRecording: 'Starting meeting recording...',
       stopRecording: 'Stop meeting recording'
     },

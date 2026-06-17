@@ -157,6 +157,47 @@ test('speech helper client gives slow startup enough time before command timeout
   assert.deepEqual(scheduledDelays, [120000])
 })
 
+test('speech helper client gives prewarming enough time before command timeout', async () => {
+  const child = createFakeSpeechHelperChild()
+  const scheduledDelays = []
+  const scheduler = {
+    setTimeout: (_callback, delay) => {
+      const timer = { delay }
+      scheduledDelays.push(delay)
+      return timer
+    },
+    clearTimeout: (timer) => {
+      timer.cleared = true
+    }
+  }
+
+  child.stdin.on('data', (chunk) => {
+    const message = JSON.parse(chunk.toString('utf-8').trim())
+    assert.equal(message.command, 'prewarm_model')
+    setImmediate(() => {
+      child.stdout.write(`${JSON.stringify({
+        type: 'response',
+        id: message.id,
+        ok: true,
+        payload: { durationMs: 42 }
+      })}\n`)
+    })
+  })
+
+  const client = createSpeechHelperClient({
+    helperPath: '/tmp/familiar-speech-helper',
+    spawnImpl: () => child,
+    scheduler,
+    commandTimeoutMs: 10,
+    prewarmCommandTimeoutMs: 600000
+  })
+
+  const payload = await client.prewarmModel()
+
+  assert.deepEqual(scheduledDelays, [600000])
+  assert.equal(payload.durationMs, 42)
+})
+
 test('speech helper client signals helper when parent process exits', () => {
   const child = createFakeSpeechHelperChild({ pid: 12345 })
   const lifecycle = new EventEmitter()

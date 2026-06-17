@@ -15,6 +15,7 @@ const {
 
 const STATES = Object.freeze({
   IDLE: 'idle',
+  PREWARMING: 'prewarming',
   STARTING: 'starting',
   RECORDING: 'recording',
   STOPPING: 'stopping',
@@ -97,6 +98,8 @@ function createMeetingRecordingController (options = {}) {
   let stopWaiters = []
   let intentionalStop = false
   let lastErrorMessage = ''
+  let prewarmHelperClient = null
+  let prewarmPromise = null
   let startPromise = null
 
   function setState (nextState, details = {}) {
@@ -112,6 +115,7 @@ function createMeetingRecordingController (options = {}) {
   function getStatus () {
     return {
       state,
+      isPrewarming: state === STATES.PREWARMING,
       isStarting: state === STATES.STARTING,
       isRecording: state === STATES.RECORDING ||
         state === STATES.STOPPING,
@@ -302,6 +306,59 @@ function createMeetingRecordingController (options = {}) {
     await helper.startCapture(resolveStartCaptureOptions(process.env))
   }
 
+  async function prewarmOnce () {
+    const helperPath = resolveSpeechHelperPath()
+    let prewarmStderrBuffer = ''
+    let helper
+
+    lastErrorMessage = ''
+    setState(STATES.PREWARMING, { reason: 'prewarm-started' })
+    try {
+      helper = createSpeechHelperClientImpl({
+        helperPath,
+        spawnImpl,
+        env: buildHelperEnv(),
+        logger,
+        onStderr: (chunk) => {
+          prewarmStderrBuffer += chunk.toString('utf-8')
+          if (prewarmStderrBuffer.length > 8000) {
+            prewarmStderrBuffer = prewarmStderrBuffer.slice(-8000)
+          }
+        },
+        scheduler
+      })
+      prewarmHelperClient = helper
+      const payload = await helper.prewarmModel()
+      logger.log('Meeting speech helper prewarm finished', {
+        durationMs: payload?.durationMs ?? null
+      })
+      await terminateHelper(helper, 'prewarm-complete')
+      if (prewarmHelperClient === helper) {
+        prewarmHelperClient = null
+      }
+      if (state === STATES.PREWARMING) {
+        setState(STATES.IDLE, { reason: 'prewarm-complete' })
+      }
+      return { ok: true, status: getStatus() }
+    } catch (error) {
+      const message = error?.message || String(error)
+      logger.warn('Meeting speech helper prewarm failed', {
+        message,
+        stderrTail: prewarmStderrBuffer.trim().slice(-STDERR_TAIL_MAX_CHARS)
+      })
+      if (helper) {
+        await terminateHelper(helper, 'prewarm-failed')
+      }
+      if (prewarmHelperClient === helper) {
+        prewarmHelperClient = null
+      }
+      if (state === STATES.PREWARMING) {
+        setState(STATES.IDLE, { reason: 'prewarm-failed' })
+      }
+      return { ok: false, message, status: getStatus() }
+    }
+  }
+
   function handleHelperClose (currentHelper, { code, signal }) {
     if (speechHelperClient !== currentHelper) {
       return
@@ -382,6 +439,9 @@ function createMeetingRecordingController (options = {}) {
   }
 
   async function start () {
+    if (state === STATES.PREWARMING && prewarmPromise) {
+      await prewarmPromise
+    }
     if (state === STATES.STARTING && startPromise) {
       await startPromise
       return { ok: true, status: getStatus(), alreadyRecording: true }
@@ -395,6 +455,22 @@ function createMeetingRecordingController (options = {}) {
       return await startPromise
     } finally {
       startPromise = null
+    }
+  }
+
+  async function prewarm () {
+    if (prewarmPromise) {
+      return prewarmPromise
+    }
+    if (state !== STATES.IDLE) {
+      return { ok: true, status: getStatus(), skipped: true }
+    }
+
+    prewarmPromise = prewarmOnce()
+    try {
+      return await prewarmPromise
+    } finally {
+      prewarmPromise = null
     }
   }
 
@@ -445,11 +521,17 @@ function createMeetingRecordingController (options = {}) {
   }
 
   async function shutdown (reason = 'quit') {
+    if (prewarmPromise) {
+      await terminateHelper(prewarmHelperClient, reason)
+      await prewarmPromise
+      return { ok: true, status: getStatus() }
+    }
     return stop({ reason })
   }
 
   return {
     getStatus,
+    prewarm,
     shutdown,
     start,
     stop

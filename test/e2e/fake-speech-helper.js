@@ -96,6 +96,15 @@ async function handleStartCommand (message) {
 }
 
 const handleCommand = (message) => {
+  if (message.command === 'prewarm_model') {
+    writeMessage({
+      type: 'response',
+      id: message.id,
+      ok: true,
+      payload: { durationMs: 1 }
+    })
+    return
+  }
   if (message.command === 'start_capture') {
     void handleStartCommand(message)
     return

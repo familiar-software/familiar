@@ -63,14 +63,21 @@ function buildTrayMenuTemplate ({
 
   const isMeetingStarting = meetingRecordingState?.isStarting === true ||
     meetingRecordingState?.state === 'starting'
+  const isMeetingPrewarming = meetingRecordingState?.isPrewarming === true ||
+    meetingRecordingState?.state === 'prewarming'
   const isMeetingRecording = meetingRecordingState?.isRecording === true
+  let meetingRecordingLabel = microcopy.tray.meeting.startRecording
+  if (isMeetingPrewarming) {
+    meetingRecordingLabel = microcopy.tray.meeting.prewarmingRecording
+  } else if (isMeetingStarting) {
+    meetingRecordingLabel = microcopy.tray.meeting.startingRecording
+  } else if (isMeetingRecording) {
+    meetingRecordingLabel = microcopy.tray.meeting.stopRecording
+  }
+
   const meetingRecordingItem = {
-    label: isMeetingStarting
-      ? microcopy.tray.meeting.startingRecording
-      : isMeetingRecording
-        ? microcopy.tray.meeting.stopRecording
-        : microcopy.tray.meeting.startRecording,
-    enabled: !isMeetingStarting,
+    label: meetingRecordingLabel,
+    enabled: !isMeetingStarting && !isMeetingPrewarming,
     click: onMeetingRecordingToggle
   }
 

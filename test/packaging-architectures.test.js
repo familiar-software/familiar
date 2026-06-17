@@ -168,6 +168,9 @@ test('speech helper uses timestamp segments and packaged model root override', (
     assert.match(helperSource, /resolveWhisperKitAssets/);
     assert.match(helperSource, /WhisperKit\.download/);
     assert.match(helperSource, /ModelUtilities\.loadTokenizer/);
+    assert.match(helperSource, /"prewarm_model"/);
+    assert.match(helperSource, /prewarm:\s*true/);
+    assert.match(helperSource, /load:\s*false/);
     assert.match(helperSource, /detectLanguage:\s*true/);
     assert.match(helperSource, /withoutTimestamps:\s*false/);
     assert.match(helperSource, /wordTimestamps:\s*true/);

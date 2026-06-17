@@ -59,6 +59,7 @@ actor OutputWriter {
 actor SpeechService {
     private enum RuntimeState: String {
         case idle
+        case prewarming
         case loading
         case recording
     }
@@ -86,6 +87,29 @@ actor SpeechService {
     func installAssets() async throws -> [String: Any] {
         try await resolveWhisperKitAssets()
         return statusPayload()
+    }
+
+    func prewarmModel() async throws -> [String: Any] {
+        writeDiagnostic("prewarm_model requested")
+        guard state == .idle else {
+            throw HelperError.message("Speech capture is already active.")
+        }
+
+        let startedAt = Date()
+        state = .prewarming
+        do {
+            try await prewarmWhisperKit()
+            state = .idle
+            let durationMs = Int(Date().timeIntervalSince(startedAt) * 1000)
+            writeDiagnostic("WhisperKit prewarmed durationMs=\(durationMs)")
+            var payload = statusPayload()
+            payload["durationMs"] = durationMs
+            return payload
+        } catch {
+            state = .idle
+            writeDiagnostic("prewarm_model failed: \(error)")
+            throw error
+        }
     }
 
     func startCapture(inputDeviceName: String?) async throws {
@@ -329,6 +353,35 @@ actor SpeechService {
         return loaded
     }
 
+    private func prewarmWhisperKit() async throws {
+        let model = resolveConfiguredModel()
+        let modelRoot = resolveModelRoot()
+        let localModelFolder = resolveLocalModelFolder(modelRoot: modelRoot, model: model)
+        writeDiagnostic("resolved model root \(modelRoot.path)")
+        try FileManager.default.createDirectory(
+            at: modelRoot,
+            withIntermediateDirectories: true
+        )
+
+        let computeOptions = ModelComputeOptions(
+            audioEncoderCompute: .cpuAndNeuralEngine,
+            textDecoderCompute: .cpuAndNeuralEngine
+        )
+        let config = WhisperKitConfig(
+            model: whisperKitSearchModelName(for: model),
+            downloadBase: modelRoot,
+            modelFolder: localModelFolder?.path,
+            tokenizerFolder: modelRoot,
+            computeOptions: computeOptions,
+            verbose: false,
+            logLevel: .error,
+            prewarm: true,
+            load: false,
+            useBackgroundDownloadSession: false
+        )
+        _ = try await WhisperKit(config)
+    }
+
     private func resolveWhisperKitAssets() async throws {
         let model = resolveConfiguredModel()
         let modelRoot = resolveModelRoot()
@@ -521,6 +574,9 @@ struct FamiliarSpeechHelper {
                 await writer.response(id: request.id, ok: true, payload: payload)
             case "install_assets":
                 let payload = try await service.installAssets()
+                await writer.response(id: request.id, ok: true, payload: payload)
+            case "prewarm_model":
+                let payload = try await service.prewarmModel()
                 await writer.response(id: request.id, ok: true, payload: payload)
             case "start_capture":
                 try await service.startCapture(inputDeviceName: request.inputDeviceName)

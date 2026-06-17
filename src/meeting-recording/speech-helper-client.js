@@ -1,6 +1,7 @@
 const { spawn } = require('node:child_process')
 
 const COMMAND_TIMEOUT_MS = 30000
+const PREWARM_COMMAND_TIMEOUT_MS = 600000
 const START_COMMAND_TIMEOUT_MS = 120000
 const STOP_COMMAND_TIMEOUT_MS = 120000
 const STOP_TIMEOUT_MS = 125000
@@ -145,6 +146,7 @@ function createSpeechHelperClient ({
   onTranscriptEvent = noop,
   scheduler = { setTimeout, clearTimeout },
   commandTimeoutMs = COMMAND_TIMEOUT_MS,
+  prewarmCommandTimeoutMs = PREWARM_COMMAND_TIMEOUT_MS,
   startCommandTimeoutMs = START_COMMAND_TIMEOUT_MS,
   stopCommandTimeoutMs = STOP_COMMAND_TIMEOUT_MS,
   stopTimeoutMs = STOP_TIMEOUT_MS,
@@ -346,6 +348,8 @@ function createSpeechHelperClient ({
     child,
     kill: (signal) => killChild(child, signal, logger),
     sendCommand,
+    prewarmModel: () =>
+      sendCommand('prewarm_model', {}, { timeoutMs: prewarmCommandTimeoutMs }),
     startCapture: (options = {}) =>
       sendCommand('start_capture', options, { timeoutMs: startCommandTimeoutMs }),
     stopCapture,

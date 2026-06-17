@@ -65,6 +65,23 @@ test('buildTrayMenuTemplate shows starting meeting state without stop action', (
     assert.equal(toggleCalls, 0);
 });
 
+test('buildTrayMenuTemplate disables meeting recording while prewarming', () => {
+    let toggleCalls = 0;
+    const template = buildTrayMenuTemplate({
+        onMeetingRecordingToggle: () => {
+            toggleCalls += 1;
+        },
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        meetingRecordingState: { state: 'prewarming', isPrewarming: true }
+    });
+
+    assert.equal(template[0].label, microcopy.tray.meeting.prewarmingRecording);
+    assert.equal(template[0].enabled, false);
+    assert.equal(toggleCalls, 0);
+});
+
 test('settings click does not trigger quit', () => {
     let openSettingsCalls = 0;
     let quitCalls = 0;
