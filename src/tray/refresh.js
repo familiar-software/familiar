@@ -96,6 +96,7 @@ function createTrayMenuController({
             typeof recordingPaused === 'boolean' ? recordingPaused : resolveRecordingPaused();
         const recordingState = resolveRecordingState();
         const recordingIndicator = getRecordingIndicatorVisuals(recordingState || {});
+        const meetingRecordingState = resolveMeetingRecordingState();
 
         tray.setContextMenu(trayMenu);
         if (typeof tray.setToolTip === 'function') {
@@ -104,7 +105,9 @@ function createTrayMenuController({
 
         logger.log('Tray menu updated', {
             recordingPaused: resolvedRecordingPaused,
-            recordingIndicatorStatus: recordingIndicator.status
+            recordingIndicatorStatus: recordingIndicator.status,
+            meetingRecordingState: meetingRecordingState?.state || '',
+            meetingRecordingActive: meetingRecordingState?.isRecording === true
         });
     }
 

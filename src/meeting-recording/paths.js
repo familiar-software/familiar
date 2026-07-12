@@ -69,29 +69,11 @@ function resolveDefaultSpeechHelperPath ({ env = process.env, resourcesPath = ''
   return fs.existsSync(helperPath) ? helperPath : ''
 }
 
-function resolveWhisperKitModelRoot ({ env = process.env, resourcesPath = '' } = {}) {
-  const explicitPath = env.FAMILIAR_WHISPERKIT_MODEL_ROOT
-  if (typeof explicitPath === 'string' && explicitPath.trim()) {
-    return explicitPath.trim()
-  }
-
-  if (resourcesPath) {
-    const packagedPath = path.join(resourcesPath, 'whisperkit-models')
-    if (fs.existsSync(packagedPath)) {
-      return packagedPath
-    }
-  }
-
-  const devPath = path.join(__dirname, '..', '..', 'scripts', 'bin', 'whisperkit-models')
-  return fs.existsSync(devPath) ? devPath : ''
-}
-
 module.exports = {
   SESSION_ID_PATTERN,
   createSessionId,
   createTranscriptMarkdownFilename,
   normalizeSessionId,
   resolveDefaultSpeechHelperPath,
-  resolveMeetingSession,
-  resolveWhisperKitModelRoot
+  resolveMeetingSession
 }

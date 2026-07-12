@@ -141,7 +141,6 @@ test('meeting recording prewarms model and returns to idle', async () => {
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     onStateChanged: (status) => stateChanges.push(status),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     createSpeechHelperClientImpl: (options) => {
       helperOptions = options
       return {
@@ -164,17 +163,64 @@ test('meeting recording prewarms model and returns to idle', async () => {
   assert.equal(controller.getStatus().isPrewarming, true)
   assert.equal(controller.getStatus().isStarting, false)
   assert.equal(controller.getStatus().isRecording, false)
+  assert.equal(controller.getStatus().availability, 'checking')
+  assert.equal(controller.getStatus().isAvailable, false)
   assert.equal(helperOptions.helperPath, __filename)
-  assert.equal(helperOptions.env.FAMILIAR_WHISPERKIT_MODEL_ROOT, '/tmp/familiar-model-root')
 
-  prewarmResolve({ durationMs: 42 })
+  prewarmResolve({ available: true, durationMs: 42, locale: 'en-US' })
   const result = await prewarmPromise
 
   assert.equal(result.ok, true)
   assert.equal(controller.getStatus().state, 'idle')
   assert.equal(controller.getStatus().isPrewarming, false)
+  assert.equal(controller.getStatus().availability, 'available')
+  assert.equal(controller.getStatus().isAvailable, true)
+  assert.equal(controller.getStatus().locale, 'en-US')
   assert.deepEqual(terminateReasons, ['prewarm-complete'])
   assert.deepEqual(stateChanges.map((status) => status.state), ['prewarming', 'idle'])
+})
+
+test('meeting recording stays unavailable when SpeechTranscriber preparation fails', async () => {
+  let startCalls = 0
+
+  const controller = createMeetingRecordingController({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    resolveSpeechHelperPathImpl: () => __filename,
+    createSpeechHelperClientImpl: () => ({
+      child: {},
+      prewarmModel: async () => {
+        throw new Error('SpeechTranscriber requires macOS 26 or newer.')
+      },
+      startCapture: async () => {
+        startCalls += 1
+      },
+      terminate: async () => ({ closed: true })
+    })
+  })
+
+  const result = await controller.prewarm()
+
+  assert.equal(result.ok, false)
+  assert.equal(controller.getStatus().state, 'idle')
+  assert.equal(controller.getStatus().availability, 'unavailable')
+  assert.equal(controller.getStatus().isAvailable, false)
+  assert.match(controller.getStatus().unavailableReason, /macOS 26/)
+  await assert.rejects(() => controller.start(), /macOS 26/)
+  assert.equal(startCalls, 0)
+})
+
+test('meeting recording stays unavailable when the speech helper is missing', async () => {
+  const controller = createMeetingRecordingController({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    resolveSpeechHelperPathImpl: () => ''
+  })
+
+  const result = await controller.prewarm()
+
+  assert.equal(result.ok, false)
+  assert.equal(controller.getStatus().availability, 'unavailable')
+  assert.equal(controller.getStatus().isAvailable, false)
+  assert.match(controller.getStatus().unavailableReason, /helper is not available/i)
 })
 
 test('meeting recording starts helper and stops awake lock', async () => {
@@ -182,16 +228,20 @@ test('meeting recording starts helper and stops awake lock', async () => {
   const fakeChild = createFakeChild()
   const awakeLock = createAwakeLockSpy()
   const transcriptEvents = []
+  const logs = []
   let spawnCall = null
 
   const controller = createMeetingRecordingController({
     awakeLock,
-    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    logger: {
+      log: (message, details) => logs.push({ message, details }),
+      warn: () => {},
+      error: () => {}
+    },
     getContextFolderPath: () => contextFolderPath,
     getPreferredSessionId: () => 'session-2026-05-30T12-00-00-000',
     validateContextFolderPathImpl: () => ({ ok: true }),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     spawnImpl: (command, args, options) => {
       spawnCall = { command, args, options }
       return fakeChild
@@ -211,7 +261,7 @@ test('meeting recording starts helper and stops awake lock', async () => {
   assert.equal(spawnCall.command, __filename)
   assert.deepEqual(spawnCall.args, [])
   assert.equal(spawnCall.options.stdio[0], 'pipe')
-  assert.equal(spawnCall.options.env.FAMILIAR_WHISPERKIT_MODEL_ROOT, '/tmp/familiar-model-root')
+  assert.equal(spawnCall.options.env, process.env)
   assert.deepEqual(awakeLock.calls.map((call) => call.type), ['start'])
 
   const stopResult = await controller.stop({ reason: 'test-stop' })
@@ -235,6 +285,12 @@ test('meeting recording starts helper and stops awake lock', async () => {
       segments: [{ text: 'goodbye', startedAtMs: 500, endedAtMs: 900, speaker: '' }]
     }
   ])
+  assert.deepEqual(
+    logs
+      .filter((entry) => entry.message === 'Meeting transcript event received')
+      .map((entry) => entry.details.type),
+    ['partial', 'final']
+  )
   assert.deepEqual(awakeLock.calls.map((call) => call.type), ['start', 'stop'])
 })
 
@@ -265,7 +321,6 @@ test('meeting recording allows slow final transcription before force killing hel
     getPreferredSessionId: () => 'session-2026-05-30T12-00-00-000',
     validateContextFolderPathImpl: () => ({ ok: true }),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     createSpeechHelperClientImpl: (options) => {
       onClose = options.onClose
       return {
@@ -310,7 +365,6 @@ test('meeting recording reports starting separately from active recording', asyn
     getPreferredSessionId: () => 'session-2026-05-30T12-00-00-000',
     validateContextFolderPathImpl: () => ({ ok: true }),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     createSpeechHelperClientImpl: () => {
       spawnCount += 1
       return {
@@ -367,7 +421,6 @@ test('meeting recording retries when helper is SIGKILLed during startup', async 
     getPreferredSessionId: () => 'session-2026-05-30T12-00-00-000',
     validateContextFolderPathImpl: () => ({ ok: true }),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     spawnImpl: () => {
       const child = spawnedChildren.length === 0 ? killedChild : healthyChild
       spawnedChildren.push(child)
@@ -406,7 +459,6 @@ test('meeting recording survives two SIGKILLed helper startup attempts', async (
     getPreferredSessionId: () => 'session-2026-05-30T12-00-00-000',
     validateContextFolderPathImpl: () => ({ ok: true }),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     spawnImpl: () => {
       const child = killedChildren[spawnedChildren.length] || healthyChild
       spawnedChildren.push(child)
@@ -451,7 +503,6 @@ test('meeting recording annotates exhausted startup SIGKILL failures', async () 
     getPreferredSessionId: () => 'session-2026-05-30T12-00-00-000',
     validateContextFolderPathImpl: () => ({ ok: true }),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     spawnImpl: () => {
       const child = killedChildren[spawnedChildren.length]
       spawnedChildren.push(child)
@@ -495,15 +546,15 @@ test('meeting recording terminates helper when startup fails', async () => {
     getPreferredSessionId: () => 'session-2026-05-30T12-00-00-000',
     validateContextFolderPathImpl: () => ({ ok: true }),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     createSpeechHelperClientImpl: () => ({
       child: {},
+      prewarmModel: async () => ({ available: true, locale: 'en-US' }),
       startCapture: async () => {
         throw new Error('startup failed')
       },
       stopCapture: async () => {},
       terminate: async () => {
-        terminateReasons.push('start-failed')
+        terminateReasons.push('terminated')
         return { closed: true }
       }
     }),
@@ -517,8 +568,18 @@ test('meeting recording terminates helper when startup fails', async () => {
 
   assert.equal(controller.getStatus().state, 'error')
   assert.equal(controller.getStatus().isRecording, false)
-  assert.deepEqual(terminateReasons, ['start-failed'])
+  assert.equal(controller.getStatus().availability, 'unavailable')
+  assert.match(controller.getStatus().unavailableReason, /startup failed/)
+  assert.deepEqual(terminateReasons, ['terminated'])
   assert.deepEqual(awakeLock.calls.map((call) => call.type), ['start', 'stop'])
+
+  const readiness = await controller.prewarm()
+
+  assert.equal(readiness.ok, true)
+  assert.equal(readiness.skipped, undefined)
+  assert.equal(controller.getStatus().state, 'idle')
+  assert.equal(controller.getStatus().availability, 'available')
+  assert.deepEqual(terminateReasons, ['terminated', 'terminated'])
 })
 
 test('meeting recording finalizes stop when helper process never closes', async () => {
@@ -546,7 +607,6 @@ test('meeting recording finalizes stop when helper process never closes', async 
     getPreferredSessionId: () => 'session-2026-05-30T12-00-00-000',
     validateContextFolderPathImpl: () => ({ ok: true }),
     resolveSpeechHelperPathImpl: () => __filename,
-    resolveWhisperKitModelRootImpl: () => '/tmp/familiar-model-root',
     createSpeechHelperClientImpl: () => ({
       child: {},
       kill: () => {},

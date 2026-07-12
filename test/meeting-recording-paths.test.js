@@ -7,8 +7,7 @@ const path = require('node:path')
 const {
   createTranscriptMarkdownFilename,
   resolveDefaultSpeechHelperPath,
-  resolveMeetingSession,
-  resolveWhisperKitModelRoot
+  resolveMeetingSession
 } = require('../src/meeting-recording/paths')
 
 test('createTranscriptMarkdownFilename uses local timestamp transcript suffix', () => {
@@ -54,15 +53,4 @@ test('resolveDefaultSpeechHelperPath finds dev speech helper', () => {
 
   assert.equal(path.basename(resolvedPath), 'familiar-speech-helper')
   assert.equal(fs.existsSync(resolvedPath), true)
-})
-
-test('resolveWhisperKitModelRoot uses bundled model resources when present', () => {
-  const resourcesPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-model-resource-'))
-  const modelRoot = path.join(resourcesPath, 'whisperkit-models')
-  fs.mkdirSync(modelRoot)
-
-  assert.equal(
-    resolveWhisperKitModelRoot({ env: {}, resourcesPath }),
-    modelRoot
-  )
 })

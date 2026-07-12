@@ -65,20 +65,32 @@ function buildTrayMenuTemplate ({
     meetingRecordingState?.state === 'starting'
   const isMeetingPrewarming = meetingRecordingState?.isPrewarming === true ||
     meetingRecordingState?.state === 'prewarming'
+  const isMeetingStopping = meetingRecordingState?.isStopping === true ||
+    meetingRecordingState?.state === 'stopping'
   const isMeetingRecording = meetingRecordingState?.isRecording === true
+  const isMeetingChecking = meetingRecordingState?.availability === 'checking'
+  const isMeetingUnavailable = meetingRecordingState?.availability === 'unavailable'
   let meetingRecordingLabel = microcopy.tray.meeting.startRecording
-  if (isMeetingPrewarming) {
+  if (isMeetingPrewarming || isMeetingChecking) {
     meetingRecordingLabel = microcopy.tray.meeting.prewarmingRecording
   } else if (isMeetingStarting) {
     meetingRecordingLabel = microcopy.tray.meeting.startingRecording
+  } else if (isMeetingStopping) {
+    meetingRecordingLabel = microcopy.tray.meeting.stoppingRecording
   } else if (isMeetingRecording) {
     meetingRecordingLabel = microcopy.tray.meeting.stopRecording
+  } else if (isMeetingUnavailable) {
+    meetingRecordingLabel = microcopy.tray.meeting.unavailableRecording
   }
 
   const meetingRecordingItem = {
     label: meetingRecordingLabel,
-    enabled: !isMeetingStarting && !isMeetingPrewarming,
+    enabled: !isMeetingStarting && !isMeetingPrewarming &&
+      !isMeetingStopping && !isMeetingChecking && !isMeetingUnavailable,
     click: onMeetingRecordingToggle
+  }
+  if (isMeetingUnavailable && meetingRecordingState?.unavailableReason) {
+    meetingRecordingItem.toolTip = meetingRecordingState.unavailableReason
   }
 
   return [

@@ -13,18 +13,10 @@ let package = Package(
             targets: ["FamiliarSpeechHelper"]
         )
     ],
-    dependencies: [
-        .package(
-            url: "https://github.com/argmaxinc/argmax-oss-swift.git",
-            exact: "1.0.0"
-        )
-    ],
     targets: [
         .executableTarget(
             name: "FamiliarSpeechHelper",
-            dependencies: [
-                .product(name: "WhisperKit", package: "argmax-oss-swift")
-            ]
+            dependencies: []
         )
     ]
 )

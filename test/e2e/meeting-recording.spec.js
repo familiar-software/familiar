@@ -82,6 +82,58 @@ const listTranscriptJsonlPaths = (contextPath) => {
 }
 
 test.describe('meeting recording', () => {
+  test('disables every recording entry point when SpeechTranscriber is unavailable', async () => {
+    const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-unavailable-'))
+    const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-unavailable-'))
+    const unavailableReason = 'Meeting transcription requires macOS 26 or newer.'
+    const electronApp = await launchApp({
+      contextPath,
+      settingsDir,
+      env: { FAMILIAR_E2E_AUDIO_UNAVAILABLE_REASON: unavailableReason }
+    })
+
+    try {
+      const window = await electronApp.firstWindow()
+      await window.waitForLoadState('domcontentloaded')
+
+      await expect
+        .poll(async () => {
+          const status = await window.evaluate(() => window.familiar.getMeetingRecordingStatus())
+          return {
+            availability: status?.availability,
+            isAvailable: status?.isAvailable,
+            reason: status?.unavailableReason
+          }
+        })
+        .toEqual({
+          availability: 'unavailable',
+          isAvailable: false,
+          reason: unavailableReason
+        })
+
+      const menu = await window.evaluate(() => window.familiar.getTrayMenuItemsForE2E())
+      expect(menu.items[0]).toMatchObject({
+        label: 'Meeting recording unavailable',
+        enabled: false
+      })
+
+      const ipcStartResult = await window.evaluate(() =>
+        window.familiar.startMeetingRecording()
+      )
+      expect(ipcStartResult.ok).toBe(false)
+      expect(ipcStartResult.status.isRecording).toBe(false)
+
+      const startResult = await window.evaluate(() =>
+        window.familiar.clickTrayMeetingRecordingActionForE2E()
+      )
+      expect(startResult.ok).toBe(false)
+      expect(startResult.status.isRecording).toBe(false)
+      expect(listSessionNames(contextPath)).toEqual([])
+    } finally {
+      await electronApp.close()
+    }
+  })
+
   test('streams meeting transcript into the current session from the tray', async () => {
     const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-meeting-'))
     const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-meeting-'))

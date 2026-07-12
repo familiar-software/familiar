@@ -643,7 +643,13 @@ function createTray() {
         tray,
         trayHandlers,
         getMeetingRecordingState: getCurrentMeetingRecordingStatus,
-        getRecordingState: getCurrentScreenStillsState
+        getRecordingState: getCurrentScreenStillsState,
+        onTrayMenuOpened: async () => {
+            const status = meetingRecordingMainProcess?.getStatus?.();
+            if (status?.availability === 'unavailable') {
+                await meetingRecordingMainProcess.prewarm();
+            }
+        }
     });
 
     trayMenuController.refreshTrayMenuFromSettings();

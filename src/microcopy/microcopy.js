@@ -15,6 +15,8 @@ const microcopy = {
       startRecording: 'Record meeting',
       prewarmingRecording: 'Preparing meeting recording...',
       startingRecording: 'Starting meeting recording...',
+      stoppingRecording: 'Stopping meeting recording...',
+      unavailableRecording: 'Meeting recording unavailable',
       stopRecording: 'Stop meeting recording'
     },
     recording: {

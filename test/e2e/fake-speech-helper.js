@@ -9,6 +9,7 @@ const delay = (ms) => new Promise((resolve) => {
 const finalDelayMs = Number.parseInt(process.env.FAMILIAR_E2E_AUDIO_FINAL_DELAY_MS || '150', 10)
 const startDelayMs = Number.parseInt(process.env.FAMILIAR_E2E_AUDIO_START_DELAY_MS || '0', 10)
 const killOnStartMarkerPath = process.env.FAMILIAR_E2E_AUDIO_KILL_ON_START_MARKER_PATH || ''
+const unavailableReason = process.env.FAMILIAR_E2E_AUDIO_UNAVAILABLE_REASON || ''
 const killOnStartCount = Number.parseInt(
   process.env.FAMILIAR_E2E_AUDIO_KILL_ON_START_COUNT || (killOnStartMarkerPath ? '1' : '0'),
   10
@@ -97,11 +98,20 @@ async function handleStartCommand (message) {
 
 const handleCommand = (message) => {
   if (message.command === 'prewarm_model') {
+    if (unavailableReason) {
+      writeMessage({
+        type: 'response',
+        id: message.id,
+        ok: false,
+        error: unavailableReason
+      })
+      return
+    }
     writeMessage({
       type: 'response',
       id: message.id,
       ok: true,
-      payload: { durationMs: 1 }
+      payload: { available: true, durationMs: 1, locale: 'en-US' }
     })
     return
   }

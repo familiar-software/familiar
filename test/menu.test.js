@@ -65,6 +65,23 @@ test('buildTrayMenuTemplate shows starting meeting state without stop action', (
     assert.equal(toggleCalls, 0);
 });
 
+test('buildTrayMenuTemplate shows stopping meeting state without stop action', () => {
+    let toggleCalls = 0;
+    const template = buildTrayMenuTemplate({
+        onMeetingRecordingToggle: () => {
+            toggleCalls += 1;
+        },
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        meetingRecordingState: { state: 'stopping', isRecording: true, isStopping: true }
+    });
+
+    assert.equal(template[0].label, microcopy.tray.meeting.stoppingRecording);
+    assert.equal(template[0].enabled, false);
+    assert.equal(toggleCalls, 0);
+});
+
 test('buildTrayMenuTemplate disables meeting recording while prewarming', () => {
     let toggleCalls = 0;
     const template = buildTrayMenuTemplate({
@@ -80,6 +97,40 @@ test('buildTrayMenuTemplate disables meeting recording while prewarming', () => 
     assert.equal(template[0].label, microcopy.tray.meeting.prewarmingRecording);
     assert.equal(template[0].enabled, false);
     assert.equal(toggleCalls, 0);
+});
+
+test('buildTrayMenuTemplate disables meeting recording while availability is checking', () => {
+    const template = buildTrayMenuTemplate({
+        onMeetingRecordingToggle: () => {},
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        meetingRecordingState: { availability: 'checking', isAvailable: false }
+    });
+
+    assert.equal(template[0].label, microcopy.tray.meeting.prewarmingRecording);
+    assert.equal(template[0].enabled, false);
+});
+
+test('buildTrayMenuTemplate disables unavailable meeting recording', () => {
+    const template = buildTrayMenuTemplate({
+        onMeetingRecordingToggle: () => {},
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        meetingRecordingState: {
+            availability: 'unavailable',
+            isAvailable: false,
+            unavailableReason: 'SpeechTranscriber requires macOS 26 or newer.'
+        }
+    });
+
+    assert.equal(template[0].label, microcopy.tray.meeting.unavailableRecording);
+    assert.equal(template[0].enabled, false);
+    assert.equal(
+        template[0].toolTip,
+        'SpeechTranscriber requires macOS 26 or newer.'
+    );
 });
 
 test('settings click does not trigger quit', () => {

@@ -60,7 +60,7 @@ Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and 
 - Clipboard text mirrors while recording: `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.clipboard.txt`
 - Before still markdown and clipboard text are written, Familiar runs `rg`-based redaction for password/API-key patterns. If the scanner fails twice, Familiar still saves the file and shows a one-time warning toast per recording session.
 - Meeting recording is started and stopped from the tray menu. It streams transcript events from the
-  local WhisperKit speech helper into
+  local Apple SpeechTranscriber helper into
   `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.transcript.md`. The
   markdown file keeps a live `In progress` block for partial text, then replaces it with final
   transcript lines. Each transcript line includes an elapsed `[HH:MM:SS]` timestamp.
@@ -72,15 +72,17 @@ Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and 
   stopping on idle.
 - Local development uses `scripts/bin/familiar-speech-helper` directly. You can override it with
   `FAMILIAR_SPEECH_HELPER_PATH=/path/to/helper`. The helper speaks a JSON command protocol over
-  stdin/stdout and returns streaming transcript payloads with WhisperKit segment and word timestamp
+  stdin/stdout and returns streaming transcript payloads with Apple segment and word timestamp
   metadata for line breaks.
 - `FAMILIAR_AUDIO_INPUT_DEVICE_NAME="BlackHole 2ch"` selects a named macOS input device for
   local meeting transcription without changing the default system input.
-- Packaged builds include `scripts/bin/whisperkit-models` as `resources/whisperkit-models`.
-  Distribution builds prepare that directory with `npm run build:speech-models`. The default
-  bundled WhisperKit model is the compressed multilingual `large-v3-v20240930_626MB` model so
-  Hebrew transcription is usable; `FAMILIAR_WHISPERKIT_MODEL` can still override the model for
-  local experiments. BlackHole is only a local test routing device and is not packaged.
+- Meeting transcription requires macOS 26 or newer, an available SpeechTranscriber runtime, a
+  supported current locale, microphone access, and an installed Apple speech asset. Familiar asks
+  macOS to install a supported missing asset during startup preparation. The tray action remains
+  disabled while preparing and stays disabled with an unavailable reason if a requirement fails.
+- Xcode is required to build the Swift helper, but users do not need Xcode installed. Speech models
+  are managed by macOS and are not bundled with Familiar. BlackHole is only a local test routing
+  device and is not packaged.
 - Microphone permission is separate from Screen Recording permission on macOS. A local development
   run may not prompt if the responsible process already has microphone permission, but the packaged
   app still declares `NSMicrophoneUsageDescription` and should be verified in System Settings.
@@ -102,8 +104,9 @@ npm run build:speech-helper
 FAMILIAR_REAL_AUDIO_TEST=1 node --test test/real-audio-transcriber.test.js
 ```
 
-These tests are skipped by default because they require macOS, microphone permission, and local
-WhisperKit model assets. The BlackHole route additionally requires the BlackHole 2ch audio device.
+These tests are skipped by default because they require macOS 26, microphone permission, and an
+installed Apple SpeechTranscriber asset. The BlackHole route additionally requires the BlackHole
+2ch audio device.
 
 ## Build locally
 

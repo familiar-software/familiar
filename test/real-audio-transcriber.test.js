@@ -9,7 +9,6 @@ const appRoot = path.join(__dirname, '..')
 const helperPath = path.join(appRoot, 'scripts', 'bin', 'familiar-speech-helper')
 const playerSourcePath = path.join(appRoot, 'scripts', 'play-audio-to-output-device.m')
 const blackHoleDeviceName = 'BlackHole 2ch'
-const defaultWhisperKitModel = 'large-v3-v20240930_626MB'
 
 const shouldRunBlackHole = process.env.FAMILIAR_REAL_AUDIO_TEST === '1' &&
   process.platform === 'darwin'
@@ -21,7 +20,7 @@ const startupTimeoutMs = Number.parseInt(
   10
 )
 const startupSmokeTimeoutMs = Number.parseInt(
-  process.env.FAMILIAR_REAL_AUDIO_SMOKE_TIMEOUT_MS || '15000',
+  process.env.FAMILIAR_REAL_AUDIO_SMOKE_TIMEOUT_MS || '120000',
   10
 )
 
@@ -260,16 +259,13 @@ async function killChild (child) {
   }
 }
 
-test('real speech helper launches and responds before audio capture starts', {
+test('real speech helper prepares the Apple speech capability before capture', {
   skip: shouldRunStartup
     ? false
     : 'Set FAMILIAR_REAL_AUDIO_STARTUP_TEST=1 on macOS to run the real helper smoke.'
 }, async () => {
   const child = spawn(helperPath, [], {
-    env: {
-      ...process.env,
-      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || defaultWhisperKitModel
-    },
+    env: process.env,
     stdio: ['pipe', 'pipe', 'pipe']
   })
   const messages = collectJsonLines(child.stdout)
@@ -282,20 +278,23 @@ test('real speech helper launches and responds before audio capture starts', {
   try {
     writeJsonLine(child.stdin, {
       id: 'startup-smoke',
-      command: '__familiar_startup_smoke__'
+      command: 'prewarm_model'
     })
     const response = await waitForMessageOrClose({
       child,
       messages,
       predicate: (message) => message.type === 'response' && message.id === 'startup-smoke',
-      timeoutMs: Number.isFinite(startupSmokeTimeoutMs) ? startupSmokeTimeoutMs : 15000,
-      label: 'speech helper startup smoke response',
+      timeoutMs: Number.isFinite(startupSmokeTimeoutMs) ? startupSmokeTimeoutMs : 120000,
+      label: 'speech helper capability response',
       getStderr: () => stderr,
       getProcessSnapshot: () => getProcessSnapshot(child.pid),
       getSystemLogSnapshot: getMacLogSnapshot
     })
-    assert.equal(response.ok, false)
-    assert.match(response.error, /Unsupported speech helper command/)
+    assert.equal(response.ok, true, response.error || stderr)
+    assert.equal(response.payload.available, true)
+    assert.equal(response.payload.assetState, 'installed')
+    assert.match(response.payload.locale, /^en[-_]/i)
+    assert.ok(response.payload.inputDevices.length > 0)
     assert.match(stderr, /helper started pid=/)
   } catch (error) {
     primaryError = error
@@ -321,10 +320,7 @@ test('real speech helper returns a start_capture response without hanging or exi
     process.env.FAMILIAR_AUDIO_INPUT_DEVICE_NAME ||
     ''
   const child = spawn(helperPath, [], {
-    env: {
-      ...process.env,
-      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || defaultWhisperKitModel
-    },
+    env: process.env,
     stdio: ['pipe', 'pipe', 'pipe']
   })
   const messages = collectJsonLines(child.stdout)
@@ -423,10 +419,7 @@ test('real transcriber receives generated audio through BlackHole', {
   const playerPath = await buildAudioPlayer(directory)
   const audioPath = await generateSpeechFixture(directory)
   const child = spawn(helperPath, [], {
-    env: {
-      ...process.env,
-      FAMILIAR_WHISPERKIT_MODEL: process.env.FAMILIAR_WHISPERKIT_MODEL || defaultWhisperKitModel
-    },
+    env: process.env,
     stdio: ['pipe', 'pipe', 'pipe']
   })
   const messages = collectJsonLines(child.stdout)
@@ -450,15 +443,6 @@ test('real transcriber receives generated audio through BlackHole', {
     assert.equal(startResponse.ok, true)
 
     await runCommand(playerPath, [audioPath, blackHoleDeviceName])
-    const transcript = await waitForMessage(messages, (message) => {
-      const payload = message.type === 'event' ? message.payload : null
-      const text = typeof payload?.text === 'string' ? payload.text.toLowerCase() : ''
-      return text.includes('hello') && text.includes('familiar')
-    }, 45000, 'speech transcript event')
-
-    assert.match(transcript.payload.text, /hello/i)
-    assert.match(transcript.payload.text, /familiar/i)
-    assert.ok(transcript.payload.segments?.some((segment) => segment.words?.length > 0))
     writeJsonLine(child.stdin, { id: 'stop', command: 'stop_capture' })
     const stopResponse = await waitForMessage(
       messages,
@@ -467,6 +451,19 @@ test('real transcriber receives generated audio through BlackHole', {
       'speech helper stop response'
     )
     assert.equal(stopResponse.ok, true)
+    const transcript = await waitForMessage(messages, (message) => {
+      const payload = message.type === 'event' ? message.payload : null
+      const text = typeof payload?.text === 'string' ? payload.text.toLowerCase() : ''
+      return payload?.isFinal === true && text.includes('hello') && text.includes('familiar')
+    }, 45000, 'final speech transcript event')
+    assert.match(transcript.payload.text, /hello/i)
+    assert.match(transcript.payload.text, /familiar/i)
+    assert.ok(transcript.payload.endedAtMs >= transcript.payload.startedAtMs)
+    const words = transcript.payload.segments.flatMap((segment) => segment.words || [])
+    assert.ok(words.length > 0)
+    assert.ok(words.every((word) => word.endedAtMs >= word.startedAtMs))
+    assert.ok(words.every((word, index) => index === 0 ||
+      word.startedAtMs >= words[index - 1].startedAtMs))
   } catch (error) {
     primaryError = error
     error.message = `${error.message}\nTranscriber stderr:\n${stderr}`

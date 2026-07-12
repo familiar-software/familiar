@@ -9,9 +9,16 @@ const {
 const { createTranscriptWriter } = require('./transcript-writer')
 const {
   resolveDefaultSpeechHelperPath,
-  resolveMeetingSession,
-  resolveWhisperKitModelRoot
+  resolveMeetingSession
 } = require('./paths')
+const {
+  START_HELPER_MAX_ATTEMPTS,
+  STDERR_TAIL_MAX_CHARS,
+  attachStartFailureDiagnostics,
+  buildStartFailureDiagnostics,
+  isRetryableStartError
+} = require('./start-failure')
+const { createTranscriptEventQueue } = require('./transcript-event-queue')
 
 const STATES = Object.freeze({
   IDLE: 'idle',
@@ -24,38 +31,8 @@ const STATES = Object.freeze({
 
 const STOP_TIMEOUT_MS = 130000
 const STOP_CLOSE_TIMEOUT_MS = 5000
-const START_HELPER_MAX_ATTEMPTS = 3
-const STDERR_TAIL_MAX_CHARS = 2000
 
 function noop () {}
-
-function isRetryableStartError (error) {
-  const message = error?.message || String(error)
-  return error?.signal === 'SIGKILL' || message.includes('signal SIGKILL')
-}
-
-function buildStartFailureDiagnostics ({ error, attempt, stderrBuffer }) {
-  return {
-    phase: 'start_capture',
-    attempt,
-    maxAttempts: START_HELPER_MAX_ATTEMPTS,
-    helperPid: error?.pid || null,
-    signal: error?.signal || '',
-    helperPath: error?.helperPath || '',
-    message: error?.message || String(error),
-    stderrTail: stderrBuffer.trim().slice(-STDERR_TAIL_MAX_CHARS)
-  }
-}
-
-function attachStartFailureDiagnostics (error, diagnostics) {
-  if (error && typeof error === 'object') {
-    error.meetingRecording = diagnostics
-    return error
-  }
-  const wrapped = new Error(String(error))
-  wrapped.meetingRecording = diagnostics
-  return wrapped
-}
 
 function createMeetingRecordingController (options = {}) {
   const logger = options.logger || console
@@ -74,11 +51,6 @@ function createMeetingRecordingController (options = {}) {
       env: process.env,
       resourcesPath: process.resourcesPath || ''
     }))
-  const resolveWhisperKitModelRootImpl = options.resolveWhisperKitModelRootImpl ||
-    (() => resolveWhisperKitModelRoot({
-      env: process.env,
-      resourcesPath: process.resourcesPath || ''
-    }))
   const createTranscriptWriterImpl = options.createTranscriptWriterImpl || createTranscriptWriter
   const createSpeechHelperClientImpl = options.createSpeechHelperClientImpl ||
     createSpeechHelperClient
@@ -92,15 +64,20 @@ function createMeetingRecordingController (options = {}) {
   let stderrBuffer = ''
   let session = null
   let writer = null
-  let queuedTranscriptEvents = []
-  let writeIdleWaiters = []
-  let isWritingTranscript = false
   let stopWaiters = []
   let intentionalStop = false
   let lastErrorMessage = ''
   let prewarmHelperClient = null
   let prewarmPromise = null
   let startPromise = null
+  let availability = 'available'
+  let unavailableReason = ''
+  let locale = ''
+  const transcriptEvents = createTranscriptEventQueue({
+    getWriter: () => writer,
+    logger,
+    onError: notifyError
+  })
 
   function setState (nextState, details = {}) {
     if (state === nextState) {
@@ -117,8 +94,13 @@ function createMeetingRecordingController (options = {}) {
       state,
       isPrewarming: state === STATES.PREWARMING,
       isStarting: state === STATES.STARTING,
+      isStopping: state === STATES.STOPPING,
       isRecording: state === STATES.RECORDING ||
         state === STATES.STOPPING,
+      availability,
+      isAvailable: availability === 'available',
+      unavailableReason,
+      locale,
       awakeLockActive: awakeLock?.isActive?.() === true,
       sessionId: session?.sessionId || '',
       transcriptMarkdownPath: session?.transcriptMarkdownPath || '',
@@ -143,17 +125,6 @@ function createMeetingRecordingController (options = {}) {
     return helperPath
   }
 
-  function buildHelperEnv () {
-    const modelRoot = resolveWhisperKitModelRootImpl()
-    if (!modelRoot) {
-      return process.env
-    }
-    return {
-      ...process.env,
-      FAMILIAR_WHISPERKIT_MODEL_ROOT: modelRoot
-    }
-  }
-
   function notifyError (error) {
     const message = error?.message || String(error)
     lastErrorMessage = message
@@ -161,43 +132,22 @@ function createMeetingRecordingController (options = {}) {
     onError({ message, reason: 'meeting-recording' })
   }
 
+  function captureHelperDiagnostics (buffer, chunk) {
+    const text = chunk.toString('utf-8')
+    const nextBuffer = `${buffer}${text}`.slice(-8000)
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim()
+      if (trimmed) {
+        logger.log('Meeting speech helper diagnostic', { message: trimmed })
+      }
+    }
+    return nextBuffer
+  }
+
   function settleStopWaiters () {
     const waiters = stopWaiters
     stopWaiters = []
     waiters.forEach((waiter) => waiter.resolve())
-  }
-
-  function settleWriteIdleWaiters () {
-    const waiters = writeIdleWaiters
-    writeIdleWaiters = []
-    waiters.forEach((resolve) => resolve())
-  }
-
-  function waitForTranscriptWrites () {
-    if (!isWritingTranscript && queuedTranscriptEvents.length === 0) {
-      return Promise.resolve()
-    }
-    return new Promise((resolve) => {
-      writeIdleWaiters.push(resolve)
-    })
-  }
-
-  async function drainTranscriptEvents () {
-    if (isWritingTranscript) {
-      return
-    }
-
-    isWritingTranscript = true
-    while (queuedTranscriptEvents.length > 0) {
-      const event = queuedTranscriptEvents.shift()
-      try {
-        await writer.writeEvent(event)
-      } catch (error) {
-        notifyError(error)
-      }
-    }
-    isWritingTranscript = false
-    settleWriteIdleWaiters()
   }
 
   function finalizeStop ({ reason, error } = {}) {
@@ -220,19 +170,8 @@ function createMeetingRecordingController (options = {}) {
     settleStopWaiters()
   }
 
-  function enqueueTranscriptEvent (event) {
-    if (!event || !writer) {
-      return
-    }
-    queuedTranscriptEvents.push(event)
-    void drainTranscriptEvents()
-  }
-
   function handleStderrData (chunk) {
-    stderrBuffer += chunk.toString('utf-8')
-    if (stderrBuffer.length > 8000) {
-      stderrBuffer = stderrBuffer.slice(-8000)
-    }
+    stderrBuffer = captureHelperDiagnostics(stderrBuffer, chunk)
   }
 
   function waitForStop (timeoutMs = STOP_CLOSE_TIMEOUT_MS) {
@@ -293,11 +232,11 @@ function createMeetingRecordingController (options = {}) {
     helper = createSpeechHelperClientImpl({
       helperPath,
       spawnImpl,
-      env: buildHelperEnv(),
+      env: process.env,
       logger,
       onClose: (details) => handleHelperClose(helper, details),
       onStderr: handleStderrData,
-      onTranscriptEvent: enqueueTranscriptEvent,
+      onTranscriptEvent: transcriptEvents.enqueue,
       scheduler
     })
     speechHelperClient = helper
@@ -307,30 +246,34 @@ function createMeetingRecordingController (options = {}) {
   }
 
   async function prewarmOnce () {
-    const helperPath = resolveSpeechHelperPath()
     let prewarmStderrBuffer = ''
     let helper
 
     lastErrorMessage = ''
+    availability = 'checking'
+    unavailableReason = ''
+    locale = ''
     setState(STATES.PREWARMING, { reason: 'prewarm-started' })
     try {
+      const helperPath = resolveSpeechHelperPath()
       helper = createSpeechHelperClientImpl({
         helperPath,
         spawnImpl,
-        env: buildHelperEnv(),
+        env: process.env,
         logger,
         onStderr: (chunk) => {
-          prewarmStderrBuffer += chunk.toString('utf-8')
-          if (prewarmStderrBuffer.length > 8000) {
-            prewarmStderrBuffer = prewarmStderrBuffer.slice(-8000)
-          }
+          prewarmStderrBuffer = captureHelperDiagnostics(prewarmStderrBuffer, chunk)
         },
         scheduler
       })
       prewarmHelperClient = helper
       const payload = await helper.prewarmModel()
+      availability = 'available'
+      unavailableReason = ''
+      locale = typeof payload?.locale === 'string' ? payload.locale : ''
       logger.log('Meeting speech helper prewarm finished', {
-        durationMs: payload?.durationMs ?? null
+        durationMs: payload?.durationMs ?? null,
+        locale: locale || null
       })
       await terminateHelper(helper, 'prewarm-complete')
       if (prewarmHelperClient === helper) {
@@ -342,6 +285,9 @@ function createMeetingRecordingController (options = {}) {
       return { ok: true, status: getStatus() }
     } catch (error) {
       const message = error?.message || String(error)
+      availability = 'unavailable'
+      unavailableReason = message
+      locale = ''
       logger.warn('Meeting speech helper prewarm failed', {
         message,
         stderrTail: prewarmStderrBuffer.trim().slice(-STDERR_TAIL_MAX_CHARS)
@@ -371,7 +317,7 @@ function createMeetingRecordingController (options = {}) {
       ? new Error(stderrBuffer.trim() || `Speech helper exited with code ${code}.`)
       : null
     void (async () => {
-      await waitForTranscriptWrites()
+      await transcriptEvents.waitForIdle()
       if (speechHelperClient !== currentHelper) {
         return
       }
@@ -429,6 +375,9 @@ function createMeetingRecordingController (options = {}) {
 
         awakeLock?.stop?.({ reason: 'meeting-recording-start-failed' })
         lastErrorMessage = error?.message || String(error)
+        availability = 'unavailable'
+        unavailableReason = lastErrorMessage
+        locale = ''
         logger.error('Meeting speech helper startup failed', diagnostics)
         setState(STATES.ERROR, { reason: 'start-failed' })
         throw attachStartFailureDiagnostics(error, diagnostics)
@@ -441,6 +390,9 @@ function createMeetingRecordingController (options = {}) {
   async function start () {
     if (state === STATES.PREWARMING && prewarmPromise) {
       await prewarmPromise
+    }
+    if (availability === 'unavailable') {
+      throw new Error(unavailableReason || 'Meeting transcription is unavailable.')
     }
     if (state === STATES.STARTING && startPromise) {
       await startPromise
@@ -462,7 +414,7 @@ function createMeetingRecordingController (options = {}) {
     if (prewarmPromise) {
       return prewarmPromise
     }
-    if (state !== STATES.IDLE) {
+    if (state !== STATES.IDLE && state !== STATES.ERROR) {
       return { ok: true, status: getStatus(), skipped: true }
     }
 
@@ -506,7 +458,7 @@ function createMeetingRecordingController (options = {}) {
           ? await waitForStop(1000)
           : { closed: false }
         if (!finalized.closed && speechHelperClient === currentHelper) {
-          await waitForTranscriptWrites()
+          await transcriptEvents.waitForIdle()
           finalizeStop({
             reason: 'stop-close-timeout',
             error: new Error('Speech helper did not exit after meeting recording stopped.')
@@ -514,7 +466,7 @@ function createMeetingRecordingController (options = {}) {
         }
       }
     } else {
-      await waitForTranscriptWrites()
+      await transcriptEvents.waitForIdle()
       finalizeStop({ reason })
     }
     return { ok: true, status: getStatus() }

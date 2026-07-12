@@ -10,7 +10,6 @@ const buildSteps = [
     'npm run build:active-window-detector',
     'npm run build:rg-bundle',
     'npm run build:speech-helper:universal',
-    'npm run build:speech-models',
     'npm run css:build'
 ];
 
@@ -99,7 +98,7 @@ test('package includes meeting audio transcription resources', () => {
                 resource.from === 'scripts/bin/whisperkit-models' &&
                 resource.to === 'whisperkit-models'
         ),
-        true
+        false
     );
     assert.equal(
         resources.some(
@@ -117,10 +116,7 @@ test('package includes meeting audio transcription resources', () => {
         packageJson.scripts['build:speech-helper:universal'],
         'bash scripts/build-familiar-speech-helper.sh --universal'
     );
-    assert.equal(
-        packageJson.scripts['build:speech-models'],
-        'bash scripts/build-whisperkit-models.sh'
-    );
+    assert.equal(packageJson.scripts['build:speech-models'], undefined);
     assert.equal(packageJson.scripts['build:audio-transcriber'], undefined);
     assert.equal(
         packageJson.build.mac.extendInfo.NSMicrophoneUsageDescription,
@@ -135,7 +131,7 @@ test('meeting audio transcription has packaged microphone entitlement', () => {
     assert.match(entitlements, /com\.apple\.security\.device\.audio-input/);
 });
 
-test('meeting audio transcription pins the official WhisperKit package', () => {
+test('meeting audio transcription has no third-party model dependency', () => {
     const packageSwiftPath = path.join(
         appRoot,
         'scripts',
@@ -149,49 +145,36 @@ test('meeting audio transcription pins the official WhisperKit package', () => {
         'Package.resolved'
     );
     const packageSwift = fs.readFileSync(packageSwiftPath, 'utf-8');
-    const packageResolved = JSON.parse(fs.readFileSync(packageResolvedPath, 'utf-8'));
-    const argmaxPin = packageResolved.pins.find((pin) => pin.identity === 'argmax-oss-swift');
 
-    assert.match(packageSwift, /https:\/\/github\.com\/argmaxinc\/argmax-oss-swift\.git/);
-    assert.match(packageSwift, /exact: "1\.0\.0"/);
-    assert.equal(argmaxPin.state.version, '1.0.0');
-    assert.equal(argmaxPin.state.revision, '25c62997041c134b03ca82731ce2f6fd2cae1eb9');
+    assert.doesNotMatch(packageSwift, /WhisperKit|argmax/i);
+    assert.equal(fs.existsSync(packageResolvedPath), false);
 });
 
-test('speech helper uses timestamp segments and packaged model root override', () => {
+test('speech helper uses Apple SpeechTranscriber with runtime availability checks', () => {
     const helperSource = readSpeechHelperSource();
 
-    assert.match(helperSource, /defaultModel = "large-v3-v20240930_626MB"/);
-    assert.match(helperSource, /FAMILIAR_WHISPERKIT_MODEL_ROOT/);
-    assert.match(helperSource, /modelFolder: localModelFolder\?\.path/);
-    assert.match(helperSource, /tokenizerFolder: modelRoot/);
-    assert.match(helperSource, /resolveWhisperKitAssets/);
-    assert.match(helperSource, /WhisperKit\.download/);
-    assert.match(helperSource, /ModelUtilities\.loadTokenizer/);
+    assert.match(helperSource, /import Speech/);
+    assert.match(helperSource, /SpeechTranscriber/);
+    assert.match(helperSource, /SpeechAnalyzer/);
+    assert.match(helperSource, /AssetInventory/);
+    assert.match(helperSource, /#available\(macOS 26\.0/);
+    assert.match(helperSource, /supportedLocales/);
+    assert.match(helperSource, /installed/);
     assert.match(helperSource, /"prewarm_model"/);
-    assert.match(helperSource, /prewarm:\s*true/);
-    assert.match(helperSource, /load:\s*false/);
-    assert.match(helperSource, /detectLanguage:\s*true/);
-    assert.match(helperSource, /withoutTimestamps:\s*false/);
-    assert.match(helperSource, /wordTimestamps:\s*true/);
-    assert.match(helperSource, /"segments": segmentPayloads/);
-    assert.match(helperSource, /"words": wordPayloads/);
+    assert.match(helperSource, /volatileResults/);
+    assert.match(helperSource, /audioTimeRange/);
+    assert.match(helperSource, /finalizeAndFinishThroughEndOfInput/);
     assert.match(helperSource, /TerminationSignalHandlers/);
     assert.match(helperSource, /install\(signalNumber: SIGTERM\)/);
-    assert.match(helperSource, /waitForAudioSamples/);
-    assert.match(helperSource, /Audio capture did not start/);
+    assert.doesNotMatch(helperSource, /WhisperKit|FAMILIAR_WHISPERKIT/);
 });
 
-test('speech helper bounds partial transcription work to recent audio', () => {
+test('speech helper bounds streaming audio queued for analysis', () => {
     const helperSource = readSpeechHelperSource();
 
-    assert.match(helperSource, /maxPartialTranscriptionSamples/);
-    assert.match(helperSource, /audioSampleOffsetMs/);
-    assert.match(helperSource, /suffix\(maxPartialTranscriptionSamples\)/);
-    assert.doesNotMatch(
-        helperSource,
-        /let samples = Array\(pipe\.audioProcessor\.audioSamples\)/
-    );
+    assert.match(helperSource, /bufferingNewest/);
+    assert.match(helperSource, /Audio processing could not keep up/);
+    assert.doesNotMatch(helperSource, /audioSamples\.append/);
 });
 
 test('speech helper build script can build a universal macOS helper', () => {
@@ -206,12 +189,10 @@ test('speech helper build script can build a universal macOS helper', () => {
     assert.match(script, /codesign --force --sign - "\$OUT"/);
 });
 
-test('speech model bundle script defaults to compressed large v3', () => {
+test('speech model bundle script is removed', () => {
     const buildScriptPath = path.join(appRoot, 'scripts', 'build-whisperkit-models.sh');
-    const script = fs.readFileSync(buildScriptPath, 'utf-8');
 
-    assert.match(script, /FAMILIAR_WHISPERKIT_MODEL:-large-v3-v20240930_626MB/);
-    assert.match(script, /find "\$OUT_DIR" -mindepth 1 -maxdepth 1 -exec rm -R/);
+    assert.equal(fs.existsSync(buildScriptPath), false);
 });
 
 test('RG bundle script prepares binaries from official releases or env overrides', () => {

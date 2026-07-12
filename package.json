@@ -10,14 +10,13 @@
     "build:rg-bundle": "bash scripts/build-rg-bundle.sh",
     "build:speech-helper": "bash scripts/build-familiar-speech-helper.sh",
     "build:speech-helper:universal": "bash scripts/build-familiar-speech-helper.sh --universal",
-    "build:speech-models": "bash scripts/build-whisperkit-models.sh",
     "prestart": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper && npm run react:build:dashboard",
     "pre-dist:mac": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run build:speech-models && npm run css:build && electron-builder --mac --arm64 --x64",
+    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run css:build && electron-builder --mac --arm64 --x64",
     "pre-dist:mac:arm64": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac:arm64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run build:speech-models && npm run css:build && electron-builder --mac --arm64",
+    "dist:mac:arm64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run css:build && electron-builder --mac --arm64",
     "pre-dist:mac:x64": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run build:speech-models && npm run css:build && electron-builder --mac --x64",
+    "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:speech-helper:universal && npm run css:build && electron-builder --mac --x64",
     "react:build:dashboard": "esbuild src/dashboard/main.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"production\"' --outfile=src/dashboard/react-dist/dashboard-react.js",
     "react:watch:dashboard": "esbuild src/dashboard/main.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"development\"' --sourcemap --outfile=src/dashboard/react-dist/dashboard-react.js --watch",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
@@ -75,10 +74,6 @@
       {
         "from": "scripts/bin/familiar-speech-helper",
         "to": "familiar-speech-helper"
-      },
-      {
-        "from": "scripts/bin/whisperkit-models",
-        "to": "whisperkit-models"
       },
       {
         "from": "scripts/bin/rg",
