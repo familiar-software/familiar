@@ -88,7 +88,7 @@ actor SpeechService {
         do {
             try await runtime.startCapture(inputDeviceName: inputDeviceName)
             state = .recording
-            writeDiagnostic("SpeechTranscriber capture started")
+            writeDiagnostic("SpeechTranscriber automatic capture started")
         } catch {
             writeDiagnostic("start_capture failed: \(error)")
             throw error
@@ -124,6 +124,9 @@ actor SpeechService {
                 "Meeting transcription requires macOS 26 or newer."
             )
         }
-        return AppleSpeechRuntime(writer: writer)
+        let diarizer = FluidAudioOfflineDiarizer(
+            modelDirectory: bundledDiarizationModelDirectory()
+        )
+        return AppleSpeechRuntime(writer: writer, diarizer: diarizer)
     }
 }

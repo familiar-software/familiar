@@ -69,7 +69,10 @@ function buildTrayMenuTemplate ({
     meetingRecordingState?.state === 'stopping'
   const isMeetingRecording = meetingRecordingState?.isRecording === true
   const isMeetingChecking = meetingRecordingState?.availability === 'checking'
-  const isMeetingUnavailable = meetingRecordingState?.availability === 'unavailable'
+  const isMeetingUnavailable = meetingRecordingState?.availability === 'unavailable' || (
+    meetingRecordingState?.availability === 'available' &&
+    meetingRecordingState?.isAvailable === false
+  )
   let meetingRecordingLabel = microcopy.tray.meeting.startRecording
   if (isMeetingPrewarming || isMeetingChecking) {
     meetingRecordingLabel = microcopy.tray.meeting.prewarmingRecording

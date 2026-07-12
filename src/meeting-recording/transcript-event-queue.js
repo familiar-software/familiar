@@ -44,6 +44,7 @@ function createTranscriptEventQueue ({ getWriter, logger = console, onError }) {
       type: event.type || '',
       textLength: typeof event.text === 'string' ? event.text.length : 0,
       segmentCount: Array.isArray(event.segments) ? event.segments.length : 0,
+      replaceTranscript: event.replaceTranscript === true,
       startedAtMs: Number.isFinite(event.startedAtMs) ? event.startedAtMs : null,
       endedAtMs: Number.isFinite(event.endedAtMs) ? event.endedAtMs : null
     })

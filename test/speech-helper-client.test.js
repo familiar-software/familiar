@@ -60,11 +60,36 @@ test('speech helper client normalizes timestamp segment transcript payloads', ()
   })
 })
 
+test('speech helper client preserves complete transcript replacement marker', () => {
+  const event = normalizeTranscriptPayload({
+    text: 'hello there',
+    isFinal: true,
+    replaceTranscript: true,
+    otherVoicesSource: 'system-audio',
+    startedAtMs: 0,
+    endedAtMs: 800,
+    segments: [{
+      text: 'hello there',
+      startedAtMs: 0,
+      endedAtMs: 800,
+      speaker: 'Speaker 1'
+    }]
+  })
+
+  assert.equal(event.replaceTranscript, true)
+  assert.equal(event.otherVoicesSource, 'system-audio')
+  assert.equal(event.segments[0].speaker, 'Speaker 1')
+})
+
 test('speech helper client passes through named input device selection', () => {
   assert.deepEqual(
     resolveStartCaptureOptions({ FAMILIAR_AUDIO_INPUT_DEVICE_NAME: 'BlackHole 2ch' }),
     { inputDeviceName: 'BlackHole 2ch' }
   )
+})
+
+test('speech helper client starts automatic capture without a profile option', () => {
+  assert.deepEqual(resolveStartCaptureOptions({}), {})
 })
 
 test('speech helper client gives stop transcription enough time before force kill', async () => {
@@ -115,6 +140,53 @@ test('speech helper client gives stop transcription enough time before force kil
   assert.deepEqual(scheduledDelays, [125000, 120000])
   assert.deepEqual(child.killCalls, [])
   assert.equal(transcriptEvents.at(-1).text, 'final words')
+})
+
+test('speech helper client refreshes stop watchdogs on new diarization progress', async () => {
+  const child = createFakeSpeechHelperChild()
+  const timers = []
+  const progressEvents = []
+  let stopRequestId = ''
+  const scheduler = {
+    setTimeout: (callback, delay) => {
+      const timer = { callback, delay, unref: () => {} }
+      timers.push(timer)
+      return timer
+    },
+    clearTimeout: (timer) => {
+      timer.cleared = true
+    }
+  }
+  child.stdin.on('data', (chunk) => {
+    stopRequestId = JSON.parse(chunk.toString('utf-8').trim()).id
+  })
+  const client = createSpeechHelperClient({
+    helperPath: '/tmp/familiar-speech-helper',
+    spawnImpl: () => child,
+    scheduler,
+    stopCommandTimeoutMs: 120000,
+    stopTimeoutMs: 125000,
+    onFinalizationProgress: (progress) => progressEvents.push(progress)
+  })
+
+  const stopPromise = client.stopCapture()
+  await Promise.resolve()
+  child.stderr.write('[familiar-speech-helper] diarization_progress completed=1')
+  child.stderr.write(' total=4\n')
+  await Promise.resolve()
+
+  assert.deepEqual(timers.map((timer) => timer.delay), [125000, 120000, 120000, 125000])
+  assert.equal(timers[0].cleared, true)
+  assert.equal(timers[1].cleared, true)
+  assert.deepEqual(progressEvents, [{ completedChunks: 1, totalChunks: 4 }])
+
+  child.stdout.write(`${JSON.stringify({
+    type: 'response',
+    id: stopRequestId,
+    ok: true,
+    payload: {}
+  })}\n`)
+  await stopPromise
 })
 
 test('speech helper client gives slow startup enough time before command timeout', async () => {

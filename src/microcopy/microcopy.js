@@ -98,6 +98,13 @@ const microcopy = {
       storageRetention7d: '7 days',
       installSkillAriaLabelInstallSkillSettings: 'Install skill settings',
       audioAriaLabelAudioSettings: 'Audio settings',
+      audioAutomaticSourceTitle: 'Voice source',
+      audioAutomaticSourceLabel: 'Automatic',
+      audioAutomaticSourceHelp:
+        'Listens to your microphone and Mac audio, then detects where other voices came from. ' +
+        'macOS shows its recording indicator while active.',
+      audioAutomaticSourceChecking: 'Checking automatic voice-source availability…',
+      audioAutomaticSourceUnavailable: 'Automatic voice capture is unavailable on this Mac.',
       audioMeetingShortcutTitle: 'Meeting recording shortcut',
       audioMeetingShortcutDescription:
         'Press a keyboard shortcut to start or stop meeting recording.',

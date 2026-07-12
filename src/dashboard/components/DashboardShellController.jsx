@@ -256,6 +256,7 @@ function DashboardShellController({ familiar, microcopy = {}, formatters = null 
         }}
         audioSectionProps={{
           settings: core.settings,
+          meetingRecordingStatus: core.meetingRecordingStatus,
           audioMessage: core.audioMessage,
           audioError: core.audioError,
           saveMeetingRecordingShortcut: audio.saveMeetingRecordingShortcut

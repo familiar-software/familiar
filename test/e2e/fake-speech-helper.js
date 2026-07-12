@@ -10,6 +10,11 @@ const finalDelayMs = Number.parseInt(process.env.FAMILIAR_E2E_AUDIO_FINAL_DELAY_
 const startDelayMs = Number.parseInt(process.env.FAMILIAR_E2E_AUDIO_START_DELAY_MS || '0', 10)
 const killOnStartMarkerPath = process.env.FAMILIAR_E2E_AUDIO_KILL_ON_START_MARKER_PATH || ''
 const unavailableReason = process.env.FAMILIAR_E2E_AUDIO_UNAVAILABLE_REASON || ''
+const systemAudioUnavailableReason =
+  process.env.FAMILIAR_E2E_SYSTEM_AUDIO_UNAVAILABLE_REASON || ''
+const otherVoicesSource = process.env.FAMILIAR_E2E_OTHER_VOICES_SOURCE === 'system-audio'
+  ? 'system-audio'
+  : 'microphone'
 const killOnStartCount = Number.parseInt(
   process.env.FAMILIAR_E2E_AUDIO_KILL_ON_START_COUNT || (killOnStartMarkerPath ? '1' : '0'),
   10
@@ -71,6 +76,32 @@ async function streamTranscript () {
   })
 }
 
+function writeDiarizedTranscript () {
+  const usesSystemAudio = otherVoicesSource === 'system-audio'
+  writeTranscriptEvent({
+    text: 'Hello from the meeting. We should ship live notes.',
+    isFinal: true,
+    replaceTranscript: true,
+    otherVoicesSource,
+    startedAtMs: 0,
+    endedAtMs: 2800,
+    segments: [
+      {
+        text: 'Hello from the meeting.',
+        startedAtMs: 0,
+        endedAtMs: 1200,
+        speaker: usesSystemAudio ? 'You' : 'Speaker 1'
+      },
+      {
+        text: 'We should ship live notes.',
+        startedAtMs: 1300,
+        endedAtMs: 2800,
+        speaker: usesSystemAudio ? 'Speaker 1' : 'Speaker 2'
+      }
+    ]
+  })
+}
+
 function shouldKillOnStart () {
   if (!killOnStartMarkerPath || !Number.isFinite(killOnStartCount) || killOnStartCount <= 0) {
     return false
@@ -98,12 +129,13 @@ async function handleStartCommand (message) {
 
 const handleCommand = (message) => {
   if (message.command === 'prewarm_model') {
-    if (unavailableReason) {
+    const reason = unavailableReason || systemAudioUnavailableReason
+    if (reason) {
       writeMessage({
         type: 'response',
         id: message.id,
         ok: false,
-        error: unavailableReason
+        error: reason
       })
       return
     }
@@ -111,7 +143,11 @@ const handleCommand = (message) => {
       type: 'response',
       id: message.id,
       ok: true,
-      payload: { available: true, durationMs: 1, locale: 'en-US' }
+      payload: {
+        available: true,
+        durationMs: 1,
+        locale: 'en-US'
+      }
     })
     return
   }
@@ -120,6 +156,10 @@ const handleCommand = (message) => {
     return
   }
   if (message.command === 'stop_capture') {
+    process.stderr.write(
+      '[familiar-speech-helper] diarization_progress completed=1 total=1\n'
+    )
+    writeDiarizedTranscript()
     writeMessage({ type: 'response', id: message.id, ok: true, payload: {} })
     stop()
     return

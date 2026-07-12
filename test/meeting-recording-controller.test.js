@@ -14,6 +14,7 @@ function createFakeChild () {
   child.stdout = new PassThrough()
   child.stderr = new PassThrough()
   child.killCalls = []
+  child.startMessages = []
   let closed = false
   let inputBuffer = ''
 
@@ -31,6 +32,7 @@ function createFakeChild () {
 
   const handleCommand = (message) => {
     if (message.command === 'start_capture') {
+      child.startMessages.push(message)
       writeMessage({ type: 'response', id: message.id, ok: true, payload: {} })
       writeMessage({
         type: 'event',
@@ -167,7 +169,11 @@ test('meeting recording prewarms model and returns to idle', async () => {
   assert.equal(controller.getStatus().isAvailable, false)
   assert.equal(helperOptions.helperPath, __filename)
 
-  prewarmResolve({ available: true, durationMs: 42, locale: 'en-US' })
+  prewarmResolve({
+    available: true,
+    durationMs: 42,
+    locale: 'en-US'
+  })
   const result = await prewarmPromise
 
   assert.equal(result.ok, true)
@@ -262,6 +268,10 @@ test('meeting recording starts helper and stops awake lock', async () => {
   assert.deepEqual(spawnCall.args, [])
   assert.equal(spawnCall.options.stdio[0], 'pipe')
   assert.equal(spawnCall.options.env, process.env)
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(fakeChild.startMessages[0], 'captureProfile'),
+    false
+  )
   assert.deepEqual(awakeLock.calls.map((call) => call.type), ['start'])
 
   const stopResult = await controller.stop({ reason: 'test-stop' })
@@ -330,6 +340,7 @@ test('meeting recording allows slow final transcription before force killing hel
         },
         startCapture: async () => {},
         stopCapture: async () => {
+          options.onFinalizationProgress({ completedChunks: 1, totalChunks: 4 })
           await Promise.resolve()
           onClose({ code: 0, signal: null })
         }
@@ -348,7 +359,7 @@ test('meeting recording allows slow final transcription before force killing hel
   assert.equal(startResult.ok, true)
   assert.equal(stopResult.ok, true)
   assert.equal(stopResult.status.isRecording, false)
-  assert.equal(scheduledDelays.at(-1), 130000)
+  assert.deepEqual(scheduledDelays, [130000, 130000])
   assert.deepEqual(killCalls, [])
 })
 

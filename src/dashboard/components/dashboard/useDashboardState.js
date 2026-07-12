@@ -36,6 +36,12 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
     permissionGranted: true,
     permissionStatus: 'granted'
   })
+  const [meetingRecordingStatus, setMeetingRecordingStatus] = useState({
+    state: 'idle',
+    availability: 'checking',
+    isAvailable: false,
+    unavailableReason: ''
+  })
   const [storageUsage, setStorageUsage] = useState({
     screenshotsBytes: 0,
     steelsMarkdownBytes: 0
@@ -246,6 +252,8 @@ export const useDashboardState = ({ familiar, microcopy = {}, formatters = null 
     setSettingsLoaded,
     recordingStatus,
     setRecordingStatus,
+    meetingRecordingStatus,
+    setMeetingRecordingStatus,
     storageUsage,
     setStorageUsage,
     storageUsageLoaded,

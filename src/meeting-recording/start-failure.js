@@ -1,6 +1,17 @@
 const START_HELPER_MAX_ATTEMPTS = 3
 const STDERR_TAIL_MAX_CHARS = 2000
 
+function appendHelperDiagnostics (buffer, chunk, logger) {
+  const text = chunk.toString('utf-8')
+  for (const line of text.split(/\r?\n/)) {
+    const message = line.trim()
+    if (message) {
+      logger.log('Meeting speech helper diagnostic', { message })
+    }
+  }
+  return `${buffer}${text}`.slice(-8000)
+}
+
 function isRetryableStartError (error) {
   const message = error?.message || String(error)
   return error?.signal === 'SIGKILL' || message.includes('signal SIGKILL')
@@ -32,6 +43,7 @@ function attachStartFailureDiagnostics (error, diagnostics) {
 module.exports = {
   START_HELPER_MAX_ATTEMPTS,
   STDERR_TAIL_MAX_CHARS,
+  appendHelperDiagnostics,
   attachStartFailureDiagnostics,
   buildStartFailureDiagnostics,
   isRetryableStartError

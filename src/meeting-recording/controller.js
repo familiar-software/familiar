@@ -1,24 +1,23 @@
 const { spawn } = require('node:child_process')
-const fs = require('node:fs')
 
-const { validateContextFolderPath } = require('../settings')
 const {
   createSpeechHelperClient,
   resolveStartCaptureOptions
 } = require('./speech-helper-client')
 const { createTranscriptWriter } = require('./transcript-writer')
-const {
-  resolveDefaultSpeechHelperPath,
-  resolveMeetingSession
-} = require('./paths')
+const { resolveMeetingSession } = require('./paths')
+const { createMeetingRecordingRequirements } = require('./requirements')
+const { createFinalizationWatchdog } = require('./finalization-watchdog')
 const {
   START_HELPER_MAX_ATTEMPTS,
   STDERR_TAIL_MAX_CHARS,
+  appendHelperDiagnostics,
   attachStartFailureDiagnostics,
   buildStartFailureDiagnostics,
   isRetryableStartError
 } = require('./start-failure')
 const { createTranscriptEventQueue } = require('./transcript-event-queue')
+const { buildMeetingRecordingStatus } = require('./status')
 
 const STATES = Object.freeze({
   IDLE: 'idle',
@@ -42,25 +41,22 @@ function createMeetingRecordingController (options = {}) {
   const onStateChanged = typeof options.onStateChanged === 'function'
     ? options.onStateChanged
     : noop
-  const getContextFolderPath = options.getContextFolderPath || (() => '')
   const getPreferredSessionId = options.getPreferredSessionId || (() => '')
-  const validateContextFolderPathImpl = options.validateContextFolderPathImpl ||
-    validateContextFolderPath
-  const resolveSpeechHelperPathImpl = options.resolveSpeechHelperPathImpl ||
-    (() => resolveDefaultSpeechHelperPath({
-      env: process.env,
-      resourcesPath: process.resourcesPath || ''
-    }))
+  const requirements = createMeetingRecordingRequirements(options)
   const createTranscriptWriterImpl = options.createTranscriptWriterImpl || createTranscriptWriter
   const createSpeechHelperClientImpl = options.createSpeechHelperClientImpl ||
     createSpeechHelperClient
   const scheduler = options.scheduler || { setTimeout, clearTimeout }
+  const finalizationWatchdog = createFinalizationWatchdog({
+    logger,
+    scheduler,
+    timeoutMs: STOP_TIMEOUT_MS
+  })
 
   let state = STATES.IDLE
   let speechHelperClient = null
   let childProcess = null
   let childExited = false
-  let stopTimer = null
   let stderrBuffer = ''
   let session = null
   let writer = null
@@ -70,7 +66,7 @@ function createMeetingRecordingController (options = {}) {
   let prewarmHelperClient = null
   let prewarmPromise = null
   let startPromise = null
-  let availability = 'available'
+  let availability = 'checking'
   let unavailableReason = ''
   let locale = ''
   const transcriptEvents = createTranscriptEventQueue({
@@ -90,39 +86,15 @@ function createMeetingRecordingController (options = {}) {
   }
 
   function getStatus () {
-    return {
-      state,
-      isPrewarming: state === STATES.PREWARMING,
-      isStarting: state === STATES.STARTING,
-      isStopping: state === STATES.STOPPING,
-      isRecording: state === STATES.RECORDING ||
-        state === STATES.STOPPING,
-      availability,
-      isAvailable: availability === 'available',
-      unavailableReason,
-      locale,
+    return buildMeetingRecordingStatus({
       awakeLockActive: awakeLock?.isActive?.() === true,
-      sessionId: session?.sessionId || '',
-      transcriptMarkdownPath: session?.transcriptMarkdownPath || '',
-      error: lastErrorMessage
-    }
-  }
-
-  function resolveContext () {
-    const contextFolderPath = getContextFolderPath()
-    const validation = validateContextFolderPathImpl(contextFolderPath)
-    if (!validation.ok) {
-      throw new Error(validation.message || 'Context folder path is invalid.')
-    }
-    return contextFolderPath
-  }
-
-  function resolveSpeechHelperPath () {
-    const helperPath = resolveSpeechHelperPathImpl()
-    if (!helperPath || !fs.existsSync(helperPath)) {
-      throw new Error('Speech helper is not available.')
-    }
-    return helperPath
+      availability,
+      error: lastErrorMessage,
+      locale,
+      session,
+      state,
+      unavailableReason
+    })
   }
 
   function notifyError (error) {
@@ -132,18 +104,6 @@ function createMeetingRecordingController (options = {}) {
     onError({ message, reason: 'meeting-recording' })
   }
 
-  function captureHelperDiagnostics (buffer, chunk) {
-    const text = chunk.toString('utf-8')
-    const nextBuffer = `${buffer}${text}`.slice(-8000)
-    for (const line of text.split(/\r?\n/)) {
-      const trimmed = line.trim()
-      if (trimmed) {
-        logger.log('Meeting speech helper diagnostic', { message: trimmed })
-      }
-    }
-    return nextBuffer
-  }
-
   function settleStopWaiters () {
     const waiters = stopWaiters
     stopWaiters = []
@@ -151,10 +111,7 @@ function createMeetingRecordingController (options = {}) {
   }
 
   function finalizeStop ({ reason, error } = {}) {
-    if (stopTimer) {
-      scheduler.clearTimeout(stopTimer)
-      stopTimer = null
-    }
+    finalizationWatchdog.clear()
     speechHelperClient = null
     childProcess = null
     childExited = true
@@ -171,7 +128,7 @@ function createMeetingRecordingController (options = {}) {
   }
 
   function handleStderrData (chunk) {
-    stderrBuffer = captureHelperDiagnostics(stderrBuffer, chunk)
+    stderrBuffer = appendHelperDiagnostics(stderrBuffer, chunk, logger)
   }
 
   function waitForStop (timeoutMs = STOP_CLOSE_TIMEOUT_MS) {
@@ -197,17 +154,12 @@ function createMeetingRecordingController (options = {}) {
     })
   }
 
-  function scheduleForcedStop (currentHelper) {
-    stopTimer = scheduler.setTimeout(() => {
-      stopTimer = null
-      if (currentHelper && !childExited) {
-        logger.warn('Meeting speech helper did not stop in time; killing process')
-        currentHelper.kill('SIGKILL')
-      }
-    }, STOP_TIMEOUT_MS)
-    if (stopTimer && typeof stopTimer.unref === 'function') {
-      stopTimer.unref()
+  function handleFinalizationProgress (currentHelper, progress) {
+    if (speechHelperClient !== currentHelper || state !== STATES.STOPPING) {
+      return
     }
+    logger.log('Meeting transcription finalization progress', progress)
+    finalizationWatchdog.touch(currentHelper)
   }
 
   async function terminateHelper (currentHelper, reason) {
@@ -235,6 +187,9 @@ function createMeetingRecordingController (options = {}) {
       env: process.env,
       logger,
       onClose: (details) => handleHelperClose(helper, details),
+      onFinalizationProgress: (progress) => {
+        handleFinalizationProgress(helper, progress)
+      },
       onStderr: handleStderrData,
       onTranscriptEvent: transcriptEvents.enqueue,
       scheduler
@@ -255,14 +210,18 @@ function createMeetingRecordingController (options = {}) {
     locale = ''
     setState(STATES.PREWARMING, { reason: 'prewarm-started' })
     try {
-      const helperPath = resolveSpeechHelperPath()
+      const helperPath = requirements.resolveSpeechHelper()
       helper = createSpeechHelperClientImpl({
         helperPath,
         spawnImpl,
         env: process.env,
         logger,
         onStderr: (chunk) => {
-          prewarmStderrBuffer = captureHelperDiagnostics(prewarmStderrBuffer, chunk)
+          prewarmStderrBuffer = appendHelperDiagnostics(
+            prewarmStderrBuffer,
+            chunk,
+            logger
+          )
         },
         scheduler
       })
@@ -330,8 +289,8 @@ function createMeetingRecordingController (options = {}) {
       return { ok: true, status: getStatus(), alreadyRecording: true }
     }
 
-    const contextFolderPath = resolveContext()
-    const helperPath = resolveSpeechHelperPath()
+    const contextFolderPath = requirements.resolveContextFolder()
+    const helperPath = requirements.resolveSpeechHelper()
     lastErrorMessage = ''
     session = resolveMeetingSession({
       contextFolderPath,
@@ -352,6 +311,8 @@ function createMeetingRecordingController (options = {}) {
     for (let attempt = 1; attempt <= START_HELPER_MAX_ATTEMPTS; attempt += 1) {
       try {
         await startHelperCapture(helperPath)
+        availability = 'available'
+        unavailableReason = ''
         setState(STATES.RECORDING, { sessionId: session.sessionId })
         return { ok: true, status: getStatus() }
       } catch (error) {
@@ -443,7 +404,7 @@ function createMeetingRecordingController (options = {}) {
     intentionalStop = true
     const currentHelper = speechHelperClient
     if (currentHelper && !childExited) {
-      scheduleForcedStop(currentHelper)
+      finalizationWatchdog.touch(currentHelper)
       try {
         await currentHelper.stopCapture()
       } catch (error) {

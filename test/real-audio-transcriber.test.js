@@ -1,14 +1,27 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const { spawn, spawnSync } = require('node:child_process')
+const { spawn } = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
+const {
+  buildAudioPlayer,
+  collectJsonLines,
+  generateSpeechFixture,
+  getInstalledVoiceNames,
+  getMacLogSnapshot,
+  getProcessSnapshot,
+  killChild,
+  runDiarizationCapture,
+  waitForMessageOrClose,
+  writeJsonLine
+} = require('./helpers/real-audio-process')
+
 const appRoot = path.join(__dirname, '..')
 const helperPath = path.join(appRoot, 'scripts', 'bin', 'familiar-speech-helper')
-const playerSourcePath = path.join(appRoot, 'scripts', 'play-audio-to-output-device.m')
 const blackHoleDeviceName = 'BlackHole 2ch'
+const fixtureDirectories = []
 
 const shouldRunBlackHole = process.env.FAMILIAR_REAL_AUDIO_TEST === '1' &&
   process.platform === 'darwin'
@@ -24,193 +37,6 @@ const startupSmokeTimeoutMs = Number.parseInt(
   10
 )
 
-function waitForClose (child) {
-  if (child.exitCode !== null || child.signalCode !== null) {
-    return Promise.resolve({ code: child.exitCode, signal: child.signalCode })
-  }
-  return new Promise((resolve) => {
-    child.once('close', (code, signal) => resolve({ code, signal }))
-  })
-}
-
-function runCommand (command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const { timeoutMs = 30000, ...spawnOptions } = options
-    const child = spawn(command, args, {
-      ...spawnOptions,
-      stdio: ['ignore', 'pipe', 'pipe']
-    })
-    let stdout = ''
-    let stderr = ''
-    const timer = setTimeout(() => {
-      child.kill('SIGTERM')
-      reject(new Error(`${command} timed out after ${timeoutMs}ms`))
-    }, timeoutMs)
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString('utf-8')
-    })
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString('utf-8')
-    })
-    child.once('close', (code) => {
-      clearTimeout(timer)
-      if (code === 0) {
-        resolve({ stdout, stderr })
-        return
-      }
-      reject(new Error(`${command} exited ${code}: ${stderr || stdout}`))
-    })
-  })
-}
-
-function collectJsonLines (stream) {
-  const messages = []
-  let buffer = ''
-  stream.on('data', (chunk) => {
-    buffer += chunk.toString('utf-8')
-    const lines = buffer.split(/\r?\n/)
-    buffer = lines.pop() || ''
-    for (const line of lines) {
-      if (line.trim()) {
-        messages.push(JSON.parse(line))
-      }
-    }
-  })
-  return messages
-}
-
-function getProcessSnapshot (pid) {
-  if (!Number.isInteger(pid)) {
-    return 'Process pid is unavailable.'
-  }
-
-  const result = spawnSync('ps', [
-    '-p',
-    String(pid),
-    '-o',
-    'pid=,ppid=,stat=,etime=,command='
-  ], {
-    encoding: 'utf8',
-    timeout: 2000
-  })
-  if (result.error) {
-    return `Failed to inspect process ${pid}: ${result.error.message}`
-  }
-
-  const output = `${result.stdout || ''}${result.stderr || ''}`.trim()
-  return output || `Process ${pid} is no longer present.`
-}
-
-function getMacLogSnapshot () {
-  if (process.platform !== 'darwin') {
-    return 'macOS unified logs are unavailable on this platform.'
-  }
-
-  const result = spawnSync('/usr/bin/log', [
-    'show',
-    '--last',
-    '5m',
-    '--style',
-    'compact',
-    '--predicate',
-    'process == "kernel" AND ' +
-      '(eventMessage CONTAINS "familiar-speech-helper" OR ' +
-      'eventMessage CONTAINS "load code signature error")'
-  ], {
-    encoding: 'utf8',
-    timeout: 5000
-  })
-  if (result.error) {
-    return `Failed to read macOS unified logs: ${result.error.message}`
-  }
-
-  const output = `${result.stdout || ''}${result.stderr || ''}`.trim()
-  return output.slice(-4000) || 'No recent helper code-signing log entries.'
-}
-
-function writeJsonLine (stream, value) {
-  stream.write(`${JSON.stringify(value)}\n`)
-}
-
-function waitForMessage (messages, predicate, timeoutMs = 30000, label = 'audio message') {
-  const startedAt = Date.now()
-  return new Promise((resolve, reject) => {
-    const poll = () => {
-      const message = messages.find(predicate)
-      if (message) {
-        resolve(message)
-        return
-      }
-      if (Date.now() - startedAt > timeoutMs) {
-        reject(new Error(
-          `Timed out waiting for ${label}. Recent messages: ${JSON.stringify(messages.slice(-5))}`
-        ))
-        return
-      }
-      setTimeout(poll, 100)
-    }
-    poll()
-  })
-}
-
-function waitForMessageOrClose ({
-  child,
-  messages,
-  predicate,
-  timeoutMs = 30000,
-  label = 'audio message',
-  getStderr = () => '',
-  getProcessSnapshot = () => '',
-  getSystemLogSnapshot = () => ''
-}) {
-  const startedAt = Date.now()
-  return new Promise((resolve, reject) => {
-    let pollTimer = null
-
-    const cleanup = () => {
-      if (pollTimer) {
-        clearTimeout(pollTimer)
-      }
-      child.off('close', onClose)
-    }
-
-    const onClose = (code, signal) => {
-      cleanup()
-      reject(new Error(
-        `Speech helper exited before ${label}: code ${code}, signal ${signal || ''}.\n` +
-        `Recent messages: ${JSON.stringify(messages.slice(-5))}\n` +
-        `Process snapshot:\n${getProcessSnapshot()}\n` +
-        `Transcriber stderr:\n${getStderr()}\n` +
-        `System log snapshot:\n${getSystemLogSnapshot()}`
-      ))
-    }
-
-    const poll = () => {
-      const message = messages.find(predicate)
-      if (message) {
-        cleanup()
-        resolve(message)
-        return
-      }
-      if (Date.now() - startedAt > timeoutMs) {
-        cleanup()
-        const recentMessages = JSON.stringify(messages.slice(-5))
-        reject(new Error(
-          `Timed out waiting for ${label}. Recent messages: ${recentMessages}\n` +
-          `Process snapshot:\n${getProcessSnapshot()}\n` +
-          `Transcriber stderr:\n${getStderr()}\n` +
-          `System log snapshot:\n${getSystemLogSnapshot()}`
-        ))
-        return
-      }
-      pollTimer = setTimeout(poll, 100)
-    }
-
-    child.once('close', onClose)
-    poll()
-  })
-}
-
 function createStartCommand ({ id, inputDeviceName = '' }) {
   const command = { id, command: 'start_capture' }
   if (inputDeviceName) {
@@ -219,45 +45,17 @@ function createStartCommand ({ id, inputDeviceName = '' }) {
   return command
 }
 
-function releaseChildHandles (child) {
-  for (const stream of [child.stdin, child.stdout, child.stderr]) {
-    if (stream && !stream.destroyed) {
-      stream.destroy()
-    }
-  }
-  child.removeAllListeners()
-  if (typeof child.unref === 'function') {
-    child.unref()
-  }
+function makeFixtureDirectory () {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-real-audio-'))
+  fixtureDirectories.push(directory)
+  return directory
 }
 
-async function killChild (child) {
-  if (child.exitCode !== null || child.signalCode !== null) {
-    return { closed: true, signal: child.signalCode, code: child.exitCode }
+test.after(() => {
+  for (const directory of fixtureDirectories) {
+    fs.rmSync(directory, { force: true, recursive: true })
   }
-  child.kill('SIGTERM')
-  const gracefulClose = await Promise.race([
-    waitForClose(child),
-    new Promise((resolve) => setTimeout(() => resolve({ closed: false }), 3000))
-  ])
-  if (child.exitCode === null && child.signalCode === null) {
-    child.kill('SIGKILL')
-    return await Promise.race([
-      waitForClose(child).then((result) => ({ closed: true, ...result })),
-      new Promise((resolve) => {
-        setTimeout(() => {
-          releaseChildHandles(child)
-          resolve({ closed: false })
-        }, 3000)
-      })
-    ])
-  }
-  return {
-    closed: true,
-    code: gracefulClose.code ?? child.exitCode,
-    signal: gracefulClose.signal ?? child.signalCode
-  }
-}
+})
 
 test('real speech helper prepares the Apple speech capability before capture', {
   skip: shouldRunStartup
@@ -290,11 +88,19 @@ test('real speech helper prepares the Apple speech capability before capture', {
       getProcessSnapshot: () => getProcessSnapshot(child.pid),
       getSystemLogSnapshot: getMacLogSnapshot
     })
+    if (response.ok === false) {
+      assert.match(response.error, /Screen Recording access is required/)
+      return
+    }
     assert.equal(response.ok, true, response.error || stderr)
     assert.equal(response.payload.available, true)
     assert.equal(response.payload.assetState, 'installed')
     assert.match(response.payload.locale, /^en[-_]/i)
     assert.ok(response.payload.inputDevices.length > 0)
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(response.payload, 'captureProfiles'),
+      false
+    )
     assert.match(stderr, /helper started pid=/)
   } catch (error) {
     primaryError = error
@@ -346,7 +152,10 @@ test('real speech helper returns a start_capture response without hanging or exi
       getSystemLogSnapshot: getMacLogSnapshot
     })
     if (startResponse.ok === false) {
-      assert.match(startResponse.error, /Microphone access was not granted/)
+      assert.match(
+        startResponse.error,
+        /Microphone access was not granted|Screen Recording access is required/
+      )
       return
     }
     assert.equal(startResponse.ok, true, startResponse.error || stderr)
@@ -378,104 +187,86 @@ test('real speech helper returns a start_capture response without hanging or exi
   }
 })
 
-async function buildAudioPlayer (directory) {
-  const playerPath = path.join(directory, 'play-audio-to-output-device')
-  await runCommand('clang', [
-    '-fobjc-arc',
-    '-framework',
-    'Foundation',
-    '-framework',
-    'AVFoundation',
-    '-framework',
-    'AudioToolbox',
-    '-framework',
-    'CoreAudio',
-    playerSourcePath,
-    '-o',
-    playerPath
-  ])
-  return playerPath
-}
-
-async function generateSpeechFixture (directory) {
-  const audioPath = path.join(directory, 'meeting-test.wav')
-  await runCommand('say', [
-    '-v',
-    'Samantha',
-    '-o',
-    audioPath,
-    '--data-format=LEI16@22050',
-    'hello familiar meeting test'
-  ])
-  return audioPath
-}
-
-test('real transcriber receives generated audio through BlackHole', {
+test('real transcriber diarizes two generated voices through BlackHole', {
   skip: shouldRunBlackHole
     ? false
     : 'Set FAMILIAR_REAL_AUDIO_TEST=1 on macOS with BlackHole installed.'
 }, async () => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-real-audio-'))
+  const directory = makeFixtureDirectory()
   const playerPath = await buildAudioPlayer(directory)
-  const audioPath = await generateSpeechFixture(directory)
-  const child = spawn(helperPath, [], {
-    env: process.env,
-    stdio: ['pipe', 'pipe', 'pipe']
+  const installedVoices = await getInstalledVoiceNames()
+  assert.ok(installedVoices.has('Samantha'), 'The Samantha macOS voice must be installed.')
+  assert.ok(installedVoices.has('Rishi'), 'The Rishi macOS voice must be installed.')
+  const firstAudioPath = await generateSpeechFixture({
+    directory,
+    filename: 'speaker-one.wav',
+    voice: 'Samantha',
+    text: 'Hello familiar. My name is Samantha. I am speaking first in this conversation. ' +
+      'I am sitting near the computer and explaining the project in a calm steady voice. ' +
+      'The recording should keep my words together before the next person begins.'
   })
-  const messages = collectJsonLines(child.stdout)
-  let stderr = ''
-  let primaryError = null
-  child.stderr.on('data', (chunk) => {
-    stderr += chunk.toString('utf-8')
+  const secondAudioPath = await generateSpeechFixture({
+    directory,
+    filename: 'speaker-two.wav',
+    voice: 'Rishi',
+    text: 'Good morning familiar. My name is Rishi. I am speaking second in this ' +
+      'conversation. I am responding from the other side of the computer with a different ' +
+      'voice. These extra sentences give the local model a meaningful second speaking turn.'
   })
+  const { payload, stderr } = await runDiarizationCapture({
+    helperPath,
+    playerPath,
+    audioPaths: [firstAudioPath, secondAudioPath],
+    inputDeviceName: blackHoleDeviceName
+  })
+  assert.match(payload.text, /hello/i)
+  assert.match(payload.text, /familiar/i)
+  assert.ok(payload.endedAtMs >= payload.startedAtMs)
+  const speakers = new Set(payload.segments.map((segment) => segment.speaker).filter(Boolean))
+  assert.ok(
+    speakers.size >= 2,
+    `Expected two speakers, received ${[...speakers].join(', ')}. ` +
+      `Segments: ${JSON.stringify(payload.segments)}\nHelper stderr:\n${stderr}`
+  )
+  const words = payload.segments.flatMap((segment) => segment.words || [])
+  assert.ok(words.length > 0)
+  assert.ok(words.every((word) => word.endedAtMs >= word.startedAtMs))
+  assert.ok(words.every((word, index) => index === 0 ||
+    word.startedAtMs >= words[index - 1].startedAtMs))
+  assert.match(stderr, /diarization_progress completed=\d+ total=\d+/)
+})
 
-  try {
-    writeJsonLine(child.stdin, createStartCommand({
-      id: 'start',
-      inputDeviceName: blackHoleDeviceName
-    }))
-    const startResponse = await waitForMessage(
-      messages,
-      (message) => message.type === 'response' && message.id === 'start',
-      120000,
-      'speech helper start response'
-    )
-    assert.equal(startResponse.ok, true)
-
-    await runCommand(playerPath, [audioPath, blackHoleDeviceName])
-    writeJsonLine(child.stdin, { id: 'stop', command: 'stop_capture' })
-    const stopResponse = await waitForMessage(
-      messages,
-      (message) => message.type === 'response' && message.id === 'stop',
-      120000,
-      'speech helper stop response'
-    )
-    assert.equal(stopResponse.ok, true)
-    const transcript = await waitForMessage(messages, (message) => {
-      const payload = message.type === 'event' ? message.payload : null
-      const text = typeof payload?.text === 'string' ? payload.text.toLowerCase() : ''
-      return payload?.isFinal === true && text.includes('hello') && text.includes('familiar')
-    }, 45000, 'final speech transcript event')
-    assert.match(transcript.payload.text, /hello/i)
-    assert.match(transcript.payload.text, /familiar/i)
-    assert.ok(transcript.payload.endedAtMs >= transcript.payload.startedAtMs)
-    const words = transcript.payload.segments.flatMap((segment) => segment.words || [])
-    assert.ok(words.length > 0)
-    assert.ok(words.every((word) => word.endedAtMs >= word.startedAtMs))
-    assert.ok(words.every((word, index) => index === 0 ||
-      word.startedAtMs >= words[index - 1].startedAtMs))
-  } catch (error) {
-    primaryError = error
-    error.message = `${error.message}\nTranscriber stderr:\n${stderr}`
-    throw error
-  } finally {
-    const cleanup = await killChild(child)
-    if (primaryError) {
-      primaryError.message = `${primaryError.message}\n` +
-        `Cleanup result: ${JSON.stringify(cleanup)}\n` +
-        `Post-cleanup process snapshot:\n${getProcessSnapshot(child.pid)}`
-    } else {
-      assert.equal(cleanup.closed, true, 'speech helper should exit during test cleanup')
-    }
-  }
+test('real transcriber keeps one generated voice as one speaker through BlackHole', {
+  skip: shouldRunBlackHole
+    ? false
+    : 'Set FAMILIAR_REAL_AUDIO_TEST=1 on macOS with BlackHole installed.'
+}, async () => {
+  const directory = makeFixtureDirectory()
+  const playerPath = await buildAudioPlayer(directory)
+  const installedVoices = await getInstalledVoiceNames()
+  assert.ok(installedVoices.has('Samantha'), 'The Samantha macOS voice must be installed.')
+  const audioPath = await generateSpeechFixture({
+    directory,
+    filename: 'single-speaker.wav',
+    voice: 'Samantha',
+    text: 'Hello familiar. My name is Samantha. I am recording a personal note near my ' +
+      'computer. There is only one person speaking in this recording. I will continue for ' +
+      'a few moments so the system can recognize one consistent voice. This concludes the test.'
+  })
+  const { payload, stderr } = await runDiarizationCapture({
+    helperPath,
+    playerPath,
+    audioPaths: [audioPath],
+    inputDeviceName: blackHoleDeviceName
+  })
+  const speakers = new Set(payload.segments.map((segment) => segment.speaker).filter(Boolean))
+  assert.deepEqual(
+    [...speakers],
+    ['Speaker 1'],
+    `Expected one speaker. Segments: ${JSON.stringify(payload.segments)}\n` +
+      `Helper stderr:\n${stderr}`
+  )
+  assert.match(payload.text, /familiar/i)
+  assert.ok(payload.segments.flatMap((segment) => segment.words || []).length > 0)
+  assert.match(stderr, /diarization_progress completed=\d+ total=\d+/)
 })

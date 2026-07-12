@@ -217,8 +217,104 @@ test.describe('meeting recording', () => {
       expect(stopResult?.status?.isRecording).toBe(false)
       expect(stopResult?.status?.awakeLockActive).toBe(false)
 
+      const finalizedTranscript = fs.readFileSync(transcriptPath, 'utf-8')
+      expect(finalizedTranscript).toContain(
+        '<!-- familiar-other-voices-source: microphone -->'
+      )
+      expect(finalizedTranscript).toContain(
+        '[00:00:00] Speaker 1: Hello from the meeting.\n' +
+        '[00:00:01] Speaker 2: We should ship live notes.'
+      )
+      expect(finalizedTranscript.match(/Hello from the meeting\./g)).toHaveLength(1)
+      expect(finalizedTranscript.match(/We should ship live notes\./g)).toHaveLength(1)
+
       const stoppedMenuItems = await window.evaluate(() => window.familiar.getTrayMenuItemsForE2E())
       expect(stoppedMenuItems?.items.map((item) => item.label)).toContain('Record meeting')
+    } finally {
+      await electronApp.close()
+    }
+  })
+
+  test('automatically keeps microphone and system-audio speakers distinct', async () => {
+    const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-online-'))
+    const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-online-'))
+    const electronApp = await launchApp({
+      contextPath,
+      settingsDir,
+      env: { FAMILIAR_E2E_OTHER_VOICES_SOURCE: 'system-audio' }
+    })
+
+    try {
+      const window = await electronApp.firstWindow()
+      await window.waitForLoadState('domcontentloaded')
+      await expect.poll(async () => {
+        const status = await window.evaluate(() => window.familiar.getMeetingRecordingStatus())
+        return status?.isAvailable
+      }).toBe(true)
+
+      const startResult = await window.evaluate(() =>
+        window.familiar.clickTrayMeetingRecordingActionForE2E()
+      )
+      expect(startResult?.ok).toBe(true)
+
+      await expect.poll(() => {
+        const transcriptPath = findTranscriptMarkdownPath(contextPath)
+        return transcriptPath ? fs.readFileSync(transcriptPath, 'utf-8') : ''
+      }).toContain('Hello from')
+
+      const stopResult = await window.evaluate(() =>
+        window.familiar.clickTrayMeetingRecordingActionForE2E()
+      )
+      expect(stopResult?.ok).toBe(true)
+
+      const transcript = fs.readFileSync(findTranscriptMarkdownPath(contextPath), 'utf-8')
+      expect(transcript).toContain(
+        '<!-- familiar-other-voices-source: system-audio -->'
+      )
+      expect(transcript).toContain('[00:00:00] You: Hello from the meeting.')
+      expect(transcript).toContain('[00:00:01] Speaker 1: We should ship live notes.')
+      expect(transcript).not.toContain('Speaker 2:')
+    } finally {
+      await electronApp.close()
+    }
+  })
+
+  test('disables automatic capture when system audio is unavailable', async () => {
+    const contextPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-context-online-off-'))
+    const settingsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-online-off-'))
+    const unavailableReason = 'Screen Recording access is required for automatic capture.'
+    const electronApp = await launchApp({
+      contextPath,
+      settingsDir,
+      env: { FAMILIAR_E2E_SYSTEM_AUDIO_UNAVAILABLE_REASON: unavailableReason }
+    })
+
+    try {
+      const window = await electronApp.firstWindow()
+      await window.waitForLoadState('domcontentloaded')
+      await expect.poll(async () => {
+        const status = await window.evaluate(() => window.familiar.getMeetingRecordingStatus())
+        return {
+          availability: status?.availability,
+          isAvailable: status?.isAvailable,
+          reason: status?.unavailableReason
+        }
+      }).toEqual({
+        availability: 'unavailable',
+        isAvailable: false,
+        reason: unavailableReason
+      })
+
+      const menu = await window.evaluate(() => window.familiar.getTrayMenuItemsForE2E())
+      expect(menu.items[0]).toMatchObject({
+        label: 'Meeting recording unavailable',
+        enabled: false
+      })
+      const startResult = await window.evaluate(() =>
+        window.familiar.clickTrayMeetingRecordingActionForE2E()
+      )
+      expect(startResult?.ok).toBe(false)
+      expect(listSessionNames(contextPath)).toEqual([])
     } finally {
       await electronApp.close()
     }

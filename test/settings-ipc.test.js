@@ -187,7 +187,7 @@ test('settings:applyDefaultContextFolder does not save after wizard completion',
   }
 })
 
-test('settings IPC saves and returns meeting recording shortcut', async () => {
+test('settings IPC saves and returns meeting audio settings', async () => {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-ipc-'))
   const settingsDir = path.join(tmpRoot, 'settings')
   fs.mkdirSync(settingsDir, { recursive: true })
@@ -247,6 +247,10 @@ test('settings IPC saves and returns meeting recording shortcut', async () => {
 
     const savedSettings = handlers['settings:get']()
     assert.equal(savedSettings.meetingRecordingShortcut, 'CommandOrControl+Shift+M')
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(savedSettings, 'meetingCaptureProfile'),
+      false
+    )
 
     const clearResult = await handlers['settings:save'](null, {
       meetingRecordingShortcut: null

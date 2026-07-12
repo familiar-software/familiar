@@ -274,6 +274,22 @@ test('saveSettings preserves meeting recording shortcut when updating other sett
   assert.equal(loaded.contextFolderPath, contextDir)
 })
 
+test('saveSettings removes the obsolete meeting capture profile', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
+  const settingsDir = path.join(tempRoot, 'settings')
+  fs.mkdirSync(settingsDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(settingsDir, SETTINGS_FILE_NAME),
+    JSON.stringify({ meetingCaptureProfile: 'online-meeting' })
+  )
+
+  saveSettings({ meetingRecordingShortcut: 'CommandOrControl+Shift+M' }, { settingsDir })
+
+  const loaded = loadSettings({ settingsDir })
+  assert.equal(Object.prototype.hasOwnProperty.call(loaded, 'meetingCaptureProfile'), false)
+  assert.equal(loaded.meetingRecordingShortcut, 'CommandOrControl+Shift+M')
+})
+
 test('saveSettings persists wizardCompleted', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-settings-'))
   const settingsDir = path.join(tempRoot, 'settings')

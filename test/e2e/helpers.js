@@ -1,5 +1,43 @@
 const assert = require('node:assert')
 
+const getSettingsWindow = async (electronApp) => {
+  let requestedActivation = false
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    for (const window of electronApp.windows()) {
+      try {
+        const hasSettingsBridge = await window.evaluate(
+          () => typeof window.familiar?.getSettings === 'function'
+        )
+        if (hasSettingsBridge) {
+          return window
+        }
+      } catch {
+        // The window may still be loading or use a different preload bridge.
+      }
+    }
+
+    if (!requestedActivation) {
+      requestedActivation = true
+      try {
+        await electronApp.evaluate(({ app }) => {
+          app.emit('activate')
+        })
+      } catch (error) {
+        const isDestroyedContext = error instanceof Error &&
+          error.message.includes('Execution context was destroyed')
+        if (!isDestroyedContext) {
+          throw error
+        }
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  throw new Error('Timed out waiting for the settings window')
+}
+
 const confirmMoveContextFolder = async (window) => {
   const confirmState = {
     message: '',
@@ -7,7 +45,9 @@ const confirmMoveContextFolder = async (window) => {
   }
 
   await window.evaluate((state) => {
-    if (typeof window.confirm !== 'function' || window.confirm.__familiarAutoConfirmContextFolder === true) {
+    const isAutoConfirmInstalled =
+      window.confirm?.__familiarAutoConfirmContextFolder === true
+    if (typeof window.confirm !== 'function' || isAutoConfirmInstalled) {
       if (window.__familiarAutoConfirmContextFolderState) {
         window.__familiarAutoConfirmContextFolderState.invoked = false
         window.__familiarAutoConfirmContextFolderState.message = ''
@@ -53,15 +93,25 @@ const confirmMoveContextFolder = async (window) => {
     })
     .then(async () => {
       const state = await window.evaluate(() => {
-        const { invoked = false, message = '' } = window.__familiarAutoConfirmContextFolderState || {}
+        const {
+          invoked = false,
+          message = ''
+        } = window.__familiarAutoConfirmContextFolderState || {}
         return {
           invoked,
           message: String(message || '')
         }
       })
 
-      assert.ok(state.invoked, 'Expected window.confirm to be invoked when moving context folder')
-      assert.match(state.message.toLowerCase(), /context folder/, 'Expected context folder move confirmation message')
+      assert.ok(
+        state.invoked,
+        'Expected window.confirm to be invoked when moving context folder'
+      )
+      assert.match(
+        state.message.toLowerCase(),
+        /context folder/,
+        'Expected context folder move confirmation message'
+      )
 
       return {
         type: 'window-confirm',
@@ -73,5 +123,6 @@ const confirmMoveContextFolder = async (window) => {
 }
 
 module.exports = {
-  confirmMoveContextFolder
+  confirmMoveContextFolder,
+  getSettingsWindow
 }

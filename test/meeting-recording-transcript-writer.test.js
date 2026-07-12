@@ -168,3 +168,60 @@ test('transcript writer breaks one long helper segment into timestamped lines', 
   assert.match(markdown, /\[00:00:05\] just want to go to sleep,/)
   assert.match(markdown, /\[00:00:08\] yep that's it/)
 })
+
+test('transcript writer atomically replaces prior text with complete speakers', async () => {
+  const sessionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-transcript-replace-'))
+  const transcriptMarkdownPath = path.join(
+    sessionDir,
+    '2026-05-30T12-34-56-789.transcript.md'
+  )
+  const writer = createTranscriptWriter({
+    transcriptMarkdownPath,
+    scanAndRedactContentImpl: passthroughRedaction
+  })
+
+  await writer.writeEvent({ type: 'final', text: 'old words', startedAtMs: 0 })
+  await writer.writeEvent({ type: 'partial', text: 'draft words', startedAtMs: 500 })
+
+  const completeEvent = {
+    type: 'final',
+    text: 'hello there general kenobi',
+    replaceTranscript: true,
+    otherVoicesSource: 'system-audio',
+    startedAtMs: 100,
+    endedAtMs: 2300,
+    segments: [
+      {
+        text: 'hello there',
+        startedAtMs: 100,
+        endedAtMs: 800,
+        speaker: 'Speaker 1'
+      },
+      {
+        text: 'general kenobi',
+        startedAtMs: 1500,
+        endedAtMs: 2300,
+        speaker: 'Speaker 2'
+      }
+    ]
+  }
+
+  await writer.writeEvent(completeEvent)
+  const firstReplacement = fs.readFileSync(transcriptMarkdownPath, 'utf-8')
+  await writer.writeEvent(completeEvent)
+  const secondReplacement = fs.readFileSync(transcriptMarkdownPath, 'utf-8')
+
+  assert.equal(secondReplacement, firstReplacement)
+  assert.equal(secondReplacement.match(/# Meeting transcript/g).length, 1)
+  assert.match(
+    secondReplacement,
+    /<!-- familiar-other-voices-source: system-audio -->/
+  )
+  assert.equal(secondReplacement.match(/Speaker 1: hello there/g).length, 1)
+  assert.equal(secondReplacement.match(/Speaker 2: general kenobi/g).length, 1)
+  assert.doesNotMatch(secondReplacement, /old words|draft words|In progress/)
+  assert.deepEqual(
+    fs.readdirSync(sessionDir).sort(),
+    [path.basename(transcriptMarkdownPath)]
+  )
+})

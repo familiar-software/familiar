@@ -9,6 +9,7 @@ const buildSteps = [
     'npm run build:apple-vision-ocr',
     'npm run build:active-window-detector',
     'npm run build:rg-bundle',
+    'npm run build:diarization-models',
     'npm run build:speech-helper:universal',
     'npm run css:build'
 ];
@@ -95,6 +96,22 @@ test('package includes meeting audio transcription resources', () => {
     assert.equal(
         resources.some(
             (resource) =>
+                resource.from === 'scripts/bin/fluid-audio-models' &&
+                resource.to === 'fluid-audio-models'
+        ),
+        true
+    );
+    assert.equal(
+        resources.some(
+            (resource) =>
+                resource.from === 'build/third-party' &&
+                resource.to === 'third-party'
+        ),
+        true
+    );
+    assert.equal(
+        resources.some(
+            (resource) =>
                 resource.from === 'scripts/bin/whisperkit-models' &&
                 resource.to === 'whisperkit-models'
         ),
@@ -116,12 +133,36 @@ test('package includes meeting audio transcription resources', () => {
         packageJson.scripts['build:speech-helper:universal'],
         'bash scripts/build-familiar-speech-helper.sh --universal'
     );
+    assert.equal(
+        packageJson.scripts['build:diarization-models'],
+        'node scripts/build-fluid-audio-models.js'
+    );
     assert.equal(packageJson.scripts['build:speech-models'], undefined);
     assert.equal(packageJson.scripts['build:audio-transcriber'], undefined);
     assert.equal(
         packageJson.build.mac.extendInfo.NSMicrophoneUsageDescription,
         'Familiar needs microphone access to record and transcribe meetings you explicitly start.'
     );
+});
+
+test('package includes FluidAudio SDK and model attribution', () => {
+    const noticesPath = path.join(appRoot, 'build', 'third-party', 'THIRD-PARTY-NOTICES.md');
+    const apacheLicensePath = path.join(
+        appRoot,
+        'build',
+        'third-party',
+        'licenses',
+        'FluidAudio-APACHE-2.0.txt'
+    );
+    const notices = fs.readFileSync(noticesPath, 'utf-8');
+    const apacheLicense = fs.readFileSync(apacheLicensePath, 'utf-8');
+
+    assert.match(notices, /FluidAudio 0\.15\.4/);
+    assert.match(notices, /b9d43724cbdb5a980e441fd54180964e94d470f7/);
+    assert.match(notices, /1ed7a662fdc7109e36d822db793ee6eebdaf8594/);
+    assert.match(notices, /CC-BY-4\.0/);
+    assert.match(notices, /pyannote\/speaker-diarization-community-1/);
+    assert.match(apacheLicense, /Apache License\s+Version 2\.0, January 2004/);
 });
 
 test('meeting audio transcription has packaged microphone entitlement', () => {
@@ -131,7 +172,7 @@ test('meeting audio transcription has packaged microphone entitlement', () => {
     assert.match(entitlements, /com\.apple\.security\.device\.audio-input/);
 });
 
-test('meeting audio transcription has no third-party model dependency', () => {
+test('meeting audio transcription pins FluidAudio for offline diarization', () => {
     const packageSwiftPath = path.join(
         appRoot,
         'scripts',
@@ -147,7 +188,15 @@ test('meeting audio transcription has no third-party model dependency', () => {
     const packageSwift = fs.readFileSync(packageSwiftPath, 'utf-8');
 
     assert.doesNotMatch(packageSwift, /WhisperKit|argmax/i);
-    assert.equal(fs.existsSync(packageResolvedPath), false);
+    assert.match(
+        packageSwift,
+        /\.package\([\s\S]*url: "https:\/\/github\.com\/FluidInference\/FluidAudio\.git",[\s\S]*exact: "0\.15\.4"/
+    );
+    assert.match(
+        packageSwift,
+        /\.product\(name: "FluidAudio", package: "FluidAudio"\)/
+    );
+    assert.equal(fs.existsSync(packageResolvedPath), true);
 });
 
 test('speech helper uses Apple SpeechTranscriber with runtime availability checks', () => {
@@ -185,6 +234,8 @@ test('speech helper build script can build a universal macOS helper', () => {
     assert.match(script, /build_arch arm64/);
     assert.match(script, /build_arch x86_64/);
     assert.match(script, /apple-macosx14\.0/);
+    assert.match(script, /if ! swift build/);
+    assert.match(script, /Failed to build \$arch speech helper/);
     assert.match(script, /lipo -create/);
     assert.match(script, /codesign --force --sign - "\$OUT"/);
 });

@@ -1,11 +1,13 @@
 const fs = require('node:fs/promises')
 const path = require('node:path')
+const { randomUUID } = require('node:crypto')
 
 const { scanAndRedactContent } = require('../security/rg-redaction')
 
 const LIVE_BLOCK_START = '<!-- familiar-live-transcript:start -->'
 const LIVE_BLOCK_END = '<!-- familiar-live-transcript:end -->'
 const TRANSCRIPT_LINE_MAX_WORDS = 8
+const OTHER_VOICES_SOURCES = new Set(['microphone', 'system-audio'])
 
 function noop () {}
 
@@ -21,12 +23,19 @@ function normalizeTranscriptEvent (event = {}) {
     text,
     startedAtMs,
     endedAtMs,
-    segments
+    segments,
+    replaceTranscript: event.replaceTranscript === true,
+    otherVoicesSource: OTHER_VOICES_SOURCES.has(event.otherVoicesSource)
+      ? event.otherVoicesSource
+      : ''
   }
 }
 
-function buildTranscriptHeader () {
-  return '# Meeting transcript\n\n'
+function buildTranscriptHeader (event = {}) {
+  const sourceMetadata = OTHER_VOICES_SOURCES.has(event.otherVoicesSource)
+    ? `<!-- familiar-other-voices-source: ${event.otherVoicesSource} -->\n\n`
+    : ''
+  return `# Meeting transcript\n\n${sourceMetadata}`
 }
 
 function normalizeTranscriptWords (words = []) {
@@ -209,6 +218,33 @@ function stripLiveBlock (content) {
   return afterBlock ? `${beforeBlock}\n${afterBlock}` : `${beforeBlock}\n`
 }
 
+async function writeFileAtomically (filePath, content) {
+  const temporaryPath = path.join(
+    path.dirname(filePath),
+    `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`
+  )
+  try {
+    await fs.writeFile(temporaryPath, content, {
+      encoding: 'utf-8',
+      flag: 'wx',
+      mode: 0o600
+    })
+    await fs.rename(temporaryPath, filePath)
+  } catch (error) {
+    try {
+      await fs.unlink(temporaryPath)
+    } catch (cleanupError) {
+      if (cleanupError?.code !== 'ENOENT') {
+        throw new AggregateError(
+          [error, cleanupError],
+          `Failed to replace transcript and clean temporary file: ${temporaryPath}`
+        )
+      }
+    }
+    throw error
+  }
+}
+
 function createTranscriptWriter ({
   transcriptMarkdownPath,
   onRedactionWarning = noop,
@@ -287,6 +323,13 @@ function createTranscriptWriter ({
     )
   }
 
+  async function replaceFinalMarkdown (event) {
+    await writeFileAtomically(
+      transcriptMarkdownPath,
+      `${buildTranscriptHeader(event)}${buildTranscriptLines(event)}`
+    )
+  }
+
   async function writeEvent (event = {}) {
     await ensureInitialized()
     const normalizedEvent = normalizeTranscriptEvent(event)
@@ -307,6 +350,10 @@ function createTranscriptWriter ({
       return
     }
     if (normalizedEvent.type === 'final') {
+      if (normalizedEvent.replaceTranscript) {
+        await replaceFinalMarkdown(normalizedEvent)
+        return
+      }
       await writeFinalToMarkdown(normalizedEvent)
       return
     }

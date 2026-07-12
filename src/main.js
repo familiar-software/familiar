@@ -215,6 +215,7 @@ const handleMainSettingsSaved = (nextSettings = null) => {
     if (meetingRecordingShortcutController) {
         meetingRecordingShortcutController.registerFromSettings(nextSettings || loadSettings());
     }
+    trayMenuController?.refreshTrayMenuFromSettings();
 
     if (!retentionChangeTrigger) {
         return;

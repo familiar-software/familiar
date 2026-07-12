@@ -45,7 +45,9 @@ struct FamiliarSpeechHelper {
                     payload: try await service.prewarmModel()
                 )
             case "start_capture":
-                try await service.startCapture(inputDeviceName: request.inputDeviceName)
+                try await service.startCapture(
+                    inputDeviceName: request.inputDeviceName
+                )
                 await writer.response(id: request.id)
             case "stop_capture":
                 try await service.stopCapture()

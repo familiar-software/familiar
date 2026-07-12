@@ -133,6 +133,24 @@ test('buildTrayMenuTemplate disables unavailable meeting recording', () => {
     );
 });
 
+test('buildTrayMenuTemplate disables unavailable automatic capture', () => {
+    const template = buildTrayMenuTemplate({
+        onMeetingRecordingToggle: () => {},
+        onRecordingPause: () => {},
+        onOpenSettings: () => {},
+        onQuit: () => {},
+        meetingRecordingState: {
+            availability: 'available',
+            isAvailable: false,
+            unavailableReason: 'Screen Recording access is required.'
+        }
+    });
+
+    assert.equal(template[0].label, microcopy.tray.meeting.unavailableRecording);
+    assert.equal(template[0].enabled, false);
+    assert.equal(template[0].toolTip, 'Screen Recording access is required.');
+});
+
 test('settings click does not trigger quit', () => {
     let openSettingsCalls = 0;
     let quitCalls = 0;

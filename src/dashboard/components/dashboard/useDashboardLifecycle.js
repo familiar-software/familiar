@@ -19,6 +19,7 @@ export const useDashboardLifecycle = (state) => {
     setStorageError,
     setStorageUsageLoaded,
     setRecordingStatus,
+    setMeetingRecordingStatus,
     setSettingsLoaded,
     setSettings
   } = state
@@ -80,6 +81,36 @@ export const useDashboardLifecycle = (state) => {
       console.error('Failed to load recording status', error)
     }
   }, [familiar, setRecordingStatus])
+
+  const applyMeetingRecordingStatus = useCallback((result = {}) => {
+    if (!result || typeof result !== 'object') {
+      return
+    }
+    setMeetingRecordingStatus({
+      state: typeof result.state === 'string' ? result.state : 'idle',
+      availability: typeof result.availability === 'string'
+        ? result.availability
+        : 'checking',
+      isAvailable: result.isAvailable === true,
+      unavailableReason: typeof result.unavailableReason === 'string'
+        ? result.unavailableReason
+        : ''
+    })
+  }, [setMeetingRecordingStatus])
+
+  const refreshMeetingRecordingStatus = useCallback(async () => {
+    if (!familiar || typeof familiar.getMeetingRecordingStatus !== 'function') {
+      return
+    }
+    try {
+      const result = await familiar.getMeetingRecordingStatus()
+      if (result?.ok) {
+        applyMeetingRecordingStatus(result)
+      }
+    } catch (error) {
+      console.error('Failed to load meeting recording status', error)
+    }
+  }, [applyMeetingRecordingStatus, familiar])
 
   const loadSettings = useCallback(async () => {
     if (hasLoadedSettingsRef.current) {
@@ -177,9 +208,11 @@ export const useDashboardLifecycle = (state) => {
   useEffect(() => {
     mountedRef.current = true
     void loadSettings()
+    void refreshMeetingRecordingStatus()
 
     const statusInterval = setInterval(() => {
       void refreshRecordingStatus()
+      void refreshMeetingRecordingStatus()
     }, 2000)
 
     const unsubscribeSettings =
@@ -202,6 +235,10 @@ export const useDashboardLifecycle = (state) => {
       typeof familiar?.onScreenStillsStateChanged === 'function'
         ? familiar.onScreenStillsStateChanged(applyRecordingStatusFromPayload)
         : null
+    const unsubscribeMeetingRecordingState =
+      typeof familiar?.onMeetingRecordingStateChanged === 'function'
+        ? familiar.onMeetingRecordingStateChanged(applyMeetingRecordingStatus)
+        : null
 
     return () => {
       mountedRef.current = false
@@ -215,13 +252,18 @@ export const useDashboardLifecycle = (state) => {
       if (unsubscribeScreenStillsState) {
         unsubscribeScreenStillsState()
       }
+      if (unsubscribeMeetingRecordingState) {
+        unsubscribeMeetingRecordingState()
+      }
     }
   }, [
     familiar,
+    applyMeetingRecordingStatus,
     applyRecordingStatusFromPayload,
     loadSettings,
     mountedRef,
     refreshRecordingStatus,
+    refreshMeetingRecordingStatus,
     refreshStorageUsageFromWindowOpen,
     setSettings
   ])
@@ -229,6 +271,7 @@ export const useDashboardLifecycle = (state) => {
   return {
     refreshStorageUsage,
     refreshRecordingStatus,
+    refreshMeetingRecordingStatus,
     loadSettings,
     refreshStorageUsageFromWindowOpen
   }

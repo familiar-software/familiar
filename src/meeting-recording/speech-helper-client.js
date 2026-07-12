@@ -127,13 +127,20 @@ function normalizeTranscriptPayload (payload = {}, defaultType = 'partial') {
     payload.final === true ||
     payload.state === 'final' ||
     defaultType === 'final'
-  return {
+  const event = {
     type: isFinal ? 'final' : 'partial',
     text,
     startedAtMs: pickNumber(payload.startedAtMs, payload.startMs, payload.startTimeMs),
     endedAtMs: pickNumber(payload.endedAtMs, payload.endMs, payload.endTimeMs),
     segments
   }
+  if (payload.replaceTranscript === true) {
+    event.replaceTranscript = true
+  }
+  if (['microphone', 'system-audio'].includes(payload.otherVoicesSource)) {
+    event.otherVoicesSource = payload.otherVoicesSource
+  }
+  return event
 }
 
 function createSpeechHelperClient ({
@@ -142,6 +149,7 @@ function createSpeechHelperClient ({
   env = process.env,
   logger = console,
   onClose = noop,
+  onFinalizationProgress = noop,
   onStderr = noop,
   onTranscriptEvent = noop,
   scheduler = { setTimeout, clearTimeout },
@@ -161,8 +169,11 @@ function createSpeechHelperClient ({
   const pending = new Map()
   let nextRequestId = 0
   let stdoutBuffer = ''
+  let stderrBuffer = ''
   let closed = false
   let closeDetails = null
+  let stopForceTimer = null
+  let lastFinalizationProgress = ''
 
   const processExitHandler = () => {
     endChildStdin(child, logger)
@@ -208,6 +219,54 @@ function createSpeechHelperClient ({
       scheduler.clearTimeout(timer)
       reject(error)
     })
+  }
+
+  function scheduleRequestTimeout (id, request) {
+    request.timer = scheduler.setTimeout(() => {
+      pending.delete(id)
+      request.reject(new Error(`Speech helper command timed out: ${request.command}`))
+    }, request.timeoutMs)
+  }
+
+  function refreshStopRequestTimeout () {
+    for (const [id, request] of pending.entries()) {
+      if (request.command !== 'stop_capture') {
+        continue
+      }
+      scheduler.clearTimeout(request.timer)
+      scheduleRequestTimeout(id, request)
+    }
+  }
+
+  function scheduleStopForceTimer () {
+    if (stopForceTimer) {
+      scheduler.clearTimeout(stopForceTimer)
+    }
+    stopForceTimer = scheduler.setTimeout(() => {
+      stopForceTimer = null
+      if (!closed) {
+        killChild(child, 'SIGKILL', logger)
+      }
+    }, stopTimeoutMs)
+    unrefTimer(stopForceTimer)
+  }
+
+  function handleFinalizationProgressLine (line) {
+    const match = line.match(/diarization_progress completed=(\d+) total=(\d+)/)
+    if (!match || !stopForceTimer) {
+      return
+    }
+    const completedChunks = Number.parseInt(match[1], 10)
+    const totalChunks = Number.parseInt(match[2], 10)
+    const progressKey = `${completedChunks}/${totalChunks}`
+    const isInvalid = totalChunks <= 0 || completedChunks > totalChunks
+    if (isInvalid || progressKey === lastFinalizationProgress) {
+      return
+    }
+    lastFinalizationProgress = progressKey
+    refreshStopRequestTimeout()
+    scheduleStopForceTimer()
+    onFinalizationProgress({ completedChunks, totalChunks })
   }
 
   function emitPayload (payload, defaultType) {
@@ -269,6 +328,10 @@ function createSpeechHelperClient ({
 
   child.stderr.on('data', (chunk) => {
     onStderr(chunk)
+    stderrBuffer += chunk.toString('utf-8')
+    const lines = stderrBuffer.split(/\r?\n/)
+    stderrBuffer = lines.pop() || ''
+    lines.forEach(handleFinalizationProgressLine)
   })
 
   child.once('error', (error) => {
@@ -293,11 +356,9 @@ function createSpeechHelperClient ({
       ? options.timeoutMs
       : commandTimeoutMs
     return new Promise((resolve, reject) => {
-      const timer = scheduler.setTimeout(() => {
-        pending.delete(id)
-        reject(new Error(`Speech helper command timed out: ${command}`))
-      }, timeoutMs)
-      pending.set(id, { resolve, reject, timer })
+      const request = { command, reject, resolve, timeoutMs, timer: null }
+      pending.set(id, request)
+      scheduleRequestTimeout(id, request)
       writeJsonLine(child.stdin, { id, command, ...payload })
     })
   }
@@ -307,17 +368,16 @@ function createSpeechHelperClient ({
       return
     }
 
-    const forceTimer = scheduler.setTimeout(() => {
-      if (!closed) {
-        killChild(child, 'SIGKILL', logger)
-      }
-    }, stopTimeoutMs)
-    unrefTimer(forceTimer)
+    lastFinalizationProgress = ''
+    scheduleStopForceTimer()
     try {
       const payload = await sendCommand('stop_capture', {}, { timeoutMs: stopCommandTimeoutMs })
       emitPayload(payload, 'final')
     } finally {
-      scheduler.clearTimeout(forceTimer)
+      if (stopForceTimer) {
+        scheduler.clearTimeout(stopForceTimer)
+        stopForceTimer = null
+      }
       endChildStdin(child, logger)
     }
   }

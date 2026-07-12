@@ -13,10 +13,22 @@ let package = Package(
             targets: ["FamiliarSpeechHelper"]
         )
     ],
+    dependencies: [
+        .package(
+            url: "https://github.com/FluidInference/FluidAudio.git",
+            exact: "0.15.4"
+        )
+    ],
     targets: [
         .executableTarget(
             name: "FamiliarSpeechHelper",
-            dependencies: []
+            dependencies: [
+                .product(name: "FluidAudio", package: "FluidAudio")
+            ]
+        ),
+        .testTarget(
+            name: "FamiliarSpeechHelperTests",
+            dependencies: ["FamiliarSpeechHelper"]
         )
     ]
 )

@@ -127,9 +127,13 @@ int main(int argc, const char *argv[]) {
     }
 
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
-    [player scheduleFile:file atTime:nil completionHandler:^{
-      dispatch_semaphore_signal(done);
-    }];
+    [player scheduleFile:file
+                  atTime:nil
+  completionCallbackType:AVAudioPlayerNodeCompletionDataPlayedBack
+       completionHandler:^(AVAudioPlayerNodeCompletionCallbackType callbackType) {
+         (void)callbackType;
+         dispatch_semaphore_signal(done);
+       }];
 
     if (![engine startAndReturnError:&error]) {
       fprintf(stderr, "Failed to start audio engine: %s\n", error.localizedDescription.UTF8String);

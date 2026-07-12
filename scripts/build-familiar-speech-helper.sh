@@ -38,13 +38,16 @@ build_arch() {
   local scratch_path="$PACKAGE_DIR/.build/familiar-speech-helper-${arch}"
   local artifact="$scratch_path/${arch}-apple-macosx/release/familiar-speech-helper"
 
-  swift build \
+  if ! swift build \
     --package-path "$PACKAGE_DIR" \
     --configuration release \
     --product familiar-speech-helper \
     --triple "$triple" \
     --scratch-path "$scratch_path" \
-    --disable-automatic-resolution >&2
+    --disable-automatic-resolution >&2; then
+    echo "Failed to build $arch speech helper." >&2
+    return 1
+  fi
 
   if [[ ! -x "$artifact" ]]; then
     echo "Missing $arch speech helper build artifact: $artifact" >&2

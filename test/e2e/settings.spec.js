@@ -3,43 +3,7 @@ const os = require('node:os')
 const path = require('node:path')
 const { test, expect } = require('playwright/test')
 const { _electron: electron } = require('playwright')
-const { confirmMoveContextFolder } = require('./helpers')
-
-const getSettingsWindow = async (electronApp) => {
-  let requestedActivation = false
-
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    for (const window of electronApp.windows()) {
-      try {
-        const hasSettingsBridge = await window.evaluate(
-          () => typeof window.familiar?.getSettings === 'function'
-        )
-        if (hasSettingsBridge) {
-          return window
-        }
-      } catch {
-        // Ignore windows that are still loading or use a different preload bridge.
-      }
-    }
-
-    if (!requestedActivation) {
-      requestedActivation = true
-      try {
-        await electronApp.evaluate(({ app }) => {
-          app.emit('activate')
-        })
-      } catch (error) {
-        if (!(error instanceof Error) || !error.message.includes('Execution context was destroyed')) {
-          throw error
-        }
-      }
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-
-  throw new Error('Timed out waiting for the settings window')
-}
+const { confirmMoveContextFolder, getSettingsWindow } = require('./helpers')
 
 test('storage change button sets the context folder path', async () => {
   const appRoot = path.join(__dirname, '../..')
@@ -78,7 +42,8 @@ test('storage change button sets the context folder path', async () => {
       ...process.env,
       FAMILIAR_E2E: '1',
       FAMILIAR_E2E_CONTEXT_PATH: contextPath,
-      FAMILIAR_SETTINGS_DIR: settingsDir
+      FAMILIAR_SETTINGS_DIR: settingsDir,
+      FAMILIAR_E2E_SPEECH_HELPER_PATH: path.join(__dirname, 'fake-speech-helper.js')
     }
   })
 
@@ -138,7 +103,8 @@ test('audio tab saves and clears meeting recording shortcut', async () => {
       ...process.env,
       FAMILIAR_E2E: '1',
       FAMILIAR_E2E_CONTEXT_PATH: contextPath,
-      FAMILIAR_SETTINGS_DIR: settingsDir
+      FAMILIAR_SETTINGS_DIR: settingsDir,
+      FAMILIAR_E2E_SPEECH_HELPER_PATH: path.join(__dirname, 'fake-speech-helper.js')
     }
   })
 
@@ -147,6 +113,15 @@ test('audio tab saves and clears meeting recording shortcut', async () => {
     await window.waitForLoadState('domcontentloaded')
 
     await window.getByRole('tab', { name: 'Audio' }).click()
+    await expect(window.locator('#audio-automatic-source')).toHaveText('Automatic')
+    await expect(window.locator('#audio-automatic-source-status')).toContainText(
+      'Listens to your microphone and Mac audio'
+    )
+    await expect(window.locator('#audio-capture-profile')).toHaveCount(0)
+
+    let stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+    expect(stored).not.toHaveProperty('meetingCaptureProfile')
+
     const shortcutInput = window.locator('#audio-meeting-recording-shortcut')
     await expect(shortcutInput).toBeVisible()
     await expect(shortcutInput).toHaveValue('')
@@ -158,7 +133,7 @@ test('audio tab saves and clears meeting recording shortcut', async () => {
     await expect(shortcutInput).toHaveValue('CommandOrControl+Shift+M')
     await expect(window.locator('#audio-settings-status')).toHaveText('Saved.')
 
-    let stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+    stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
     expect(stored.meetingRecordingShortcut).toBe('CommandOrControl+Shift+M')
 
     await window.locator('#audio-meeting-recording-shortcut-clear').click()

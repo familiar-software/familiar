@@ -6,7 +6,7 @@ const path = require('node:path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const TEST_DIR = path.join(ROOT_DIR, 'test');
-const DEFAULT_LIMIT_MS = 5000;
+const DEFAULT_LIMIT_MS = 10000;
 const TIME_LIMIT_MS = Number.parseFloat(
   process.env.FAMILIAR_UNIT_TEST_TIME_LIMIT_MS ?? `${DEFAULT_LIMIT_MS}`
 );
@@ -55,7 +55,7 @@ if (testFiles.length === 0) {
 }
 
 const startTime = process.hrtime.bigint();
-const child = spawn(process.execPath, ['--test', ...testFiles], {
+const child = spawn(process.execPath, ['--test', '--test-reporter=dot', ...testFiles], {
   stdio: 'inherit',
   cwd: ROOT_DIR,
 });

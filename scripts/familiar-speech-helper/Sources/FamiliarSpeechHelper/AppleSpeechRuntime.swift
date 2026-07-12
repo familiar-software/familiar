@@ -1,31 +1,34 @@
 import AVFoundation
+import CoreMedia
 import Foundation
 import Speech
 
 @available(macOS 26.0, *)
 actor AppleSpeechRuntime: SpeechRuntime {
     private let writer: OutputWriter
+    private let diarizer: any OfflineSpeakerDiarizing
     private var capability: SpeechCapabilityPayload?
-    private var transcriber: SpeechTranscriber?
-    private var analyzer: SpeechAnalyzer?
-    private var analyzerInput: AsyncThrowingStream<AnalyzerInput, Error>.Continuation?
-    private var captureEngine: AudioCaptureEngine?
-    private var feedTask: Task<Void, Error>?
-    private var resultsTask: Task<Void, Error>?
+    private var locale: Locale?
+    private var preparedMicrophoneSession: AppleSpeechSourceSession?
+    private var microphoneCaptureEngine: AudioCaptureEngine?
+    private var systemAudioCaptureEngine: SystemAudioCaptureEngine?
+    private var microphoneSpeechSession: AppleSpeechSourceSession?
+    private var systemAudioSpeechSession: AppleSpeechSourceSession?
+    private var microphoneDiarizationSession: OfflineDiarizationSession?
+    private var systemAudioDiarizationSession: OfflineDiarizationSession?
     private var isRecording = false
 
-    init(writer: OutputWriter) {
+    init(writer: OutputWriter, diarizer: any OfflineSpeakerDiarizing) {
         self.writer = writer
+        self.diarizer = diarizer
     }
 
     func prepare() async throws -> SpeechCapabilityPayload {
-        if let capability, analyzer != nil {
+        if let capability, locale != nil {
             return capability
         }
         guard SpeechTranscriber.isAvailable else {
-            throw HelperError.message(
-                "SpeechTranscriber is unavailable on this Mac."
-            )
+            throw HelperError.message("SpeechTranscriber is unavailable on this Mac.")
         }
 
         let permission = AudioCaptureEngine.microphonePermission
@@ -34,46 +37,33 @@ actor AppleSpeechRuntime: SpeechRuntime {
                 "Microphone access is denied. Enable it in System Settings."
             )
         }
-
-        let requestedLocale = Locale.current
-        let supportedLocales = await SpeechTranscriber.supportedLocales
-        let equivalent = await SpeechTranscriber.supportedLocale(
-            equivalentTo: requestedLocale
-        )
-        guard let locale = resolveSupportedLocale(
-            requested: requestedLocale,
-            equivalent: equivalent,
-            supported: supportedLocales
-        ) else {
-            throw HelperError.message(
-                "SpeechTranscriber does not support the current locale: " +
-                    "\(requestedLocale.identifier)."
-            )
+        if let reason = await SystemAudioCaptureEngine.unavailableReason() {
+            throw HelperError.message(reason)
         }
 
-        let transcriber = SpeechTranscriber(
+        let locale = try await resolveLocale()
+        let assetTranscriber = SpeechTranscriber(
             locale: locale,
             transcriptionOptions: [],
             reportingOptions: [.volatileResults],
             attributeOptions: [.audioTimeRange]
         )
-        let modules: [any SpeechModule] = [transcriber]
-        try await ensureInstalled(modules: modules)
-        guard let audioFormat = await SpeechAnalyzer.bestAvailableAudioFormat(
-            compatibleWith: modules
-        ) else {
-            throw HelperError.message(
-                "SpeechTranscriber has no compatible audio format on this Mac."
-            )
-        }
-
-        let analyzer = SpeechAnalyzer(modules: modules)
-        try await analyzer.prepareToAnalyze(in: audioFormat)
+        try await ensureInstalled(modules: [assetTranscriber])
         let inputDevices = try CoreAudioInputDevices.payloads()
         guard !inputDevices.isEmpty else {
             throw HelperError.message("No audio input devices are available.")
         }
-
+        let removedStaleSessions = try removeStaleDiarizationSessions()
+        if removedStaleSessions > 0 {
+            writeDiagnostic(
+                "Removed \(removedStaleSessions) stale diarization audio session(s)"
+            )
+        }
+        try await diarizer.prepare()
+        let preparedSession = try await AppleSpeechSourceSession.prepare(
+            locale: locale,
+            writer: writer
+        )
         let capability = SpeechCapabilityPayload(
             available: true,
             locale: locale.identifier,
@@ -83,8 +73,8 @@ actor AppleSpeechRuntime: SpeechRuntime {
             inputDevices: inputDevices
         )
         self.capability = capability
-        self.transcriber = transcriber
-        self.analyzer = analyzer
+        self.locale = locale
+        preparedMicrophoneSession = preparedSession
         return capability
     }
 
@@ -103,71 +93,17 @@ actor AppleSpeechRuntime: SpeechRuntime {
         guard !isRecording else {
             throw HelperError.message("Speech capture is already active.")
         }
-        if analyzer == nil || transcriber == nil {
+        if capability == nil || locale == nil {
             _ = try await prepare()
         }
         guard await AudioCaptureEngine.requestMicrophonePermission() else {
             throw HelperError.message("Microphone access was not granted.")
         }
-        guard let analyzer, let transcriber else {
-            throw HelperError.message("SpeechTranscriber preparation did not complete.")
-        }
-        guard let analyzerFormat = await SpeechAnalyzer.bestAvailableAudioFormat(
-            compatibleWith: [transcriber]
-        ) else {
-            throw HelperError.message("SpeechTranscriber audio format is unavailable.")
+        if let reason = await SystemAudioCaptureEngine.unavailableReason() {
+            throw HelperError.message(reason)
         }
 
-        let inputDeviceID = try CoreAudioInputDevices.resolveID(named: inputDeviceName)
-        let captureEngine = AudioCaptureEngine()
-        let capture = try captureEngine.start(inputDeviceID: inputDeviceID)
-        let converter = try AudioBufferConverter(
-            inputFormat: capture.format,
-            outputFormat: analyzerFormat
-        )
-        let (inputSequence, inputBuilder) = AsyncThrowingStream.makeStream(
-            of: AnalyzerInput.self,
-            throwing: Error.self,
-            bufferingPolicy: .bufferingNewest(8)
-        )
-
-        let writer = writer
-        resultsTask = Task {
-            for try await result in transcriber.results {
-                if let payload = makeTranscriptPayload(from: result) {
-                    await writer.event("transcription", payload: payload)
-                }
-            }
-        }
-        feedTask = Task {
-            do {
-                for try await captured in capture.buffers {
-                    for buffer in try converter.convert(captured.buffer) {
-                        try Self.yield(buffer, to: inputBuilder)
-                    }
-                }
-                for buffer in try converter.finish() {
-                    try Self.yield(buffer, to: inputBuilder)
-                }
-                inputBuilder.finish()
-            } catch {
-                inputBuilder.finish(throwing: error)
-                throw error
-            }
-        }
-
-        do {
-            try await analyzer.start(inputSequence: inputSequence)
-        } catch {
-            captureEngine.stop()
-            inputBuilder.finish(throwing: error)
-            feedTask?.cancel()
-            resultsTask?.cancel()
-            throw error
-        }
-
-        self.analyzerInput = inputBuilder
-        self.captureEngine = captureEngine
+        try await startAutomaticCapture(inputDeviceName: inputDeviceName)
         isRecording = true
     }
 
@@ -176,29 +112,20 @@ actor AppleSpeechRuntime: SpeechRuntime {
             return
         }
         isRecording = false
-        captureEngine?.stop()
-
         var firstError: Error?
-        do {
-            try await feedTask?.value
-        } catch {
-            firstError = error
-        }
-        analyzerInput?.finish()
-        if let analyzer {
+
+        microphoneCaptureEngine?.stop()
+        if let systemAudioCaptureEngine {
             do {
-                try await analyzer.finalizeAndFinishThroughEndOfInput()
+                try await systemAudioCaptureEngine.stop()
             } catch {
-                firstError = firstError ?? error
+                firstError = error
             }
         }
-        do {
-            try await resultsTask?.value
-        } catch {
-            firstError = firstError ?? error
-        }
 
-        clearSession()
+        await finishAutomaticCapture(firstError: &firstError)
+        cleanupDiarizationSessions(firstError: &firstError)
+        clearActiveSession()
         if let firstError {
             throw firstError
         }
@@ -206,13 +133,199 @@ actor AppleSpeechRuntime: SpeechRuntime {
 
     func shutdown() async {
         if isRecording {
-            try? await stopCapture()
+            do {
+                try await stopCapture()
+            } catch {
+                writeDiagnostic("Speech capture shutdown failed: \(error)")
+            }
             return
         }
-        if let analyzer {
-            await analyzer.cancelAndFinishNow()
+        await preparedMicrophoneSession?.cancel()
+        preparedMicrophoneSession = nil
+        cleanupDiarizationSessions()
+        clearActiveSession()
+    }
+
+    private func startAutomaticCapture(inputDeviceName: String?) async throws {
+        guard let locale else {
+            throw HelperError.message("SpeechTranscriber preparation did not complete.")
         }
-        clearSession()
+        let microphoneSession: AppleSpeechSourceSession
+        if let preparedMicrophoneSession {
+            microphoneSession = preparedMicrophoneSession
+            self.preparedMicrophoneSession = nil
+        } else {
+            microphoneSession = try await AppleSpeechSourceSession.prepare(
+                locale: locale,
+                writer: writer
+            )
+        }
+        let systemSession = try await AppleSpeechSourceSession.prepare(
+            locale: locale,
+            writer: writer
+        )
+        let sessionOrigin = CMClockGetTime(CMClockGetHostTimeClock())
+        let inputDeviceID = try CoreAudioInputDevices.resolveID(named: inputDeviceName)
+        let microphoneEngine = AudioCaptureEngine()
+        let systemEngine = SystemAudioCaptureEngine()
+        var microphoneRecording: OfflineDiarizationSession?
+        var systemRecording: OfflineDiarizationSession?
+
+        do {
+            let microphoneCapture = try microphoneEngine.start(inputDeviceID: inputDeviceID)
+            let microphoneDiarization = try OfflineDiarizationSession(
+                inputFormat: microphoneCapture.format
+            )
+            microphoneRecording = microphoneDiarization
+            try await microphoneSession.start(
+                capture: microphoneCapture,
+                sessionOrigin: sessionOrigin,
+                onCapturedBuffer: { buffer in
+                    try microphoneDiarization.append(buffer)
+                }
+            )
+
+            let systemCapture = try await systemEngine.start()
+            let systemDiarization = try OfflineDiarizationSession(
+                inputFormat: systemCapture.format
+            )
+            systemRecording = systemDiarization
+            try await systemSession.start(
+                capture: systemCapture,
+                sessionOrigin: sessionOrigin,
+                onCapturedBuffer: { buffer in
+                    try systemDiarization.append(buffer)
+                }
+            )
+
+            microphoneCaptureEngine = microphoneEngine
+            systemAudioCaptureEngine = systemEngine
+            microphoneSpeechSession = microphoneSession
+            systemAudioSpeechSession = systemSession
+            microphoneDiarizationSession = microphoneDiarization
+            systemAudioDiarizationSession = systemDiarization
+        } catch {
+            microphoneEngine.stop()
+            do {
+                try await systemEngine.stop()
+            } catch let stopError {
+                writeDiagnostic("System-audio startup cleanup failed: \(stopError)")
+            }
+            await microphoneSession.cancel()
+            await systemSession.cancel()
+            cleanup(microphoneRecording, context: "automatic microphone startup")
+            cleanup(systemRecording, context: "automatic system-audio startup")
+            throw error
+        }
+    }
+
+    private func finishAutomaticCapture(firstError: inout Error?) async {
+        let microphoneTask = Task {
+            try await microphoneSpeechSession?.finish() ?? SpeechSourceTranscript(
+                words: [],
+                sourceOffsetMs: 0
+            )
+        }
+        let systemTask = Task {
+            try await systemAudioSpeechSession?.finish() ?? SpeechSourceTranscript(
+                words: [],
+                sourceOffsetMs: 0
+            )
+        }
+        var microphone = SpeechSourceTranscript(words: [], sourceOffsetMs: 0)
+        var systemAudio = SpeechSourceTranscript(words: [], sourceOffsetMs: 0)
+        do {
+            microphone = try await microphoneTask.value
+        } catch {
+            firstError = firstError ?? error
+        }
+        do {
+            systemAudio = try await systemTask.value
+        } catch {
+            firstError = firstError ?? error
+        }
+        finishDiarizationRecordings(firstError: &firstError)
+        guard firstError == nil else {
+            return
+        }
+
+        let source = detectOtherVoicesSource(systemAudioWords: systemAudio.words)
+        writeDiagnostic("Automatic voice source detected source=\(source.rawValue)")
+        do {
+            let payload = try await makeAutomaticFinalPayload(
+                source: source,
+                microphone: microphone,
+                systemAudio: systemAudio
+            )
+            if let payload {
+                await writer.event("transcription", payload: payload)
+            }
+        } catch {
+            firstError = error
+        }
+    }
+
+    private func makeAutomaticFinalPayload(
+        source: OtherVoicesSource,
+        microphone: SpeechSourceTranscript,
+        systemAudio: SpeechSourceTranscript
+    ) async throws -> TranscriptPayload? {
+        switch source {
+        case .microphone:
+            guard !microphone.words.isEmpty, let microphoneDiarizationSession else {
+                return nil
+            }
+            writeDiagnostic("FluidAudio microphone diarization started")
+            let ranges = try await microphoneDiarizationSession.diarize(
+                using: diarizer,
+                onProgress: reportDiarizationProgress
+            )
+            writeDiagnostic("FluidAudio microphone diarization finished")
+            return try makeDiarizedTranscriptPayload(
+                words: microphone.words,
+                speakerRanges: ranges,
+                sourceOffsetMs: microphone.sourceOffsetMs
+            )?.applyingOtherVoicesSource(source)
+        case .systemAudio:
+            guard let systemAudioDiarizationSession else {
+                return nil
+            }
+            writeDiagnostic("FluidAudio system-audio diarization started")
+            let ranges = try await systemAudioDiarizationSession.diarize(
+                using: diarizer,
+                onProgress: reportDiarizationProgress
+            )
+            let localWords = try removeSystemAudioEcho(
+                from: microphone.words,
+                systemAudioWords: systemAudio.words
+            )
+            writeDiagnostic("FluidAudio system-audio diarization finished")
+            return try makeSystemAudioTranscriptPayload(
+                localWords: localWords,
+                remoteWords: systemAudio.words,
+                remoteSpeakerRanges: ranges,
+                remoteSourceOffsetMs: systemAudio.sourceOffsetMs
+            )?.applyingOtherVoicesSource(source)
+        }
+    }
+
+    private func resolveLocale() async throws -> Locale {
+        let requestedLocale = Locale.current
+        let supportedLocales = await SpeechTranscriber.supportedLocales
+        let equivalent = await SpeechTranscriber.supportedLocale(
+            equivalentTo: requestedLocale
+        )
+        guard let locale = resolveSupportedLocale(
+            requested: requestedLocale,
+            equivalent: equivalent,
+            supported: supportedLocales
+        ) else {
+            throw HelperError.message(
+                "SpeechTranscriber does not support the current locale: " +
+                    "\(requestedLocale.identifier)."
+            )
+        }
+        return locale
     }
 
     private func ensureInstalled(modules: [any SpeechModule]) async throws {
@@ -221,9 +334,7 @@ actor AppleSpeechRuntime: SpeechRuntime {
         case .installed:
             return
         case .unsupported:
-            throw HelperError.message(
-                "The Apple speech model is unsupported for this locale."
-            )
+            throw HelperError.message("The Apple speech model is unsupported for this locale.")
         case .supported, .downloading:
             guard let request = try await AssetInventory.assetInstallationRequest(
                 supporting: modules
@@ -237,33 +348,74 @@ actor AppleSpeechRuntime: SpeechRuntime {
         @unknown default:
             throw HelperError.message("The Apple speech model has an unknown status.")
         }
-
-        let finalStatus = await AssetInventory.status(forModules: modules)
-        guard finalStatus == .installed else {
-            throw HelperError.message(
-                "The Apple speech model did not finish installing."
-            )
+        guard await AssetInventory.status(forModules: modules) == .installed else {
+            throw HelperError.message("The Apple speech model did not finish installing.")
         }
     }
 
-    private static func yield(
-        _ buffer: AVAudioPCMBuffer,
-        to continuation: AsyncThrowingStream<AnalyzerInput, Error>.Continuation
-    ) throws {
-        let result = continuation.yield(AnalyzerInput(buffer: buffer))
-        if case .dropped = result {
-            throw HelperError.message(
-                "Audio processing could not keep up with SpeechTranscriber."
-            )
+    private func finishDiarizationRecordings(firstError: inout Error?) {
+        for session in [microphoneDiarizationSession, systemAudioDiarizationSession] {
+            do {
+                try session?.finishRecording()
+            } catch {
+                firstError = firstError ?? error
+            }
         }
     }
 
-    private func clearSession() {
-        analyzerInput = nil
-        captureEngine = nil
-        feedTask = nil
-        resultsTask = nil
-        transcriber = nil
-        analyzer = nil
+    private func cleanupDiarizationSessions(firstError: inout Error?) {
+        for session in [microphoneDiarizationSession, systemAudioDiarizationSession] {
+            do {
+                try session?.cleanup()
+            } catch {
+                firstError = firstError ?? error
+            }
+        }
     }
+
+    private func cleanupDiarizationSessions() {
+        var cleanupError: Error?
+        cleanupDiarizationSessions(firstError: &cleanupError)
+        if let cleanupError {
+            writeDiagnostic("Failed to clean diarization sessions: \(cleanupError)")
+        }
+    }
+
+    private func cleanup(_ session: OfflineDiarizationSession?, context: String) {
+        do {
+            try session?.cleanup()
+        } catch {
+            writeDiagnostic("Failed to clean diarization session after \(context): \(error)")
+        }
+    }
+
+    private func clearActiveSession() {
+        microphoneCaptureEngine = nil
+        systemAudioCaptureEngine = nil
+        microphoneSpeechSession = nil
+        systemAudioSpeechSession = nil
+        microphoneDiarizationSession = nil
+        systemAudioDiarizationSession = nil
+    }
+}
+
+private extension TranscriptPayload {
+    func applyingOtherVoicesSource(_ source: OtherVoicesSource) -> TranscriptPayload {
+        TranscriptPayload(
+            text: text,
+            isFinal: isFinal,
+            startedAtMs: startedAtMs,
+            endedAtMs: endedAtMs,
+            segments: segments,
+            replaceTranscript: replaceTranscript,
+            otherVoicesSource: source
+        )
+    }
+}
+
+private let reportDiarizationProgress: DiarizationProgressHandler = { progress in
+    writeDiagnostic(
+        "diarization_progress completed=\(progress.completedChunks) " +
+            "total=\(progress.totalChunks)"
+    )
 }
