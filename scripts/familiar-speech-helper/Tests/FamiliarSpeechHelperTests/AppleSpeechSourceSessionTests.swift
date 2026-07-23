@@ -5,6 +5,28 @@ import XCTest
 
 @available(macOS 26.0, *)
 final class AppleSpeechSourceSessionTests: XCTestCase {
+    func testLiveTranscriptLabelsThePhysicalAudioSource() {
+        let payload = TranscriptPayload(
+            text: "hello",
+            isFinal: true,
+            startedAtMs: 0,
+            endedAtMs: 500,
+            segments: [
+                TranscriptSegmentPayload(
+                    text: "hello",
+                    startedAtMs: 0,
+                    endedAtMs: 500,
+                    words: []
+                )
+            ]
+        )
+
+        let labeled = payload.applyingSpeakerLabel("Mac audio")
+
+        XCTAssertEqual(labeled.segments.map(\.speaker), ["Mac audio"])
+        XCTAssertFalse(labeled.replaceTranscript)
+    }
+
     func testTwoSpeechSourcesAnalyzeConcurrentlyWhenOptedIn() async throws {
         let environment = ProcessInfo.processInfo.environment
         guard environment["FAMILIAR_REAL_SPEECH_CONCURRENCY_TEST"] == "1" else {

@@ -34,12 +34,6 @@ function AutomaticVoiceSource({
         <h3 className="text-[16px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
           {toDisplayText(htmlCopy.audioAutomaticSourceTitle)}
         </h3>
-        <p
-          id="audio-automatic-source"
-          className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100"
-        >
-          {toDisplayText(htmlCopy.audioAutomaticSourceLabel)}
-        </p>
       </div>
       <p
         id="audio-automatic-source-status"

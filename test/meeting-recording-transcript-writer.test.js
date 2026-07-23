@@ -102,6 +102,66 @@ test('transcript writer streams partial text into markdown until final text arri
   assert.equal(fs.existsSync(forbiddenJsonlPath), false)
 })
 
+test('transcript writer removes an unfinished live block after finalization fails', async () => {
+  const sessionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-transcript-failure-'))
+  const transcriptMarkdownPath = path.join(sessionDir, 'meeting.transcript.md')
+  const writer = createTranscriptWriter({
+    transcriptMarkdownPath,
+    scanAndRedactContentImpl: passthroughRedaction
+  })
+
+  await writer.writeEvent({ type: 'final', text: 'settled words', startedAtMs: 0 })
+  await writer.writeEvent({ type: 'partial', text: 'unfinished words', startedAtMs: 500 })
+  await writer.discardLiveTranscript()
+
+  const markdown = fs.readFileSync(transcriptMarkdownPath, 'utf-8')
+  assert.match(markdown, /settled words/)
+  assert.doesNotMatch(markdown, /unfinished words|In progress/)
+})
+
+test('transcript writer preserves finalized source labels when replacement fails', async () => {
+  const sessionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-transcript-recovery-'))
+  const transcriptMarkdownPath = path.join(sessionDir, 'meeting.transcript.md')
+  const writeFileAtomicallyImpl = async (filePath, content) => {
+    if (content.includes('Speaker 1: replacement words')) {
+      throw new Error('replacement failed')
+    }
+    await fs.promises.writeFile(filePath, content, 'utf-8')
+  }
+  const writer = createTranscriptWriter({
+    transcriptMarkdownPath,
+    scanAndRedactContentImpl: passthroughRedaction,
+    writeFileAtomicallyImpl
+  })
+
+  await writer.writeEvent({
+    type: 'final',
+    text: 'captured words',
+    startedAtMs: 0,
+    segments: [{ text: 'captured words', startedAtMs: 0, speaker: 'Microphone' }]
+  })
+  await writer.writeEvent({
+    type: 'partial',
+    text: 'unfinished words',
+    startedAtMs: 500,
+    segments: [{ text: 'unfinished words', startedAtMs: 500, speaker: 'Mac audio' }]
+  })
+
+  await assert.rejects(
+    writer.writeEvent({
+      type: 'final',
+      text: 'replacement words',
+      replaceTranscript: true,
+      segments: [{ text: 'replacement words', startedAtMs: 0, speaker: 'Speaker 1' }]
+    }),
+    /replacement failed/
+  )
+
+  const markdown = fs.readFileSync(transcriptMarkdownPath, 'utf-8')
+  assert.match(markdown, /Microphone: captured words/)
+  assert.doesNotMatch(markdown, /replacement words|unfinished words|In progress/)
+})
+
 test('transcript writer breaks one long helper segment into timestamped lines', async () => {
   const sessionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-transcript-segment-'))
   const transcriptMarkdownPath = path.join(

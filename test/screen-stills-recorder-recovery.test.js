@@ -38,6 +38,18 @@ function createDeterministicLowPowerModeMonitor({ enabled = false } = {}) {
   };
 }
 
+function createDeterministicActiveWindowDetector() {
+  return {
+    detectWindowCandidates: async () => [{
+      active: true,
+      bundleId: 'app.familiar.test',
+      name: 'Familiar Test',
+      title: 'Test window'
+    }],
+    resolveBinaryPath: async () => '/tmp/list-on-screen-apps'
+  };
+}
+
 function createMockSource(options = {}) {
   const {
     id = 'screen:1',
@@ -201,6 +213,7 @@ test('recorder.start force-resets and retries once when renderer reports capture
     };
 
   const recorder = createRecorder({
+    createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
     logger,
     intervalSeconds: 1,
     lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
@@ -391,6 +404,7 @@ test('recorder.start recreates the capture window when force-stop fails, then re
     };
 
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger,
       intervalSeconds: 1,
       lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
@@ -553,6 +567,7 @@ test('recorder resolves capture thumbnail from data URL when toPNG is not PNG', 
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger: console,
       intervalSeconds: 1,
       lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
@@ -693,6 +708,7 @@ test('recorder fails to start when source thumbnail is unavailable', async () =>
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger: console,
       intervalSeconds: 1,
       lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
@@ -848,6 +864,7 @@ test('recorder fails when thumbnail resize throws and does not start', async () 
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger: console,
       intervalSeconds: 1,
       lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
@@ -1008,6 +1025,7 @@ test('recorder follows cursor display and switches capture source between monito
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger: console,
       intervalSeconds: 0.02,
       lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
@@ -1184,6 +1202,7 @@ test('recorder refreshes capture thumbnail payload when source stays the same', 
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger: console,
       intervalSeconds: 0.02,
       lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
@@ -1335,6 +1354,7 @@ test('recorder falls back to primary display source when cursor display source i
       error: (...args) => logs.push({ level: 'error', args })
     };
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger,
       intervalSeconds: 1,
       lowPowerModeMonitor: createDeterministicLowPowerModeMonitor()
@@ -1440,6 +1460,7 @@ test('recorder adapts screenshot interval when Low Power Mode changes', async ()
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger: console,
       scheduler,
       lowPowerModeMonitor
@@ -1544,6 +1565,7 @@ test('recorder keeps fixed E2E interval override and skips Low Power Mode adapta
   try {
     const { createRecorder } = require('../src/screen-stills/recorder');
     const recorder = createRecorder({
+      createActiveWindowDetectorImpl: createDeterministicActiveWindowDetector,
       logger: console,
       scheduler,
       lowPowerModeMonitor

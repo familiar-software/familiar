@@ -69,10 +69,12 @@ function createMeetingRecordingController (options = {}) {
   let availability = 'checking'
   let unavailableReason = ''
   let locale = ''
+  let pendingStopError = null
+  let transcriptWriteError = null
   const transcriptEvents = createTranscriptEventQueue({
     getWriter: () => writer,
     logger,
-    onError: notifyError
+    onError: handleTranscriptWriteError
   })
 
   function setState (nextState, details = {}) {
@@ -104,6 +106,26 @@ function createMeetingRecordingController (options = {}) {
     onError({ message, reason: 'meeting-recording' })
   }
 
+  function handleTranscriptWriteError (error) {
+    transcriptWriteError = transcriptWriteError || error
+    notifyError(error)
+  }
+
+  async function discardLiveTranscriptAfterFailure (error) {
+    if (!error || !writer) {
+      return error
+    }
+    try {
+      await writer.discardLiveTranscript()
+      return error
+    } catch (cleanupError) {
+      return new AggregateError(
+        [error, cleanupError],
+        'Meeting transcription failed and its live draft could not be removed.'
+      )
+    }
+  }
+
   function settleStopWaiters () {
     const waiters = stopWaiters
     stopWaiters = []
@@ -119,11 +141,15 @@ function createMeetingRecordingController (options = {}) {
     stderrBuffer = ''
     awakeLock?.stop?.({ reason: reason || 'meeting-recording-stopped' })
     if (error) {
-      notifyError(error)
+      if (lastErrorMessage !== (error?.message || String(error))) {
+        notifyError(error)
+      }
       setState(STATES.ERROR, { reason: reason || 'error' })
     } else {
       setState(STATES.IDLE, { reason: reason || 'stopped' })
     }
+    pendingStopError = null
+    transcriptWriteError = null
     settleStopWaiters()
   }
 
@@ -272,15 +298,22 @@ function createMeetingRecordingController (options = {}) {
     if (state === STATES.STARTING) {
       return
     }
-    const closeError = !intentionalStop && code !== 0
-      ? new Error(stderrBuffer.trim() || `Speech helper exited with code ${code}.`)
+    const processError = !intentionalStop
+      ? new Error(
+          stderrBuffer.trim() ||
+          `Speech helper exited unexpectedly with code ${code} and signal ${signal}.`
+        )
       : null
     void (async () => {
       await transcriptEvents.waitForIdle()
       if (speechHelperClient !== currentHelper) {
         return
       }
-      finalizeStop({ reason: signal || 'process-close', error: closeError })
+      let error = pendingStopError || transcriptWriteError || processError
+      if (error) {
+        error = await discardLiveTranscriptAfterFailure(error)
+      }
+      finalizeStop({ reason: signal || 'process-close', error })
     })()
   }
 
@@ -292,6 +325,8 @@ function createMeetingRecordingController (options = {}) {
     const contextFolderPath = requirements.resolveContextFolder()
     const helperPath = requirements.resolveSpeechHelper()
     lastErrorMessage = ''
+    pendingStopError = null
+    transcriptWriteError = null
     session = resolveMeetingSession({
       contextFolderPath,
       preferredSessionId: getPreferredSessionId()
@@ -349,8 +384,13 @@ function createMeetingRecordingController (options = {}) {
   }
 
   async function start () {
-    if (state === STATES.PREWARMING && prewarmPromise) {
+    if (prewarmPromise) {
       await prewarmPromise
+    } else if (availability === 'checking') {
+      await prewarm()
+    }
+    if (availability === 'checking') {
+      throw new Error('Meeting transcription availability is still being checked.')
     }
     if (availability === 'unavailable') {
       throw new Error(unavailableReason || 'Meeting transcription is unavailable.')
@@ -361,6 +401,11 @@ function createMeetingRecordingController (options = {}) {
     }
     if (state === STATES.RECORDING) {
       return { ok: true, status: getStatus(), alreadyRecording: true }
+    }
+    if (state === STATES.STOPPING) {
+      throw new Error(
+        'Meeting recording is still stopping. Wait for it to finish before starting again.'
+      )
     }
 
     startPromise = startOnce()
@@ -408,7 +453,7 @@ function createMeetingRecordingController (options = {}) {
       try {
         await currentHelper.stopCapture()
       } catch (error) {
-        notifyError(error)
+        pendingStopError = pendingStopError || error
         await terminateHelper(currentHelper, 'stop-capture-failed')
       }
       const stopped = await waitForStop()
@@ -420,15 +465,24 @@ function createMeetingRecordingController (options = {}) {
           : { closed: false }
         if (!finalized.closed && speechHelperClient === currentHelper) {
           await transcriptEvents.waitForIdle()
+          const error = await discardLiveTranscriptAfterFailure(
+            pendingStopError ||
+            transcriptWriteError ||
+            new Error('Speech helper did not exit after meeting recording stopped.')
+          )
           finalizeStop({
             reason: 'stop-close-timeout',
-            error: new Error('Speech helper did not exit after meeting recording stopped.')
+            error
           })
         }
       }
     } else {
       await transcriptEvents.waitForIdle()
-      finalizeStop({ reason })
+      let error = pendingStopError || transcriptWriteError
+      if (error) {
+        error = await discardLiveTranscriptAfterFailure(error)
+      }
+      finalizeStop({ reason, error })
     }
     return { ok: true, status: getStatus() }
   }

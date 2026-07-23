@@ -11,6 +11,7 @@ const buildSteps = [
     'npm run build:rg-bundle',
     'npm run build:diarization-models',
     'npm run build:speech-helper:universal',
+    'npm run react:build:dashboard',
     'npm run css:build'
 ];
 
@@ -143,6 +144,10 @@ test('package includes meeting audio transcription resources', () => {
         packageJson.build.mac.extendInfo.NSMicrophoneUsageDescription,
         'Familiar needs microphone access to record and transcribe meetings you explicitly start.'
     );
+    assert.equal(
+        packageJson.build.mac.extendInfo.NSScreenCaptureUsageDescription,
+        'Familiar needs Screen Recording access to capture audio from calls you explicitly record.'
+    );
 });
 
 test('package includes FluidAudio SDK and model attribution', () => {
@@ -157,8 +162,8 @@ test('package includes FluidAudio SDK and model attribution', () => {
     const notices = fs.readFileSync(noticesPath, 'utf-8');
     const apacheLicense = fs.readFileSync(apacheLicensePath, 'utf-8');
 
-    assert.match(notices, /FluidAudio 0\.15\.4/);
-    assert.match(notices, /b9d43724cbdb5a980e441fd54180964e94d470f7/);
+    assert.match(notices, /FluidAudio 0\.15\.5/);
+    assert.match(notices, /19600a485baa4998812e4654b70d2bab8f2c9949/);
     assert.match(notices, /1ed7a662fdc7109e36d822db793ee6eebdaf8594/);
     assert.match(notices, /CC-BY-4\.0/);
     assert.match(notices, /pyannote\/speaker-diarization-community-1/);
@@ -186,17 +191,20 @@ test('meeting audio transcription pins FluidAudio for offline diarization', () =
         'Package.resolved'
     );
     const packageSwift = fs.readFileSync(packageSwiftPath, 'utf-8');
+    const packageResolved = JSON.parse(fs.readFileSync(packageResolvedPath, 'utf-8'));
+    const fluidAudioPin = packageResolved.pins.find((pin) => pin.identity === 'fluidaudio');
 
     assert.doesNotMatch(packageSwift, /WhisperKit|argmax/i);
     assert.match(
         packageSwift,
-        /\.package\([\s\S]*url: "https:\/\/github\.com\/FluidInference\/FluidAudio\.git",[\s\S]*exact: "0\.15\.4"/
+        /\.package\([\s\S]*url: "https:\/\/github\.com\/FluidInference\/FluidAudio\.git",[\s\S]*exact: "0\.15\.5"/
     );
     assert.match(
         packageSwift,
         /\.product\(name: "FluidAudio", package: "FluidAudio"\)/
     );
-    assert.equal(fs.existsSync(packageResolvedPath), true);
+    assert.equal(fluidAudioPin?.state?.version, '0.15.5');
+    assert.equal(fluidAudioPin?.state?.revision, '19600a485baa4998812e4654b70d2bab8f2c9949');
 });
 
 test('speech helper uses Apple SpeechTranscriber with runtime availability checks', () => {

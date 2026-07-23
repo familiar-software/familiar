@@ -64,6 +64,9 @@ Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and 
   `<contextFolderPath>/familiar/stills-markdown/<sessionId>/<timestamp>.transcript.md`. The
   markdown file keeps a live `In progress` block for partial text, then replaces it with final
   transcript lines. Each transcript line includes an elapsed `[HH:MM:SS]` timestamp.
+- Every voice recording captures the selected microphone and Mac audio separately. If finalized Mac
+  audio contains speech, Familiar treats it as an online meeting; otherwise it treats the microphone
+  as a nearby conversation. FluidAudio adds anonymous `Speaker N` labels after recording stops.
 - The Settings window includes an **Audio** tab with an optional
   `meetingRecordingShortcut` setting. The default is `null`; when set, the global shortcut toggles
   meeting recording using the same start/stop path as the tray menu.
@@ -77,15 +80,18 @@ Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and 
 - `FAMILIAR_AUDIO_INPUT_DEVICE_NAME="BlackHole 2ch"` selects a named macOS input device for
   local meeting transcription without changing the default system input.
 - Meeting transcription requires macOS 26 or newer, an available SpeechTranscriber runtime, a
-  supported current locale, microphone access, and an installed Apple speech asset. Familiar asks
-  macOS to install a supported missing asset during startup preparation. The tray action remains
-  disabled while preparing and stays disabled with an unavailable reason if a requirement fails.
-- Xcode is required to build the Swift helper, but users do not need Xcode installed. Speech models
-  are managed by macOS and are not bundled with Familiar. BlackHole is only a local test routing
-  device and is not packaged.
+  supported current locale, microphone access, Screen Recording access, a usable input device, and
+  an installed Apple speech asset. Familiar asks macOS to install a supported missing asset during
+  startup preparation. The tray action remains disabled while preparing and stays disabled with an
+  unavailable reason if a requirement fails.
+- Xcode 26 is required to build the Swift helper, but users do not need Xcode installed. Apple speech
+  models are managed by macOS and are not bundled with Familiar. Familiar does bundle the validated
+  21.6 MB FluidAudio diarization model set, so diarization does not download models at runtime.
+  BlackHole is only a local test routing device and is not packaged.
 - Microphone permission is separate from Screen Recording permission on macOS. A local development
-  run may not prompt if the responsible process already has microphone permission, but the packaged
-  app still declares `NSMicrophoneUsageDescription` and should be verified in System Settings.
+  run may not prompt if the responsible process already has permission, but the packaged app declares
+  both `NSMicrophoneUsageDescription` and `NSScreenCaptureUsageDescription` and should be verified in
+  System Settings.
 
 ### Real Audio Transcription Smoke Test
 
@@ -118,5 +124,10 @@ npm run dist:mac
 ```
 
 `npm run dist:mac*` includes `npm run build:rg-bundle`, which prepares `scripts/bin/rg/*` and packages it into Electron resources at `resources/rg/`.
+
+The distribution scripts also rebuild the React dashboard, download and checksum the pinned
+FluidAudio model bundle when it is not already cached, and build a universal speech helper before
+packaging. Release builds therefore require Xcode 26 and network access to GitHub, Electron, and
+Hugging Face; installed users do not.
 
 `build-rg-bundle.sh` downloads official ripgrep binaries when missing (or copies from `FAMILIAR_RG_DARWIN_ARM64_SOURCE` / `FAMILIAR_RG_DARWIN_X64_SOURCE` if provided). The binaries are generated locally and are not committed.

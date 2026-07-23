@@ -33,6 +33,61 @@ func systemAudioCaptureFormat() throws -> AVAudioFormat {
     return format
 }
 
+final class SystemAudioBufferNormalizer: @unchecked Sendable {
+    private let outputFormat: AVAudioFormat
+    private var inputFormat: AVAudioFormat?
+    private var converter: AudioBufferConverter?
+    private var lastHostTime: CMTime?
+
+    init(outputFormat: AVAudioFormat) {
+        self.outputFormat = outputFormat
+    }
+
+    func convert(_ captured: CapturedAudioBuffer) throws -> [CapturedAudioBuffer] {
+        try validateInputFormat(captured.buffer.format)
+        lastHostTime = captured.hostTime
+        if captured.buffer.format == outputFormat {
+            return [captured]
+        }
+        let converter = try resolveConverter(for: captured.buffer.format)
+        return try converter.convert(captured.buffer).map { buffer in
+            CapturedAudioBuffer(buffer: buffer, hostTime: captured.hostTime)
+        }
+    }
+
+    func finish() throws -> [CapturedAudioBuffer] {
+        guard let converter, let lastHostTime else {
+            return []
+        }
+        return try converter.finish().map { buffer in
+            CapturedAudioBuffer(buffer: buffer, hostTime: lastHostTime)
+        }
+    }
+
+    private func resolveConverter(for format: AVAudioFormat) throws -> AudioBufferConverter {
+        if let converter {
+            return converter
+        }
+        let converter = try AudioBufferConverter(
+            inputFormat: format,
+            outputFormat: outputFormat
+        )
+        self.converter = converter
+        return converter
+    }
+
+    private func validateInputFormat(_ format: AVAudioFormat) throws {
+        if let inputFormat, inputFormat != format {
+            throw HelperError.message(
+                "System-audio format changed while capture was active."
+            )
+        }
+        if inputFormat == nil {
+            inputFormat = format
+        }
+    }
+}
+
 final class SystemAudioCaptureEngine: NSObject, @unchecked Sendable {
     private let outputQueue = DispatchQueue(
         label: "app.familiar.speech-helper.system-audio"
@@ -42,6 +97,7 @@ final class SystemAudioCaptureEngine: NSObject, @unchecked Sendable {
         CapturedAudioBuffer,
         Error
     >.Continuation?
+    private var normalizer: SystemAudioBufferNormalizer?
 
     static var screenRecordingPermissionGranted: Bool {
         CGPreflightScreenCaptureAccess()
@@ -94,6 +150,7 @@ final class SystemAudioCaptureEngine: NSObject, @unchecked Sendable {
             configuration: makeSystemAudioStreamConfiguration(),
             delegate: self
         )
+        let captureFormat = try systemAudioCaptureFormat()
         let (buffers, continuation) = AsyncThrowingStream.makeStream(
             of: CapturedAudioBuffer.self,
             throwing: Error.self,
@@ -108,17 +165,19 @@ final class SystemAudioCaptureEngine: NSObject, @unchecked Sendable {
             )
             self.stream = stream
             self.continuation = continuation
+            normalizer = SystemAudioBufferNormalizer(outputFormat: captureFormat)
             try await stream.startCapture()
         } catch {
             continuation.finish(throwing: error)
             self.stream = nil
             self.continuation = nil
+            normalizer = nil
             throw HelperError.message("Failed to start system-audio capture: \(error)")
         }
 
         return AudioCaptureStream(
             buffers: buffers,
-            format: try systemAudioCaptureFormat()
+            format: captureFormat
         )
     }
 
@@ -137,8 +196,17 @@ final class SystemAudioCaptureEngine: NSObject, @unchecked Sendable {
         } catch {
             firstError = firstError ?? error
         }
+        do {
+            let trailingBuffers = try outputQueue.sync {
+                try normalizer?.finish() ?? []
+            }
+            try yield(trailingBuffers)
+        } catch {
+            firstError = firstError ?? error
+        }
         continuation?.finish()
         continuation = nil
+        normalizer = nil
         self.stream = nil
         if let firstError {
             throw HelperError.message("Failed to stop system-audio capture: \(firstError)")
@@ -189,6 +257,16 @@ final class SystemAudioCaptureEngine: NSObject, @unchecked Sendable {
         }
         return CapturedAudioBuffer(buffer: buffer, hostTime: hostTime)
     }
+
+    private func yield(_ buffers: [CapturedAudioBuffer]) throws {
+        for buffer in buffers {
+            if case .dropped = continuation?.yield(buffer) {
+                throw HelperError.message(
+                    "Audio processing could not keep up with system audio."
+                )
+            }
+        }
+    }
 }
 
 extension SystemAudioCaptureEngine: SCStreamOutput {
@@ -202,11 +280,8 @@ extension SystemAudioCaptureEngine: SCStreamOutput {
         }
         do {
             let captured = try capturedBuffer(from: sampleBuffer, stream: stream)
-            if case .dropped = continuation?.yield(captured) {
-                throw HelperError.message(
-                    "Audio processing could not keep up with system audio."
-                )
-            }
+            let buffers = try normalizer?.convert(captured) ?? []
+            try yield(buffers)
         } catch {
             continuation?.finish(throwing: error)
         }

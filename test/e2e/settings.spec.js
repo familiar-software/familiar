@@ -113,9 +113,9 @@ test('audio tab saves and clears meeting recording shortcut', async () => {
     await window.waitForLoadState('domcontentloaded')
 
     await window.getByRole('tab', { name: 'Audio' }).click()
-    await expect(window.locator('#audio-automatic-source')).toHaveText('Automatic')
+    await expect(window.getByRole('heading', { name: 'Voice source' })).toBeVisible()
     await expect(window.locator('#audio-automatic-source-status')).toContainText(
-      'Listens to your microphone and Mac audio'
+      'Automatically supports in-person conversations and online meetings'
     )
     await expect(window.locator('#audio-capture-profile')).toHaveCount(0)
 

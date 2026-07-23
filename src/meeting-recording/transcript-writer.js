@@ -248,7 +248,8 @@ async function writeFileAtomically (filePath, content) {
 function createTranscriptWriter ({
   transcriptMarkdownPath,
   onRedactionWarning = noop,
-  scanAndRedactContentImpl = scanAndRedactContent
+  scanAndRedactContentImpl = scanAndRedactContent,
+  writeFileAtomicallyImpl = writeFileAtomically
 } = {}) {
   if (!transcriptMarkdownPath) {
     throw new Error('Transcript markdown output path is required.')
@@ -306,63 +307,84 @@ function createTranscriptWriter ({
   async function writePartialToMarkdown (event) {
     const currentContent = await readMarkdownContent()
     const baseContent = stripLiveBlock(currentContent).trimEnd()
-    await fs.writeFile(
+    await writeFileAtomicallyImpl(
       transcriptMarkdownPath,
-      `${baseContent}\n\n${buildLiveBlock(event)}`,
-      'utf-8'
+      `${baseContent}\n\n${buildLiveBlock(event)}`
     )
   }
 
   async function writeFinalToMarkdown (event) {
     const currentContent = await readMarkdownContent()
     const baseContent = stripLiveBlock(currentContent).trimEnd()
-    await fs.writeFile(
+    await writeFileAtomicallyImpl(
       transcriptMarkdownPath,
-      `${baseContent}\n${buildTranscriptLines(event)}`,
-      'utf-8'
+      `${baseContent}\n${buildTranscriptLines(event)}`
     )
   }
 
   async function replaceFinalMarkdown (event) {
-    await writeFileAtomically(
+    await writeFileAtomicallyImpl(
       transcriptMarkdownPath,
       `${buildTranscriptHeader(event)}${buildTranscriptLines(event)}`
     )
   }
 
+  async function discardLiveTranscript () {
+    await ensureInitialized()
+    const currentContent = await readMarkdownContent()
+    const finalizedContent = stripLiveBlock(currentContent)
+    if (finalizedContent === currentContent) {
+      return
+    }
+    await writeFileAtomicallyImpl(transcriptMarkdownPath, finalizedContent)
+  }
+
   async function writeEvent (event = {}) {
     await ensureInitialized()
-    const normalizedEvent = normalizeTranscriptEvent(event)
-    if (normalizedEvent.text) {
-      normalizedEvent.text = await redactText({
-        text: normalizedEvent.text,
-        eventType: normalizedEvent.type
-      })
-    }
-    for (const segment of normalizedEvent.segments) {
-      segment.text = await redactText({
-        text: segment.text,
-        eventType: normalizedEvent.type
-      })
-    }
+    try {
+      const normalizedEvent = normalizeTranscriptEvent(event)
+      if (normalizedEvent.text) {
+        normalizedEvent.text = await redactText({
+          text: normalizedEvent.text,
+          eventType: normalizedEvent.type
+        })
+      }
+      for (const segment of normalizedEvent.segments) {
+        segment.text = await redactText({
+          text: segment.text,
+          eventType: normalizedEvent.type
+        })
+      }
 
-    if (!normalizedEvent.text.trim() && normalizedEvent.segments.length === 0) {
-      return
-    }
-    if (normalizedEvent.type === 'final') {
-      if (normalizedEvent.replaceTranscript) {
-        await replaceFinalMarkdown(normalizedEvent)
+      if (!normalizedEvent.text.trim() && normalizedEvent.segments.length === 0) {
         return
       }
-      await writeFinalToMarkdown(normalizedEvent)
-      return
-    }
-    if (normalizedEvent.type === 'partial') {
-      await writePartialToMarkdown(normalizedEvent)
+      if (normalizedEvent.type === 'final') {
+        if (normalizedEvent.replaceTranscript) {
+          await replaceFinalMarkdown(normalizedEvent)
+          return
+        }
+        await writeFinalToMarkdown(normalizedEvent)
+        return
+      }
+      if (normalizedEvent.type === 'partial') {
+        await writePartialToMarkdown(normalizedEvent)
+      }
+    } catch (error) {
+      try {
+        await discardLiveTranscript()
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          'Failed to write the meeting transcript and remove its live draft.'
+        )
+      }
+      throw error
     }
   }
 
   return {
+    discardLiveTranscript,
     ensureInitialized,
     writeEvent
   }

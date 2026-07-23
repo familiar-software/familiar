@@ -5,8 +5,8 @@ diarization.
 
 ## FluidAudio
 
-- Component: FluidAudio 0.15.4
-- Revision: `b9d43724cbdb5a980e441fd54180964e94d470f7`
+- Component: FluidAudio 0.15.5
+- Revision: `19600a485baa4998812e4654b70d2bab8f2c9949`
 - Source: <https://github.com/FluidInference/FluidAudio>
 - License: Apache License 2.0
 - License copy: `licenses/FluidAudio-APACHE-2.0.txt`

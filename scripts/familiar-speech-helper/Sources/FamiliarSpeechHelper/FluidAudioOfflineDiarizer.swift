@@ -68,7 +68,7 @@ actor FluidAudioOfflineDiarizer: OfflineSpeakerDiarizing {
         guard !isPrepared else {
             return
         }
-        DownloadUtils.enforceOffline = true
+        ModelHub.offlineMode = true
         do {
             try validateBundledDiarizationModels(at: modelDirectory)
             let models = try await OfflineDiarizerModels.load(from: modelDirectory)

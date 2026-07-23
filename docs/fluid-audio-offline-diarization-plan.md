@@ -68,7 +68,7 @@ The starting helper had several useful boundaries that should be preserved:
 
 As of July 12, 2026, the working tree implements one automatic capture path:
 
-- FluidAudio `0.15.4` is pinned at `b9d43724cbdb5a980e441fd54180964e94d470f7`;
+- FluidAudio `0.15.5` is pinned at `19600a485baa4998812e4654b70d2bab8f2c9949`;
   `Package.resolved` is included in this change.
 - The 21 model files are pinned at `1ed7a662fdc7109e36d822db793ee6eebdaf8594`
   and total 21,599,417 bytes.
@@ -78,15 +78,19 @@ As of July 12, 2026, the working tree implements one automatic capture path:
   recording. On stop, finalized system-audio words select exactly one FluidAudio input. Apple
   words are aligned by time overlap, and the writer atomically replaces live text with
   deterministic speaker segments.
-- The release helper builds for `arm64` and `x86_64`; the universal helper is 15,718,656 bytes.
+- The release helper builds for `arm64` and `x86_64`; the reviewed universal helper is 16,211,584
+  bytes with FluidAudio 0.15.5.
 - A real M1/BlackHole test separates Samantha and Rishi, and a complementary test keeps Samantha
   as exactly one speaker. A real offline model-load test reports no download attempt.
 - Separate microphone and ScreenCaptureKit analyzers run on one host clock. If Mac audio contains
   finalized speech, microphone words are labeled `You`, matching time-aligned echo words are
   removed, Mac audio is diarized, and both timelines are merged. Otherwise the microphone track is
   diarized as a nearby conversation.
-- Audio settings show `Automatic` instead of a source selector. Missing system-audio permission or
-  capability disables voice recording with its concrete reason.
+- Audio settings describe the automatic voice source without exposing a source selector. Missing
+  system-audio permission or capability disables voice recording with its concrete reason.
+- Live Apple results identify their physical source as `Microphone` or `Mac audio`. If Apple
+  finalization, FluidAudio diarization, or final replacement fails, Familiar removes the stale live
+  block, preserves source-labeled finalized text, and reports the recording as failed.
 - Final transcript metadata records `microphone` or `system-audio` as the automatically detected
   source of other voices.
 - FluidAudio and model attribution are packaged under `third-party/`.
@@ -106,6 +110,19 @@ Automatic-source verification on July 12, 2026:
 - Real integrations: concurrent Apple analyzers passed; bundled FluidAudio models loaded locally
   with no download.
 - Universal helper: `arm64` and `x86_64`, strict code-sign verification passed, 15,718,656 bytes.
+
+PR review verification on July 19, 2026:
+
+- Desktop unit suite: 419 tests, 415 passed and 4 explicit real-audio skips.
+- Focused Electron integration: 15/15 passed for Audio settings and meeting recording.
+- FluidAudio 0.15.5 loaded the complete bundled model set in offline mode with no download.
+- Unsigned arm64 app packaging passed. The app was 349 MB unpacked; its 16,211,584-byte speech
+  helper contained `arm64` and `x86_64`, both with a macOS 14 minimum and SDK 26.5.
+- Strict deep code-sign verification passed with the local ad-hoc signature. The packaged Info.plist
+  contained microphone and Screen Recording descriptions, all 22 model-bundle files matched, and
+  no WhisperKit or BlackHole resources were present.
+- Signed/notarized release verification, Intel FluidAudio inference, real source-separated capture,
+  and long-duration soak measurements remain open.
 
 ## Architecture Decisions
 
@@ -165,12 +182,13 @@ the model's source, license URI, revision, parent-model attribution, and modific
 
 ### Pin and audit the dependency
 
-- Use exact FluidAudio `0.15.4`, released June 16, 2026, because `0.15.5` had not satisfied the
-  repository's seven-day dependency-age rule when implementation began.
-- Pin revision `b9d43724cbdb5a980e441fd54180964e94d470f7` in `Package.resolved`.
-- FluidAudio `0.15.4` uses Swift tools 6.0 and has no external Swift package dependency. Its library
+- Use exact FluidAudio `0.15.5`, released July 7, 2026, after it satisfied the repository's
+  seven-day dependency-age rule. It includes deterministic offline re-clustering, compute-unit
+  handling, cancellation, and progress fixes relevant to this pipeline.
+- Pin revision `19600a485baa4998812e4654b70d2bab8f2c9949` in `Package.resolved`.
+- FluidAudio `0.15.5` uses Swift tools 6.0 and has no external Swift package dependency. Its library
   target links only FluidAudio's local `FastClusterWrapper` and `MachTaskSelfWrapper` targets.
-- The universal helper is 15,718,656 bytes; the models add 21,599,417 bytes before packaging.
+- The universal helper is 16,211,584 bytes; the models add 21,599,417 bytes before packaging.
 - Track the upstream SwiftPM warning for undeclared `benchmark.md`; do not fork solely to hide it.
 - Do not fork FluidAudio, copy selected source files, or remove dependency targets unless a later
   explicit architecture decision approves maintaining that code.
@@ -314,8 +332,11 @@ Automatic voice capture is available only when all of these pass:
 - FluidAudio model load on the current hardware;
 - Screen Recording permission;
 - ScreenCaptureKit system-audio availability;
-- successful concurrent two-source Apple analyzer probe;
-- a successful system-audio start/stop smoke test.
+- successful preparation of an Apple analyzer during prewarm.
+
+Starting a recording then prepares the second analyzer and starts both capture sources before the
+controller reports `recording`. Any startup failure marks the capability unavailable with its
+concrete reason; prewarm does not activate a system-audio stream or privacy indicator.
 
 Expose one readiness state. Any failed requirement disables voice recording with a concrete reason.
 
@@ -326,7 +347,7 @@ Stopping recording has two distinct stages:
 1. Stop microphone and system capture and finalize all Apple analyzers.
 2. Run offline diarization, align speakers, and replace the final transcript.
 
-Add a `finalizing` state while keeping the existing stop action. Use FluidAudio's progress callback
+Keep the existing `stopping` state active through finalization. Use FluidAudio's progress callback
 to emit bounded progress or heartbeat events. Replace the current fixed stop timeout with a
 progress-aware watchdog whose final limit is chosen from measured long-recording behavior. The
 helper must still terminate on a genuine stall.
@@ -491,7 +512,7 @@ Verified July 12, 2026:
 
 - <https://github.com/FluidInference/FluidAudio>
 - <https://github.com/FluidInference/FluidAudio/blob/main/Documentation/API.md>
-- <https://github.com/FluidInference/FluidAudio/releases/tag/v0.15.4>
+- <https://github.com/FluidInference/FluidAudio/releases/tag/v0.15.5>
 - <https://huggingface.co/FluidInference/speaker-diarization-coreml>
 - [Apple ScreenCaptureKit capture guide][apple-screen-capture]
 

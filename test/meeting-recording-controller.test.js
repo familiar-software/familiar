@@ -7,6 +7,7 @@ const path = require('node:path')
 const { PassThrough } = require('node:stream')
 
 const { createMeetingRecordingController } = require('../src/meeting-recording')
+const { createSpeechHelperClient } = require('../src/meeting-recording/speech-helper-client')
 
 function createFakeChild () {
   const child = new EventEmitter()
@@ -133,6 +134,28 @@ function createAwakeLockSpy () {
   }
 }
 
+async function createAvailableController (options) {
+  const createCaptureClient = options.createSpeechHelperClientImpl || createSpeechHelperClient
+  let needsPrewarmClient = true
+  const controller = createMeetingRecordingController({
+    ...options,
+    createSpeechHelperClientImpl: (clientOptions) => {
+      if (!needsPrewarmClient) {
+        return createCaptureClient(clientOptions)
+      }
+      needsPrewarmClient = false
+      return {
+        child: {},
+        prewarmModel: async () => ({ available: true, locale: 'en-US' }),
+        terminate: async () => ({ closed: true })
+      }
+    }
+  })
+  const readiness = await controller.prewarm()
+  assert.equal(readiness.ok, true)
+  return controller
+}
+
 test('meeting recording prewarms model and returns to idle', async () => {
   const stateChanges = []
   const terminateReasons = []
@@ -229,6 +252,48 @@ test('meeting recording stays unavailable when the speech helper is missing', as
   assert.match(controller.getStatus().unavailableReason, /helper is not available/i)
 })
 
+test('meeting recording prepares availability before starting on a direct request', async () => {
+  const contextFolderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-direct-start-'))
+  const calls = []
+  let clientCount = 0
+
+  const controller = createMeetingRecordingController({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    getContextFolderPath: () => contextFolderPath,
+    validateContextFolderPathImpl: () => ({ ok: true }),
+    resolveSpeechHelperPathImpl: () => __filename,
+    createSpeechHelperClientImpl: () => {
+      clientCount += 1
+      if (clientCount === 1) {
+        return {
+          child: {},
+          prewarmModel: async () => {
+            calls.push('prewarm')
+            return { available: true, locale: 'en-US' }
+          },
+          terminate: async () => {
+            calls.push('prewarm-terminated')
+            return { closed: true }
+          }
+        }
+      }
+      return {
+        child: {},
+        startCapture: async () => calls.push('capture-started')
+      }
+    },
+    createTranscriptWriterImpl: () => ({
+      ensureInitialized: async () => {},
+      writeEvent: async () => {}
+    })
+  })
+
+  const result = await controller.start()
+
+  assert.equal(result.ok, true)
+  assert.deepEqual(calls, ['prewarm', 'prewarm-terminated', 'capture-started'])
+})
+
 test('meeting recording starts helper and stops awake lock', async () => {
   const contextFolderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-meeting-unit-'))
   const fakeChild = createFakeChild()
@@ -237,7 +302,7 @@ test('meeting recording starts helper and stops awake lock', async () => {
   const logs = []
   let spawnCall = null
 
-  const controller = createMeetingRecordingController({
+  const controller = await createAvailableController({
     awakeLock,
     logger: {
       log: (message, details) => logs.push({ message, details }),
@@ -324,7 +389,7 @@ test('meeting recording allows slow final transcription before force killing hel
     }
   }
 
-  const controller = createMeetingRecordingController({
+  const controller = await createAvailableController({
     awakeLock,
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     getContextFolderPath: () => contextFolderPath,
@@ -363,13 +428,90 @@ test('meeting recording allows slow final transcription before force killing hel
   assert.deepEqual(killCalls, [])
 })
 
+test('meeting recording removes live text and reports finalization failures', async () => {
+  const contextFolderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-failed-stop-'))
+  const errors = []
+  let discardedLiveTranscript = 0
+
+  const controller = await createAvailableController({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    onError: (error) => errors.push(error),
+    getContextFolderPath: () => contextFolderPath,
+    validateContextFolderPathImpl: () => ({ ok: true }),
+    resolveSpeechHelperPathImpl: () => __filename,
+    createSpeechHelperClientImpl: (options) => ({
+      child: {},
+      startCapture: async () => {},
+      stopCapture: async () => {
+        throw new Error('FluidAudio diarization failed.')
+      },
+      terminate: async () => {
+        setImmediate(() => options.onClose({ code: 0, signal: null }))
+        return { closed: true }
+      }
+    }),
+    createTranscriptWriterImpl: () => ({
+      discardLiveTranscript: async () => {
+        discardedLiveTranscript += 1
+      },
+      ensureInitialized: async () => {},
+      writeEvent: async () => {}
+    })
+  })
+
+  await controller.start()
+  const result = await controller.stop({ reason: 'test-stop' })
+
+  assert.equal(result.status.state, 'error')
+  assert.equal(discardedLiveTranscript, 1)
+  assert.deepEqual(errors, [{
+    message: 'FluidAudio diarization failed.',
+    reason: 'meeting-recording'
+  }])
+})
+
+test('meeting recording reports an unexpected clean helper exit', async () => {
+  const contextFolderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-helper-exit-'))
+  let handleClose = null
+  let discardedLiveTranscript = 0
+
+  const controller = await createAvailableController({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    getContextFolderPath: () => contextFolderPath,
+    validateContextFolderPathImpl: () => ({ ok: true }),
+    resolveSpeechHelperPathImpl: () => __filename,
+    createSpeechHelperClientImpl: (options) => {
+      handleClose = options.onClose
+      return {
+        child: {},
+        startCapture: async () => {}
+      }
+    },
+    createTranscriptWriterImpl: () => ({
+      discardLiveTranscript: async () => {
+        discardedLiveTranscript += 1
+      },
+      ensureInitialized: async () => {},
+      writeEvent: async () => {}
+    })
+  })
+
+  await controller.start()
+  handleClose({ code: 0, signal: null })
+  await new Promise((resolve) => setImmediate(resolve))
+
+  assert.equal(controller.getStatus().state, 'error')
+  assert.match(controller.getStatus().error, /exited unexpectedly/)
+  assert.equal(discardedLiveTranscript, 1)
+})
+
 test('meeting recording reports starting separately from active recording', async () => {
   const contextFolderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-meeting-starting-'))
   const awakeLock = createAwakeLockSpy()
   let resolveStartCapture = null
   let spawnCount = 0
 
-  const controller = createMeetingRecordingController({
+  const controller = await createAvailableController({
     awakeLock,
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     getContextFolderPath: () => contextFolderPath,
@@ -388,6 +530,7 @@ test('meeting recording reports starting separately from active recording', asyn
       }
     },
     createTranscriptWriterImpl: () => ({
+      discardLiveTranscript: async () => {},
       ensureInitialized: async () => {},
       writeEvent: async () => {}
     })
@@ -418,6 +561,48 @@ test('meeting recording reports starting separately from active recording', asyn
   assert.equal(spawnCount, 1)
 })
 
+test('meeting recording rejects a new start while the previous recording stops', async () => {
+  const contextFolderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-meeting-stopping-'))
+  let finishStop = null
+  let captureClientCount = 0
+
+  const controller = await createAvailableController({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    getContextFolderPath: () => contextFolderPath,
+    validateContextFolderPathImpl: () => ({ ok: true }),
+    resolveSpeechHelperPathImpl: () => __filename,
+    createSpeechHelperClientImpl: (options) => {
+      captureClientCount += 1
+      return {
+        child: {},
+        startCapture: async () => {},
+        stopCapture: () => new Promise((resolve) => {
+          finishStop = () => {
+            resolve()
+            setImmediate(() => options.onClose({ code: 0, signal: null }))
+          }
+        })
+      }
+    },
+    createTranscriptWriterImpl: () => ({
+      ensureInitialized: async () => {},
+      writeEvent: async () => {}
+    })
+  })
+
+  await controller.start()
+  const stopPromise = controller.stop({ reason: 'test-stop' })
+  await Promise.resolve()
+
+  assert.equal(controller.getStatus().state, 'stopping')
+  await assert.rejects(() => controller.start(), /still stopping/)
+  assert.equal(captureClientCount, 1)
+
+  finishStop()
+  const stopResult = await stopPromise
+  assert.equal(stopResult.status.state, 'idle')
+})
+
 test('meeting recording retries when helper is SIGKILLed during startup', async () => {
   const contextFolderPath = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-start-sigkill-'))
   const killedChild = createStartKilledChild()
@@ -425,7 +610,7 @@ test('meeting recording retries when helper is SIGKILLed during startup', async 
   const awakeLock = createAwakeLockSpy()
   const spawnedChildren = []
 
-  const controller = createMeetingRecordingController({
+  const controller = await createAvailableController({
     awakeLock,
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     getContextFolderPath: () => contextFolderPath,
@@ -463,7 +648,7 @@ test('meeting recording survives two SIGKILLed helper startup attempts', async (
   const awakeLock = createAwakeLockSpy()
   const spawnedChildren = []
 
-  const controller = createMeetingRecordingController({
+  const controller = await createAvailableController({
     awakeLock,
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     getContextFolderPath: () => contextFolderPath,
@@ -503,7 +688,7 @@ test('meeting recording annotates exhausted startup SIGKILL failures', async () 
   const errors = []
   const spawnedChildren = []
 
-  const controller = createMeetingRecordingController({
+  const controller = await createAvailableController({
     awakeLock,
     logger: {
       log: () => {},
@@ -550,7 +735,7 @@ test('meeting recording terminates helper when startup fails', async () => {
   const awakeLock = createAwakeLockSpy()
   const terminateReasons = []
 
-  const controller = createMeetingRecordingController({
+  const controller = await createAvailableController({
     awakeLock,
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     getContextFolderPath: () => contextFolderPath,
@@ -610,7 +795,7 @@ test('meeting recording finalizes stop when helper process never closes', async 
     }
   }
 
-  const controller = createMeetingRecordingController({
+  const controller = await createAvailableController({
     awakeLock,
     logger: { log: () => {}, warn: () => {}, error: () => {} },
     onError: (error) => errors.push(error),
@@ -629,6 +814,7 @@ test('meeting recording finalizes stop when helper process never closes', async 
       }
     }),
     createTranscriptWriterImpl: () => ({
+      discardLiveTranscript: async () => {},
       ensureInitialized: async () => {},
       writeEvent: async () => {}
     }),

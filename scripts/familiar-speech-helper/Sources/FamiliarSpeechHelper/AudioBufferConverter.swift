@@ -8,7 +8,7 @@ final class AudioBufferConverter: @unchecked Sendable {
 
     init(inputFormat: AVAudioFormat, outputFormat: AVAudioFormat) throws {
         guard let converter = AVAudioConverter(from: inputFormat, to: outputFormat) else {
-            throw HelperError.message("The microphone audio format cannot be converted.")
+            throw HelperError.message("The captured audio format cannot be converted.")
         }
         self.converter = converter
         self.outputFormat = outputFormat
@@ -73,7 +73,7 @@ final class AudioBufferConverter: @unchecked Sendable {
     ) throws {
         guard status != .error else {
             let details = error?.localizedDescription ?? "unknown conversion error"
-            throw HelperError.message("Failed to convert microphone audio: \(details)")
+            throw HelperError.message("Failed to convert captured audio: \(details)")
         }
     }
 }

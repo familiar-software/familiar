@@ -48,9 +48,14 @@ test('resolveDefaultSpeechHelperPath uses bundled speech helper when present', (
   )
 })
 
-test('resolveDefaultSpeechHelperPath finds dev speech helper', () => {
-  const resolvedPath = resolveDefaultSpeechHelperPath({ env: {}, resourcesPath: '' })
+test('resolveDefaultSpeechHelperPath uses an explicit speech helper path', () => {
+  const helperPath = '/tmp/familiar-test-speech-helper'
 
-  assert.equal(path.basename(resolvedPath), 'familiar-speech-helper')
-  assert.equal(fs.existsSync(resolvedPath), true)
+  assert.equal(
+    resolveDefaultSpeechHelperPath({
+      env: { FAMILIAR_SPEECH_HELPER_PATH: helperPath },
+      resourcesPath: ''
+    }),
+    helperPath
+  )
 })

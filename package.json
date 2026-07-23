@@ -12,12 +12,9 @@
     "build:speech-helper": "bash scripts/build-familiar-speech-helper.sh",
     "build:speech-helper:universal": "bash scripts/build-familiar-speech-helper.sh --universal",
     "prestart": "npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:diarization-models && npm run build:speech-helper && npm run react:build:dashboard",
-    "pre-dist:mac": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:diarization-models && npm run build:speech-helper:universal && npm run css:build && electron-builder --mac --arm64 --x64",
-    "pre-dist:mac:arm64": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac:arm64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:diarization-models && npm run build:speech-helper:universal && npm run css:build && electron-builder --mac --arm64",
-    "pre-dist:mac:x64": "npm run css:build && npm run react:build:dashboard",
-    "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:diarization-models && npm run build:speech-helper:universal && npm run css:build && electron-builder --mac --x64",
+    "dist:mac": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:diarization-models && npm run build:speech-helper:universal && npm run react:build:dashboard && npm run css:build && electron-builder --mac --arm64 --x64",
+    "dist:mac:arm64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:diarization-models && npm run build:speech-helper:universal && npm run react:build:dashboard && npm run css:build && electron-builder --mac --arm64",
+    "dist:mac:x64": "npm run clean && npm run build:apple-vision-ocr && npm run build:active-window-detector && npm run build:rg-bundle && npm run build:diarization-models && npm run build:speech-helper:universal && npm run react:build:dashboard && npm run css:build && electron-builder --mac --x64",
     "react:build:dashboard": "esbuild src/dashboard/main.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"production\"' --outfile=src/dashboard/react-dist/dashboard-react.js",
     "react:watch:dashboard": "esbuild src/dashboard/main.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"development\"' --sourcemap --outfile=src/dashboard/react-dist/dashboard-react.js --watch",
     "css": "tailwindcss -i ./src/dashboard/input.css -o ./src/dashboard/styles.css --watch",
@@ -100,7 +97,8 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "Familiar needs microphone access to record and transcribe meetings you explicitly start."
+        "NSMicrophoneUsageDescription": "Familiar needs microphone access to record and transcribe meetings you explicitly start.",
+        "NSScreenCaptureUsageDescription": "Familiar needs Screen Recording access to capture audio from calls you explicitly record."
       },
       "icon": "build/icon.icns"
     },

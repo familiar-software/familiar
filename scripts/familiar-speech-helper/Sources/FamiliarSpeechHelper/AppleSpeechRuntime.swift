@@ -62,7 +62,8 @@ actor AppleSpeechRuntime: SpeechRuntime {
         try await diarizer.prepare()
         let preparedSession = try await AppleSpeechSourceSession.prepare(
             locale: locale,
-            writer: writer
+            writer: writer,
+            liveSpeakerLabel: "Microphone"
         )
         let capability = SpeechCapabilityPayload(
             available: true,
@@ -157,12 +158,14 @@ actor AppleSpeechRuntime: SpeechRuntime {
         } else {
             microphoneSession = try await AppleSpeechSourceSession.prepare(
                 locale: locale,
-                writer: writer
+                writer: writer,
+                liveSpeakerLabel: "Microphone"
             )
         }
         let systemSession = try await AppleSpeechSourceSession.prepare(
             locale: locale,
-            writer: writer
+            writer: writer,
+            liveSpeakerLabel: "Mac audio"
         )
         let sessionOrigin = CMClockGetTime(CMClockGetHostTimeClock())
         let inputDeviceID = try CoreAudioInputDevices.resolveID(named: inputDeviceName)

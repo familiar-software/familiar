@@ -278,7 +278,7 @@ final class AppleSpeechSourceSession: @unchecked Sendable {
     }
 }
 
-private extension TranscriptPayload {
+extension TranscriptPayload {
     func applyingSpeakerLabel(_ speakerLabel: String?) -> TranscriptPayload {
         guard let speakerLabel else {
             return self

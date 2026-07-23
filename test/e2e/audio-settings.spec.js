@@ -38,7 +38,7 @@ test('audio settings explains unavailable automatic system-audio capture', async
     await window.waitForLoadState('domcontentloaded')
     await window.getByRole('tab', { name: 'Audio' }).click()
 
-    await expect(window.locator('#audio-automatic-source')).toHaveText('Automatic')
+    await expect(window.getByRole('heading', { name: 'Voice source' })).toBeVisible()
     await expect(window.locator('#audio-automatic-source-status')).toHaveText(
       unavailableReason
     )
