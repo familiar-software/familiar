@@ -450,7 +450,10 @@ test('stills capture fails when real capture thumbnail payload is corrupted', as
     env: {
       FAMILIAR_E2E_FAKE_SCREEN_CAPTURE: '0',
       FAMILIAR_E2E_CORRUPT_THUMBNAIL_DATA_URL: '1',
-      FAMILIAR_E2E_STILLS_INTERVAL_MS: '600'
+      FAMILIAR_E2E_STILLS_INTERVAL_MS: '600',
+      FAMILIAR_E2E_VISIBLE_WINDOWS_JSON: JSON.stringify([
+        { name: 'Familiar', bundleId: 'com.familiar.e2e', active: true }
+      ])
     }
   })
 
