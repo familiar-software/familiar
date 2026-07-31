@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreMedia
+import Speech
 import XCTest
 @testable import FamiliarSpeechHelper
 
@@ -34,15 +35,32 @@ final class AppleSpeechSourceSessionTests: XCTestCase {
                 "Set FAMILIAR_REAL_SPEECH_CONCURRENCY_TEST=1 to run two SpeechAnalyzers."
             )
         }
+        guard SpeechTranscriber.isAvailable else {
+            throw XCTSkip("SpeechTranscriber is unavailable on this test Mac.")
+        }
 
         let writer = OutputWriter()
+        let locale = Locale(identifier: "en-US")
+        let assetTranscriber = SpeechTranscriber(
+            locale: locale,
+            transcriptionOptions: [],
+            reportingOptions: [.volatileResults],
+            attributeOptions: [.audioTimeRange]
+        )
+        let assetStatus = await AssetInventory.status(forModules: [assetTranscriber])
+        guard assetStatus == .installed else {
+            throw XCTSkip(
+                "SpeechTranscriber model is not installed on this test Mac " +
+                    "(status: \(assetStatus))."
+            )
+        }
         async let localPreparation = AppleSpeechSourceSession.prepare(
-            locale: Locale(identifier: "en-US"),
+            locale: locale,
             writer: writer,
             liveSpeakerLabel: "You"
         )
         async let remotePreparation = AppleSpeechSourceSession.prepare(
-            locale: Locale(identifier: "en-US"),
+            locale: locale,
             writer: writer
         )
         let (localSession, remoteSession) = try await (

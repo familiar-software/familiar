@@ -130,4 +130,7 @@ FluidAudio model bundle when it is not already cached, and build a universal spe
 packaging. Release builds therefore require Xcode 26 and network access to GitHub, Electron, and
 Hugging Face; installed users do not.
 
-`build-rg-bundle.sh` downloads official ripgrep binaries when missing (or copies from `FAMILIAR_RG_DARWIN_ARM64_SOURCE` / `FAMILIAR_RG_DARWIN_X64_SOURCE` if provided). The binaries are generated locally and are not committed.
+`build-rg-bundle.sh` downloads official ripgrep binaries when missing (or copies from
+`FAMILIAR_RG_DARWIN_ARM64_SOURCE` / `FAMILIAR_RG_DARWIN_X64_SOURCE` if provided). It validates
+their Mach-O architecture without trying to execute a binary for another operating system or
+CPU. The binaries are generated locally and are not committed.

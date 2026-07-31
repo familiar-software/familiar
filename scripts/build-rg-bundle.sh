@@ -15,7 +15,8 @@ download_rg_binary() {
   local target="$1"
   local archive_arch="$2"
   local archive_name="ripgrep-${RG_VERSION}-${archive_arch}.tar.gz"
-  local archive_url="https://github.com/BurntSushi/ripgrep/releases/download/${RG_VERSION}/${archive_name}"
+  local release_base="https://github.com/BurntSushi/ripgrep/releases/download/${RG_VERSION}"
+  local archive_url="${release_base}/${archive_name}"
   local temp_dir
   temp_dir="$(mktemp -d)"
   trap 'rm -rf "'"${temp_dir}"'"' RETURN
@@ -40,6 +41,8 @@ ensure_rg_binary() {
   local target="$2"
   local archive_arch="$3"
   local label="$4"
+  local expected_arch="$5"
+  local binary_description
 
   if [[ -n "${source_path}" ]]; then
     cp "${source_path}" "${target}"
@@ -53,14 +56,33 @@ ensure_rg_binary() {
     exit 1
   fi
 
-  if ! "${target}" --version >/dev/null 2>&1; then
+  binary_description="$(file -b "${target}")"
+  if [[ "${binary_description}" != *"Mach-O 64-bit"* ||
+    "${binary_description}" != *"executable"* ||
+    "${binary_description}" != *"${expected_arch}"* ]]; then
+    echo "Invalid rg binary at ${target}" >&2
+    exit 1
+  fi
+
+  if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "${expected_arch}" ]] &&
+    ! "${target}" --version >/dev/null 2>&1; then
     echo "Invalid rg binary at ${target}" >&2
     exit 1
   fi
 }
 
-ensure_rg_binary "${FAMILIAR_RG_DARWIN_ARM64_SOURCE:-}" "${ARM64_DEST}" "aarch64-apple-darwin" "arm64"
-ensure_rg_binary "${FAMILIAR_RG_DARWIN_X64_SOURCE:-}" "${X64_DEST}" "x86_64-apple-darwin" "x64"
+ensure_rg_binary \
+  "${FAMILIAR_RG_DARWIN_ARM64_SOURCE:-}" \
+  "${ARM64_DEST}" \
+  "aarch64-apple-darwin" \
+  "arm64" \
+  "arm64"
+ensure_rg_binary \
+  "${FAMILIAR_RG_DARWIN_X64_SOURCE:-}" \
+  "${X64_DEST}" \
+  "x86_64-apple-darwin" \
+  "x64" \
+  "x86_64"
 
 echo "RG bundle ready (version ${RG_VERSION}):" >&2
 echo "  arm64: ${ARM64_DEST}" >&2
