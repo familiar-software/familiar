@@ -1,5 +1,8 @@
 # Changes
-- Heartbeats - introducing a mechanism to periodically run prompts that utilize Familiar's collected context
-- Connect Agent: added cursor as a supported harness for running heartbeats
-- Capture and summaries: remove clipboard image support due to issues with performance
-- Updates: Familiar now checks for app updates on a recurring three-day cadence
+- Voice capture now records and transcribes conversations locally using Apple's on-device speech
+  model on supported macOS 26 Macs.
+- Offline speaker separation labels different speakers in nearby conversations and online
+  meetings.
+- Recording automatically combines available microphone and system audio, so there is no
+  meeting-mode choice to make.
+- Clear availability and permission states prevent unsupported Macs from starting voice capture.
