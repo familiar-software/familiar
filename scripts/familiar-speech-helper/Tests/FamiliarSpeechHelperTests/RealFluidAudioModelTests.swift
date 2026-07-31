@@ -34,7 +34,7 @@ final class RealFluidAudioModelTests: XCTestCase {
 
 private func makeGeneratedSpeechFixture() throws -> URL {
     let audioURL = FileManager.default.temporaryDirectory
-        .appendingPathComponent("familiar-fluid-audio-\(UUID().uuidString).aiff")
+        .appendingPathComponent("familiar-fluid-audio-\(UUID().uuidString).wav")
     var latestStatus: Int32 = -1
 
     for attempt in 1...3 {
@@ -58,8 +58,11 @@ private func generateSpeech(at audioURL: URL) throws -> Int32 {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/say")
     process.arguments = [
+        "-v",
+        "Samantha",
         "-o",
         audioURL.path,
+        "--data-format=LEI16@22050",
         "Hello Familiar. This generated voice verifies offline speaker diarization. " +
             "The model must process speech without downloading any additional files.",
     ]
