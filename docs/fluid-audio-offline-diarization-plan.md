@@ -124,6 +124,26 @@ PR review verification on July 19, 2026:
 - Signed/notarized release verification, Intel FluidAudio inference, real source-separated capture,
   and long-duration soak measurements remain open.
 
+Main-integration verification on July 31, 2026:
+
+- Desktop unit suite: 420 tests, 416 passed and 4 explicit real-audio skips.
+- Unit performance guard: passed in 3.611 seconds.
+- Focused voice Electron E2E suite: 8/8 passed.
+- Complete Electron E2E suite: 41 passed, one explicit real-screen-content skip, and zero
+  failures.
+- Swift helper suite: 44 tests, 41 passed and 3 explicit hardware-integration skips.
+- Real Apple analyzer concurrency passed, and FluidAudio loaded all bundled models offline with
+  zero downloads.
+- The x86_64 Swift helper test bundle ran under Rosetta: Apple analyzer concurrency and real
+  offline FluidAudio model loading passed. Native Intel hardware inference remains open.
+- Unsigned `0.0.72` Intel and Apple Silicon app packaging passed. Both packages contain a
+  universal speech helper, architecture-matched native Node modules, all 22 expected model-bundle
+  files, FluidAudio attribution, and no WhisperKit or BlackHole resources.
+- Real ScreenCaptureKit capture remains blocked for the test and unsigned helper by macOS Screen
+  Recording permission. The BlackHole two-voice fixture is not installed on this Mac. Native Intel
+  hardware inference, real source-separated capture, and long-duration soak measurements remain
+  open.
+
 ## Architecture Decisions
 
 ### Keep transcription and diarization separate

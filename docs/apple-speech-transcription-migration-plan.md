@@ -10,13 +10,18 @@
 - [x] Replace WhisperKit with Apple SpeechAnalyzer and native audio capture.
 - [x] Remove WhisperKit assets, dependencies, configuration, and packaging.
 - [x] Pass focused unit, integration, real-audio, and targeted end-to-end checks.
-- [ ] Pass the complete desktop-app verification suite.
+- [x] Pass the complete desktop-app verification suite.
 
-The final suite row remains open only for the repository's existing unit-performance budget.
-The complete unit suite passes all 390 runnable tests, but `npm run test:unit:timed` currently
-takes about 7 seconds and fails its 5-second limit. The complete Electron E2E suite passes in
-the intended CI mode: 38 passed, one explicitly headless-unstable real-screen test skipped, and
-zero failures. The targeted unavailable-capability E2E test also passes.
+Verification refreshed after merging current `main` on July 31, 2026:
+
+- Desktop unit suite: 420 tests, 416 passed and 4 explicit real-audio skips.
+- Unit performance guard: passed in 3.611 seconds.
+- Complete Electron E2E suite: 41 passed, one explicit real-screen-content skip, and zero
+  failures.
+- Focused voice Electron E2E suite: 8/8 passed.
+- Swift helper suite: 44 tests, 41 passed and 3 explicit hardware-integration skips.
+- Real Apple analyzer concurrency and bundled offline FluidAudio model loading passed separately
+  for arm64 and for the x86_64 helper path under Rosetta.
 
 ## Objective
 
