@@ -581,6 +581,19 @@ function quitApp() {
     app.quit();
 }
 
+function createTrayHandlers() {
+    return {
+        onMeetingRecordingToggle: () => {
+            void meetingRecordingMainProcess?.toggle?.();
+        },
+        onRecordingPause: (durationMs) => {
+            void handleRecordingToggleAction({ durationMs });
+        },
+        onOpenSettings: () => openSettingsWindow({ reason: 'tray' }),
+        onQuit: quitApp,
+    };
+}
+
 function createTray() {
     const createTrayIcon = createTrayIconFactory({
         nativeImage,
@@ -629,16 +642,7 @@ function createTray() {
     tray.setToolTip('Familiar');
     nativeTheme.on('updated', updateTrayIcon);
 
-    trayHandlers = {
-        onMeetingRecordingToggle: () => {
-            void meetingRecordingMainProcess?.toggle?.();
-        },
-        onRecordingPause: (durationMs) => {
-            void handleRecordingToggleAction({ durationMs });
-        },
-        onOpenSettings: () => openSettingsWindow({ reason: 'tray' }),
-        onQuit: quitApp,
-    };
+    trayHandlers = createTrayHandlers();
 
     trayMenuController = createTrayMenuController({
         tray,
@@ -920,6 +924,7 @@ if (isPrimaryInstance) {
                 scheduleRecurringUpdateCheck();
             }
         } else if (isE2E) {
+            trayHandlers = createTrayHandlers();
             console.log('E2E mode: running on non-macOS platform');
         }
 

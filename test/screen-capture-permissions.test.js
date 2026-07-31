@@ -171,6 +171,54 @@ test('requestScreenRecordingPermission auto-grants in E2E mode on darwin', async
   }
 })
 
+test('requestScreenRecordingPermission auto-grants in E2E mode on non-darwin', async () => {
+  const originalLoad = Module._load
+  const calls = []
+
+  const stubElectron = {
+    systemPreferences: {
+      askForMediaAccess: () => {
+        calls.push('askForMediaAccess')
+        return false
+      },
+      getMediaAccessStatus: () => {
+        calls.push('getMediaAccessStatus')
+        return 'denied'
+      }
+    },
+    shell: {}
+  }
+
+  Module._load = function (request, parent, isMain) {
+    if (request === 'electron') {
+      return stubElectron
+    }
+    return originalLoad.call(this, request, parent, isMain)
+  }
+
+  try {
+    await withE2EEnv(true, async () => {
+      const restored = await withProcessPlatform('linux', async () => {
+        resetModule('../src/screen-capture/permissions')
+        const { requestScreenRecordingPermission } = require('../src/screen-capture/permissions')
+
+        const result = await requestScreenRecordingPermission()
+
+        assert.equal(calls.length, 0)
+        assert.equal(result.ok, true)
+        assert.equal(result.permissionStatus, 'granted')
+        assert.equal(result.granted, true)
+      })
+      if (!restored) {
+        return
+      }
+    })
+  } finally {
+    Module._load = originalLoad
+    resetModule('../src/screen-capture/permissions')
+  }
+})
+
 test('requestScreenRecordingPermission respects explicit E2E permission override', async () => {
   const originalLoad = Module._load
   const askForMediaAccessCalls = []

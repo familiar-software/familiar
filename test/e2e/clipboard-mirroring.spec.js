@@ -25,6 +25,14 @@ const listSessionNames = (stillsRoot) => {
   return fs.readdirSync(stillsRoot).filter((name) => name.startsWith('session-')).sort()
 }
 
+const buildLaunchArgs = () => {
+  const launchArgs = ['.']
+  if (process.platform === 'linux') {
+    launchArgs.push('--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage')
+  }
+  return launchArgs
+}
+
 test.describe('clipboard mirroring', () => {
   test('mirrors clipboard text into the current stills-markdown session while recording', async () => {
     const appRoot = path.join(__dirname, '../..')
@@ -43,10 +51,8 @@ test.describe('clipboard mirroring', () => {
         2
       )
     )
-    const launchArgs = ['.']
-
     const electronApp = await electron.launch({
-      args: launchArgs,
+      args: buildLaunchArgs(),
       cwd: appRoot,
       env: {
         ...process.env,
@@ -132,10 +138,8 @@ test.describe('clipboard mirroring', () => {
         2
       )
     )
-    const launchArgs = ['.']
-
     const electronApp = await electron.launch({
-      args: launchArgs,
+      args: buildLaunchArgs(),
       cwd: appRoot,
       env: {
         ...process.env,

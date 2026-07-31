@@ -21,10 +21,6 @@ function getE2EScreenRecordingPermissionStatus() {
     }
   }
 
-  if (process.platform !== 'darwin') {
-    return 'unavailable';
-  }
-
   return 'granted';
 }
 
