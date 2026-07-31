@@ -14,14 +14,21 @@
 
 Verification refreshed after merging current `main` on July 31, 2026:
 
-- Desktop unit suite: 420 tests, 416 passed and 4 explicit real-audio skips.
+- Desktop unit suite: 423 tests, 419 passed and 4 explicit real-audio skips.
 - Unit performance guard: passed in 3.611 seconds.
 - Complete Electron E2E suite: 41 passed, one explicit real-screen-content skip, and zero
   failures.
-- Focused voice Electron E2E suite: 8/8 passed.
+- Focused voice and clipboard Electron E2E suite: 9/9 passed.
 - Swift helper suite: 44 tests, 41 passed and 3 explicit hardware-integration skips.
-- Real Apple analyzer concurrency and bundled offline FluidAudio model loading passed separately
-  for arm64 and for the x86_64 helper path under Rosetta.
+- Real Apple analyzer concurrency passed locally for arm64 and for the x86_64 helper path under
+  Rosetta. Hosted Apple Silicon and Intel runners explicitly skip this check because
+  SpeechTranscriber is unavailable there.
+- Generated-speech FluidAudio inference passed locally on arm64 and in hosted CI on native Apple
+  Silicon and Intel hardware, using only the bundled model files.
+- Unsigned `0.0.72` Intel and Apple Silicon packages contain the universal helper,
+  architecture-matched native Node modules, and the complete FluidAudio model bundle.
+- The production dependency audit reports zero vulnerabilities. Signing, notarization, and
+  packaged ScreenCaptureKit/TCC smoke remain release-stage work.
 
 ## Objective
 

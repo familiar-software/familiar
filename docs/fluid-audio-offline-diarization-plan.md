@@ -97,7 +97,7 @@ As of July 12, 2026, the working tree implements one automatic capture path:
 
 Concurrent analyzers pass on this Mac, and system-audio behavior passes focused and E2E tests.
 A real packaged ScreenCaptureKit/TCC run, source-separated hardware fixture, long-recording tests,
-Intel inference, and packaged offline smoke remain open.
+and packaged offline smoke remain open.
 
 Automatic-source verification on July 12, 2026:
 
@@ -126,23 +126,28 @@ PR review verification on July 19, 2026:
 
 Main-integration verification on July 31, 2026:
 
-- Desktop unit suite: 420 tests, 416 passed and 4 explicit real-audio skips.
+- Desktop unit suite: 423 tests, 419 passed and 4 explicit real-audio skips.
 - Unit performance guard: passed in 3.611 seconds.
-- Focused voice Electron E2E suite: 8/8 passed.
+- Focused voice and clipboard Electron E2E suite: 9/9 passed.
 - Complete Electron E2E suite: 41 passed, one explicit real-screen-content skip, and zero
   failures.
 - Swift helper suite: 44 tests, 41 passed and 3 explicit hardware-integration skips.
-- Real Apple analyzer concurrency passed, and FluidAudio loaded all bundled models offline with
-  zero downloads.
-- The x86_64 Swift helper test bundle ran under Rosetta: Apple analyzer concurrency and real
-  offline FluidAudio model loading passed. Native Intel hardware inference remains open.
+- Real Apple analyzer concurrency passed locally for arm64 and for the x86_64 helper path under
+  Rosetta. The hosted native runners do not expose SpeechTranscriber, so that dedicated check
+  skips there after an explicit availability probe.
+- Generated-speech FluidAudio inference passed locally on arm64 and in hosted CI on native Apple
+  Silicon and Intel hardware. Each inference run loaded the pinned local models without a runtime
+  download.
 - Unsigned `0.0.72` Intel and Apple Silicon app packaging passed. Both packages contain a
   universal speech helper, architecture-matched native Node modules, all 22 expected model-bundle
   files, FluidAudio attribution, and no WhisperKit or BlackHole resources.
+- The production dependency audit reports zero vulnerabilities after updating Electron,
+  electron-updater, and electron-builder. The full development audit still reports 17 high
+  advisories in electron-builder's cross-platform packaging toolchain.
 - Real ScreenCaptureKit capture remains blocked for the test and unsigned helper by macOS Screen
-  Recording permission. The BlackHole two-voice fixture is not installed on this Mac. Native Intel
-  hardware inference, real source-separated capture, and long-duration soak measurements remain
-  open.
+  Recording permission. The BlackHole two-voice fixture is not installed on this Mac. Real
+  source-separated capture, packaged offline smoke, signed/notarized release verification, and
+  long-duration soak measurements remain open.
 
 ## Architecture Decisions
 
