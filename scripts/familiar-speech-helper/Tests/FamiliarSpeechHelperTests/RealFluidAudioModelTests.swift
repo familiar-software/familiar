@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import XCTest
 @testable import FamiliarSpeechHelper
@@ -34,6 +35,26 @@ final class RealFluidAudioModelTests: XCTestCase {
 private func makeGeneratedSpeechFixture() throws -> URL {
     let audioURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("familiar-fluid-audio-\(UUID().uuidString).aiff")
+    var latestStatus: Int32 = -1
+
+    for attempt in 1...3 {
+        try? FileManager.default.removeItem(at: audioURL)
+        latestStatus = try generateSpeech(at: audioURL)
+        if latestStatus == 0, hasUsableSpeechDuration(at: audioURL) {
+            return audioURL
+        }
+        if attempt < 3 {
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+    }
+
+    throw HelperError.message(
+        "macOS say did not generate two seconds of audio after 3 attempts " +
+            "(latest status: \(latestStatus))."
+    )
+}
+
+private func generateSpeech(at audioURL: URL) throws -> Int32 {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/say")
     process.arguments = [
@@ -45,10 +66,16 @@ private func makeGeneratedSpeechFixture() throws -> URL {
 
     try process.run()
     process.waitUntilExit()
-    guard process.terminationStatus == 0 else {
-        throw HelperError.message(
-            "macOS say failed with status \(process.terminationStatus)."
-        )
+    return process.terminationStatus
+}
+
+private func hasUsableSpeechDuration(at audioURL: URL) -> Bool {
+    guard let audioFile = try? AVAudioFile(forReading: audioURL) else {
+        return false
     }
-    return audioURL
+    let sampleRate = audioFile.processingFormat.sampleRate
+    guard sampleRate > 0 else {
+        return false
+    }
+    return Double(audioFile.length) / sampleRate >= 2
 }

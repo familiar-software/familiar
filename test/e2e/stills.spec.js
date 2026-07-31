@@ -190,23 +190,35 @@ const corruptStillsDbOnNextEnqueue = async (electronApp) => {
   })
 }
 
-const assertFreshQueueDb = async (electronApp) => {
-  const result = await electronApp.evaluate(() => {
+const inspectFreshQueueDb = async (electronApp) =>
+  electronApp.evaluate(() => {
     const Database = process.mainModule.require(`${process.cwd()}/node_modules/better-sqlite3`)
     const dbPath = `${process.env.FAMILIAR_E2E_CONTEXT_PATH}/familiar/stills.db`
-    const db = new Database(dbPath, { readonly: true })
+    let db = null
     try {
+      db = new Database(dbPath, { readonly: true })
       return {
         integrityCheck: db.prepare('PRAGMA integrity_check').pluck().get(),
         columns: db.prepare('PRAGMA table_info(stills_queue)').all().map((column) => column.name)
       }
+    } catch (error) {
+      return {
+        integrityCheck: null,
+        columns: [],
+        error: error?.message || String(error)
+      }
     } finally {
-      db.close()
+      db?.close()
     }
   })
 
-  expect(result.integrityCheck).toBe('ok')
-  expect(result.columns).toContain('image_path')
+const assertFreshQueueDb = async (electronApp) => {
+  await expect
+    .poll(() => inspectFreshQueueDb(electronApp), { timeout: 8000 })
+    .toMatchObject({
+      integrityCheck: 'ok',
+      columns: expect.arrayContaining(['image_path'])
+    })
 }
 
 const waitForRecordingStopped = async (window) => {
