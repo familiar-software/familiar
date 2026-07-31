@@ -1,3 +1,4 @@
 node_modules
 dist/
 src/dashboard/react-dist/
+scripts/familiar-speech-helper/.build/

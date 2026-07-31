@@ -37,7 +37,7 @@ If the skill is called without any extra inline date/prompt, treat it as if the 
 
 ## Content Format
 
-Each file describes exactly one still image.
+Each file describes exactly one still image. The image itself is at the parallel path `<contextFolderPath>/familiar/stills/session-<timestamp>/<captureTimestamp>.webp` — same session folder and capture timestamp, `stills` instead of `stills-markdown`. Markdown persists, but images are auto-deleted after a few days to a week (depending on the user setting).
 
 ```
 ---
@@ -91,6 +91,7 @@ recording sessions.
 3. Read all of the relevant markdown files in the selected sessions, make sure you have them in the correct order
 4. Use `# OCR` for exact text matches and frontmatter for app/window context.
 5. try to avoid searching by keywords unless its really obvious that the user is asking you to find a very particular thing. if the request is a generic one (for example, "how did i do today? anything to improve?") then you need to read all of the relevant markdown files
+6. For queries touching the last couple of days, the `.webp` images usually still exist — so, when the actual original image might matters to the answer, open the image too, not just the OCR text. If already deleted, fall back to the markdown.
 
 ## Guardrails
 
