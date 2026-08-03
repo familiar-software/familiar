@@ -136,7 +136,7 @@
     "electron": "40.10.6",
     "electron-builder": "26.15.7",
     "esbuild": "^0.25.5",
-    "playwright": "^1.55.0",
+    "playwright": "^1.62.1",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "rimraf": "^6.1.2",
