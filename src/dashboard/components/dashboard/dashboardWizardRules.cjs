@@ -76,11 +76,16 @@ const isValidWizardStep = (step) => {
   return WIZARD_STEPS.includes(Number(step))
 }
 
+const isAutomateSelectionReady = (selectedDestinations) => {
+  return selectedDestinations.size > 0
+}
+
 module.exports = {
   WIZARD_STEPS,
   resolveInitialWizardStep,
   isWizardStepComplete,
   nextWizardStep,
   previousWizardStep,
-  isValidWizardStep
+  isValidWizardStep,
+  isAutomateSelectionReady
 }

@@ -93,10 +93,8 @@ export function WizardSection({
   }, [])
 
   // ── Step 5: "Automate" Done gating ──
-  // Ready = "manual only" selected, OR user clicked Copy on the prompt
-  // and 4s have elapsed since that click. AutomatePromptBuilder owns
-  // the timer + reset-on-selection-change logic and tells us via this
-  // callback.
+  // Any selected destination unlocks Done. AutomatePromptBuilder owns
+  // the selection and reports readiness through this callback.
   const [step5Ready, setStep5Ready] = useState(false)
 
   // Override canAdvance for steps with local gating

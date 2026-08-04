@@ -1,5 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { CardTitle } from '../ui/card'
+import dashboardWizardRules from '../dashboard/dashboardWizardRules.cjs'
+
+const { isAutomateSelectionReady } = dashboardWizardRules
 
 // Shared prompt-builder used by the wizard's step 5 and the settings
 // Automate section. State is transient — each mount starts with no
@@ -8,10 +11,7 @@ import { CardTitle } from '../ui/card'
 // /familiar command, and paste it into their agent's scheduled-task UI.
 //
 // `onReadyChange(ready: boolean)` — for wizard step 5 Done gating.
-// "Ready" is: only the manual/no-auto-update option selected, OR the
-// user has clicked Copy on the generated prompt AND a 4-second delay
-// has elapsed. Changing the destination selection after copying resets
-// the copy-ready flag so the user has to re-copy.
+// Selecting any destination makes the step ready.
 export function AutomatePromptBuilder({
   wizardHarnessOptions,
   skillInstallPaths,
@@ -25,28 +25,17 @@ export function AutomatePromptBuilder({
   const [selectedDestinations, setSelectedDestinations] = useState(() => new Set())
   const [knowledgeBasePath, setKnowledgeBasePath] = useState('')
   const [promptCopied, setPromptCopied] = useState(false)
-  const [copyReady, setCopyReady] = useState(false)
-  const copyReadyTimerRef = useRef(null)
 
   const hasAutomationDest = ['memory', 'skills', 'knowledgeBase'].some(
     (d) => selectedDestinations.has(d)
   )
-  // "Manual only" = user picked the don't-auto-update option and nothing
-  // else. Done unlocks immediately in that case — no copy step needed.
-  const manualOnly =
-    selectedDestinations.has('manual') && !hasAutomationDest
-  const ready = manualOnly || (hasAutomationDest && copyReady)
+  const ready = isAutomateSelectionReady(selectedDestinations)
 
   useEffect(() => {
     if (typeof onReadyChange === 'function') {
       onReadyChange(ready)
     }
   }, [ready, onReadyChange])
-
-  // Clean up any pending copy-delay timer on unmount.
-  useEffect(() => () => {
-    if (copyReadyTimerRef.current) clearTimeout(copyReadyTimerRef.current)
-  }, [])
 
   const installedInstallModeEntries = (wizardHarnessOptions || []).filter(
     (entry) =>
@@ -59,17 +48,6 @@ export function AutomatePromptBuilder({
       ? toDisplayText(installedInstallModeEntries[0].label)
       : null
 
-  // Any change to the destination set invalidates a prior "user copied
-  // the prompt" unlock — the prompt text itself just changed, so the
-  // thing they copied is no longer what they meant to paste.
-  const resetCopyReady = () => {
-    if (copyReadyTimerRef.current) {
-      clearTimeout(copyReadyTimerRef.current)
-      copyReadyTimerRef.current = null
-    }
-    setCopyReady(false)
-  }
-
   const toggleDestination = async (dest) => {
     if (dest === 'knowledgeBase' && !selectedDestinations.has('knowledgeBase')) {
       if (typeof window.familiar?.pickDirectory === 'function') {
@@ -81,7 +59,6 @@ export function AutomatePromptBuilder({
             next.add('knowledgeBase')
             return next
           })
-          resetCopyReady()
         }
         return
       }
@@ -92,16 +69,10 @@ export function AutomatePromptBuilder({
       else next.add(dest)
       return next
     })
-    resetCopyReady()
   }
 
   const handlePromptCopy = () => {
     copyToClipboard(generatePrompt(), setPromptCopied)
-    if (copyReadyTimerRef.current) clearTimeout(copyReadyTimerRef.current)
-    copyReadyTimerRef.current = setTimeout(() => {
-      setCopyReady(true)
-      copyReadyTimerRef.current = null
-    }, 4000)
   }
 
   const generatePrompt = () => {

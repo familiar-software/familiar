@@ -6,7 +6,8 @@ const {
   isWizardStepComplete,
   nextWizardStep,
   previousWizardStep,
-  isValidWizardStep
+  isValidWizardStep,
+  isAutomateSelectionReady
 } = require('../src/dashboard/components/dashboard/dashboardWizardRules.cjs')
 
 test('initial wizard step starts at context when permissions already granted', () => {
@@ -130,6 +131,13 @@ test('step 5 is the final completion step and is always complete', () => {
     isWizardStepComplete({ step: 5, settings: {}, isSkillInstalled: false, getHarnessesFromState: () => [] }),
     true
   )
+})
+
+test('automate selection is ready when any destination is selected', () => {
+  for (const destination of ['memory', 'skills', 'knowledgeBase', 'manual']) {
+    assert.equal(isAutomateSelectionReady(new Set([destination])), true)
+  }
+  assert.equal(isAutomateSelectionReady(new Set()), false)
 })
 
 test('nextWizardStep advances within bounds', () => {

@@ -220,16 +220,11 @@ const expectWizardAutomateStepCopy = async (window, doneButton, { expectedTitle 
   await expect(doneButton).toContainText(copy.wizardDone)
 }
 
-// Step 5 gates Done on either (a) the "Don't auto-update" option
-// selected alone — unlocks Done immediately — or (b) an automation
-// destination selected followed by a Copy click on the generated
-// prompt plus a 4-second delay. E2E takes path (a) because it's the
-// deterministic fast path; the 4-second copy delay has dedicated
-// coverage elsewhere.
+// Step 5 gates Done until any destination is selected.
 const completeWizardAutomateStep = async (window, doneButton, options = {}) => {
   await expectWizardAutomateStepCopy(window, doneButton, options)
   await expect(doneButton).toBeDisabled()
-  await window.locator('[data-wizard-step="5"] button', { hasText: copy.wizardDestManual }).click()
+  await window.locator('[data-wizard-step="5"] button', { hasText: copy.wizardDestMemory }).click()
   await expect(doneButton).toBeEnabled()
   await doneButton.click()
 }
