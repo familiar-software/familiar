@@ -133,7 +133,7 @@
     "@electron/rebuild": "4.2.0",
     "@tailwindcss/cli": "^4.1.18",
     "canvas-confetti": "^1.9.4",
-    "electron": "40.10.6",
+    "electron": "43.2.0",
     "electron-builder": "26.15.7",
     "esbuild": "^0.25.5",
     "playwright": "^1.55.0",
