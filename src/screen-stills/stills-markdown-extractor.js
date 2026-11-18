@@ -45,6 +45,8 @@ const createAppleVisionOcrExtractor = ({
   const languages = config.languages || ''
   const usesLanguageCorrection = config.noCorrection === true ? false : true
   const minConfidence = typeof config.minConfidence === 'number' ? config.minConfidence : 0.0
+  const timeoutMs = config.timeoutMs
+  const timeoutRetries = config.timeoutRetries
 
   let binaryPathPromise = null
   const resolveBinaryPathOnce = async () => {
@@ -87,7 +89,10 @@ const createAppleVisionOcrExtractor = ({
           languages,
           usesLanguageCorrection,
           minConfidence,
-          emitObservations: false
+          emitObservations: false,
+          timeoutMs,
+          timeoutRetries,
+          logger
         })
         const markdown = buildMarkdownLayoutFromOcrImpl({
           imagePath: row.image_path,
@@ -110,6 +115,7 @@ const createAppleVisionOcrExtractor = ({
           imagePath: row.image_path,
           error
         })
+        results.set(String(row.id), { error: error?.message || String(error) })
       }
     }
 

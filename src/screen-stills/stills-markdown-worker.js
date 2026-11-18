@@ -91,6 +91,7 @@ const createStillsMarkdownWorker = ({
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
   maxBatchesPerTick = DEFAULT_MAX_BATCHES_PER_TICK,
   requeueProcessingAfterMs = DEFAULT_REQUEUE_STALE_PROCESSING_AFTER_MS,
+  abandonStuckTickAfterMs = requeueProcessingAfterMs,
   isOnlineImpl = defaultIsOnlineImpl,
   runImmediately = true,
   loadSettingsImpl = loadSettings,
@@ -106,6 +107,8 @@ const createStillsMarkdownWorker = ({
   let queueStore = null
   let timer = null
   let isProcessing = false
+  let processingStartedAt = 0
+  let currentTickId = 0
 
   const stop = () => {
     if (timer) {
@@ -150,7 +153,18 @@ const createStillsMarkdownWorker = ({
     return Math.floor(maxBatchesPerTick)
   }
 
-  const processSingleBatch = async ({ batch, batchIndex, extractor }) => {
+  const isStuckTickAbandonEnabled = () =>
+    Number.isFinite(abandonStuckTickAfterMs) && abandonStuckTickAfterMs > 0
+
+  const processSingleBatch = async ({
+    batch,
+    batchIndex,
+    extractor,
+    isAbandoned = () => false
+  }) => {
+    if (isAbandoned()) {
+      return
+    }
     try {
       logger.log('Processing stills markdown batch', {
         count: batch.length,
@@ -160,18 +174,29 @@ const createStillsMarkdownWorker = ({
 
       const resultsById = await extractor.extractBatch({ rows: batch })
 
+      if (isAbandoned()) {
+        // A newer tick has already requeued these rows; writing results now would race it.
+        logger.warn('Discarding stills markdown batch results from abandoned tick', {
+          count: batch.length,
+          batchIndex
+        })
+        return
+      }
+
       logger.log('Received markdown batch response', { count: resultsById.size, batchIndex })
 
       for (const row of batch) {
         const result = resultsById.get(String(row.id))
         const markdown = result?.markdown
         if (typeof markdown !== 'string' || !markdown.trim()) {
+          const error = result?.error || 'missing markdown response'
           logger.error('Missing markdown response for still', {
             id: row.id,
             imagePath: row.image_path,
-            batchIndex
+            batchIndex,
+            error
           })
-          queueStore.markFailed({ id: row.id, error: 'missing markdown response' })
+          queueStore.markFailed({ id: row.id, error })
           continue
         }
 
@@ -202,6 +227,13 @@ const createStillsMarkdownWorker = ({
         logger.log('Wrote stills markdown', { id: row.id, outputPath })
       }
     } catch (error) {
+      if (isAbandoned()) {
+        logger.warn('Ignoring stills markdown batch failure from abandoned tick', {
+          error,
+          batchIndex
+        })
+        return
+      }
       logger.error('Stills markdown batch failed', { error, batchIndex })
       const retryable = error instanceof RetryableError
       for (const row of batch) {
@@ -224,10 +256,26 @@ const createStillsMarkdownWorker = ({
   }
 
   const processBatch = async () => {
-    if (!running || !queueStore || isProcessing) {
+    if (!running || !queueStore) {
       return
     }
+    if (isProcessing) {
+      const busyMs = Date.now() - processingStartedAt
+      if (!isStuckTickAbandonEnabled() || busyMs < abandonStuckTickAfterMs) {
+        return
+      }
+      // Something in the previous tick never settled (e.g. a hung OCR helper). Abandon it so the
+      // worker keeps draining the queue; this tick's stale requeue picks up its rows.
+      logger.error('Stills markdown worker tick appears stuck; abandoning it', {
+        busyMs,
+        abandonStuckTickAfterMs
+      })
+    }
+    currentTickId += 1
+    const tickId = currentTickId
+    const isAbandoned = () => tickId !== currentTickId
     isProcessing = true
+    processingStartedAt = Date.now()
     let fatalError = null
     logger.log('Stills markdown worker tick')
     try {
@@ -285,12 +333,12 @@ const createStillsMarkdownWorker = ({
         for (const { batch, batchIndex } of batches) {
           // Serial execution for CPU-heavy extractors (OCR).
           // eslint-disable-next-line no-await-in-loop
-          await processSingleBatch({ batch, batchIndex, extractor })
+          await processSingleBatch({ batch, batchIndex, extractor, isAbandoned })
         }
       } else {
         await Promise.all(
           batches.map(({ batch, batchIndex }) =>
-            processSingleBatch({ batch, batchIndex, extractor }))
+            processSingleBatch({ batch, batchIndex, extractor, isAbandoned }))
         )
       }
     } catch (error) {
@@ -299,10 +347,13 @@ const createStillsMarkdownWorker = ({
         fatalError = error
       }
     } finally {
-      isProcessing = false
-      if (!running && queueStore) {
-        queueStore.close()
-        queueStore = null
+      // An abandoned tick no longer owns the worker state; the tick that replaced it does.
+      if (!isAbandoned()) {
+        isProcessing = false
+        if (!running && queueStore) {
+          queueStore.close()
+          queueStore = null
+        }
       }
       if (fatalError) {
         try {
