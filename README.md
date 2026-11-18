@@ -49,7 +49,7 @@ Familiar is our "bitter lesson" version: just hand over context and get out of t
 
 ## Privacy
 
-Familiar uses Apple's native OCR, deletes screenshot images after 48 hours, and redacts passwords/credit card numbers/SSNs/API tokens/etc. We'd love contributions on what else to block: https://github.com/familiar-software/familiar/tree/main/src/ or in general ways to improve privacy.
+Familiar uses Apple's native OCR, deletes screenshot images after 48 hours (screenshots still waiting for OCR are kept for up to one extra retention period so they aren't lost unprocessed), and redacts passwords/credit card numbers/SSNs/API tokens/etc. We'd love contributions on what else to block: https://github.com/familiar-software/familiar/tree/main/src/ or in general ways to improve privacy.
 
 
 ## Additional Details

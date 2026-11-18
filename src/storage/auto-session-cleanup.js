@@ -2,6 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const {
   FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
+  STILLS_DB_FILENAME,
   STILLS_DIR_NAME
 } = require('../const')
 const {
@@ -54,12 +55,72 @@ function resolveAutoCleanupRoots(contextFolderPath) {
   return [path.join(familiarRoot, STILLS_DIR_NAME)]
 }
 
+// Stills still waiting for OCR, keyed by session id (the session directory name).
+function loadPendingStillCountsBySessionId({ contextFolderPath, logger = console } = {}) {
+  const counts = new Map()
+  if (typeof contextFolderPath !== 'string' || contextFolderPath.trim().length === 0) {
+    return counts
+  }
+  const dbPath = path.join(
+    contextFolderPath,
+    FAMILIAR_BEHIND_THE_SCENES_DIR_NAME,
+    STILLS_DB_FILENAME
+  )
+  if (!fs.existsSync(dbPath)) {
+    return counts
+  }
+
+  let db = null
+  try {
+    const Database = require('better-sqlite3')
+    db = new Database(dbPath, { fileMustExist: true })
+    const rows = db
+      .prepare(
+        `SELECT session_id AS sessionId, COUNT(*) AS count
+         FROM stills_queue
+         WHERE status IN ('pending', 'processing')
+         GROUP BY session_id`
+      )
+      .all()
+    for (const row of rows) {
+      const count = Number(row?.count) || 0
+      if (typeof row?.sessionId === 'string' && row.sessionId && count > 0) {
+        counts.set(row.sessionId, count)
+      }
+    }
+  } catch (error) {
+    logger.warn('Failed to read pending stills from queue during auto cleanup', {
+      dbPath,
+      message: error?.message || String(error)
+    })
+  } finally {
+    if (db) {
+      try {
+        db.close()
+      } catch (_) {
+        // Ignore close errors; the read already succeeded or was logged.
+      }
+    }
+  }
+  return counts
+}
+
+function resolvePendingStillsGraceDays(value, retentionDays) {
+  const numericValue = Number(value)
+  if (value === undefined || value === null || !Number.isFinite(numericValue) || numericValue < 0) {
+    return retentionDays
+  }
+  return numericValue
+}
+
 async function cleanupSessionDirectoriesByRetention({
   scanRoots = [],
   options: {
     retentionDays = DEFAULT_RETENTION_DAYS,
     nowMs = Date.now(),
     allowedRoots = [],
+    pendingStillCountsBySessionId = new Map(),
+    pendingStillsGraceDays,
     deleteDirectory = defaultDeleteDirectory,
     deleteDirectoryIfAllowedFn = deleteDirectoryIfAllowed,
     logger = console
@@ -67,6 +128,13 @@ async function cleanupSessionDirectoriesByRetention({
 } = {}) {
   const realAllowedRoots = normalizeAllowedRoots(allowedRoots)
   const cutoffMs = nowMs - retentionDays * DAILY_INTERVAL_MS
+  // Sessions with stills still awaiting OCR get at most one extra grace period, so a stalled
+  // OCR worker can't silently lose captures but can't keep them forever either.
+  const pendingStillsGraceDaysResolved = resolvePendingStillsGraceDays(
+    pendingStillsGraceDays,
+    retentionDays
+  )
+  const pendingStillsCutoffMs = cutoffMs - pendingStillsGraceDaysResolved * DAILY_INTERVAL_MS
   const summary = {
     retentionDays,
     cutoffMs,
@@ -76,6 +144,7 @@ async function cleanupSessionDirectoriesByRetention({
     failedSessionCount: 0,
     skippedInvalidNameCount: 0,
     skippedFutureDatedCount: 0,
+    skippedPendingStillsCount: 0,
     deletedSessionDirs: [],
     failedSessionDirs: []
   }
@@ -148,6 +217,22 @@ async function cleanupSessionDirectoriesByRetention({
         continue
       }
 
+      const pendingStillCount = Number(pendingStillCountsBySessionId?.get?.(entry.name)) || 0
+      if (pendingStillCount > 0) {
+        if (sessionTimestampMs >= pendingStillsCutoffMs) {
+          summary.skippedPendingStillsCount += 1
+          logger.warn('Deferring auto cleanup of session directory with stills awaiting OCR', {
+            sessionDirPath: realSessionDirPath,
+            pendingStillCount
+          })
+          continue
+        }
+        logger.warn('Deleting session directory with stills still awaiting OCR past grace period', {
+          sessionDirPath: realSessionDirPath,
+          pendingStillCount
+        })
+      }
+
       summary.eligibleSessionCount += 1
       try {
         const result = await deleteDirectoryIfAllowedFn({
@@ -190,6 +275,7 @@ async function runAutoSessionCleanup({
   nowMs = Date.now(),
   logger = console,
   cleanupSessionDirectoriesByRetentionFn = cleanupSessionDirectoriesByRetention,
+  loadPendingStillCountsBySessionIdFn = loadPendingStillCountsBySessionId,
   deleteDirectory = defaultDeleteDirectory
 } = {}) {
   if (typeof settingsLoader !== 'function') {
@@ -219,12 +305,17 @@ async function runAutoSessionCleanup({
 
   let summary = null
   try {
+    const pendingStillCountsBySessionId = loadPendingStillCountsBySessionIdFn({
+      contextFolderPath,
+      logger
+    })
     summary = await cleanupSessionDirectoriesByRetentionFn({
       scanRoots: allowedRoots,
       options: {
         retentionDays,
         nowMs,
         allowedRoots,
+        pendingStillCountsBySessionId,
         deleteDirectory,
         logger
       }
@@ -249,7 +340,8 @@ async function runAutoSessionCleanup({
     deletedSessionCount: summary.deletedSessionCount,
     failedSessionCount: summary.failedSessionCount,
     skippedInvalidNameCount: summary.skippedInvalidNameCount,
-    skippedFutureDatedCount: summary.skippedFutureDatedCount
+    skippedFutureDatedCount: summary.skippedFutureDatedCount,
+    skippedPendingStillsCount: summary.skippedPendingStillsCount
   })
 
   return {
@@ -335,6 +427,7 @@ module.exports = {
   resolveCleanupRetentionDays,
   shouldRunDailyCleanup,
   resolveAutoCleanupRoots,
+  loadPendingStillCountsBySessionId,
   cleanupSessionDirectoriesByRetention,
   runAutoSessionCleanup,
   createAutoSessionCleanupScheduler

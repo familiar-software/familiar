@@ -12,6 +12,7 @@ const {
   createAutoSessionCleanupScheduler,
   runAutoSessionCleanup
 } = require('../src/storage/auto-session-cleanup')
+const { createStillsQueue } = require('../src/screen-stills/stills-queue')
 
 const createSessionId = (date) => {
   const iso = date.toISOString().replace(/[:.]/g, '-')
@@ -211,6 +212,54 @@ test('runAutoSessionCleanup updates last run timestamp after attempt', async () 
   assert.equal(savedPayloads.length, 1)
   assert.equal(savedPayloads[0].storageAutoCleanupLastRunAt, runAtMs)
   assert.equal(fs.existsSync(oldSessionDir), false)
+  fs.rmSync(root, { recursive: true, force: true })
+})
+
+test('runAutoSessionCleanup defers sessions with stills awaiting OCR for one grace period', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'familiar-auto-cleanup-pending-'))
+  const contextPath = path.join(root, 'context')
+  const stillsRoot = path.join(contextPath, 'familiar', 'stills')
+  const runAtMs = Date.parse('2026-02-20T00:00:00.000Z')
+  const dayMs = 24 * 60 * 60 * 1000
+  const pendingSessionId = createSessionId(new Date(runAtMs - 3 * dayMs))
+  const processedSessionId = createSessionId(new Date(runAtMs - 3 * dayMs + 60 * 60 * 1000))
+  const stalePendingSessionId = createSessionId(new Date(runAtMs - 5 * dayMs))
+  for (const sessionId of [pendingSessionId, processedSessionId, stalePendingSessionId]) {
+    fs.mkdirSync(path.join(stillsRoot, sessionId), { recursive: true })
+  }
+
+  const queue = createStillsQueue({ contextFolderPath: contextPath, logger: createTestLogger() })
+  const enqueue = (sessionId) =>
+    queue.enqueueCapture({
+      imagePath: path.join(stillsRoot, sessionId, 'still.webp'),
+      sessionId,
+      capturedAt: new Date(runAtMs - 3 * dayMs).toISOString()
+    })
+  enqueue(processedSessionId)
+  const [processedRow] = queue.getPendingBatch(10)
+  queue.markDone({ id: processedRow.id, markdownPath: '/tmp/still.md' })
+  enqueue(pendingSessionId)
+  enqueue(stalePendingSessionId)
+  queue.close()
+
+  const result = await runAutoSessionCleanup({
+    trigger: 'startup',
+    nowMs: runAtMs,
+    settingsLoader: () => ({
+      contextFolderPath: contextPath,
+      storageAutoCleanupRetentionDays: 2
+    }),
+    logger: createTestLogger(),
+    deleteDirectory: async (targetPath) => {
+      fs.rmSync(targetPath, { recursive: true, force: false })
+    }
+  })
+
+  assert.equal(result.summary.skippedPendingStillsCount, 1)
+  assert.equal(result.summary.deletedSessionCount, 2)
+  assert.equal(fs.existsSync(path.join(stillsRoot, pendingSessionId)), true)
+  assert.equal(fs.existsSync(path.join(stillsRoot, processedSessionId)), false)
+  assert.equal(fs.existsSync(path.join(stillsRoot, stalePendingSessionId)), false)
   fs.rmSync(root, { recursive: true, force: true })
 })
 

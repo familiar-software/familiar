@@ -461,6 +461,125 @@ test('stills markdown worker marks failed when response is missing an id', async
   assert.deepEqual(failed, [2])
 })
 
+test('stills markdown worker marks a still failed with the extractor error', async () => {
+  const failed = []
+  let batchCalls = 0
+  const queue = {
+    requeueStaleProcessing: () => 0,
+    getPendingBatch: () => {
+      batchCalls += 1
+      return batchCalls === 1 ? [{ id: 1, image_path: '/tmp/a.webp' }] : []
+    },
+    markProcessing: () => {},
+    markDone: () => {},
+    markFailed: ({ id, error }) => failed.push({ id, error }),
+    close: () => {}
+  }
+
+  const worker = createStillsMarkdownWorker({
+    logger: { log: () => {}, warn: () => {}, error: () => {} },
+    pollIntervalMs: 0,
+    runImmediately: false,
+    loadSettingsImpl: () => ({}),
+    createQueueImpl: () => queue,
+    createExtractorImpl: () => ({
+      type: 'stub',
+      execution: { maxParallelBatches: 2 },
+      canRun: async () => ({ ok: true }),
+      extractBatch: async () => new Map([
+        ['1', { error: 'Apple Vision OCR helper timed out after 30000ms (3 attempts)' }]
+      ])
+    })
+  })
+
+  worker.start({ contextFolderPath: '/tmp' })
+  await worker.runOnce()
+  worker.stop()
+
+  assert.deepEqual(failed, [
+    { id: 1, error: 'Apple Vision OCR helper timed out after 30000ms (3 attempts)' }
+  ])
+})
+
+test('stills markdown worker abandons a stuck tick so the queue keeps draining', async () => {
+  const done = []
+  const failed = []
+  const errors = []
+  let requeueCalls = 0
+  let batchCalls = 0
+  let extractCalls = 0
+  let releaseStuckExtract = null
+  const queue = {
+    requeueStaleProcessing: () => {
+      requeueCalls += 1
+      return 0
+    },
+    getPendingBatch: () => {
+      batchCalls += 1
+      if (batchCalls === 1) {
+        return [{ id: 1, image_path: '/tmp/stuck.webp' }]
+      }
+      if (batchCalls === 2) {
+        return [{ id: 2, image_path: '/tmp/next.webp' }]
+      }
+      return []
+    },
+    markProcessing: () => {},
+    markDone: ({ id }) => done.push(id),
+    markFailed: ({ id }) => failed.push(id),
+    close: () => {}
+  }
+
+  const worker = createStillsMarkdownWorker({
+    logger: {
+      log: () => {},
+      warn: () => {},
+      error: (message) => errors.push(message)
+    },
+    pollIntervalMs: 0,
+    runImmediately: false,
+    abandonStuckTickAfterMs: 20,
+    loadSettingsImpl: () => ({}),
+    createQueueImpl: () => queue,
+    createExtractorImpl: () => ({
+      type: 'stub',
+      execution: { maxParallelBatches: 1 },
+      canRun: async () => ({ ok: true }),
+      extractBatch: async ({ rows }) => {
+        extractCalls += 1
+        if (extractCalls === 1) {
+          await new Promise((resolve) => {
+            releaseStuckExtract = resolve
+          })
+        }
+        return new Map(rows.map((row) => [String(row.id), { markdown: `Markdown ${row.id}` }]))
+      }
+    }),
+    writeMarkdownFileImpl: async ({ imagePath }) => `${imagePath}.md`
+  })
+
+  worker.start({ contextFolderPath: '/tmp' })
+  const stuckTick = worker.runOnce()
+
+  await worker.runOnce()
+  assert.equal(requeueCalls, 1, 'a busy tick younger than the threshold is left alone')
+
+  await new Promise((resolve) => setTimeout(resolve, 40))
+  await worker.runOnce()
+  assert.equal(requeueCalls, 2, 'the stuck tick is abandoned and a new tick runs')
+  assert.deepEqual(done, [2])
+  assert.ok(errors.some((message) => message.includes('appears stuck')))
+
+  releaseStuckExtract()
+  await stuckTick
+  assert.deepEqual(done, [2], 'late results from the abandoned tick are discarded')
+  assert.deepEqual(failed, [])
+
+  await worker.runOnce()
+  assert.equal(requeueCalls, 3, 'the worker is not wedged after the abandoned tick settles')
+  worker.stop()
+})
+
 test('stills markdown worker requeues on network errors instead of failing', async () => {
   const requeued = []
   const failed = []

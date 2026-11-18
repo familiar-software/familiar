@@ -7,6 +7,87 @@ const { normalizeAppString } = require('../utils/strings')
 
 const execFileAsync = promisify(execFile)
 
+// Apple Vision has been observed to block forever inside the helper (macOS 27.x), so every
+// helper run is bounded. A hung run is killed and retried: the hang is nondeterministic and a
+// retry of the same image normally succeeds.
+const DEFAULT_OCR_TIMEOUT_MS = 30 * 1000
+const DEFAULT_OCR_TIMEOUT_RETRIES = 2
+const MAX_OCR_TIMEOUT_RETRIES = 10
+const OCR_MAX_BUFFER_BYTES = 1024 * 1024 * 50
+
+class AppleVisionOcrTimeoutError extends Error {
+  constructor({ timeoutMs, attempts } = {}) {
+    super(`Apple Vision OCR helper timed out after ${timeoutMs}ms (${attempts} attempts)`)
+    this.name = 'AppleVisionOcrTimeoutError'
+    this.code = 'APPLE_VISION_OCR_TIMEOUT'
+    this.timeoutMs = timeoutMs
+    this.attempts = attempts
+  }
+}
+
+const isUnset = (value) => value === undefined || value === null || value === ''
+
+const normalizeOcrTimeoutMs = (value) => {
+  if (isUnset(value)) {
+    return DEFAULT_OCR_TIMEOUT_MS
+  }
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_OCR_TIMEOUT_MS
+  }
+  return Math.floor(parsed)
+}
+
+const normalizeOcrTimeoutRetries = (value) => {
+  if (isUnset(value)) {
+    return DEFAULT_OCR_TIMEOUT_RETRIES
+  }
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return DEFAULT_OCR_TIMEOUT_RETRIES
+  }
+  return Math.min(parsed, MAX_OCR_TIMEOUT_RETRIES)
+}
+
+// execFile sets `killed` only when it killed the child itself, i.e. when our timeout fired.
+const isHelperTimeoutError = (error) => Boolean(error && error.killed === true)
+
+const execOcrHelperWithTimeout = async ({
+  binaryPath,
+  args,
+  imagePath,
+  timeoutMs,
+  timeoutRetries,
+  logger = console
+} = {}) => {
+  const maxAttempts = timeoutRetries + 1
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await execFileAsync(binaryPath, args, {
+        maxBuffer: OCR_MAX_BUFFER_BYTES,
+        timeout: timeoutMs,
+        killSignal: 'SIGKILL'
+      })
+    } catch (error) {
+      if (!isHelperTimeoutError(error)) {
+        throw error
+      }
+      const willRetry = attempt < maxAttempts
+      logger.warn('Apple Vision OCR helper timed out', {
+        imagePath,
+        attempt,
+        maxAttempts,
+        timeoutMs,
+        willRetry
+      })
+      if (!willRetry) {
+        throw new AppleVisionOcrTimeoutError({ timeoutMs, attempts: attempt })
+      }
+    }
+  }
+  throw new AppleVisionOcrTimeoutError({ timeoutMs, attempts: maxAttempts })
+}
+
 const escapeForQuotedBullet = (value) => String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
 const buildMarkdownLayoutFromOcr = ({
@@ -171,7 +252,10 @@ const runAppleVisionOcrBinary = async ({
   languages,
   usesLanguageCorrection,
   minConfidence,
-  emitObservations
+  emitObservations,
+  timeoutMs,
+  timeoutRetries,
+  logger = console
 } = {}) => {
   if (!binaryPath) {
     throw new Error('Apple Vision OCR binary path required.')
@@ -207,8 +291,13 @@ const runAppleVisionOcrBinary = async ({
     args.push('--no-observations')
   }
 
-  const { stdout } = await execFileAsync(binaryPath, args, {
-    maxBuffer: 1024 * 1024 * 50
+  const { stdout } = await execOcrHelperWithTimeout({
+    binaryPath,
+    args,
+    imagePath,
+    timeoutMs: normalizeOcrTimeoutMs(timeoutMs),
+    timeoutRetries: normalizeOcrTimeoutRetries(timeoutRetries),
+    logger
   })
 
   let parsed
@@ -228,6 +317,11 @@ const runAppleVisionOcrBinary = async ({
 }
 
 module.exports = {
+  DEFAULT_OCR_TIMEOUT_MS,
+  DEFAULT_OCR_TIMEOUT_RETRIES,
+  AppleVisionOcrTimeoutError,
+  normalizeOcrTimeoutMs,
+  normalizeOcrTimeoutRetries,
   escapeForQuotedBullet,
   buildMarkdownLayoutFromOcr,
   normalizeOcrLevel,
